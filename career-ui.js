@@ -2751,7 +2751,7 @@
     C.recordGoals(save, fx, ev);
     const got = C.rewardCards(save, score, ev, (A().match || {}).stats, fx.opp && fx.opp.name, played);
     if (res.coins) { save.coins = (save.coins || 0) + res.coins; got.coins = (got.coins || 0) + res.coins; }
-    const off = C.afterOfficial(save, ev, score, res, played);
+    const off = C.afterOfficial(save, ev, score, res, played, fx.kind);
     const newInj = save.team.players.filter((q) => q.injury > 0 && !injBefore.has(q.name));
     afterRound(got, res, { fx, score, ev, off, newInj, before });
   }

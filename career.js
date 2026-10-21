@@ -662,10 +662,20 @@
     });
   }
   // 公式戦のあと：出場停止（レッドカード→次の公式戦）と、勝った時の調子アップ
-  function afterOfficial(save, events, myScore, res, played) {
-    const ps = save.team.players, served = [], reds = [];
-    for (const p of ps) if (p.suspend > 0) { p.suspend--; served.push(p.name); }   // 今日の試合で出場停止が明けた
-    for (const e of events || []) if (e.type === 'card' && e.team === 0 && e.color === 'red') { const q = ps.find((x) => x.name === e.player); if (q) { q.suspend = 1; reds.push(q.name); } }
+  // 版835：出場停止は大会ごと。リーグで退場→その年のリーグの次の試合だけ、カップで退場→カップの次の試合だけ（1月の入れ替え戦などは別）。年をまたいだら消える
+  //  p.susp = { season, league, cup, post }。p.suspend（スタメン画面の印・自動の入れ替え）は「次の公式戦で出られないか」を毎回計算し直す
+  function syncSuspend(save) {
+    const fx = (() => { try { return nextFixture(save); } catch (_) { return null; } })(), kind = fx ? fx.kind : null;
+    for (const p of [...((save.team && save.team.players) || []), ...(save.reserve || [])]) {
+      if (p.susp && p.susp.season !== save.season) delete p.susp;
+      p.suspend = kind && p.susp && p.susp[kind] > 0 ? 1 : 0;
+    }
+  }
+  function afterOfficial(save, events, myScore, res, played, kind) {
+    const ps = save.team.players, served = [], reds = [], k = kind || 'league';
+    for (const p of ps) if (p.susp && p.susp.season === save.season && p.susp[k] > 0) { p.susp[k]--; served.push(p.name); }   // この大会の出場停止が明けた
+    for (const e of events || []) if (e.type === 'card' && e.team === 0 && e.color === 'red') { const q = ps.find((x) => x.name === e.player); if (q) { if (!q.susp || q.susp.season !== save.season) q.susp = { season: save.season }; q.susp[k] = 1; reds.push(q.name); } }
+    syncSuspend(save);
     const d = myScore[0] - myScore[1];
     // 版515：公式戦に勝つと、試合に出た選手の調子が1段上がる（PK戦で勝ち上がった時も）
     const won = d > 0 || (d === 0 && res && res.win === true), condUp = [];
@@ -1764,6 +1774,7 @@
     seasonWrapTick(save, out);
     renovTick(save, out);
     if (save.week > SEASON_WEEKS) { const pos = standings(save).findIndex((t) => t.me) + 1, from = lg.name, msg = endSeason(save), retired = retiredAt(save, save.season), titles = evalTitles(save); out.season = { msg, pos, from, to: save.league.name, titles, retired, prize: save.lastPrize }; }
+    syncSuspend(save);   // 版835
     return out;
   }
   function campAdvance(save) { const o = endWeek(save); return { week: o.camp ? o.camp.week : 0, weeks: CAMP.weeks, done: o.campDone, rep: o.rep }; }
@@ -1839,7 +1850,8 @@
   }
   // 古いセーブを新しい育成ポイントとカードへ
   function migrate(save) {
-    try { gachaFixOld(save); } catch (_) {}   // 版506：スカウトで来た強い選手を、弱い状態に
+    try { gachaFixOld(save); } catch (_) {}
+    try { for (const p of [...((save.team && save.team.players) || []), ...(save.reserve || [])]) if (p.suspend > 0 && !p.susp) p.suspend = 0; syncSuspend(save); } catch (_) {}   // 版835：前の仕組みで残っていた出場停止（年をまたいだものなど）は消す   // 版506：スカウトで来た強い選手を、弱い状態に
     // ランクの幅を変えた（E→Dを短く）：今までの育成ポイントを、同じランクの同じ位置に移しかえる
     if (save.ptsVer !== 3) {
       const FROM = save.ptsVer === 2 ? RANK_V2 : RANK_OLD;
@@ -1959,5 +1971,5 @@
     const picks = []; for (let i = 0; i < n; i++) picks.push(gachaOne(save, bn, r, n >= 10 && i === n - 1 && !picks.some((x) => x.star >= 3) ? 3 : 0));   // 10連は☆3以上を1人確定
     return { banner: bn, results: picks.map((pk) => gachaApply(save, pk)) };
   }
-  root.DotCareer = { PREFS, prefRegion, setHometown, earnCoins, earnedOf, homeTier, myNextLg, PREM, premOn, cardMax, awaken, awakeCost, AWAKE_COST, registerGuest, guestCode, GUESTS, champPeek, CARD_MAX, noSkillLg, gachaBanner, gachaPull, gachaPoolAll, ensureGacha, GACHA_RATE, GACHA_COST, GACHA_PITY, KAKERA_OF, oppKits, BENCH_N, kitsPair, d1Round, pinWatch, faceKeyOf, cpuTeam, ensureStar, starOf, totsuOf, capGrade, capPts, capIdx, GRADES, rosterAt, lvlAt, retiredAt, titleOf, ensureTitles, evalTitles, CUP_LABELS, cupIn, ensureClub, renameClub, kitsFor, KIT_DEFAULT, EMB_DEFAULT, TEAMS, TEAM_BY_ID, ROSTERS, rosterOfTeam, leagueTable, prevOrder, goalRank, recordGoals, CUP_WEEKS_ALL: CUP_WEEKS, leagueWeeksOf: leagueWeeks, POST_WEEKS, CARDS, CAT_NAME, SP, findSpecial, previewCards, trainCards, trainOne, weekTick, GRID_R, GRID_C, zoneOf, cellsFor, formationLabel, FORMATIONS, TACTIC_ITEMS, STYLES, SITU_DEFAULT, SITU_ACTS, SITU_ROWS, SITU_FROM, ensureTactics, slotRoles, applyTactics, skillRate, endWeek, SEASON_WEEKS, INJURIES, TYPE_TUNE, COND_NAME, condOf, trainedThisWeek, trainsDone, trainLimit, trainMult, campState, campAdvance, CAMP, slotInfo, SLOT_MAX, SKILL_RATE, rewardCards, newLeague, newCup, playFixture, peekRound, afterOfficial, playPractice, practiceOpponent, practiceOptions, teamLook, recordStats, teamLevel, findTeam, CUP_WEEKS, CAMPS, LG, rankInfo, PMAX, PRICE, buyCard, buyPack, toEng, toPts, migrate, ensurePts, TEAM_MENUS: TEAM_PTS, MENUS, SPECIAL, LEAGUES, PNAME, newCareer, menusFor, train, learnSkill, slots, skillChance, nextFixture, finishRound, standings, endSeason, opponentTeam, matchTeam, avgParam, decideType, TYPES_BY_POS };
+  root.DotCareer = { syncSuspend, PREFS, prefRegion, setHometown, earnCoins, earnedOf, homeTier, myNextLg, PREM, premOn, cardMax, awaken, awakeCost, AWAKE_COST, registerGuest, guestCode, GUESTS, champPeek, CARD_MAX, noSkillLg, gachaBanner, gachaPull, gachaPoolAll, ensureGacha, GACHA_RATE, GACHA_COST, GACHA_PITY, KAKERA_OF, oppKits, BENCH_N, kitsPair, d1Round, pinWatch, faceKeyOf, cpuTeam, ensureStar, starOf, totsuOf, capGrade, capPts, capIdx, GRADES, rosterAt, lvlAt, retiredAt, titleOf, ensureTitles, evalTitles, CUP_LABELS, cupIn, ensureClub, renameClub, kitsFor, KIT_DEFAULT, EMB_DEFAULT, TEAMS, TEAM_BY_ID, ROSTERS, rosterOfTeam, leagueTable, prevOrder, goalRank, recordGoals, CUP_WEEKS_ALL: CUP_WEEKS, leagueWeeksOf: leagueWeeks, POST_WEEKS, CARDS, CAT_NAME, SP, findSpecial, previewCards, trainCards, trainOne, weekTick, GRID_R, GRID_C, zoneOf, cellsFor, formationLabel, FORMATIONS, TACTIC_ITEMS, STYLES, SITU_DEFAULT, SITU_ACTS, SITU_ROWS, SITU_FROM, ensureTactics, slotRoles, applyTactics, skillRate, endWeek, SEASON_WEEKS, INJURIES, TYPE_TUNE, COND_NAME, condOf, trainedThisWeek, trainsDone, trainLimit, trainMult, campState, campAdvance, CAMP, slotInfo, SLOT_MAX, SKILL_RATE, rewardCards, newLeague, newCup, playFixture, peekRound, afterOfficial, playPractice, practiceOpponent, practiceOptions, teamLook, recordStats, teamLevel, findTeam, CUP_WEEKS, CAMPS, LG, rankInfo, PMAX, PRICE, buyCard, buyPack, toEng, toPts, migrate, ensurePts, TEAM_MENUS: TEAM_PTS, MENUS, SPECIAL, LEAGUES, PNAME, newCareer, menusFor, train, learnSkill, slots, skillChance, nextFixture, finishRound, standings, endSeason, opponentTeam, matchTeam, avgParam, decideType, TYPES_BY_POS };
 })(typeof window !== 'undefined' ? window : globalThis);
