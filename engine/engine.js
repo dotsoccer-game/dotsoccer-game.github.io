@@ -576,6 +576,10 @@
     // 力の差（チームの平均能力の差）：圧倒的に強いチームは、迷わず縦に速く攻めて、打てば入る
     const teamRating = (tm) => tm.players.reduce((a, p) => a + PARAM_KEYS.reduce((x, k) => x + p[k], 0) / PARAM_KEYS.length, 0) / tm.players.length;
     const DOM = [0, 1].map((ti) => clamp((teamRating(T[ti]) - teamRating(T[1 - ti]) - 12) / 28, 0, 1));
+    // 版840：チームの「つなぐ力」（0〜1）。パスと判断力が高いほど、横・後ろでつないで相手を動かし、空いた瞬間に縦へ入れる（D2はそこそこ、D1は高い）
+    //  パス型（短くつなぐ）は高く、縦に速い攻めのチーム・守備的なチームは低い（チームの色は残す）
+    for (const tm of T) { const ps = tm.players.filter((q) => !q.gk), vp = ps.reduce((a, q) => a + (q.vision + q.pass) / 2, 0) / Math.max(1, ps.length);
+      tm.pat = clamp(clamp((vp - 40) / 40, 0, 1) * (tm.tac.vert < 0 ? 1.2 : tm.tac.vert > 0 ? 0.65 : 1) * (tm.attitude === 'defensive' ? 0.8 : 1), 0, 1); }
     // 攻める向き（+1 なら x が大きい方へ攻める）。後半は入れ替わる
     const CELEB_LONG = 9.0, CELEB_SHORT = 5.0, CELEB_HURRY = 7.5;   // ゴール後の喜び〜戻りの時間（3点差より開いたら短く）
     const side = [1, -1];
@@ -3170,8 +3174,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         const cand = (k, bonus, extra) => { if (!has(k)) return; bonus += zr(p, k) === 2 ? 0.6 : 0; if (!best || bonus > best.bonus) best = { k, bonus, ...(extra || {}) }; };   // 積極的なエリアでは選ばれやすい
         // 裏を狙える味方：走り出している、または相手の最終ライン付近で待っている
         const runner = (q.run > 0 && fx(p.team, q.x) > offL - 6) || (fx(p.team, q.x) > offL - 3 && fx(p.team, q.x) < offL + 0.2 && L - offL > 8);
-        if (runner && L - offL > 7 && pxf > xf + 3) cand('throughPass', 2.2 + (zAtk ? 0.8 : 0), { through: true });
-        if (runner && danger > 0.15 && d > 9 && d < 38) cand('loftedThrough', 2.4 + (zAtk ? 0.6 : 0), { through: true, chip: true });
+        if (runner && L - offL > 7 && pxf > xf + 3) cand('throughPass', 1.4 + (zAtk ? 0.5 : 0), { through: true });   /* 版840：2.2→1.4 */
+        if (runner && danger > 0.15 && d > 9 && d < 38) cand('loftedThrough', 1.6 + (zAtk ? 0.4 : 0), { through: true, chip: true });   /* 版840：2.4→1.6 */
         if (danger > 0.3 && danger < 1.0 && d < 22) cand('noLook', 0.2 + (zAtk ? 0.4 : 0));
         if (pxf < xf - 1 && d > 3 && d < 13) cand('heelPass', (zAtk ? 2.4 : 1.0));
         if (d > 26 && pxf > xf + 16) cand('longFeed', 2.3);
@@ -3198,7 +3202,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         // 判断力が高いほど、少しでも裏にスペースがあれば走り出しに合わせてスルーパスを狙う
         const spaceBehind = L - offL > 8 && fx(p.team, q.x) > offL - 7 && fx(p.team, q.x) > xf - 2 && !q.gk;
         const isPasser = p.type === 'パサー';
-        const through = !otR && ((q.run > 0 && fx(p.team, q.x) > offL - ((q.aoRun || 0) > S.t && uOn(p, 'aonoouza') ? 7 : 4)) || (spaceBehind && hrReady) || (spaceBehind && (isPasser ? p.vision > 40 && R.next() < (p.vision - 30) / 50 : p.vision > 50 && R.next() < (p.vision - 45) / 55)));
+        let through = !otR && ((q.run > 0 && fx(p.team, q.x) > offL - ((q.aoRun || 0) > S.t && uOn(p, 'aonoouza') ? 7 : 4)) || (spaceBehind && hrReady) || (spaceBehind && L - offL > 12 && (isPasser ? p.vision > 40 && R.next() < (p.vision - 30) / 50 * 0.6 : p.vision > 50 && R.next() < (p.vision - 45) / 55 * 0.4)));
+        if (through && !hrReady && tm.pat > 0 && L - offL < 16 && R.next() < 0.8 * tm.pat) through = false;   // 版840：つなぐチームは、裏が広く空いていなければ、走る味方の足もとへ（何でもスルーパスにしない）
         const lead = (through ? 1.0 : 0.35) * clamp(0.7 + p.vision * 0.005, 0.8, 1);   /* v740 判断：走る味方の先へ出せるか（低いと足元の後ろへ） */
         let px = q.x + q.vx * lead + (through ? sgn(p.team) * 3.5 : 0), py = q.y + q.vy * lead;
         if (otR) [px, py] = otSpot(p, q);
@@ -3231,7 +3236,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         if (uOn(p, 'aonoouza') && (q.aoRun || 0) > S.t) danger *= 0.35;   // 蒼の王座：穴へ走り込む味方への1本は、すき間を通せる
         // うまい選手ほど危ないパスを嫌い、確実につなぐ（Sクラスのビルドアップ）
         const care = 1.35 + Math.max(0, p.vision - 50) / 38, careS = 1 + Math.max(0, p.vision - 50) / CARE_S;
-        let v = 0.6 + (pxf - xf) * (0.06 + Math.max(0, p.vision - 50) * 0.0009 + (S.counter > 0 ? 0.04 : 0) + DOM[p.team] * 0.06 + vert) + Math.min(recvOpp, 9) * 0.13 * careS - danger * 2.4 * care * (1 - DOM[p.team] * 0.6) * (isPasser ? 0.85 : 1) - (d > 30 ? 0.5 : 0);
+        let v = 0.6 + (pxf - xf) * (1 - 0.45 * tm.pat) * (0.06 + Math.max(0, p.vision - 50) * 0.0009 + (S.counter > 0 ? 0.04 : 0) + DOM[p.team] * 0.06 + vert) + Math.min(recvOpp, 9) * 0.13 * careS - danger * 2.4 * care * (1 + 0.5 * tm.pat) * (1 - DOM[p.team] * 0.6) * (isPasser ? 0.85 : 1) - (d > 30 ? 0.5 : 0);
         if (pxf > L - 18 && Math.abs(py - GOAL_Y) < 20) v += 0.5;
         if (S.dribbleMode === 'carry' && p.carryFW === q.idx && danger < 0.5) v += 0.45;   // 運びながら意識していた前のFWへ、コースが空いた瞬間に縦パス
         if (tm.tac.side) v += Math.abs(py - GOAL_Y) > 14 ? tm.tac.side * 0.3 : -tm.tac.side * 0.15;
@@ -3253,7 +3258,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         else if (q.position === 'FW' && mates(q).some((m) => m !== q && m.dcUntil > S.t)) v += 0.9;   // 版794：囮が引きつけている間は、空いた相棒のFWへ   // 版794：囮の走りをしているFWには出さない（引きつけた分、ほかへ）
         if (skZ(q, 'behindRun') && through) v += 1.3 + (q.run > 0 ? 0.6 : 0);   // 版789：裏へ抜け出した選手へ、スルーパスを出しやすい
         if ((q.pgRun || 0) > S.t && q.run > 0 && pxf > xf + 2 && !qOff) v += 1.5 + (through ? 0.5 : 0);   // パス＆ゴー・3人目の動き：走り直した味方へ
-        if (through) v += 1.6 + (tm.mods.through + tm.tac.through) / 50 + Math.max(0, p.vision - 55) / 30;
+        if (through) v += 0.9 + (tm.mods.through + tm.tac.through) / 50 + Math.max(0, p.vision - 55) / 30;   // 版840：スルーパスの上乗せを下げた（1.6→0.9）
         if (isPasser && through) v += 0.7 + (pxf > L - 32 ? 0.35 : 0);   // パサー：決定的なパスを狙う
         if (needle) v += 1.5 + (pxf > L - 30 ? 1.0 : 0);   // 針の穴通し：決定的な1本を狙う
         // 固有スキルで選びやすくなるパス
@@ -3288,7 +3293,14 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         const vital = xf > L - 38;
         if (vital && pxf < xf - 3) v -= pressure >= 2 ? 0.5 : 1.5;
         // 前が空いているのに横・後ろへ回さない（判断力が低い選手でも、ここは分かる）
-        if (frontSpace >= 5 && pressure <= 1 && xf > L / 2 - 15) { if (pxf < xf - 3) v -= 2.2; else if (pxf < xf + 3) v -= 1.4; else if (!through) v -= 0.4; }
+        if (frontSpace >= 5 && pressure <= 1 && xf > L / 2 - 15) { const k0 = 1 - 0.55 * tm.pat; if (pxf < xf - 3) v -= 2.2 * k0; else if (pxf < xf + 3) v -= 1.4 * k0; else if (!through) v -= 0.4 * k0; }
+        // 版840：つなぐサッカー（チームのつなぐ力 tm.pat）。前が詰まっている・寄せられている時は、空いている横・後ろの味方へつないでやり直す
+        { const P = tm.pat, safe = danger < 0.25 && recvOpp > 4.5;
+          if (P > 0 && safe && pxf <= xf + 3) v += P * (frontSpace < 5 || pressure >= 1 ? 1.1 : 0.45) * (vital ? 0.6 : 1);
+          if (P > 0 && safe && pxf < xf - 3 && xf < L / 2 + 12) v += P * 0.7;   // 組み立て：CB・GKへ戻してやり直す
+          if (P > 0 && Math.abs(py - p.y) > 22 && recvOpp > 7 && danger < 0.4) v += P * 1.0;   // 逆サイドへ大きく展開
+          if (P > 0 && xf > L - 36 && d < 14 && danger < 0.4 && pxf > xf - 8) v += P * 0.55;   // ゴール前の短いつなぎ（ワンツー・3人目）
+          if (S.t - (p.beatT ?? -9) < 1.6 && danger < 0.6 && !(p.uniq && p.uOn > S.t)) v += 0.8; }   // 1人引きつけて抜いたら、空いた味方へはたく
         if (pxf > xf + 3) v += 0.02 * Math.min(20, pxf - xf);   // 前へのパスは、だれでも少し評価する
         // ワンツー：さっき預けてくれた味方が前へ走り込んでいたら、すぐ返す
         const pair = (S.passHist || []).filter((h) => S.t - h.t < 14 && ((h.a === p.idx && h.b === q.idx) || (h.a === q.idx && h.b === p.idx))).length;
@@ -3332,7 +3344,9 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         if (xf > L - 28 && !skZ(p, 'controlShot') && Math.abs(p.y - GOAL_Y) > 4 && Math.sign(dy2) === Math.sign(p.y - GOAL_Y)) dy2 = Math.sign(dy2) * Math.min(Math.abs(dy2) * 0.25, Math.abs(dir[1]) * 0.3) + (GOAL_Y - p.y) / (Math.abs(p.y - GOAL_Y) || 1) * 0.15;
         // 相手のバイタルエリアで前が空いていれば、どんどん仕掛ける
         if (xf > L - 38 && space > 4) w *= 1.8;
-        else if (xf > L / 2 - 15 && space >= 5 && pressure <= 1) w *= pressure ? 2.2 : 3.6;   // 前が空いている：横パスより、まず縦に運ぶ
+        w *= 1 - 0.35 * tm.pat;   // 版840：つなぐチームほど、まずパス（ドリブルは空いた時・相手を引きつける時）
+        if (S.t - (p.beatT ?? -9) < 1.6 && !(p.uniq && p.uOn > S.t) && !(xf > L - 22 && space > 7)) w *= 0.4;   // 版840：1人抜いたら、続けて何人も抜きにいかず、はたく（固有スキルの間は別）
+        else if (xf > L / 2 - 15 && space >= 5 && pressure <= 1) w *= (pressure ? 2.2 : 3.6) * (1 - 0.45 * tm.pat);   // 版840：つなぐチームは、むやみに運ばない   // 前が空いている：横パスより、まず縦に運ぶ
         // ドリブルは2種類
         //  突破のドリブル：前へ速く・ボールを大きく押し出す・緩急で抜く（前が空いている時、相手陣、高速ドリブル・カットインを持つ選手）
         //  運ぶドリブル　：ボールを足元から離さず、360°どこへでも動いてキープ（囲まれている・前に相手・自陣）
@@ -4200,6 +4214,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
     }
     // ドリブルで何人抜いたか（同じ選手がボールを持ち続けている間）。3人以上でハイライト用の出来事を残す
     function noteBeat(own, q) {
+      own.beatT = S.t;   // 版840：抜いた時刻（続けて抜きにいかず、はたく判断に使う）
       if (!S.dRun || S.dRun.p !== own.idx) S.dRun = { p: own.idx, t0: S.t, beaten: [], e: null };
       const r = S.dRun;
       if (r.beaten.includes(q.idx)) return;
@@ -4872,9 +4887,10 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       const fit = (ctx.narrow && DRIB_ZONES.narrow.includes(k)) || (ctx.side && DRIB_ZONES.side.includes(k)) || (ctx.goal && DRIB_ZONES.goal.includes(k));
       // 成功率：股抜きは（ドリブル＋テクニック）の平均と、相手の守備力の差でほぼ決まる
       const uD = uDrib(own, q);
-      const pS = k === 'heelLift' ? clamp(0.5 + ((own.technique * 0.6 + own.dribble * 0.4) - (q.defense * 0.6 + q.jump * 0.4)) * 0.009 + (fit ? 0.08 : 0) + (q.stun > 0 ? 0.15 : 0) + uD, 0.1, uD > 0 ? 0.97 : 0.9)   // 版666：ヒールリフトはテクニックが大事。跳べる相手（ジャンプ）には頭で止められやすい
-        : k === 'nutmeg' ? clamp(0.5 + ((own.dribble + own.technique) / 2 - q.defense) * 0.012 + (fit ? 0.05 : 0) + (q.stun > 0 ? 0.15 : 0) + uD, 0.08, uD > 0 ? 0.97 : 0.92)
-        : clamp(0.5 + (own.dribble - q.defense) * 0.008 + (own.technique - 60) * 0.002 + (fit ? 0.1 : 0) + (q.stun > 0 ? 0.15 : 0) + uD, 0.1, uD > 0 ? 0.97 : 0.9);
+      const bPen = S.t - (own.beatT ?? -9) < 2 && !(own.uniq && own.uOn > S.t) ? 0.12 : 0;   // 版840：技で抜く率を下げた（0.5→0.42）。抜いた直後の2人目はさらに難しい
+      const pS = k === 'heelLift' ? clamp(0.4 - bPen + ((own.technique * 0.6 + own.dribble * 0.4) - (q.defense * 0.6 + q.jump * 0.4)) * 0.009 + (fit ? 0.08 : 0) + (q.stun > 0 ? 0.15 : 0) + uD, 0.1, uD > 0 ? 0.97 : 0.9)   // 版666：ヒールリフトはテクニックが大事。跳べる相手（ジャンプ）には頭で止められやすい
+        : k === 'nutmeg' ? clamp(0.4 - bPen + ((own.dribble + own.technique) / 2 - q.defense) * 0.012 + (fit ? 0.05 : 0) + (q.stun > 0 ? 0.15 : 0) + uD, 0.08, uD > 0 ? 0.97 : 0.92)
+        : clamp(0.4 - bPen + (own.dribble - q.defense) * 0.006 + (own.technique - 60) * 0.002 + (fit ? 0.07 : 0) + (q.stun > 0 ? 0.15 : 0) + uD, 0.1, uD > 0 ? 0.97 : 0.9);
       // 相手からボールへの向き・抜く方向
       const gx = fx(own.team, L);
       let fdx = gx - own.x, fdy = (GOAL_Y - own.y) * 0.35; const fl = hyp(fdx, fdy) || 1; fdx /= fl; fdy /= fl;     // 前
@@ -5065,7 +5081,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           // ドリブル技（覚えている選手だけ）：寄せてきた相手を技でかわす
           if (!mtG && R.next() < (uOn(own, 'shiden') ? 1 : (dribbleCtx(own, q).list.some((k) => zr(own, k) === 2) ? 0.85 : 0.6) * (uOn(q, 'matsuri') ? 0.5 : 1)) && skillMove(own, q)) return;   // 紫電の遊戯：競り合いになったら、必ず先に技で抜きにいく   // 祭り太鼓の壁に体を当てられると、技を出す余裕も少ない   // 積極的なエリアでは、競り合いになったらほぼ仕掛ける
           if (uOn(q, 'matsuri') && !mtG) { q.mtGrip = { o: own.idx, at: S.t + 0.25 }; own.mtHeld = S.t + 0.25; return; }   // 祭り太鼓の壁：ぶつかったら、まず体を当てたまま押し込む（すぐには奪わない）
-          let pS = ((own.kgPin || 0) > S.t ? 0.3 : 0) + 0.42 + (q.defense + q.physical - own.dribble - own.physical) * 0.005 - (own.physical - 55) * 0.003 + (own.cur - q.cur) * -0.002 + uDuel(q, own) - ((own.tsukiGuard || 0) > S.t ? 0.15 : 0);   // 国内屈指のアタッカーの抜け出しは、カバーに来ても止めにくい
+          let pS = ((own.kgPin || 0) > S.t ? 0.3 : 0) + 0.55 + (S.t - (own.beatT ?? -9) < 2 && !(own.uniq && own.uOn > S.t) ? 0.1 : 0) + (q.defense + q.physical - own.dribble - own.physical) * 0.005 - (own.physical - 55) * 0.003 + (own.cur - q.cur) * -0.002 + uDuel(q, own) - ((own.tsukiGuard || 0) > S.t ? 0.15 : 0);   // 国内屈指のアタッカーの抜け出しは、カバーに来ても止めにくい
           // ショルダーチャージ：並走している相手に肩から当たって体を入れる（フィジカル勝負）
           if (mtG) pS += 0.25;   // 祭り太鼓の壁：押し込んだあとの奪い合いは、ほぼ負けない
           if (skZ(own, 'postPlay') && fx(own.team, own.x) > L / 2 && own.vx * sgn(own.team) < 1.5) pS -= 0.22;   // ポストプレー：背負ってキープ
@@ -5130,7 +5146,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             { const mv = hyp(own.vx, own.vy), fdx = mv > 1 ? own.vx / mv : sgn(own.team), fdy = mv > 1 ? own.vy / mv : 0; const v = Math.max(5.5, maxSpeed(own) * 0.8);
               own.vx = fdx * v; own.vy = fdy * v; own.burstT = S.t + 0.5; if (S.dribbleDir) S.dribbleDir = [fdx, fdy]; own.protect = S.t + 0.4;
               q.vx *= 0.15; q.vy *= 0.15; }
-            stats[own.team].dribbles_past++; noteBeat(own, q);
+            stats[own.team].dribbles_past++; noteBeat(own, q); own.beatT = S.t;
             if (R.next() < 0.045 + q.physical * 0.0005) { commitFoul(q, own); return; }   // 反則は少なめに
           }
         }
