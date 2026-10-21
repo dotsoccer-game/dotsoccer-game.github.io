@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>よろけ・転倒の確認</title>
+<style>
+  :root { --bg: #0e1a13; --panel: #16261c; --ink: #e8f2ea; --dim: #9fb8a6; --acc: #ffe05a; --btn: #23392b; --btnOn: #3d7a4f; }
+  @media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) { --bg: #0e1a13; } }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 system-ui, sans-serif; }
+  main { max-width: 1120px; margin: 0 auto; padding: 12px 16px 40px; }
+  h1 { font-size: 20px; margin: 4px 0 2px; }
+  .sub { color: var(--dim); margin: 0 0 10px; }
+  .bar { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; margin: 6px 0; }
+  .bar b { color: var(--dim); font-weight: 600; }
+  .grp { display: flex; flex-wrap: wrap; gap: 4px; }
+  button { background: var(--btn); color: var(--ink); border: 1px solid #355c42; border-radius: 6px; padding: 6px 10px; font: inherit; cursor: pointer; }
+  button.on { background: var(--btnOn); border-color: #7fd19a; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-start; }
+  canvas { background: #2f8a3a; border-radius: 8px; max-width: 100%; image-rendering: pixelated; }
+  #pad { display: grid; grid-template-columns: repeat(3, 52px); gap: 4px; }
+  #pad span { display: block; }
+  #info { white-space: pre-wrap; background: var(--panel); border-radius: 8px; padding: 8px 10px; min-height: 64px; margin: 8px 0; }
+  h2 { font-size: 15px; margin: 14px 0 6px; color: var(--dim); }
+</style>
+</head>
+<body>
+<main>
+  <h1>よろける・倒れる・起き上がる（確認中）</h1>
+  <p class="sub">赤（守備）が青にぶつかる。青が押された向きへ、よろける／倒れて起き上がる。矢印（またはキーボードの矢印・WASD）で、青が走る向きを8方向に変えられます。</p>
+  <div class="bar"><b>動き</b><div class="grp" id="mode"></div><b>ぶつかられる向き</b><div class="grp" id="from"></div></div>
+  <div class="bar"><b>速さ</b><div class="grp" id="spd"></div><button id="play">一時停止</button><button id="back">◀ 1コマ戻す</button><button id="fwd">1コマ進める ▶</button><button id="spin">自動で一周：オフ</button></div>
+  <div class="row">
+    <canvas id="big" width="760" height="440"></canvas>
+    <div><div id="pad"></div><p class="sub" style="max-width:170px;margin-top:8px">青が走る向き（画面の上での向き）</p></div>
+  </div>
+  <div id="info"></div>
+  <h2>コマ（横から見た絵。今のコマを黄色で囲む）</h2>
+  <canvas id="strip" width="1088" height="190"></canvas>
+  <h2>同じ瞬間を5つの向きから（横・斜め手前・手前・斜め奥・奥）</h2>
+  <canvas id="vw" width="1088" height="250"></canvas>
+</main>
+<script src="sprites/run_art.js"></script>
+<script src="sprites/dotman.js"></script>
+<script>
+(() => {
+  const BLUE = { shirt: '#2f6fd6', shorts: '#ffffff', socks: '#2f6fd6', hair: '#2a2420', skin: '#e0a46e' };
+  const RED = { shirt: '#e2453a', shorts: '#ffffff', socks: '#e2453a', hair: '#7a4a22', skin: '#f7c99c' };
+  const hyp = Math.hypot, clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  let mode = 'fall', from = 'side', speed = 1, paused = false, spin = false, spinT = 0, t = 0, last = 0, vdir = 5;
+  const HIST = [];
+  const LOOP = 3.6, TC = 0.8;   // 1回の長さ・ぶつかる時刻
+  // 押される向き（青の走る向き＝+x に対して）：横から＝青の右から押されて左へ（画面では手前から奥へ）、後ろから＝前へ、前から＝後ろへ
+  const PUSH = { side: [0.25, -0.97], back: [1, 0], front: [-1, 0] };
+  const VDIRS = [['↖', -3 * Math.PI / 4], ['↑', -Math.PI / 2], ['↗', -Math.PI / 4], ['←', Math.PI], ['', null], ['→', 0], ['↙', 3 * Math.PI / 4], ['↓', Math.PI / 2], ['↘', Math.PI / 4]];
+  const FALL_DUR = 1.25, STUM_DUR = 0.9;
+  // 試合（app.js）と同じ順番・長さ
+  function bluePose(tp) {
+    if (mode === 'stumble') { if (tp < STUM_DUR * 0.9) { const u = tp / STUM_DUR; return u < 0.4 ? ['stumble', 0, '①押された向きへ体が流れ、片足を大きく踏み出して踏ん張る'] : ['stumble', 1, '②両腕を広げてバランスを取る']; } return null; }
+    const u = tp / FALL_DUR; if (u >= 1) return null;
+    return u < 0.1 ? ['fall', 0, '倒れる①足をすくわれてバランスを崩す'] : u < 0.2 ? ['fall', 1, '倒れる②前へ倒れ込む（手を前へ）'] : u < 0.66 ? ['fall', 2, '倒れる③うつ伏せに倒れている'] : u < 0.82 ? ['getup', 0, '起き上がる①手で地面を押して上体を起こす'] : ['getup', 1, '起き上がる②片ひざを立てて立ち上がる'];
+  }
+  function state(t) {
+    const P = PUSH[from], pl = hyp(...P), px = P[0] / pl, py = P[1] / pl;
+    const s = { blue: {}, red: {}, ball: {} };
+    if (t < TC) { s.blue = { x: -3.2 + 4 * t, y: 0, fa: 0, run: 1, ph: t * 2.2 }; }
+    else {
+      const tp = t - TC, ps = bluePose(tp);
+      if (mode === 'stumble') { const k = 1 - Math.exp(-3 * Math.min(tp, STUM_DUR)), d = 2.0 * k; s.blue = { x: px * d, y: py * d, fa: ps ? Math.atan2(py, px) : 0, pose: ps };
+        if (!ps) { const tr = tp - STUM_DUR * 0.9; s.blue.x += Math.min(tr, 2) * 3.2; s.blue.run = 1; s.blue.ph = tp * 2.2; s.blue.fa = 0; } }
+      else { const k = 1 - Math.exp(-6 * Math.min(tp, 1)), d = 0.4 * k; s.blue = { x: px * d, y: py * d, fa: ps ? Math.atan2(py, px) : 0, pose: ps }; }
+    }
+    // 赤：押す向きの反対側から走ってきて、ぶつかってボールを奪い、そのまま押した向きへ運ぶ
+    const r0 = [-px * 4.2, -py * 4.2], rc = [-px * 0.75, -py * 0.75];
+    if (t < TC) { const u = t / TC; s.red = { x: r0[0] + (rc[0] - r0[0]) * u, y: r0[1] + (rc[1] - r0[1]) * u, fa: Math.atan2(py, px), run: 1, ph: t * 2.4 }; s.ball = { x: s.blue.x + 0.6, y: s.blue.y }; }
+    else { const tp = t - TC, d = Math.min(tp, 2.2) * 3.4, A = { side: [0.7, 0.7], back: [0.42, 0.9], front: [1, 0] }[from], al = hyp(...A), ax = A[0] / al, ay = A[1] / al; s.red = { x: rc[0] + ax * d, y: rc[1] + ay * d, fa: Math.atan2(ay, ax), run: tp < 2.2, ph: t * 2.4 }; s.ball = { x: s.red.x + ax * 0.6, y: s.red.y + ay * 0.6 }; }   // 奪った赤は、青とぶつからない向きへボールを運ぶ
+    return s;
+  }
+  // 画面へ：青の走る向き（+x）を画面の th の向きに回す。奥行きは試合と同じく縮める
+  const big = document.getElementById('big'), g = big.getContext('2d');
+  const PPM = 46, DEP = 0.5;
+  function VP(x, y, th, cx, cy) { const dx = x - cx, dy = y - cy, c = Math.cos(th), sn = Math.sin(th); const X = dx * c - dy * sn, Y = dx * sn + dy * c; return [big.width / 2 + X * PPM, big.height * 0.62 + Y * PPM * DEP]; }
+  function drawSprite(ctx, o, X, Y, sc) { const f = DotMan.frame(o), dot = sc * DotMan.fitScale(f, o.facing, o.pose); ctx.imageSmoothingEnabled = false; ctx.drawImage(f.cv, Math.round(X - f.px * dot), Math.round(Y - f.py * dot), f.cv.width * dot, f.cv.height * dot); }
+  function shadow(ctx, X, Y, w) { ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(X, Y, w, w * 0.3, 0, 0, 7); ctx.fill(); }
+  function spriteFor(p, col, th) {
+    const fa = p.fa + th;
+    if (p.pose) return { ...col, facing: fa, pose: p.pose[0], frame: p.pose[1] };
+    if (p.run) return { ...col, facing: fa, pose: 'run', art: true, frame: DotMan.artFrame(fa, p.ph) };
+    return { ...col, facing: fa, pose: 'stand', art: true };
+  }
+  function drawBig() {
+    const th = VDIRS[vdir][1], s = state(t), cx = (s.blue.x + s.red.x) / 2, cy = (s.blue.y + s.red.y) / 2;
+    g.fillStyle = '#2f8a3a'; g.fillRect(0, 0, big.width, big.height);
+    for (let k = -14; k < 14; k++) { const a = VP(k * 2, -30, th, cx, cy), b = VP(k * 2, 30, th, cx, cy), c = VP(k * 2 + 2, 30, th, cx, cy), d = VP(k * 2 + 2, -30, th, cx, cy); g.fillStyle = k % 2 ? 'rgba(255,255,255,.035)' : 'rgba(0,0,0,.035)'; g.beginPath(); g.moveTo(...a); g.lineTo(...b); g.lineTo(...c); g.lineTo(...d); g.fill(); }
+    const items = [];
+    const B = VP(s.blue.x, s.blue.y, th, cx, cy), Rr = VP(s.red.x, s.red.y, th, cx, cy), Bl = VP(s.ball.x, s.ball.y, th, cx, cy);
+    const lying = s.blue.pose && s.blue.pose[0] === 'fall' && s.blue.pose[1] === 2;
+    items.push({ y: B[1], f: () => { shadow(g, B[0], B[1], lying ? 46 : 32); drawSprite(g, spriteFor(s.blue, BLUE, th), B[0], B[1], 4); } });
+    items.push({ y: Rr[1], f: () => { shadow(g, Rr[0], Rr[1], 32); drawSprite(g, spriteFor(s.red, RED, th), Rr[0], Rr[1], 4); } });
+    items.push({ y: Bl[1] + 0.1, f: () => { shadow(g, Bl[0], Bl[1], 7); g.fillStyle = '#fff'; g.strokeStyle = '#222'; g.lineWidth = 2; g.beginPath(); g.arc(Bl[0], Bl[1] - 6, 6, 0, 7); g.fill(); g.stroke(); } });
+    items.sort((a, b) => a.y - b.y).forEach((it) => it.f());
+    if (t >= TC && t < TC + 0.18) { const c = [(B[0] + Rr[0]) / 2, (B[1] + Rr[1]) / 2 - 40], R0 = 8 + (t - TC) * 120; g.globalAlpha = 1 - (t - TC) / 0.18; g.fillStyle = '#fff6a0'; g.strokeStyle = '#e07a10'; g.lineWidth = 2; g.beginPath(); for (let n = 0; n < 12; n++) { const a = n / 12 * Math.PI * 2, rr = n % 2 ? R0 * 0.45 : R0; g.lineTo(c[0] + Math.cos(a) * rr, c[1] + Math.sin(a) * rr * 0.8); } g.closePath(); g.fill(); g.stroke(); g.globalAlpha = 1; }
+    g.fillStyle = '#fff'; g.font = 'bold 16px sans-serif'; g.fillText(VDIRS[vdir][0] + ' へ走る青に、赤が' + { side: '横から', back: '後ろから', front: '前から' }[from] + 'ぶつかる（' + (mode === 'fall' ? '倒れる' : 'よろける') + '）', 12, 24);
+    const ps = s.blue.pose;
+    document.getElementById('info').textContent = `時間：${t.toFixed(2)} 秒\n青：${ps ? ps[2] : t < TC ? 'ドリブル' : mode === 'fall' ? '立ち上がった' : '体勢を立て直して、また走る'}\n赤：${t < TC ? 'ぶつかりにいく' : 'ボールを奪って運ぶ'}`;
+    return s;
+  }
+  // コマの帯（横から）
+  const strip = document.getElementById('strip'), sg = strip.getContext('2d');
+  const STRIP = { stumble: [['stumble', 0, '①踏ん張る'], ['stumble', 1, '②腕でバランス']], fall: [['fall', 0, '①崩れる'], ['fall', 1, '②倒れ込む'], ['fall', 2, '③うつ伏せ'], ['getup', 0, '起き上がる①'], ['getup', 1, '起き上がる②']] };
+  function drawStrip(s) {
+    const L = STRIP[mode], cw = strip.width / 5, cur = s.blue.pose; sg.fillStyle = '#0b1a12'; sg.fillRect(0, 0, strip.width, strip.height);
+    L.forEach(([p, f, lab], i) => { const x0 = i * cw + (5 - L.length) * cw / 2, on = cur && cur[0] === p && cur[1] === f;
+      sg.fillStyle = on ? 'rgba(255,224,90,.18)' : 'rgba(255,255,255,.04)'; sg.fillRect(x0 + 4, 4, cw - 8, strip.height - 8);
+      if (on) { sg.strokeStyle = '#ffe05a'; sg.lineWidth = 3; sg.strokeRect(x0 + 4, 4, cw - 8, strip.height - 8); }
+      drawSprite(sg, { ...BLUE, facing: 0, pose: p, frame: f }, x0 + cw / 2, 140, 3.2);
+      sg.fillStyle = on ? '#ffe05a' : '#cfe0d2'; sg.font = '16px sans-serif'; sg.textAlign = 'center'; sg.fillText(lab, x0 + cw / 2, 176); sg.textAlign = 'left'; });
+  }
+  // 5つの向き
+  const vw = document.getElementById('vw'), vg = vw.getContext('2d');
+  const VIEWS = [['横（→）', 0], ['斜め手前（↘）', Math.PI / 4], ['手前へ（↓）', Math.PI / 2], ['斜め奥（↗）', -Math.PI / 4], ['奥へ（↑）', -Math.PI / 2]];
+  function drawViews(s) {
+    vg.fillStyle = '#2f8a3a'; vg.fillRect(0, 0, vw.width, vw.height); const cw = vw.width / 5, ps = s.blue.pose || (mode === 'fall' ? ['getup', 1] : ['stumble', 1]);
+    VIEWS.forEach(([lab, fa], i) => { const X0 = i * cw + cw / 2; vg.fillStyle = 'rgba(255,255,255,.85)'; vg.font = '14px sans-serif'; vg.textAlign = 'center'; vg.fillText(lab, X0, 20); vg.textAlign = 'left';
+      if (i) { vg.fillStyle = 'rgba(255,255,255,.12)'; vg.fillRect(i * cw, 30, 1, vw.height - 40); }
+      shadow(vg, X0, 175, 22); drawSprite(vg, { ...BLUE, facing: fa, pose: ps[0], frame: ps[1] }, X0, 175, 3.2); });
+  }
+  function frame() { const s = drawBig(); drawStrip(s); drawViews(s); }
+  function loop(now) { const dt = Math.min(0.05, (now - (last || now)) / 1000); last = now;
+    if (!paused) { HIST.push(t); if (HIST.length > 900) HIST.shift(); t += dt * speed; if (t > LOOP) t = 0;
+      if (spin) { spinT += dt * speed; if (spinT > LOOP) { spinT = 0; const ORD = [5, 8, 7, 6, 3, 0, 1, 2]; vdir = ORD[(ORD.indexOf(vdir) + 1) % 8]; markPad(); } } }
+    frame(); requestAnimationFrame(loop); }
+  // 操作
+  const mk = (id, items, on, def) => { const el = document.getElementById(id); el.innerHTML = items.map(([v, l]) => `<button data-v="${v}">${l}</button>`).join(''); el.querySelectorAll('button').forEach((b) => b.onclick = () => { on(b.dataset.v); el.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); }); el.querySelector(`[data-v="${def}"]`).classList.add('on'); };
+  mk('mode', [['fall', '倒れる → 起き上がる'], ['stumble', 'よろける']], (v) => { mode = v; t = 0; }, 'fall');
+  mk('from', [['side', '横から'], ['back', '後ろから'], ['front', '前から']], (v) => { from = v; t = 0; }, 'side');
+  mk('spd', [['1', '1倍'], ['0.5', '1/2'], ['0.25', '1/4']], (v) => { speed = +v; }, '1');
+  const setPause = (v) => { paused = v; document.getElementById('play').textContent = paused ? '再生' : '一時停止'; };
+  document.getElementById('play').onclick = () => setPause(!paused);
+  document.getElementById('fwd').onclick = () => { setPause(true); HIST.push(t); t = Math.min(LOOP, t + 1 / 30); };
+  document.getElementById('back').onclick = () => { setPause(true); t = Math.max(0, t - 1 / 30); };
+  document.getElementById('spin').onclick = (e) => { spin = !spin; e.target.textContent = '自動で一周：' + (spin ? 'オン' : 'オフ'); };
+  const pad = document.getElementById('pad');
+  pad.innerHTML = VDIRS.map(([a, fa], k) => fa == null ? '<span></span>' : `<button data-k="${k}" style="font-size:22px;padding:8px 0">${a}</button>`).join('');
+  function markPad() { pad.querySelectorAll('button').forEach((b) => b.classList.toggle('on', +b.dataset.k === vdir)); }
+  pad.querySelectorAll('button').forEach((b) => b.onclick = () => { vdir = +b.dataset.k; spin = false; document.getElementById('spin').textContent = '自動で一周：オフ'; markPad(); });
+  markPad();
+  const keys = new Set(), KM = { ArrowUp: 'u', KeyW: 'u', ArrowDown: 'd', KeyS: 'd', ArrowLeft: 'l', KeyA: 'l', ArrowRight: 'r', KeyD: 'r' };
+  const apply = () => { const dx = (keys.has('r') ? 1 : 0) - (keys.has('l') ? 1 : 0), dy = (keys.has('d') ? 1 : 0) - (keys.has('u') ? 1 : 0); if (!dx && !dy) return; vdir = (dy + 1) * 3 + (dx + 1); spin = false; markPad(); };
+  addEventListener('keydown', (e) => { const k = KM[e.code]; if (!k) return; e.preventDefault(); keys.add(k); apply(); });
+  addEventListener('keyup', (e) => { const k = KM[e.code]; if (k) keys.delete(k); });
+  window.__fl = { set: (o) => { if (o.mode) mode = o.mode; if (o.from) from = o.from; if (o.t != null) t = o.t; if (o.dir != null) { vdir = o.dir; markPad(); } paused = !!o.pause; frame(); } };
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,245 @@
+<title>スキルのエリア設定</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=M+PLUS+1p:wght@400;500;700&display=swap">
+<style>
+/* レイアウト：左にスキルの一覧（小さなエリアマップ付き）、右に選んだスキルの大きなピッチ。攻める向きは上 */
+:root {
+  --bg: #eef3ec; --panel: #ffffff; --ink: #1d2a22; --dim: #5d6e63; --line: #cfdcd2;
+  --turf: #3f8f4a; --turf2: #378241; --chalk: #f4f8ef;
+  --no: #b9483f; --mid: #d8a628; --go: #1f9b56; --sel: #1d5fd1;
+  --display: "DotGothic16", "M PLUS 1p", system-ui, sans-serif;
+  --body: "M PLUS 1p", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f1712; --panel: #18241c; --ink: #e6efe8; --dim: #9db0a3; --line: #2c3d31;
+  --turf: #2f7a3a; --turf2: #296e33; --chalk: #e9f1e4; --no: #d8665c; --mid: #e8bb3f; --go: #33b86c; --sel: #6aa0ff; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0f1712; --panel: #18241c; --ink: #e6efe8; --dim: #9db0a3; --line: #2c3d31;
+  --turf: #2f7a3a; --turf2: #296e33; --chalk: #e9f1e4; --no: #d8665c; --mid: #e8bb3f; --go: #33b86c; --sel: #6aa0ff; color-scheme: dark; }
+body { background: var(--bg); color: var(--ink); font: 14px/1.6 var(--body); }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 16px; padding-block: 16px 48px; }
+h1 { font: 26px/1.2 var(--display); margin: 0 0 4px; letter-spacing: .02em; text-wrap: balance; }
+.lead { color: var(--dim); margin: 0 0 14px; max-width: 70ch; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 0 0 14px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.chip { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 4px; color: #fff; font: 15px/1 var(--display); }
+.c0 { background: var(--no); } .c1 { background: var(--mid); color: #2a2208; } .c2 { background: var(--go); }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 18px; align-items: start; }
+@media (max-width: 820px) { .grid { grid-template-columns: 1fr; } }
+.list { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px; max-height: 78vh; overflow: auto; min-width: 0; }
+.grp { font: 13px/1 var(--display); color: var(--dim); letter-spacing: .08em; margin: 12px 4px 6px; }
+.grp:first-child { margin-top: 2px; }
+.items { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 6px; }
+.item { display: grid; grid-template-columns: 30px 1fr; gap: 8px; align-items: center; text-align: left; background: transparent; border: 1px solid var(--line); border-radius: 8px; padding: 6px; color: var(--ink); font: 12.5px/1.3 var(--body); cursor: pointer; }
+.item:hover { border-color: var(--dim); }
+.item.on { border-color: var(--sel); box-shadow: 0 0 0 2px var(--sel) inset; }
+.item:focus-visible, button:focus-visible { outline: 3px solid var(--sel); outline-offset: 2px; }
+.item.changed .nm::after { content: " ●"; color: var(--sel); font-size: 10px; }
+.mini { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(5, 1fr); width: 30px; height: 40px; gap: 1px; background: var(--chalk); padding: 1px; border-radius: 2px; }
+.mini i { display: block; }
+.edit { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; }
+.edit h2 { font: 22px/1.2 var(--display); margin: 0; }
+.desc { color: var(--dim); margin: 4px 0 10px; min-height: 1.6em; }
+.tools { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; margin: 8px 0 12px; }
+.tools b { color: var(--dim); font-weight: 500; font-size: 12.5px; }
+.seg { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+button { font: 13px/1 var(--body); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; cursor: pointer; }
+button.on { border-color: var(--sel); box-shadow: 0 0 0 1px var(--sel) inset; }
+.brush { display: inline-flex; align-items: center; gap: 6px; }
+.pitchbox { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; align-items: stretch; }
+.bands { display: grid; grid-template-rows: auto repeat(5, 1fr) auto; font-size: 12px; color: var(--dim); text-align: right; }
+.bands div { display: flex; align-items: center; justify-content: flex-end; }
+.pitch { position: relative; aspect-ratio: 68 / 105; max-width: 100%; max-height: 640px; width: 100%; background: repeating-linear-gradient(0deg, var(--turf) 0 10%, var(--turf2) 10% 20%); border-radius: 6px; overflow: hidden; touch-action: none; user-select: none; }
+.pitch svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.cells { position: absolute; inset: 0; display: grid; grid-template-columns: 29.4% 41.2% 29.4%; }
+.cell { position: relative; display: grid; place-items: center; border: 1px dashed color-mix(in srgb, var(--chalk) 45%, transparent); cursor: pointer; }
+.cell b { font: clamp(20px, 4.2vw, 34px)/1 var(--display); color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,.35); }
+.cell .tint { position: absolute; inset: 0; opacity: .62; }
+.cell:hover .tint { opacity: .78; }
+.cell b { position: relative; }
+.lanes { display: grid; grid-template-columns: 29.4% 41.2% 29.4%; font-size: 12px; color: var(--dim); text-align: center; margin-top: 4px; }
+.arrow { text-align: center; font: 13px/1.4 var(--display); color: var(--dim); margin-bottom: 4px; }
+.out { margin-top: 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+.out h2 { font: 18px/1.2 var(--display); margin: 0 0 6px; }
+textarea { width: 100%; min-height: 84px; box-sizing: border-box; font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px; resize: vertical; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+.note { color: var(--dim); font-size: 12.5px; }
+#msg { color: var(--go); font-weight: 700; }
+@media (prefers-reduced-motion: no-preference) { .cell .tint { transition: opacity .12s, background .12s; } }
+</style>
+
+<div class="wrap">
+  <h1>スキルのエリア設定</h1>
+  <p class="lead">スキルや動きごとに、ピッチのどこで使うかを決めます。左の一覧から選んで、右のピッチのエリアを押すと切り替わります。ピッチは上が攻める向きです（守備のスキルも、その選手のチームが攻める向きで見ます）。</p>
+  <div class="legend">
+    <span><i class="chip c0">✕</i>使わない</span>
+    <span><i class="chip c1">○</i>普通（今まで通り）</span>
+    <span><i class="chip c2">◎</i>積極的に使う（寄せてきた相手にも自分から仕掛ける・使う回数が増える）</span>
+  </div>
+  <p class="lead">今のゲームでは、✕ はすべての項目で効きます。◎ で使う回数が増えるのは「ドリブル」「ドリブル技」「シュート」「パス」の項目です。「守備」「ボールを持っていない時」の ◎ は、今は ○ と同じ動きになります。</p>
+  <div class="grid">
+    <div class="list" id="list" aria-label="スキルと動きの一覧"></div>
+    <div class="edit">
+      <h2 id="ttl">突破のドリブル</h2>
+      <p class="desc" id="dsc"></p>
+      <div class="tools">
+        <b>押した時に塗る</b>
+        <div class="seg" id="brush"></div>
+        <b>まとめて</b>
+        <div class="seg">
+          <button id="all0" type="button">全部 ✕</button><button id="all1" type="button">全部 ○</button><button id="all2" type="button">全部 ◎</button><button id="rst" type="button">このスキルを初期設定に</button>
+        </div>
+        <label class="brush"><input type="checkbox" id="mirror" checked> 左右のサイドを同じにする</label>
+      </div>
+      <div class="arrow">▲ 攻める向き（相手のゴール）</div>
+      <div class="pitchbox">
+        <div class="bands" id="bands"></div>
+        <div>
+          <div class="pitch" id="pitch">
+            <svg viewBox="0 0 68 105" preserveAspectRatio="none" aria-hidden="true">
+              <g fill="none" stroke="var(--chalk)" stroke-width=".5" opacity=".9">
+                <rect x="1" y="1" width="66" height="103"/>
+                <line x1="1" y1="52.5" x2="67" y2="52.5"/>
+                <ellipse cx="34" cy="52.5" rx="9.15" ry="9.15"/>
+                <rect x="13.85" y="1" width="40.3" height="16.5"/>
+                <rect x="24.85" y="1" width="18.3" height="5.5"/>
+                <rect x="13.85" y="87.5" width="40.3" height="16.5"/>
+                <rect x="24.85" y="98.5" width="18.3" height="5.5"/>
+              </g>
+            </svg>
+            <div class="cells" id="cells"></div>
+          </div>
+          <div class="lanes"><span>左サイド</span><span>中央</span><span>右サイド</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="out">
+    <h2>決めた設定を送る</h2>
+    <p class="note">「設定をコピー」を押して、そのままチャットに貼って送ってください。ゲームの初期設定に組み込みます。この画面の設定は、このブラウザにも覚えておきます。</p>
+    <textarea id="code" readonly aria-label="設定のコード"></textarea>
+    <div class="row"><button id="copy" type="button">設定をコピー</button><button id="resetAll" type="button">全部を初期設定に戻す</button><span id="confirmBox" hidden><span class="note">本当に全部戻しますか？</span> <button id="yes" type="button">戻す</button> <button id="no" type="button">やめる</button></span><span id="msg"></span></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  // エリア：縦5（0＝自陣ゴール前 … 4＝敵ゴール前）× 横3（0＝左サイド・1＝中央・2＝右サイド）。値 0＝✕ 1＝○ 2＝◎
+  const BANDS = ['自陣ゴール前', '自陣', '中盤', '敵陣', '敵ゴール前'];
+  // 初期設定を作る：5つの帯ごとに [サイド, 中央]（数字1つなら両方同じ）
+  const Z = (...b) => { const out = []; for (let i = 0; i < 5; i++) { const v = b[i], s = Array.isArray(v) ? v[0] : v, c = Array.isArray(v) ? v[1] : v; out.push(s, c, s); } return out; };
+  const ITEMS = [
+    ['ドリブル', [
+      ['break', '突破のドリブル', '相手に向かって大きく前へ押し出して抜きにいくドリブル', Z(0, [1, 0], 1, 2, 2)],
+      ['carry', '運ぶドリブル', 'ボールを足元に置いて、前のスペースへ運ぶ', Z(1, 1, 1, 1, 1)],
+      ['pace', '緩急（スピードの切り替え）', 'ゆっくり運んでから、グン！と加速する', Z(0, 1, 1, 2, 1)],
+      ['speedDribble', '高速ドリブル', '大きく蹴り出して全力で追う', Z(0, 0, [2, 1], 2, 1)],
+    ]],
+    ['ドリブル技', [
+      ['scissors', 'シザース', '', Z(0, 0, 1, 2, 1)],
+      ['bodyFeint', 'ボディフェイント', '', Z(0, 0, 1, 2, 2)],
+      ['doubleTouch', 'ダブルタッチ', '', Z(0, 0, 1, 2, 1)],
+      ['roulette', 'マルセイユルーレット', '', Z(0, 0, 1, 2, 1)],
+      ['elastico', 'エラシコ', '', Z(0, 0, 1, 2, 1)],
+      ['nutmeg', '股抜き', '', Z(0, 0, 1, 2, 2)],
+      ['cutIn', 'カットイン', 'サイドから中へ切れ込む', Z(0, 0, [1, 0], [2, 0], [2, 1])],
+      ['heelLift', 'ヒールリフト', '', Z(0, 0, [1, 0], [2, 0], [1, 0])],
+      ['kickFeint', 'キックフェイント', 'シュートを打つふりで相手をずらす', Z(0, 0, 0, [1, 2], 2)],
+    ]],
+    ['シュート', [
+      ['powerMid', '強烈ミドル', '', Z(0, 0, 0, [1, 2], 1)],
+      ['driveShot', 'ドライブシュート', 'PAの外、ペナルティアーク手前のバイタルエリア（中央）から。バーを越えると見せて急に落ちる', Z(0, 0, 0, [0, 2], [0, 2])],
+      ['superLong', '超ロングシュート', '', Z(0, 0, [0, 1], [1, 2], 1)],
+      ['controlShot', 'コントロールショット', '', Z(0, 0, 0, 1, 2)],
+      ['nearPost', 'ニア上ぶち抜き', '', Z(0, 0, 0, 1, 2)],
+      ['toeKick', 'トゥーキック', '', Z(0, 0, 0, 1, 2)],
+      ['lob', 'ループ', '', Z(0, 0, 0, 1, 2)],
+      ['volley', 'ボレー', '', Z(0, 0, 0, 1, 2)],
+      ['direct', 'ダイレクト', '', Z(0, 0, 0, 1, 2)],
+      ['divingHeader', 'ダイビングヘッド', '', Z(0, 0, 0, 0, 2)],
+      ['bicycle', 'バイシクル', '', Z(0, 0, 0, 0, 2)],
+    ]],
+    ['パス', [
+      ['throughPass', 'スルーパス', '', Z(0, 1, 2, 2, 1)],
+      ['loftedThrough', '浮き球スルーパス', '', Z(0, 1, 2, 2, 1)],
+      ['longFeed', 'ロングフィード', '', Z(1, 2, 1, 0, 0)],
+      ['switchPlay', 'サイドチェンジ', '', Z(0, 1, 2, 1, 0)],
+      ['earlyCross', 'アーリークロス', '', Z(0, 0, 0, [2, 0], [1, 0])],
+      ['pinpointCross', 'ピンポイントクロス', '', Z(0, 0, 0, [1, 0], [2, 0])],
+      ['oneTouchPass', 'ワンタッチパス', '', Z(0, 1, 1, 2, 2)],
+      ['noLook', 'ノールックパス', '', Z(0, 1, 1, 2, 2)],
+      ['heelPass', 'ヒールパス', '', Z(0, 0, 1, 2, 2)],
+      ['wallPass', '壁パス', '', Z(0, 0, 1, 2, 2)],
+    ]],
+    ['守備', [
+      ['slide', 'スライディング', 'ペナルティエリアの中ではPKになるので使わない', Z(0, 2, 1, 1, 1)],
+      ['intercept', 'インターセプト', '', Z(1, 1, 2, 1, 1)],
+      ['manMark', 'マンマーク', '', Z(2, 2, 1, 1, 1)],
+      ['cover', 'カバーリング', '', Z(2, 2, 1, 0, 0)],
+      ['shoulder', 'ショルダーチャージ', '', Z(1, 1, 1, 1, 1)],
+      ['aerial', '空中戦の鬼', '', Z(2, 1, 1, 1, 2)],
+      ['shotBlock', 'シュートブロック', '', Z(2, 1, 0, 0, 0)],
+      ['pressMonster', 'プレスの鬼', '', Z(1, 1, 2, 2, 2)],
+      ['recovery', '帰陣ダッシュ', '', Z(2, 2, 1, 1, 1)],
+    ]],
+    ['ボールを持っていない時', [
+      ['behindRun', '裏への抜け出し', '', Z(0, 0, 1, 2, 2)],
+      ['postPlay', 'ポストプレー', '', Z(0, 0, 1, [1, 2], 1)],
+      ['nearRun', 'ニアに飛び込む', '', Z(0, 0, 0, 0, 2)],
+      ['farWait', 'ファーで待つ', '', Z(0, 0, 0, 0, 2)],
+      ['overlap', 'オーバーラップ', '', Z(0, [1, 0], [2, 0], [2, 0], [1, 0])],
+      ['looseBall', 'こぼれ球の嗅覚', '', Z(1, 1, 1, 1, 2)],
+      ['oneTwo', 'ワンツーの名手', '', Z(0, 0, 1, 2, 2)],
+    ]],
+  ];
+  const DEF = {}, META = {}; for (const [g, list] of ITEMS) for (const [k, n, d, z] of list) { DEF[k] = z.slice(); META[k] = { n, d, g }; }
+  let cur = {}; for (const k in DEF) cur[k] = DEF[k].slice();
+  try { const s = JSON.parse(localStorage.getItem('zoneSet1') || 'null'); if (s) for (const k in s) if (DEF[k] && s[k].length === 15) cur[k] = s[k].map((v) => Math.max(0, Math.min(2, v | 0))); } catch (e) {}
+  let sel = 'break', brush = 2;
+  const COL = ['var(--no)', 'var(--mid)', 'var(--go)'], SYM = ['✕', '○', '◎'];
+  const save = () => { try { localStorage.setItem('zoneSet1', JSON.stringify(cur)); } catch (e) {} };
+  const same = (a, b) => a.every((v, i) => v === b[i]);
+  // 一覧
+  const list = document.getElementById('list');
+  function drawList() {
+    list.innerHTML = ITEMS.map(([g, its]) => `<div class="grp">${g}</div><div class="items">${its.map(([k]) => {
+      const z = cur[k], mini = [4, 3, 2, 1, 0].map((b) => [0, 1, 2].map((l) => `<i style="background:${COL[z[b * 3 + l]]}"></i>`).join('')).join('');
+      return `<button type="button" class="item${k === sel ? ' on' : ''}${same(z, DEF[k]) ? '' : ' changed'}" data-k="${k}"><span class="mini">${mini}</span><span class="nm">${META[k].n}</span></button>`; }).join('')}</div>`).join('');
+    list.querySelectorAll('.item').forEach((b) => b.onclick = () => { sel = b.dataset.k; drawAll(); });
+  }
+  // 大きなピッチ
+  const cells = document.getElementById('cells');
+  document.getElementById('bands').innerHTML = '<div></div>' + [4, 3, 2, 1, 0].map((b) => `<div>${BANDS[b]}</div>`).join('') + '<div></div>';
+  // 帯の高さ：自陣ゴール前 0〜18m／自陣 18〜40m／中盤 40〜65m／敵陣 65〜87m／敵ゴール前 87〜105m（上から敵ゴール前）
+  const BH = [18, 22, 25, 22, 18]; cells.style.gridTemplateRows = [4, 3, 2, 1, 0].map((b) => BH[b] + 'fr').join(' ');
+  document.getElementById('bands').style.gridTemplateRows = '0 ' + [4, 3, 2, 1, 0].map((b) => BH[b] + 'fr').join(' ') + ' 0';
+  function drawPitch() {
+    const z = cur[sel];
+    cells.innerHTML = [4, 3, 2, 1, 0].map((b) => [0, 1, 2].map((l) => `<div class="cell" data-i="${b * 3 + l}" role="button" tabindex="0" aria-label="${BANDS[b]}・${['左サイド', '中央', '右サイド'][l]}：${['使わない', '普通', '積極的'][z[b * 3 + l]]}"><span class="tint" style="background:${COL[z[b * 3 + l]]}"></span><b>${SYM[z[b * 3 + l]]}</b></div>`).join('')).join('');
+    document.getElementById('ttl').textContent = META[sel].n;
+    document.getElementById('dsc').textContent = META[sel].d || META[sel].g;
+  }
+  function paint(i) { const z = cur[sel]; z[i] = brush; if (document.getElementById('mirror').checked) { const l = i % 3; if (l !== 1) z[i - l + (2 - l)] = brush; } save(); drawAll(); }
+  let down = false;
+  cells.addEventListener('pointerdown', (e) => { const c = e.target.closest('.cell'); if (!c) return; down = true; paint(+c.dataset.i); });
+  cells.addEventListener('pointerover', (e) => { if (!down) return; const c = e.target.closest('.cell'); if (c && cur[sel][+c.dataset.i] !== brush) paint(+c.dataset.i); });
+  addEventListener('pointerup', () => { down = false; });
+  cells.addEventListener('keydown', (e) => { const c = e.target.closest('.cell'); if (c && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); const i = +c.dataset.i; paint(i); cells.querySelector(`[data-i="${i}"]`).focus(); } });
+  const br = document.getElementById('brush');
+  br.innerHTML = [2, 1, 0].map((v) => `<button type="button" data-v="${v}"><i class="chip c${v}">${SYM[v]}</i></button>`).join('');
+  const markBrush = () => br.querySelectorAll('button').forEach((b) => b.classList.toggle('on', +b.dataset.v === brush));
+  br.querySelectorAll('button').forEach((b) => b.onclick = () => { brush = +b.dataset.v; markBrush(); }); markBrush();
+  [0, 1, 2].forEach((v) => document.getElementById('all' + v).onclick = () => { cur[sel] = Array(15).fill(v); save(); drawAll(); });
+  document.getElementById('rst').onclick = () => { cur[sel] = DEF[sel].slice(); save(); drawAll(); };
+  // 書き出し
+  const code = document.getElementById('code');
+  function drawCode() { const o = {}; for (const k in cur) o[k] = cur[k].join(''); code.value = 'ZONES1 ' + JSON.stringify(o); }
+  document.getElementById('copy').onclick = () => { const m = document.getElementById('msg'); navigator.clipboard.writeText(code.value).then(() => { m.textContent = 'コピーしました'; }, () => { code.focus(); code.select(); m.textContent = '選択しました。長押しかCtrl+Cでコピーしてください'; }); setTimeout(() => { m.textContent = ''; }, 3000); };
+  document.getElementById('resetAll').onclick = () => { document.getElementById('confirmBox').hidden = false; };
+  document.getElementById('no').onclick = () => { document.getElementById('confirmBox').hidden = true; };
+  document.getElementById('yes').onclick = () => { for (const k in DEF) cur[k] = DEF[k].slice(); save(); document.getElementById('confirmBox').hidden = true; drawAll(); };
+  function drawAll() { drawList(); drawPitch(); drawCode(); }
+  drawAll();
+})();
+</script>

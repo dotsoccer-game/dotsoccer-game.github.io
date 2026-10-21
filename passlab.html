@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>パス確認</title>
+<style>
+:root{--bg:#1f5a2a;--panel:#10241a;--ink:#f3f6ef;--mut:#a9c3ad;--acc:#ffe05a}
+*{box-sizing:border-box}body{margin:0;background:var(--panel);color:var(--ink);font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif}
+.wrap{display:grid;grid-template-columns:1fr 300px;gap:10px;padding:10px;min-height:100vh}
+@media(max-width:820px){.wrap{grid-template-columns:1fr}}
+canvas{width:100%;background:var(--bg);border-radius:8px;image-rendering:pixelated;cursor:crosshair;display:block}
+.side{display:flex;flex-direction:column;gap:10px;font-size:13px}
+h1{font-size:16px;margin:0}h2{font-size:13px;margin:6px 0 4px;color:var(--mut)}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:3px}.grid button{font-size:11px;padding:6px 2px;line-height:1.2}
+button{font:inherit;background:#2c4a36;color:var(--ink);border:1px solid #4d7a5a;border-radius:6px;padding:6px 4px;cursor:pointer}
+button.on{background:var(--acc);color:#222;border-color:var(--acc)}
+.row{display:flex;gap:4px;flex-wrap:wrap}.row button{flex:1}
+.info{background:#0b1a12;border-radius:6px;padding:8px;line-height:1.6;font-family:ui-monospace,Menlo,monospace;font-size:12px;white-space:pre-wrap}
+.warn{background:#5a2a1a;border-radius:6px;padding:8px;line-height:1.5}
+.lg i{display:inline-block;width:18px;height:3px;vertical-align:middle;margin-right:4px}
+</style></head><body>
+<div class="wrap">
+ <canvas id="cv" width="960" height="640"></canvas>
+ <div class="side">
+  <h1>パス確認画面（選手1人）</h1>
+  <div>画面をクリックした場所がパス先です。下のボタンでも方向を選べます。</div>
+  <h2>パスする方向</h2>
+  <div class="grid" id="kdir"></div>
+  <h2>パスの前の動き</h2>
+  <div class="grid" id="mdir"></div>
+  <h2>選手の絵</h2>
+  <div class="row" id="art"></div>
+  <h2>再生</h2>
+  <div class="row" id="spd"></div>
+  <div class="row"><button id="runonly">走りだけ見る：オフ</button></div>
+  <div class="row"><button id="pause">一時停止</button><button id="step">次のコマへ</button><button id="reset">やり直し</button></div>
+  <div class="lg"><i style="background:#4aa3ff"></i>体の向き　<i style="background:#ff5a4a"></i>蹴る方向　<i style="background:#ffe05a"></i>足の接触位置　<i style="background:#fff"></i>移動方向</div>
+  <div class="info" id="info"></div>
+  <div class="warn" id="warn" hidden></div>
+ </div>
+</div>
+<script src="sprites/gpt.js"></script><script src="sprites/dotman.js"></script>
+<script>
+(() => {
+  const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+  const S = window.GPT_SPR, M = S.meta, T = M._T;
+  const Z = 4, TILT = window.DotMan ? 0.45 : 0.62; let ART = 'dot';   // 奥行きの見え方は、自作の絵の描き方と同じにする                       // 1ドット＝4画面ピクセル。奥行きは0.62倍に見せる
+  const img = new Image(); img.src = S.img;
+  // ---- 16方向（世界の角度で）：0=右 4=手前 8=左 12=奥（画面の上が奥）。22.5°きざみ ----
+  const N = 16, STEP = Math.PI * 2 / N;
+  const DIRS = Array.from({ length: N }, (_, i) => [Math.cos(i * STEP), Math.sin(i * STEP)]);
+  const DNAME = ['右', '右・少し手前', '右手前', '手前・少し右', '手前', '手前・少し左', '左手前', '左・少し手前', '左', '左・少し奥', '左奥', '奥・少し左', '奥', '奥・少し右', '右奥', '右・少し奥'];
+  const VIEW8 = [['side', 1], ['f34', 1], ['front', 1], ['f34', -1], ['side', -1], ['b34', -1], ['back', 1], ['b34', 1]];
+  const VIEW = DIRS.map((_, i) => VIEW8[Math.round(i / 2) % 8]);   // GPTの絵は8方向しかないので近いものを使う
+  const dirN = (x, y) => ((Math.round(Math.atan2(y, x) / STEP) % N) + N) % N;   // 世界の角度で16方向に（画面の傾きで縮めない）
+  // ---- キックのコマ（向きごと）。素材がない向きは null ----
+  const KICK = {
+    side: { frames: ['pass0', 'pass1', 'pass2', 'pass3'], ok: true },
+    front: { frames: ['front', 'Fwindup', 'Fkick', 'Fkick'], ok: 'part', need: '手前向きのパス「構え」「振り抜き」の2コマ（振りかぶり・接触は Fwindup／Fkick を使用中）' },
+    back: { frames: ['back', 'Bwindup', 'Bkick', 'Bkick'], ok: 'part', need: '奥向きのパス「構え」「振り抜き」の2コマ（振りかぶり・接触は Bwindup／Bkick を使用中）' },
+    f34: { frames: null, ok: false, need: 'ななめ手前向きのパス4コマ（構え・振りかぶり・接触・振り抜き）' },
+    b34: { frames: null, ok: false, need: 'ななめ奥向きのパス4コマ（構え・振りかぶり・接触・振り抜き）' },
+  };
+  const DUR = M._kick.pass.map((v) => v / 1000), REL = M._kick.release;
+  // ---- 各コマの足の接触位置（実際の画素から測る：靴の色のいちばん先） ----
+  const pix = {};
+  img.onload = () => {
+    const c = document.createElement('canvas'); c.width = img.width; c.height = img.height; const x = c.getContext('2d'); x.drawImage(img, 0, 0);
+    const d = x.getImageData(0, 0, img.width, img.height).data;
+    for (const k of ['pass2', 'Fkick', 'Bkick', 'kick']) {
+      const [fx, fy, w, h, ax] = M[k]; let best = null;
+      for (let yy = Math.floor(h * 0.5); yy < h; yy++) for (let xx = 0; xx < w; xx++) {
+        const i = ((fy + yy) * img.width + fx + xx) * 4, r = d[i], g = d[i + 1], b = d[i + 2], a = d[i + 3];
+        if (!a) continue; const l = r * 0.3 + g * 0.59 + b * 0.11;
+        if (l < 80 && Math.abs(r - b) < 24 && Math.abs(r - g) < 24) {   // 黒いスパイク
+          const score = k === 'pass2' || k === 'kick' ? xx : -yy;   // 横向き＝いちばん前の靴、正面・背中＝持ち上げた蹴り足の靴
+          if (!best || score > best.s) best = { s: score, x: xx, y: yy };
+        }
+      }
+      pix[k] = best ? [best.x - ax, best.y - h] : [6, -2];   // 頭の中心・足もとからのずれ（ドット）
+    }
+    reset(); requestAnimationFrame(loop);
+  };
+  // ---- 状態 ----
+  const st = {};
+  let runOnly = false, speed = 1, paused = false, kickDirSel = 0, moveSel = 8, fired = 0, log = [];
+  function reset() {
+    const md = moveSel < N ? DIRS[moveSel] : [0, 0], L = Math.hypot(...md) || 1;
+    Object.assign(st, { x: 120 - md[0] / L * 50, y: 90 - md[1] / L * 50 * 1, vx: md[0] / L * 34, vy: md[1] / L * 34, body: moveSel < N ? moveSel : 0,
+      phase: 'dribble', onRun: false, t: 0, target: null, kick: null, kickBody: null, ball: { x: 0, y: 0, vx: 0, vy: 0, z: 0 }, frame: '', turnT: 0, anim: 0, released: false });
+    placeBallAhead(); fired = 0; log = []; st.autoAt = 0.6;
+  }
+  function placeBallAhead() { const v = Math.hypot(st.vx, st.vy); const d = v > 1 ? [st.vx / v, st.vy / v] : DIRS[st.body]; const L = Math.hypot(...d); st.ball.x = st.x + d[0] / L * 7; st.ball.y = st.y + d[1] / L * 7; }
+  function setTarget(tx, ty) {
+    if (st.phase !== 'dribble' && st.phase !== 'idle' && st.phase !== 'done') return;
+    st.target = { x: tx, y: ty }; st.phase = 'turn'; st.t = 0; fired = 0; st.kickBody = null; st.released = false; st.kick = null; log = ['1 パス先を決めた'];
+    // 体の向き（±22.5°以内）へのパスは、止まらずに走りながら蹴る
+    const kd = dirN(tx - st.x, ty - st.y), diff = Math.min(((kd - st.body) % N + N) % N, ((st.body - kd) % N + N) % N);
+    st.onRun = st.phase === 'turn' && diff <= 1 && Math.hypot(st.vx, st.vy) > 3;
+  }
+  // ---- 1ステップ進める ----
+  function update(dt) {
+    st.t += dt; st.anim += dt;
+    const b = st.ball;
+    if (st.phase === 'dribble') {
+      st.x += st.vx * dt; st.y += st.vy * dt; placeBallAhead();
+      if (Math.hypot(st.vx, st.vy) > 1) st.body = dirN(st.vx, st.vy);
+      if (runOnly) { if (st.x > 228) st.x = 12; if (st.x < 12) st.x = 228; if (st.y > 190) st.y = -60; if (st.y < -60) st.y = 190; placeBallAhead(); }
+      else if (st.autoAt && st.t > st.autoAt) { st.autoAt = 0; const d = DIRS[kickDirSel], L = Math.hypot(...d); setTarget(st.x + d[0] / L * 80, st.y + d[1] / L * 80); }
+    }
+    if (st.phase === 'turn' && st.onRun) {
+      // 2' 体の向きの方向：減速も向き変えの待ちもなし。そのままボールを蹴り足へ
+      st.kick = dirN(st.target.x - st.x, st.target.y - st.y); st.body = st.kick;
+      st.phase = 'set'; st.t = 0; log.push('2 走りながら（止まらずに）体の向きのまま'); st.kickBody = st.body; st.bfrom = { x: b.x - st.x, y: b.y - st.y };
+    }
+    if (st.onRun && (st.phase === 'set' || st.phase === 'kick' || st.phase === 'done')) {
+      // 走りながら：少しだけ減速しつつ前へ進み続ける
+      const k = Math.exp(-dt * (st.phase === 'done' ? 4 : 1.5)); st.vx *= k; st.vy *= k; st.x += st.vx * dt; st.y += st.vy * dt;
+    }
+    if (st.phase === 'turn') {
+      // 2 減速しながら、蹴る方向へ体を向ける（16方向を1段ずつ回す）
+      const k = Math.exp(-dt * 9); st.vx *= k; st.vy *= k; st.x += st.vx * dt; st.y += st.vy * dt;
+      const kd = [st.target.x - st.x, st.target.y - st.y]; st.kick = dirN(kd[0], kd[1]);
+      st.turnT += dt;
+      if (st.body !== st.kick && st.turnT > 0.035) { st.turnT = 0; let diff = ((st.kick - st.body) % N + N) % N; st.body = (st.body + (diff <= N / 2 ? 1 : N - 1)) % N; }
+      placeBallAhead();
+      if (st.body === st.kick && Math.hypot(st.vx, st.vy) < 4) { st.vx = st.vy = 0; st.phase = 'set'; st.t = 0; log.push('2 減速・体を蹴る方向へ'); st.kickBody = st.body; st.bfrom = { x: b.x, y: b.y }; }
+    }
+    if (st.phase === 'set') {
+      // 3 ボールを蹴り足が届く位置へ（体の向き・蹴る方向はここで固定）
+      const c = contactWorld(), u = Math.min(1, st.t / (st.onRun ? 0.07 : 0.16)), e = u * (2 - u);
+      const fx = st.onRun ? st.x + st.bfrom.x : st.bfrom.x, fy = st.onRun ? st.y + st.bfrom.y : st.bfrom.y;   // 走りながらはボールも一緒に進む
+      b.x = fx + (c.x - fx) * e; b.y = fy + (c.y - fy) * e;
+      if (u >= 1) { st.phase = 'kick'; st.t = 0; log.push('3 ボールを蹴り足の位置へ'); }
+    }
+    if (st.phase === 'kick') {
+      // 4 軸足・振りかぶり → 5 接触のコマでボール発射（1回だけ） → 6 振り抜き
+      const relAt = DUR.slice(0, REL).reduce((a, c) => a + c, 0), total = DUR.reduce((a, c) => a + c, 0);
+      if (st.onRun && !st.released) { const c = contactWorld(); b.x = c.x; b.y = c.y; }   // 接触までボールは足もとに
+      if (!st.released && st.t >= relAt) { st.released = true; fired++; launch(); log.push('5 接触のコマでボール発射（' + fired + '回目）'); }
+      if (st.t >= total) { st.phase = 'done'; st.t = 0; log.push('6 振り抜き → 待機へ'); }
+      if (st.t < DUR[0]) { if (log[log.length - 1].indexOf('4') !== 0) log.push('4 軸足を置いて振りかぶる'); }
+    }
+    if (st.released) { const v = Math.hypot(b.vx, b.vy); if (v > 0) { const nv = Math.max(0, v - 80 * dt); b.vx *= nv / v; b.vy *= nv / v; } b.x += b.vx * dt; b.y += b.vy * dt; }
+  }
+  function frameNow() {
+    if (ART === 'dot') {
+      const bd = st.phase === 'kick' || st.phase === 'set' || st.phase === 'done' ? st.kickBody : st.body, fa = DotMan.dirAngle(bd);
+      if (st.phase === 'kick' || (st.phase === 'done' && st.t < 0.12)) { let i = 0, acc = DUR[0]; while (i < 3 && st.t >= acc) acc += DUR[++i]; if (st.phase === 'done') i = 3; return { dm: { facing: fa, pose: 'pass', frame: i }, name: 'パス' + i }; }
+      if (st.phase === 'set') return { dm: { facing: fa, pose: 'pass', frame: 0 }, name: 'パス0' };
+      if (Math.hypot(st.vx, st.vy) > 3) { const f = Math.floor(st.anim * 15) % 8; return { dm: { facing: fa, pose: 'run', frame: f }, name: '走り' + f }; }
+      return { dm: { facing: fa, pose: 'stand' }, name: '立ち' };
+    }
+    const v = VIEW[st.phase === 'kick' || st.phase === 'set' || st.phase === 'done' ? st.kickBody : st.body];
+    const view = v[0], flip = v[1] < 0;
+    if (st.phase === 'kick' || st.phase === 'done') {
+      const K = KICK[view];
+      if (!K.frames) return { name: view, flip, missing: true };
+      let i = 0, acc = DUR[0]; while (i < 3 && st.t >= acc) acc += DUR[++i];
+      if (st.phase === 'done') i = st.t < 0.12 ? 3 : -1;
+      if (i >= 0) return { name: K.frames[i], flip, idx: i };
+    }
+    if (st.phase === 'set' && KICK[view].frames) return { name: KICK[view].frames[0], flip, idx: 0 };
+    const moving = Math.hypot(st.vx, st.vy) > 3;
+    if (moving && st.phase !== 'done') { const R = { side: 'run', f34: 'runD', b34: 'runE', front: 'runF', back: 'runB' }[view], f = Math.floor(st.anim * 11) % 8; return { name: R + f, flip: flip && (view !== 'front' && view !== 'back'), run: true }; }
+    return { name: view, flip };
+  }
+  // 足の接触位置（世界座標）：接触コマの靴の先が、ボールの中心に来るように
+  function contactWorld() {
+    if (ART === 'dot') {
+      const f = DotMan.frame({ facing: DotMan.dirAngle(st.kickBody), pose: 'pass', frame: REL }), t = f.toeK, r = 2.2;
+      return { x: st.x + (t.x - f.px), y: st.y + (t.y + r * 0.5 - f.py) / TILT };   // 蹴り足（右足）のつま先の位置
+    }
+    const v = VIEW[st.kickBody], view = v[0], flip = v[1] < 0, K = KICK[view];
+    const ck = K.frames ? K.frames[REL] : null, m = ck ? M[ck] : M[view], sc = (m[5] || 1);
+    const p = ck && pix[ck] ? pix[ck] : [8, -2];
+    const sx = (flip ? -p[0] : p[0]) * sc, sy = p[1] * sc;   // 足もとからのずれ（ドット）
+    const r = 2.2;                                        // ボールの半径（ドット）
+    if (view === 'side') return { x: st.x + sx, y: st.y + 1 };                     // 横向き：体の横（少しだけ手前）
+    if (view === 'front') return { x: st.x + sx, y: st.y + 4 };   // 正面：蹴り足の真下、体の手前
+    if (view === 'back') return { x: st.x + sx, y: st.y - 4 };    // 背中：蹴り足の真下、体の奥
+    const d = DIRS[st.kickBody], L = Math.hypot(...d); return { x: st.x + d[0] / L * 7, y: st.y + d[1] / L * 7 };   // ななめ：素材なし（仮の位置）
+  }
+  function launch() {
+    const b = st.ball, dx = st.target.x - b.x, dy = st.target.y - b.y, D = Math.hypot(dx, dy) || 1, v0 = Math.sqrt(2 * 80 * D);
+    b.vx = dx / D * v0; b.vy = dy / D * v0;
+  }
+  // ---- 描画 ----
+  const SX = (x) => x * Z + 40, SY = (y) => y * Z * TILT + 200;
+  function drawFrame(name, x, y, flip) {
+    const m = M[name]; if (!m) return null; const [fx, fy, w, h, ax] = m, sc = (m[5] || 1) * Z;
+    ctx.save(); ctx.imageSmoothingEnabled = false; ctx.translate(Math.round(SX(x)), Math.round(SY(y))); if (flip) ctx.scale(-1, 1);
+    ctx.drawImage(img, fx, fy, w, h, Math.round(-ax * sc), Math.round(-h * sc), Math.round(w * sc), Math.round(h * sc)); ctx.restore();
+    return { h: h * sc };
+  }
+  function arrow(x, y, dx, dy, len, col, w) { const L = Math.hypot(dx, dy * TILT) || 1, ex = x + dx / L * len, ey = y + dy * TILT / L * len; ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(ex, ey); ctx.stroke(); const a = Math.atan2(ey - y, ex - x); ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(ex - 10 * Math.cos(a - 0.4), ey - 10 * Math.sin(a - 0.4)); ctx.lineTo(ex - 10 * Math.cos(a + 0.4), ey - 10 * Math.sin(a + 0.4)); ctx.fill(); }
+  function draw() {
+    ctx.fillStyle = '#2f8a3a'; ctx.fillRect(0, 0, cv.width, cv.height);
+    ctx.strokeStyle = 'rgba(255,255,255,.08)'; ctx.lineWidth = 1; for (let gx = 0; gx < 240; gx += 10) { ctx.beginPath(); ctx.moveTo(SX(gx), 0); ctx.lineTo(SX(gx), cv.height); ctx.stroke(); } for (let gy = -40; gy < 200; gy += 10) { ctx.beginPath(); ctx.moveTo(0, SY(gy)); ctx.lineTo(cv.width, SY(gy)); ctx.stroke(); }
+    if (st.target) { ctx.strokeStyle = '#ffe05a'; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(SX(st.target.x), SY(st.target.y), 22, 22 * TILT, 0, 0, 7); ctx.stroke(); ctx.beginPath(); ctx.moveTo(SX(st.target.x) - 8, SY(st.target.y)); ctx.lineTo(SX(st.target.x) + 8, SY(st.target.y)); ctx.moveTo(SX(st.target.x), SY(st.target.y) - 6); ctx.lineTo(SX(st.target.x), SY(st.target.y) + 6); ctx.stroke(); }
+    const fr = frameNow(), b = st.ball;
+    const ballDraw = () => { ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(SX(b.x), SY(b.y), 2.4 * Z, 1.1 * Z, 0, 0, 7); ctx.fill(); const bx = SX(b.x), by = SY(b.y) - 2.2 * Z; ctx.fillStyle = '#fff'; ctx.strokeStyle = '#222'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(bx, by, 2.2 * Z, 0, 7); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(bx, by, 0.8 * Z, 0, 7); ctx.fill(); };
+    // 影
+    ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(SX(st.x), SY(st.y), 7 * Z, 2.2 * Z, 0, 0, 7); ctx.fill();
+    const ballBehind = b.y < st.y - 0.5;
+    if (ballBehind) ballDraw();
+    const r = fr.dm ? (() => { const f = DotMan.frame(fr.dm); ctx.imageSmoothingEnabled = false; ctx.drawImage(f.cv, Math.round(SX(st.x) - f.px * Z), Math.round(SY(st.y) - f.py * Z), f.cv.width * Z, f.cv.height * Z); })() : drawFrame(fr.name, st.x, st.y, fr.flip);
+    if (!ballBehind) ballDraw();
+    // 補助線
+    const px = SX(st.x), py = SY(st.y);
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(px, py, 4, 0, 7); ctx.fill();   // 地面の基準点（足もと）
+    const v = Math.hypot(st.vx, st.vy); if (v > 2) arrow(px, py + 14, st.vx, st.vy, 40 + v, '#ffffff', 2);
+    const bd = DIRS[st.kickBody ?? st.body]; arrow(px, py, bd[0], bd[1], 70, '#4aa3ff', 4);
+    if (st.target) { const kx = st.target.x - (st.phase === 'kick' || st.phase === 'done' ? st.bfrom2x || b.x : b.x), ky = st.target.y - b.y; ctx.setLineDash([8, 6]); ctx.strokeStyle = '#ff5a4a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(SX(b.x), SY(b.y)); ctx.lineTo(SX(st.target.x), SY(st.target.y)); ctx.stroke(); ctx.setLineDash([]); if (st.kick != null) { const kd = DIRS[st.kick]; arrow(px, py - 4, kd[0], kd[1], 56, '#ff5a4a', 3); } }
+    if (st.phase === 'set' || st.phase === 'kick' || (st.phase === 'done' && st.t < 0.3)) { const c = contactWorld(); ctx.strokeStyle = '#ffe05a'; ctx.lineWidth = 3; const cx = SX(c.x), cy = SY(c.y) - 2.2 * Z; ctx.beginPath(); ctx.moveTo(cx - 9, cy); ctx.lineTo(cx + 9, cy); ctx.moveTo(cx, cy - 9); ctx.lineTo(cx, cy + 9); ctx.stroke(); }
+    // 情報
+    const view = VIEW[st.kickBody ?? st.body][0], K = KICK[view];
+    document.getElementById('info').textContent =
+      `段階　　：${{ dribble: '移動中', turn: '減速・向き変え', set: 'ボールを整える', kick: 'キック', done: '待機へ戻る' }[st.phase]}\n` +
+      `表示コマ：${fr.name}${fr.flip ? '（反転）' : ''}\n` +
+      `体の向き：${DNAME[st.kickBody ?? st.body]}${st.kickBody != null ? '（固定）' : ''}\n` +
+      `蹴る方向：${st.kick != null ? DNAME[st.kick] : '－'}\n` +
+      `移動速度：${Math.hypot(st.vx, st.vy).toFixed(1)}\n` +
+      `発射回数：${fired}\n` + log.join('\n');
+    const w = document.getElementById('warn'); const need = ART === 'dot' || K.ok === true ? '' : K.need;
+    w.hidden = !need || st.kickBody == null; w.textContent = need ? '素材が足りません：' + need + (K.ok === false ? '。この向きは立ち姿のまま蹴っています（代用はしていません）。' : '。') : '';
+  }
+  let last = 0, stepUntil = null;
+  function loop(now) {
+    const dt = Math.min(0.05, (now - (last || now)) / 1000); last = now;
+    if (!paused) update(dt * speed);
+    else if (stepUntil) { const f0 = frameNow().name; let n = 0; while (frameNow().name === f0 && n++ < 400) update(1 / 240); stepUntil = null; }
+    draw(); requestAnimationFrame(loop);
+  }
+  // ---- 操作 ----
+  const mk = (id, items, on) => { const el = document.getElementById(id); el.innerHTML = items.map(([v, t]) => `<button data-v="${v}">${t}</button>`).join(''); el.querySelectorAll('button').forEach((b) => b.onclick = () => { on(+b.dataset.v); el.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); }); el.querySelectorAll('button')[0].classList.add('on'); return el; };
+  // 5×5のまわり16マス＝16方向、まん中＝●
+  const order = []; for (let r = 0; r < 5; r++) for (let c = 0; c < 5; c++) order.push(r === 2 && c === 2 ? -1 : (r === 0 || r === 4 || c === 0 || c === 4) ? dirN(c - 2, r - 2) : -2);
+  const kd = mk('kdir', order.map((i) => i === -1 ? [-1, '●'] : i === -2 ? [-2, ''] : [i, DNAME[i]]), (v) => { if (v < 0) return; kickDirSel = v; reset(); });
+  kd.querySelectorAll('button').forEach((b) => b.classList.toggle('on', +b.dataset.v === 0));
+  const md = mk('mdir', order.map((i) => i === -1 ? [N, '止まって'] : i === -2 ? [-2, ''] : [i, DNAME[i] + 'へ']), (v) => { if (v === -2) return; moveSel = v; reset(); });
+  md.querySelectorAll('button').forEach((b) => b.classList.toggle('on', +b.dataset.v === 8));
+  document.querySelectorAll('.grid button[data-v="-2"]').forEach((b) => { b.style.visibility = 'hidden'; });
+  mk('spd', [[1, '1倍'], [0.25, '1/4'], [0.1, '1/10']], (v) => { speed = v; });
+  mk('art', [[0, '自作の絵'], [1, 'GPTの絵']], (v) => { ART = v ? 'gpt' : 'dot'; reset(); });
+  document.getElementById('pause').onclick = (e) => { paused = !paused; e.target.textContent = paused ? '再生' : '一時停止'; };
+  document.getElementById('step').onclick = () => { paused = true; document.getElementById('pause').textContent = '再生'; stepUntil = 1; };
+  document.getElementById('reset').onclick = reset;
+  document.getElementById('runonly').onclick = (e) => { runOnly = !runOnly; e.target.textContent = '走りだけ見る：' + (runOnly ? 'オン' : 'オフ'); e.target.classList.toggle('on', runOnly); if (runOnly && moveSel >= N) moveSel = 6; reset(); };
+  cv.onclick = (e) => { const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) * cv.width / r.width, y = (e.clientY - r.top) * cv.height / r.height; const wx = (x - 40) / Z, wy = (y - 200) / (Z * TILT); if (st.phase === 'done' || st.phase === 'dribble') { if (st.phase === 'done') { st.kickBody = null; st.released = false; st.ball.vx = st.ball.vy = 0; placeBallAhead(); } setTarget(wx, wy); } };
+  window.__lab = { st, setTarget, update, frameNow, pix, KICK, reset, set: (o) => { if (o.kick != null) kickDirSel = o.kick; if (o.move != null) moveSel = o.move; reset(); } };
+})();
+</script>
+</body></html>

@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>走り移動確認</title>
+<style>
+:root{--bg:#16241b;--panel:#1f3326;--ink:#eef3ee;--sub:#a9bfae;--acc:#ffd84a}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#16241b}}
+:root[data-theme="dark"]{--bg:#16241b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;font-size:14px}
+.wrap{max-width:1100px;margin:0 auto;padding:12px 16px}
+h1{font-size:18px;margin:4px 0 10px}h2{font-size:15px;margin:14px 0 6px;color:var(--acc)}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start}
+.card{background:var(--panel);border-radius:10px;padding:10px}
+.lane{width:320px}.lane h3{font-size:14px;margin:0 0 6px}
+.lane .sub{color:var(--sub);font-size:12px;margin:0 0 6px;min-height:4.2em;line-height:1.4}
+.cvbox{overflow:hidden}
+canvas{image-rendering:pixelated;display:block}
+button,select{background:#2c4a36;color:var(--ink);border:1px solid #4d7a5c;border-radius:8px;padding:8px 12px;font-size:14px;cursor:pointer}
+button.on{background:var(--acc);color:#222;border-color:var(--acc)}
+.ctl{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0;align-items:center}
+.ctl b{font-weight:normal;color:var(--sub);margin-right:2px}
+.note{color:var(--sub);line-height:1.7}
+.info{font-size:12px;color:var(--sub);margin-top:6px;min-height:1.4em}
+</style></head><body>
+<div class="wrap">
+<h1>走り移動確認（背中向き・奥へまっすぐ走る）：現在の版と修正版</h1>
+<div class="ctl"><b>速さ</b><span id="spd"></span></div>
+<div class="ctl"><b>再生</b><button id="play" class="on">再生中</button><button id="slow">スロー（1/2）</button><button id="zoom">2倍で見る</button></div>
+<div class="ctl"><b>コマの進め方</b><button id="mAfter" class="on">移動速度に合わせる</button><button id="mBefore">一定（その場の走りと同じ）</button></div>
+<div class="ctl"><b>滑り対策</b><button id="slip" class="on">接地中の足を後ろへ送る：あり</button></div>
+<div class="row" id="lanes"></div>
+<h2>この画面の見方</h2>
+<div class="note">
+・左が現在の版（v2・4コマ）、右が修正版（v3・6コマ）です。2人は同じ位置・同じ速さで動き、コマも同じ規則（進んだ距離で数えた歩数）で進みます。頭・胴は同じ絵です。<br>・動き方：位置は速度を積み上げて出しています。止まる前は一定の減速度で0.9mかけて減速し、位置の変化と速度が一致します。歩数も実際に進んだ距離で数えます。<br>
+・選手は試合と同じ大きさ（1ドット＝2.6画素）。確認用の印は出していません。地面の草の粒と白線は動きません。<br>
+・下で少し立ち止まる → 走り出す → 奥へまっすぐ走る → 止まって待機、をくり返します。<br>
+・滑り対策（両方の版）：接地コマの後半で、接地した足を体に対して1段だけ後ろ（画面の下）へ送ります。脚の長さは変えず、くつ下とスパイクを丸ごと下げ、空いた所にももが見えます。頭・胴は動かしません。ボタンで「なし」と見比べられます。<br>
+・止まったときは、両足をそろえ両腕を下ろした待機の形（走りと同じ胴の形）に戻ります。<br>
+・コマの進め方は「移動速度に合わせる」（通常の速さで1秒に約4歩、1歩約1.6m）と「一定」を切り替えられます。どちらも両方の版に同じように効きます。
+</div>
+</div>
+<script>
+(() => {
+  // 比べる2つの版：同じ移動・同じコマの進め方で並べる
+  const VERS = [['v2', 'v2（現在の版：4コマ）'], ['v3', 'v3（修正版：6コマ・腕と脚の形）']];
+  const Dm = {};
+  const load = (i) => {
+    if (i >= VERS.length) return start();
+    const sc = document.createElement('script'); sc.src = 'sprites/archive/dotman_backrun_' + VERS[i][0] + '.js';
+    sc.onload = () => { Dm[VERS[i][0]] = window.DotMan; load(i + 1); }; document.body.appendChild(sc);
+  };
+  load(0);
+
+  function start() {
+    const G = 2.6;                    // 試合と同じ：1ドット＝2.6画素
+    const PXM = 31 * 0.48;            // 試合の標準カメラで、奥へ1m進むと画面上で約15画素
+    const LW = 300, LH = 460;
+    const COL = { shirt: '#f4f4f4', shorts: '#f4f4f4', socks: '#1a34d0', hair: '#d8902c' };
+    const FACE = -Math.PI / 2;
+    const DUR = [0.15, 0.1, 0.15, 0.1];   // その場の走りのテンポ
+    const Y0 = LH - 40, Y1 = 80;
+    let V = 6.5, playing = true, slow = 1, zoom = 1;
+    let MODE = 'after', SLIP = true;   // コマの進め方：after＝移動速度に合わせる／before＝一定
+    const LANES = VERS.map(([k, t]) => ({ key: k, title: t, sub: k === 'v2' ? '今の版：腕は胴の横の縦1列、中間は靴を1段上げるだけ' : '腕は「く」の字で前後へ振り、隠れる位置までつなぐ。脚は接地→蹴り出し→持ち上げ→曲げる→前へ戻す→着地' }));
+    const host = document.getElementById('lanes');
+    const dpr = Math.max(1, Math.round(window.devicePixelRatio || 1));
+    LANES.forEach((L) => {
+      const card = document.createElement('div'); card.className = 'card lane';
+      card.innerHTML = '<h3>' + L.title + '</h3><div class="sub">' + L.sub + '</div><div class="cvbox"></div><div class="info"></div>';
+      const cv = document.createElement('canvas'); cv.width = LW * dpr; cv.height = LH * dpr; cv.style.width = LW + 'px'; cv.style.height = LH + 'px';
+      card.querySelector('.cvbox').appendChild(cv); host.appendChild(card);
+      L.cv = cv; L.x = cv.getContext('2d'); L.info = card.querySelector('.info'); L.card = card;
+    });
+    // 地面（動かない）：芝の帯＋草の粒＋白線
+    const ground = document.createElement('canvas'); ground.width = LW * dpr; ground.height = LH * dpr;
+    {
+      const g = ground.getContext('2d'); g.scale(dpr, dpr);
+      for (let y = 0; y < LH; y += 36) { g.fillStyle = (y / 36) % 2 ? '#3a8a2b' : '#44982f'; g.fillRect(0, y, LW, 36); }
+      let seed = 7; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+      for (let i = 0; i < 900; i++) { const x = Math.floor(rnd() * LW / 2) * 2, y = Math.floor(rnd() * LH / 2) * 2; g.fillStyle = rnd() < 0.5 ? 'rgba(20,70,20,.55)' : 'rgba(150,210,110,.45)'; g.fillRect(x, y, 2, 2); }
+      g.fillStyle = 'rgba(255,255,255,.85)';
+      [140, 300].forEach((y) => g.fillRect(20, y, LW - 40, 3));
+      g.fillRect(LW / 2 - 1.5, 60, 3, LH - 80);
+    }
+    // 動き：立ち止まる→加速→一定の速さ→減速して止まる→待機
+    // 位置は速度を積み上げて出す（位置の変化＝速度）。減速は一定の減速度で、ちょうど止まる所でぴったり止まる
+    const T_WAIT0 = 0.6, TA = 0.3, LD = 0.9, T_WAIT1 = 1.2;   // 加速0.3秒・止まるまでの距離0.9m
+    const distM = (Y0 - Y1) / PXM;
+    const stepLen = (v) => 0.9 + 0.11 * v;   // 1歩の距離（m）：6.5m/sで約1.6m
+    let last = 0;
+    const mv = { phase: 'wait0', tt: 0, d: 0, v: 0, steps: 0, tRun: 0 };
+    function reset() { Object.assign(mv, { phase: 'wait0', tt: 0, d: 0, v: 0, steps: 0, tRun: 0 }); }
+    function sub(dt) {
+      if (mv.phase === 'wait0') { mv.tt += dt; if (mv.tt >= T_WAIT0) { mv.phase = 'run'; mv.tt = 0; } return; }
+      if (mv.phase === 'wait1') { mv.tt += dt; if (mv.tt >= T_WAIT1) reset(); return; }
+      const rem = distM - mv.d, dec = V * V / (2 * LD);
+      let v = Math.min(V, mv.v + (V / TA) * dt);
+      v = Math.min(v, Math.sqrt(2 * dec * Math.max(0, rem)));   // 止まる所までに止まれる速さ以下にする
+      let dd = v * dt;
+      if (dd >= rem || (rem < 0.02 && v < 0.5)) { dd = rem; v = 0; mv.phase = 'wait1'; mv.tt = 0; }
+      mv.d += dd; mv.v = v;
+      mv.steps += dd / stepLen(Math.max(v, 3));   // 歩数は実際に進んだ距離で数える
+      if (v > 0) mv.tRun += dt;
+    }
+    function tick(dt) { let left = dt; while (left > 1e-9) { const h = Math.min(0.004, left); sub(h); left -= h; } }
+    // コマ番号：6コマの版は1歩＝3コマ、4コマの版は今までどおり（接地6割・中間4割）
+    function frameOf(n) {
+      if (MODE === 'after') {
+        if (n === 6) { const u = mv.steps * 3; return { fr: Math.floor(u) % 6, sub: u % 1 }; }
+        const k = Math.floor(mv.steps), f = mv.steps - k; return { fr: (k % 2) * 2 + (f < 0.6 ? 0 : 1), sub: f < 0.6 ? f / 0.6 : (f - 0.6) / 0.4 };
+      }
+      const u = mv.tRun * 4;   // 一定：1秒に4歩
+      if (n === 6) return { fr: Math.floor(u * 3) % 6, sub: (u * 3) % 1 };
+      const k = Math.floor(u), f = u - k; return { fr: (k % 2) * 2 + (f < 0.6 ? 0 : 1), sub: f < 0.6 ? f / 0.6 : (f - 0.6) / 0.4 };
+    }
+    function drawLane(L) {
+      const DotMan = Dm[L.key], n = DotMan.BACKRUN_N || 4, moving = mv.phase === 'run';
+      const { fr, sub } = frameOf(n);
+      const pb = SLIP && moving && fr % (n / 2) === 0 && sub >= 0.5 ? 1 : 0;   // 接地コマの後半は、接地した足を1段後ろへ送る
+      const x = L.x; x.setTransform(1, 0, 0, 1, 0, 0); x.imageSmoothingEnabled = false;
+      x.drawImage(ground, 0, 0);
+      x.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const cx = LW / 2 + 0.5, cy = Y0 - mv.d * PXM;
+      const F = DotMan.frame(Object.assign({ facing: FACE }, COL, moving ? { pose: 'run4', frame: fr, plantBack: pb } : { pose: 'stand', unifyBack: true }));
+      x.fillStyle = 'rgba(0,0,0,.28)'; x.beginPath(); x.ellipse(cx, cy - G * 0.4, 6.4 * G, 2 * G, 0, 0, 7); x.fill();
+      const k = G * dpr;
+      x.setTransform(1, 0, 0, 1, 0, 0);
+      x.drawImage(F.cv, Math.round(cx * dpr - F.px * k), Math.round(cy * dpr - F.py * k), F.cv.width * k, F.cv.height * k);
+      const names = n === 6 ? ['①右足接地', '②右：蹴り出し', '③右：持ち上げ', '④左足接地', '⑤左：蹴り出し', '⑥左：持ち上げ'] : ['①右足接地', '②中間', '③左足接地', '④中間'];
+      L.info.textContent = moving ? ('秒速' + mv.v.toFixed(1) + 'm　' + names[fr] + (MODE === 'after' ? '　1秒に約' + (Math.max(mv.v, 3) / stepLen(Math.max(mv.v, 3))).toFixed(1) + '歩' : '　1秒に4歩（一定）')) : '待機';
+    }
+    function loop(now) {
+      const dt = Math.min(0.05, (now - (last || now)) / 1000); last = now;
+      if (playing) tick(dt * slow);
+      LANES.forEach((L) => drawLane(L));
+      requestAnimationFrame(loop);
+    }
+    const mA = document.getElementById('mAfter'), mB = document.getElementById('mBefore');
+    mA.onclick = () => { MODE = 'after'; mA.classList.add('on'); mB.classList.remove('on'); };
+    mB.onclick = () => { MODE = 'before'; mB.classList.add('on'); mA.classList.remove('on'); };
+    document.getElementById('slip').onclick = (e) => { SLIP = !SLIP; e.target.textContent = '接地中の足を後ろへ送る：' + (SLIP ? 'あり' : 'なし'); e.target.classList.toggle('on', SLIP); };
+    const sp = document.getElementById('spd');
+    [[4, 'ゆっくり（4m/s）'], [6.5, '通常（6.5m/s）'], [8.5, 'ダッシュ（8.5m/s）']].forEach(([v, txt]) => {
+      const b = document.createElement('button'); b.textContent = txt; if (v === V) b.classList.add('on');
+      b.onclick = () => { V = v; reset(); sp.querySelectorAll('button').forEach((q) => q.classList.toggle('on', q === b)); };
+      sp.appendChild(b); sp.appendChild(document.createTextNode(' '));
+    });
+    document.getElementById('play').onclick = (e) => { playing = !playing; e.target.textContent = playing ? '再生中' : '一時停止'; e.target.classList.toggle('on', playing); };
+    document.getElementById('slow').onclick = (e) => { slow = slow === 1 ? 0.5 : 1; e.target.classList.toggle('on', slow !== 1); };
+    document.getElementById('zoom').onclick = (e) => {
+      zoom = zoom === 1 ? 2 : 1; e.target.classList.toggle('on', zoom !== 1);
+      LANES.forEach((L) => { L.cv.style.width = LW * zoom + 'px'; L.cv.style.height = LH * zoom + 'px'; });
+    };
+    window.__move = { setT: (tt) => { reset(); tick(tt); playing = false; }, mv, tick, reset };
+    requestAnimationFrame(loop);
+  }
+})();
+</script>
+</body></html>

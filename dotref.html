@@ -1,0 +1,12 @@
+<!doctype html><html><head><meta charset="utf-8"><style>body{margin:0;background:#2a6478}canvas{image-rendering:pixelated}</style></head><body>
+<canvas id="cv" width="2800" height="2400"></canvas>
+<script src="sprites/dotman.js"></script>
+<script>
+const cv=document.getElementById('cv'),x=cv.getContext('2d');x.imageSmoothingEnabled=false;x.fillStyle='#2a6478';x.fillRect(0,0,2800,2400);
+const q=new URLSearchParams(location.search),Z=+(q.get('z')||8),rows=(q.get('rows')||'s16').split(','),C=q.get('c')?JSON.parse(q.get('c')):{};
+let Y=4;
+for(const r of rows){let X=4;const [pose,a,n]=r.split(':');const N=pose==='s16'?16:+(n||8);
+ for(let i=0;i<N;i++){const o=Object.assign({},C,pose==='s16'?{facing:i*Math.PI/8,pose:'stand'}:{facing:(+a)*Math.PI/8,pose,frame:i});const f=DotMan.frame(o);x.drawImage(f.cv,X,Y,34*Z,34*Z);X+=24*Z;}
+ Y+=35*Z;}
+window.done=1;
+</script></body></html>

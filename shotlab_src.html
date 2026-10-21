@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>シュート技の確認</title>
+<style>
+  :root { --bg: #0e1a13; --panel: #16261c; --ink: #e8f2ea; --dim: #9fb8a6; --acc: #ffe05a; --btn: #23392b; --btnOn: #3d7a4f; --turf: #2f8a3a; color-scheme: dark; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 system-ui, sans-serif; }
+  main { max-width: 1120px; margin: 0 auto; padding-inline: 16px; padding-block: 12px 40px; }
+  h1 { font-size: 20px; margin: 4px 0 2px; }
+  .sub { color: var(--dim); margin: 0 0 10px; }
+  .bar { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; margin: 6px 0; }
+  .bar b { color: var(--dim); font-weight: 600; }
+  .grp { display: flex; flex-wrap: wrap; gap: 4px; }
+  button { background: var(--btn); color: var(--ink); border: 1px solid #355c42; border-radius: 6px; padding: 6px 10px; font: inherit; cursor: pointer; }
+  button.on { background: var(--btnOn); border-color: #7fd19a; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-start; }
+  canvas { background: var(--turf); border-radius: 8px; max-width: 100%; image-rendering: pixelated; }
+  #pad { display: grid; grid-template-columns: repeat(3, 52px); gap: 4px; }
+  #info { white-space: pre-wrap; background: var(--panel); border-radius: 8px; padding: 8px 10px; min-height: 48px; margin: 8px 0; }
+  h2 { font-size: 15px; margin: 14px 0 6px; color: var(--dim); }
+</style>
+</head>
+<body>
+<main>
+  <h1>シュート技の確認</h1>
+  <p class="sub">試合のエンジンで実際に蹴ったシュートの弾道（ボールの動き）を、そのまま再生しています。矢印（キーボードの矢印・WASD）で、ゴールへ向かう向きを8方向に変えられます。</p>
+  <div class="bar"><b>技</b><div class="grp" id="sk"></div></div>
+  <div class="bar"><b>例</b><div class="grp" id="ex"></div><b>蹴る足</b><div class="grp" id="ft"></div><span class="sub" style="margin:0">（コントロールショットは、狙う隅の側の足で自動）</span></div>
+  <div class="bar"><b>速さ</b><div class="grp" id="spd"></div><button id="play">一時停止</button><button id="back">◀ 1コマ戻す</button><button id="fwd">1コマ進める ▶</button><button id="spin">自動で一周：オフ</button></div>
+  <div class="row">
+    <canvas id="big" width="760" height="440"></canvas>
+    <div><div id="pad"></div><p class="sub" style="max-width:170px;margin-top:8px">ゴールへ向かう向き（画面の上での向き）</p></div>
+  </div>
+  <div id="info"></div>
+  <h2>弾道の高さ（横から。白い枠＝ゴール 高さ3.1m（試合のゴールの大きさ））</h2>
+  <canvas id="side" width="1088" height="200"></canvas>
+  <h2>コマ（横から見た絵。今のコマを黄色で囲む）</h2>
+  <canvas id="strip" width="1088" height="190"></canvas>
+  <h2>同じ瞬間を5つの向きから（横・斜め手前・手前・斜め奥・奥）</h2>
+  <canvas id="vw" width="1088" height="250"></canvas>
+</main>
+<script src="sprites/run_art.js"></script>
+<script src="sprites/dotman.js"></script>
+<script>
+const SHOTS = /*SHOTS*/{};
+(() => {
+  const BLUE = { shirt: '#2f6fd6', shorts: '#ffffff', socks: '#2f6fd6', hair: '#2a2420', skin: '#e0a46e' };
+  const hyp = Math.hypot, clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const NAME = { normal: '普通のシュート', powerMid: '強烈ミドル', nearPost: 'ニア上ぶち抜き', controlShot: 'コントロールショット', knuckle: '無回転シュート', driveShot: 'ドライブシュート', dribbleShot: 'ドリブルシュート（標準）', volley: 'ボレー', bicycle: 'バイシクル', divingHeader: 'ダイビングヘッド', lob: 'ループ', toeKick: 'トゥーキック', direct: 'ダイレクト' };
+  const ORDER = ['powerMid', 'nearPost', 'controlShot', 'knuckle', 'driveShot', 'dribbleShot', 'volley', 'bicycle', 'divingHeader', 'lob', 'toeKick', 'direct', 'normal'];
+  // 蹴るまで（t<0）と蹴った後（t≥0）の絵。[開始時刻, 絵, コマ, 説明]。試合（app.js）と同じ
+  const TL = {
+    normal: [[-0.38, 'shotA', 0, '①踏み込み'], [-0.235, 'shotA', 1, '②振りかぶる'], [0, 'shotA', 2, '③インパクト'], [0.14, 'shotA', 3, '④振り抜き'], [0.5, null]],
+    direct: [[-0.2, 'shotA', 1, '来たボールに合わせて振りかぶる'], [0, 'shotA', 2, '止めずにそのまま蹴る'], [0.14, 'shotA', 3, '④振り抜き'], [0.5, null]],
+    powerMid: [[-0.9, 'shotA', 0, '①踏み込み'], [-0.75, 'shotA', 1, '②大きく振りかぶって、力をためる'], [0, 'shotA', 2, '③全身で叩く'], [0.14, 'shotA', 3, '④振り抜き'], [0.55, null]],
+    nearPost: [[-0.6, 'shotA', 0, '①踏み込み'], [-0.45, 'shotA', 1, '②振りかぶる'], [0, 'shotA', 2, '③鋭く振り抜く'], [0.12, 'shotA', 3, '④振り抜き'], [0.45, null]],
+    controlShot: [[-0.4, 'ctrlS', 0, '①踏み込み（蹴り足は後ろ・外へ、腰を開く）'], [-0.22, 'ctrlS', 1, '②蹴り足を大きく引き、体を軸足側へ倒す'], [0, 'ctrlS', 2, '③足の内側で、外から巻き込むように叩く'], [0.12, 'ctrlS', 3, '④すくい上げるように、体の前を横切って高く振り抜く'], [0.55, null]],
+    knuckle: [[-0.38, 'shotA', 0, '①踏み込み'], [-0.235, 'shotA', 1, '②振りかぶる'], [0, 'shotA', 2, '③足の甲で真っ直ぐ当てる（振り抜かずに止める）'], [0.45, null]],
+    driveShot: [[-0.38, 'shotA', 0, '①踏み込み'], [-0.235, 'shotA', 1, '②振りかぶる'], [0, 'shotA', 2, '③ボールの上をこするように叩く（強い縦回転）'], [0.14, 'shotA', 3, '④振り抜き'], [0.5, null]],
+    dribbleShot: [[-1.2, 'run', 0, '走りながら'], [-0.12, 'shotA', 1, 'そのまま振りかぶって'], [0, 'shotA', 2, '走りながらそのまま蹴る'], [0.14, 'shotA', 3, '振り抜き'], [0.45, null]],
+    volley: [[-0.3, 'volleyS', 0, '①体を軸足側へ倒し、蹴り足を横・後ろへ高く上げる'], [0, 'volleyS', 1, '②腰の高さで水平に振り抜いて叩く'], [0.4, null]],
+    bicycle: [[-0.35, 'bicycle', 0, '①後ろへ倒れながら跳ぶ'], [-0.05, 'bicycle', 1, '②頭の上で蹴る（体は地面と平行）'], [0.25, 'bicycle', 2, '③背中から着地'], [0.9, null]],
+    divingHeader: [[-0.3, 'dhead', 0, '①低く構えて前へ蹴り出す'], [-0.08, 'dhead', 1, '②頭から飛び込む（体が地面と平行）'], [0.3, 'dhead', 2, '③腹ばいで着地'], [0.9, null]],
+    lob: [[-0.3, 'lobS', 0, '①小さく振りかぶる'], [0, 'lobS', 1, '②足をボールの下へ滑り込ませる'], [0.1, 'lobS', 2, '③足を下から上へ振り上げる'], [0.45, null]],
+    toeKick: [[-1.2, 'run', 0, '走ったまま（構えない・踏み込まない）'], [-0.08, 'toeK', 0, '①走りの流れのまま、ひざから下を小さく前へ'], [0, 'toeK', 1, '②つま先で突く'], [0.18, 'run', 0, 'そのまま走る'], [0.6, null]],
+  };
+  const FX = { powerMid: 1, nearPost: 1, controlShot: 1, knuckle: 1, driveShot: 1, dribbleShot: 1 };   // 蹴る前のボールを足もとに置く技
+  let skill = 'powerMid', ex = 0, foot = 'R', speed = 1, paused = false, spin = false, spinT = 0, t = -1.2, last = 0, vdir = 5;
+  const T0 = -1.3, T1 = 2.2;
+  function sample() {
+    const L = SHOTS[skill] || [], s = L[Math.min(ex, L.length - 1)]; if (!s) return null;
+    // 蹴った瞬間：ボールが一気に前へ出たコマ
+    let k0 = 0; for (let k = 0; k < s.pts.length - 1; k++) if (s.pts[k + 1][0] - s.pts[k][0] > 0.8) { k0 = k; break; }
+    const pts = s.pts.slice(k0), o = pts[0];
+    return { ...s, pts: pts.map((p) => [p[0] - o[0], p[1] - o[1], p[2]]), goal: [s.goal[0] - o[0], s.goal[1] - o[1]], z0: o[2] };
+  }
+  function ballAt(S, t) {   // 蹴る前は足もと（浮き球の技はその高さ）、蹴った後は0.1秒ごとの記録をつなぐ
+    if (t < 0) { const f = clamp(-t / 0.5, 0, 1); return skill === 'dribbleShot' || skill === 'toeKick' ? [0.5, 0, 0] : FX[skill] || skill === 'normal' || skill === 'lob' || skill === 'toeKick' ? [0.5, 0, 0] : [0.5 + f * 4, f * 0.6, S.z0 + f * 1.2]; }
+    const k = t / 0.1, i = Math.floor(k), u = k - i, P = S.pts; if (i >= P.length - 1) return P[P.length - 1];
+    const a = P[i], b = P[i + 1]; return [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u];
+  }
+  function curFoot() { const S = sample(); return skill === 'controlShot' && S && S.foot ? S.foot : foot; }
+  function poseAt(t) { const L = TL[skill]; let cur = null; for (const e of L) if (t >= e[0]) cur = e; return cur && cur[1] ? cur : null; }
+  // ---- 大きな画面 ----
+  const big = document.getElementById('big'), g = big.getContext('2d');
+  const DEP = 0.5;
+  const VDIRS = [['↖', -3 * Math.PI / 4], ['↑', -Math.PI / 2], ['↗', -Math.PI / 4], ['←', Math.PI], ['', null], ['→', 0], ['↙', 3 * Math.PI / 4], ['↓', Math.PI / 2], ['↘', Math.PI / 4]];
+  function mkVP(th, cx, cy, ppm) { const c = Math.cos(th), sn = Math.sin(th); return (x, y, z = 0) => { const dx = x - cx, dy = y - cy, X = dx * c - dy * sn, Y = dx * sn + dy * c; return [big.width / 2 + X * ppm, big.height * 0.6 + Y * ppm * DEP - z * ppm * 0.9]; }; }
+  function drawSprite(ctx, o, X, Y, sc) { const f = DotMan.frame(o), dot = sc * DotMan.fitScale(f, o.facing, o.pose); ctx.imageSmoothingEnabled = false; ctx.drawImage(f.cv, Math.round(X - f.px * dot), Math.round(Y - f.py * dot), f.cv.width * dot, f.cv.height * dot); }
+  function ell(ctx, X, Y, w, a) { ctx.fillStyle = `rgba(0,0,0,${a || 0.28})`; ctx.beginPath(); ctx.ellipse(X, Y, w, w * 0.3, 0, 0, 7); ctx.fill(); }
+  function drawBig(S) {
+    const th = VDIRS[vdir][1], gx = S.goal[0], gy = S.goal[1], span = Math.max(8, hyp(gx, gy) + 4), ppm = clamp(Math.min(big.width * 0.8, big.height * 1.5) / span, 18, 46);
+    const VP = mkVP(th, gx * 0.45, gy * 0.45, ppm);
+    g.fillStyle = '#2f8a3a'; g.fillRect(0, 0, big.width, big.height);
+    for (let k = -20; k < 20; k++) { const a = VP(k * 2, -40), b = VP(k * 2, 40), c = VP(k * 2 + 2, 40), d = VP(k * 2 + 2, -40); g.fillStyle = k % 2 ? 'rgba(255,255,255,.035)' : 'rgba(0,0,0,.035)'; g.beginPath(); g.moveTo(...a); g.lineTo(...b); g.lineTo(...c); g.lineTo(...d); g.fill(); }
+    // ゴール：ゴールラインに直角（ボールの向き＝+x に対して、ゴールはシュートの先）
+    const gdir = Math.atan2(gy, gx), gnx = Math.cos(gdir), gny = Math.sin(gdir), half = 4.6;
+    const gp = (s, z) => VP(gx - gny * s * -1, gy + gnx * s * -1, z);
+    const items = [];
+    const goalDraw = () => { g.strokeStyle = '#fff'; g.lineWidth = 3; g.beginPath(); g.moveTo(...gp(-half, 0)); g.lineTo(...gp(-half, 3.1)); g.lineTo(...gp(half, 3.1)); g.lineTo(...gp(half, 0)); g.stroke(); g.strokeStyle = 'rgba(255,255,255,.5)'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(...gp(-half - 3, 0)); g.lineTo(...gp(half + 3, 0)); g.stroke(); };
+    items.push({ y: VP(gx, gy)[1], f: goalDraw });
+    // 選手（ドリブルシュートは走ってくる）
+    let sx = 0, sy = 0;
+    if ((skill === 'dribbleShot' || skill === 'toeKick') && t < 0 && S.run && S.run.length > 1) { const k = clamp((t + 1.2) / 0.1, 0, S.run.length - 1), i = Math.floor(k), u = k - i, a = S.run[i], b = S.run[Math.min(S.run.length - 1, i + 1)]; sx = a[0] + (b[0] - a[0]) * u - 0.5; sy = a[1] + (b[1] - a[1]) * u; }
+    const ps = poseAt(t), fa = (skill === 'bicycle' ? Math.PI : 0) + th;
+    const B = VP(sx, sy);
+    items.push({ y: B[1], f: () => {
+      ell(g, B[0], B[1], 30);
+      if (skill === 'powerMid' && t > -0.75 && t < 0) aura(g, B[0], B[1], (t + 0.75) / 0.75, ppm);
+      let o; if (!ps || ps[1] === 'run') o = ps ? { ...BLUE, facing: fa, pose: 'run', art: true, frame: DotMan.artFrame(fa, t * 2.4) } : { ...BLUE, facing: fa, pose: 'stand', art: true };
+      else o = { ...BLUE, facing: fa, pose: ps[1], frame: ps[2], foot: skill === 'controlShot' && S.foot ? S.foot : foot };
+      if (false && skill === 'dribbleShot' && t < 0 && t > -1.2) { const mv = VP(sx + 1, sy); const dx = mv[0] - B[0], dy = mv[1] - B[1], dl = hyp(dx, dy) || 1; for (let k = 3; k >= 1; k--) { g.globalAlpha = 0.15 * (4 - k); drawSprite(g, o, B[0] - dx / dl * k * 9, B[1] - dy / dl * k * 9, 4); } g.globalAlpha = 1; }
+      drawSprite(g, o, B[0], B[1], 4); } });
+    // ボール
+    const bp = ballAt(S, t), BG = VP(bp[0], bp[1]), BB = VP(bp[0], bp[1], bp[2]);
+    items.push({ y: BG[1] + 0.1, f: () => { ell(g, BG[0], BG[1], 7, 0.32); if (t >= 0) ballFx(g, S, VP, ppm); g.fillStyle = '#fff'; g.strokeStyle = '#222'; g.lineWidth = 2; g.beginPath(); g.arc(BB[0], BB[1] - 6, 6, 0, 7); g.fill(); g.stroke(); g.fillStyle = '#222'; g.beginPath(); g.arc(BB[0], BB[1] - 6, 2.2, 0, 7); g.fill(); } });
+    items.sort((a, b) => a.y - b.y).forEach((it) => it.f());
+    if (skill === 'powerMid' && t >= 0 && t < 0.25) shock(g, B[0], B[1] - 10, t / 0.25, 1.3);
+    if (skill === 'nearPost' && t >= 0 && t < 0.15) shock(g, B[0], B[1] - 10, t / 0.15, 0.7);
+    g.fillStyle = '#fff'; g.font = 'bold 16px sans-serif'; g.fillText(VDIRS[vdir][0] + ' ' + NAME[skill] + '（例' + (ex + 1) + '：ゴールまで ' + S.d + 'm・時速' + S.power + 'km）', 12, 24);
+    return ps;
+  }
+  // ---- エフェクト（試合と同じ） ----
+  function shock(ctx, X, Y, u, k) { ctx.save(); ctx.globalAlpha = 1 - u; ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(X, Y, (10 + u * 46) * k, (10 + u * 46) * k * 0.45, 0, 0, 7); ctx.stroke(); ctx.strokeStyle = '#ffe9a0'; ctx.lineWidth = 2.5; for (let n = 0; n < 10; n++) { const a = n / 10 * Math.PI * 2, r1 = (12 + u * 30) * k, r2 = (20 + u * 52) * k; ctx.beginPath(); ctx.moveTo(X + Math.cos(a) * r1, Y + Math.sin(a) * r1 * 0.5); ctx.lineTo(X + Math.cos(a) * r2, Y + Math.sin(a) * r2 * 0.5); ctx.stroke(); } ctx.restore(); }
+  function aura(ctx, X, Y, u, ppm) { ctx.save(); for (let n = 0; n < 8; n++) { const a = n / 8 * Math.PI * 2 + t * 6, r = 30 - u * 14; ctx.strokeStyle = `rgba(255,200,80,${0.25 + 0.5 * u})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X + Math.cos(a) * r, Y - 30 + Math.sin(a) * r * 1.3); ctx.lineTo(X + Math.cos(a) * (r - 8), Y - 30 + Math.sin(a) * (r - 8) * 1.3); ctx.stroke(); } ctx.restore(); }
+  function wind(ctx, X, Y, th, ppm, tt) { const ux = Math.cos(th), uy = Math.sin(th) * DEP, ul = hyp(ux, uy) || 1; for (let k = 0; k < 5; k++) { const off = ((tt * 9 + k * 0.37) % 1 + 1) % 1, len = 20 + (k % 3) * 9, sx = X - ux / ul * (12 + off * 30), sy = Y - 18 - k * 7 - uy / ul * (12 + off * 30); ctx.strokeStyle = `rgba(255,255,255,${0.7 * (1 - off)})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx - ux / ul * len, sy - uy / ul * len); ctx.stroke(); } }
+  function ballFx(ctx, S, VP, ppm) {
+    const hist = []; for (let k = 0; k <= 10; k++) { const tt = t - k * 0.035; if (tt < 0) break; const p = ballAt(S, tt); hist.push(VP(p[0], p[1], p[2])); }
+    if (hist.length < 2) return; ctx.save(); ctx.lineCap = 'round';
+    if (skill === 'powerMid') {   // 太い弾道：オレンジから白へ
+      for (let k = hist.length - 1; k > 0; k--) { const a = 1 - k / hist.length; ctx.strokeStyle = `rgba(255,${150 + 100 * a},${60 + 180 * a},${0.85 * a})`; ctx.lineWidth = 4 + 9 * a; ctx.beginPath(); ctx.moveTo(hist[k][0], hist[k][1] - 6); ctx.lineTo(hist[k - 1][0], hist[k - 1][1] - 6); ctx.stroke(); }
+    } else if (skill === 'nearPost') {   // 一直線の鋭い線：蹴った所からボールまで
+      const p0 = ballAt(S, Math.max(0, t - 0.3)), A = VP(p0[0], p0[1], p0[2]), Bp = hist[0]; ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.moveTo(A[0], A[1] - 6); ctx.lineTo(Bp[0], Bp[1] - 6); ctx.stroke(); ctx.strokeStyle = 'rgba(150,220,255,.6)'; ctx.lineWidth = 6; ctx.globalAlpha = 0.5; ctx.beginPath(); ctx.moveTo(A[0], A[1] - 6); ctx.lineTo(Bp[0], Bp[1] - 6); ctx.stroke();
+    } else if (false) {
+      for (let k = 1; k < hist.length; k++) { ctx.fillStyle = `rgba(255,255,255,${0.45 * (1 - k / hist.length)})`; ctx.beginPath(); ctx.arc(hist[k][0], hist[k][1] - 6, 5.5, 0, 7); ctx.fill(); }
+    }
+    ctx.restore();
+  }
+  // ---- 弾道の高さ（横から） ----
+  const side = document.getElementById('side'), sg = side.getContext('2d');
+  function drawSide(S) {
+    sg.fillStyle = '#18321f'; sg.fillRect(0, 0, side.width, side.height);
+    const L = Math.max(10, S.goal[0] + 3), X = (x) => 40 + x / L * (side.width - 70), Y = (z) => side.height - 24 - z * 38;
+    sg.strokeStyle = 'rgba(255,255,255,.15)'; sg.fillStyle = 'rgba(255,255,255,.55)'; sg.font = '11px sans-serif';
+    for (let z = 0; z <= 4; z++) { sg.beginPath(); sg.moveTo(40, Y(z)); sg.lineTo(side.width - 20, Y(z)); sg.stroke(); sg.fillText(z + 'm', 6, Y(z) + 4); }
+    for (let x = 0; x <= L; x += 5) sg.fillText(x + 'm', X(x) - 8, side.height - 6);
+    sg.strokeStyle = '#fff'; sg.lineWidth = 3; sg.beginPath(); sg.moveTo(X(S.goal[0]), Y(0)); sg.lineTo(X(S.goal[0]), Y(3.1)); sg.lineTo(X(S.goal[0]) + 14, Y(3.1)); sg.stroke();
+    sg.strokeStyle = 'rgba(255,224,90,.9)'; sg.lineWidth = 2; sg.beginPath(); S.pts.forEach((p, i) => { const d = hyp(p[0], p[1]); i ? sg.lineTo(X(d), Y(p[2])) : sg.moveTo(X(d), Y(p[2])); }); sg.stroke();
+    if (t >= 0) { const p = ballAt(S, t); sg.fillStyle = '#fff'; sg.beginPath(); sg.arc(X(hyp(p[0], p[1])), Y(p[2]) - 4, 5, 0, 7); sg.fill(); }
+  }
+  // ---- コマの帯・5つの向き ----
+  const strip = document.getElementById('strip'), stg = strip.getContext('2d');
+  function drawStrip(ps) {
+    const L = TL[skill].filter((e) => e[1] && e[1] !== 'run'), cw = strip.width / Math.max(4, L.length); stg.fillStyle = '#0b1a12'; stg.fillRect(0, 0, strip.width, strip.height);
+    L.forEach((e, i) => { const x0 = i * cw, on = ps && ps[1] === e[1] && ps[2] === e[2]; stg.fillStyle = on ? 'rgba(255,224,90,.18)' : 'rgba(255,255,255,.04)'; stg.fillRect(x0 + 4, 4, cw - 8, strip.height - 8); if (on) { stg.strokeStyle = '#ffe05a'; stg.lineWidth = 3; stg.strokeRect(x0 + 4, 4, cw - 8, strip.height - 8); }
+      drawSprite(stg, { ...BLUE, facing: skill === 'bicycle' ? Math.PI : 0, pose: e[1], frame: e[2], foot: curFoot() }, x0 + cw / 2, 140, 3.2); stg.fillStyle = on ? '#ffe05a' : '#cfe0d2'; stg.font = '13px sans-serif'; stg.textAlign = 'center'; stg.fillText(e[3].slice(0, 16), x0 + cw / 2, 176); stg.textAlign = 'left'; });
+  }
+  const vw = document.getElementById('vw'), vg = vw.getContext('2d');
+  const VIEWS = [['横（→）', 0], ['斜め手前（↘）', Math.PI / 4], ['手前へ（↓）', Math.PI / 2], ['斜め奥（↗）', -Math.PI / 4], ['奥へ（↑）', -Math.PI / 2]];
+  function drawViews(ps) {
+    vg.fillStyle = '#2f8a3a'; vg.fillRect(0, 0, vw.width, vw.height); const cw = vw.width / 5, e = ps || TL[skill].find((x) => x[1] && x[1] !== 'run');
+    VIEWS.forEach(([lab, fa], i) => { const X0 = i * cw + cw / 2; vg.fillStyle = 'rgba(255,255,255,.85)'; vg.font = '14px sans-serif'; vg.textAlign = 'center'; vg.fillText(lab, X0, 20); vg.textAlign = 'left'; if (i) { vg.fillStyle = 'rgba(255,255,255,.12)'; vg.fillRect(i * cw, 30, 1, vw.height - 40); }
+      ell(vg, X0, 175, 22); drawSprite(vg, { ...BLUE, facing: fa + (skill === 'bicycle' ? Math.PI : 0), pose: e[1], frame: e[2], foot: curFoot() }, X0, 175, 3.2); });
+  }
+  function frame() { const S = sample(); if (!S) return; const ps = drawBig(S); drawSide(S); drawStrip(ps); drawViews(ps);
+    document.getElementById('info').textContent = `時間：${t.toFixed(2)} 秒（0＝ボールを蹴った瞬間）\n体勢：${ps ? ps[3] : t < 0 ? '構え' : '蹴り終わり'}${skill === 'controlShot' ? '（' + (S.foot === 'L' ? '左足で左' : '右足で右') + 'の隅へ巻く）' : ''}\n${S.on ? '枠内' : '枠外'}・ゴールまで ${S.d}m`; }
+  function loop(now) { const dt = Math.min(0.05, (now - (last || now)) / 1000); last = now;
+    if (!paused) { t += dt * speed; if (t > T1) t = T0; if (spin) { spinT += dt * speed; if (spinT > T1 - T0) { spinT = 0; const ORD = [5, 8, 7, 6, 3, 0, 1, 2]; vdir = ORD[(ORD.indexOf(vdir) + 1) % 8]; markPad(); } } }
+    frame(); requestAnimationFrame(loop); }
+  const mk = (id, items, on, def) => { const el = document.getElementById(id); el.innerHTML = items.map(([v, l]) => `<button data-v="${v}">${l}</button>`).join(''); el.querySelectorAll('button').forEach((b) => b.onclick = () => { on(b.dataset.v); el.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); }); const d = el.querySelector(`[data-v="${def}"]`); if (d) d.classList.add('on'); };
+  mk('sk', ORDER.map((k) => [k, NAME[k]]), (v) => { skill = v; ex = 0; mkEx(); t = T0; }, 'powerMid');
+  function mkEx() { mk('ex', (SHOTS[skill] || []).map((s, i) => [i, '例' + (i + 1)]), (v) => { ex = +v; t = T0; }, ex); }
+  mkEx();
+  mk('ft', [['R', '右足'], ['L', '左足']], (v) => { foot = v; }, 'R');
+  mk('spd', [['1', '1倍'], ['0.5', '1/2'], ['0.25', '1/4']], (v) => { speed = +v; }, '1');
+  const setPause = (v) => { paused = v; document.getElementById('play').textContent = paused ? '再生' : '一時停止'; };
+  document.getElementById('play').onclick = () => setPause(!paused);
+  document.getElementById('fwd').onclick = () => { setPause(true); t = Math.min(T1, t + 1 / 30); };
+  document.getElementById('back').onclick = () => { setPause(true); t = Math.max(T0, t - 1 / 30); };
+  document.getElementById('spin').onclick = (e) => { spin = !spin; e.target.textContent = '自動で一周：' + (spin ? 'オン' : 'オフ'); };
+  const pad = document.getElementById('pad');
+  pad.innerHTML = VDIRS.map(([a, fa], k) => fa == null ? '<span></span>' : `<button data-k="${k}" style="font-size:22px;padding:8px 0">${a}</button>`).join('');
+  function markPad() { pad.querySelectorAll('button').forEach((b) => b.classList.toggle('on', +b.dataset.k === vdir)); }
+  pad.querySelectorAll('button').forEach((b) => b.onclick = () => { vdir = +b.dataset.k; spin = false; document.getElementById('spin').textContent = '自動で一周：オフ'; markPad(); }); markPad();
+  const keys = new Set(), KM = { ArrowUp: 'u', KeyW: 'u', ArrowDown: 'd', KeyS: 'd', ArrowLeft: 'l', KeyA: 'l', ArrowRight: 'r', KeyD: 'r' };
+  const apply = () => { const dx = (keys.has('r') ? 1 : 0) - (keys.has('l') ? 1 : 0), dy = (keys.has('d') ? 1 : 0) - (keys.has('u') ? 1 : 0); if (!dx && !dy) return; vdir = (dy + 1) * 3 + (dx + 1); spin = false; markPad(); };
+  addEventListener('keydown', (e) => { const k = KM[e.code]; if (!k) return; e.preventDefault(); keys.add(k); apply(); });
+  addEventListener('keyup', (e) => { const k = KM[e.code]; if (k) keys.delete(k); });
+  window.__sl = { set: (o) => { if (o.skill) { skill = o.skill; mkEx(); } if (o.ex != null) ex = o.ex; if (o.t != null) t = o.t; if (o.dir != null) { vdir = o.dir; markPad(); } if (o.foot) foot = o.foot; paused = !!o.pause; frame(); } };
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

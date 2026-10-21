@@ -1,0 +1,14 @@
+{
+  "name": "ドットサッカー",
+  "short_name": "ドットサッカー",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#0d6b32",
+  "theme_color": "#0d6b32",
+  "icons": [
+    { "src": "icons/app-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/app-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

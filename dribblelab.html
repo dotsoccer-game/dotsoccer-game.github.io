@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ドリブル確認画面</title>
+<style>
+:root{--bg:#2f8a3a;--panel:#10241a;--ink:#f3f6ef;--mut:#a9c3ad;--acc:#ffe05a}
+*{box-sizing:border-box}body{margin:0;background:var(--panel);color:var(--ink);font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif}
+.wrap{display:grid;grid-template-columns:1fr 330px;gap:10px;padding:10px;min-height:100vh}
+@media(max-width:820px){.wrap{grid-template-columns:1fr}}
+canvas{width:100%;border-radius:8px;image-rendering:pixelated;display:block}
+#cv{background:var(--bg);cursor:crosshair}#gr{background:#0b1a12;margin-top:8px}
+.side{display:flex;flex-direction:column;gap:7px;font-size:13px}
+h1{font-size:16px;margin:0}h2{font-size:13px;margin:6px 0 2px;color:var(--mut)}
+button{font:inherit;background:#2c4a36;color:var(--ink);border:1px solid #4d7a5a;border-radius:6px;padding:6px 4px;cursor:pointer}
+button.on{background:var(--acc);color:#222;border-color:var(--acc)}
+.row{display:flex;gap:4px;flex-wrap:wrap}.row button{flex:1}
+.lbl{display:flex;align-items:center;gap:6px}.lbl span{width:5.5em;color:var(--mut);font-size:12px}.lbl .row{flex:1}
+.info{background:#0b1a12;border-radius:6px;padding:8px;line-height:1.6;font-family:ui-monospace,Menlo,monospace;font-size:12px;white-space:pre-wrap}
+.note{background:#0b1a12;border-radius:6px;padding:8px;line-height:1.6;font-size:12px}
+.lg i{display:inline-block;width:18px;height:3px;vertical-align:middle;margin-right:4px}
+.res{display:grid;grid-template-columns:auto 1fr 1fr;gap:2px 8px;background:#0b1a12;border-radius:6px;padding:8px;font-size:12px}
+.res b{color:var(--acc);font-weight:400}.res .h{color:var(--mut)}
+</style></head><body>
+<div class="wrap">
+ <div>
+  <canvas id="cv" width="960" height="540"></canvas>
+  <canvas id="gr" width="960" height="150"></canvas>
+  <div class="lg" style="font-size:12px;margin-top:4px"><i style="background:#5aa0ff"></i>上の青の速さ　<i style="background:#9fd0ff;height:2px;border-top:1px dashed #9fd0ff"></i>下の青（比べる方）　<i style="background:#ff6a5a"></i>赤の速さ　<i style="background:#ffe05a"></i>グン！と加速　<i style="background:#c08cff"></i>赤が遅れた時間</div>
+ </div>
+ <div class="side">
+  <h1>ドリブル確認画面</h1>
+  <div>青が右（相手ゴールの方）へドリブルし、赤が止めにきます。<b>上と下の2つの場面を同時に動かして、ランクの差を見比べられます</b>。画面をクリックすると赤の立つ位置を変えてやり直します。</div>
+  <h2>ドリブルの種類</h2>
+  <div class="row" id="mode"></div>
+  <div class="note" id="modeNote"></div>
+  <h2>緩急（突破のドリブルのとき）</h2>
+  <div class="row" id="pace"></div>
+  <h2>上の青</h2>
+  <div class="lbl"><span>ドリブル</span><div class="row" id="bDrb"></div></div>
+  <div class="lbl"><span>瞬発力</span><div class="row" id="bDash"></div></div>
+  <div class="lbl"><span>スピード</span><div class="row" id="bSpd"></div></div>
+  <div class="lbl"><span>判断力</span><div class="row" id="bVis"></div></div>
+  <h2>下の青（比べる方）</h2>
+  <div class="row" id="cmp"></div>
+  <h2>赤（上下とも同じ）</h2>
+  <div class="lbl"><span>守備</span><div class="row" id="rDef"></div></div>
+  <div class="lbl"><span>瞬発力</span><div class="row" id="rDash"></div></div>
+  <div class="lbl"><span>スピード</span><div class="row" id="rSpd"></div></div>
+  <div class="res" id="res"></div>
+  <h2>再生</h2>
+  <div class="row" id="spd"></div>
+  <div class="row" id="zm"></div>
+  <div class="row"><button id="pause">一時停止</button><button id="step">1コマ進む</button><button id="reset">やり直し</button></div>
+  <div class="row"><button id="guide" class="on">補助線：オン</button><button id="loop" class="on">くり返し：オン</button></div>
+  <div class="info" id="info"></div>
+ </div>
+</div>
+<script src="sprites/run_art.js"></script><script src="sprites/dotman.js"></script>
+<script>
+(() => {
+  const cv = document.getElementById('cv'), ctx = cv.getContext('2d'), gr = document.getElementById('gr'), gx = gr.getContext('2d');
+  // ゲームと同じ数字（engine.js）
+  //  最高速 = 4.4 + スピード×0.047 m/s、ふだんの加速 = 5.6 + 瞬発力×0.028 m/s²、止まる = 8 + スピード×0.075 m/s²
+  //  ドリブル中の速さ = 最高速 ×（0.8 + ドリブル×0.0016）。運ぶドリブルはさらに ×（0.58 + テクニック×0.0015）
+  //  突破のドリブル：前8m以内に相手がいる間は巡航 ×（0.6 + ドリブル×0.0016）→ 相手が2.5〜5mでグン！
+  //    グン！の0.8秒：速さ = 最高速 ×（0.96 + ドリブル×0.001）、加速 = 6 + 瞬発力×0.12 m/s²（E 10.8／C 13.8／S 16.8）
+  //    赤の遅れ = 0.15 +（青の瞬発力 − 赤の瞬発力）×0.01 +（青のドリブル − 赤の守備）×0.004 秒（0.03〜0.7秒）
+  //  ボールと足の距離：運ぶ 0.3〜0.55m ／ 突破 0.4〜1.3m
+  const TILT = 0.45, LANE = 9, Y0 = 3, Y1 = 11;   // 1つの場面は幅8m（y=3〜11）
+  let ZM = 1.0, PXM = 30, OX = 0, OY = 0;
+  const SX = (x) => OX + x * PXM, SY = (y) => OY + y * PXM * TILT * 2;
+  const RED = { shirt: '#e2453a', shorts: '#ffffff', socks: '#e2453a', hair: '#7a4a22', skin: '#f7c99c' };
+  const BLUE = { shirt: '#2f6fd6', shorts: '#ffffff', socks: '#2f6fd6', hair: '#2a2420', skin: '#e0a46e' };
+  const BLUE2 = { shirt: '#7ab8ff', shorts: '#ffffff', socks: '#7ab8ff', hair: '#2a2420', skin: '#e0a46e' };
+  const LV = { 40: 'E', 65: 'C', 90: 'S' }, LVN = { 40: 'E（40）', 65: 'C（65）', 90: 'S（90）' };
+  let mode = 'break', paceOn = true, B = { drb: 90, dash: 90, spd: 90, vis: 90 }, cmpLv = 40, Rd = { def: 65, dash: 65, spd: 65 };
+  let speed = 1, paused = false, guide = true, loopOn = true, redAt = { x: 16, y: 7 }, T = 0, acc = 0;
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v)), hyp = Math.hypot;
+  const vMax = (s) => 4.4 + s * 0.047;
+  const sims = [];
+  function mkSim(bs, lane) {
+    const judge = mode === 'judge';
+    return { B: bs, lane, log: [], hist: [], marks: [], passed: null, lagSum: 0, mode: judge ? 'break' : mode, judge, dec: null, fly: null, own: 'a',
+      tm: { x: redAt.x - 7, y: Y1 - 1.0, vx: 4.5, vy: 0, ph: 0.5 },
+      fw: mode === 'carry' ? { x: redAt.x + 9, y: redAt.y < 7 ? Y1 - 1.2 : Y0 + 1.2, vx: 0, vy: 0, ph: 0 } : null,
+      a: { x: 2, y: 7, vx: 3, vy: 0, ph: 0, dir: [1, 0], dO: 0.45, dV: 0, pace: null, paceCd: 0, decT: 0, side: 0 },
+      d: { x: redAt.x, y: judge ? 5.5 : redAt.y, vx: 0, vy: 0, ph: 0, lagT: -1 }, ball: { x: 2.45, y: judge ? 5.5 : 7 }, target: null };
+  }
+  function reset() {
+    PXM = 30 * ZM; OY = 70 - Y0 * PXM * TILT * 2; OX = cv.width * 0.3 - 6 * PXM; T = 0; acc = 0;
+    sims.length = 0;
+    sims.push(mkSim({ ...B }, 0));
+    if (cmpLv) sims.push(mkSim({ drb: cmpLv, dash: cmpLv, spd: cmpLv, vis: cmpLv }, LANE));
+    if (mode === 'judge') for (const sm of sims) { sm.a.y = 5.5; sm.ball.y = 5.5; }
+  }
+  // ---- 判断（ゲームと同じ数字）----
+  //  気づく距離 = 1.6 + 判断力×0.035 m（C 3.9／S 4.8）。判断力50未満（E）は寄せてくる相手に気づかない、気づいてから決めるまで = 0.02 +（100 − 判断力）×0.004 秒（E 0.26／C 0.16／S 0.06）
+  //  選び方：判断力が高いほど一番良いものにはっきり寄る（重み^(0.3＋判断力/40)：E 1.3／C 1.9／S 2.55）。低いと良し悪しの差が見えず、色々なプレーを選んでしまう
+  const notice = (v) => v < 50 ? 0 : 1.6 + v * 0.035, delay = (v) => 0.02 + Math.max(0, 100 - v) * 0.004;
+  const CH_JA = { none: '気づかなかった', carry: '運ぶドリブルでキープ', pass: 'フリーの味方に預ける', through: '裏のスペースへスルーパス', break: '自分で突破（グン！）' };
+  function weights(sm) {
+    const a = sm.a, d = sm.d, tm = sm.tm, Bs = sm.B, dd = hyp(d.x - a.x, d.y - a.y);
+    const free = hyp(tm.x - d.x, tm.y - d.y), ahead = tm.x - d.x;
+    return {
+      carry: 1.0 * (dd < 2 ? 1.6 : 1),
+      pass: Math.exp(Math.min(free - 5, 3) * 0.35),
+      through: ahead > 0 ? Math.exp(Math.min(ahead, 3) * 0.5) * Math.pow(Bs.vis / 90, 3) : 0.05,   // 裏が見えるのは判断力の高い選手
+      break: Math.exp((Bs.dash - Rd.dash) / 25 + (Bs.drb - Rd.def) / 30) * 0.8,
+    };
+  }
+  function probs(sm) { const w = weights(sm), sh = 0.3 + sm.B.vis / 40, o = {}; let tot = 0; for (const k in w) { o[k] = Math.pow(w[k], sh); tot += o[k]; } for (const k in o) o[k] /= tot; return o; }
+  function gauss() { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+  function judgeTick(sm) {
+    const a = sm.a, d = sm.d, tm = sm.tm, b = sm.ball, t = T, Bs = sm.B, dd = hyp(d.x - a.x, d.y - a.y);
+    // 味方：前へ走る（パスが出たらボールへ）
+    const tgt = sm.fly && sm.fly.to === 'tm' ? sm.fly.tgt : sm.own === 'tm' ? { x: tm.x + 5, y: tm.y } : { x: tm.x + 5, y: tm.y };
+    move(tm, tgt.x, tgt.y, sm.fly ? 7.5 : 4.5, 7, 9, false);
+    if (!sm.dec && dd < notice(Bs.vis) && sm.own === 'a') { sm.dec = { t: t + delay(Bs.vis), seen: t, seenD: dd }; sm.log.push('赤に気づく（' + dd.toFixed(1) + 'm）'); }
+    if (!sm.dec && dd < 1.0 && sm.own === 'a') { sm.own = 'd'; sm.lostT = t; sm.dec = { seenD: 0, done: true, ch: 'none', d: dd, p: probs(sm) }; sm.log.push('赤に気づかないまま、奪われる'); return; }
+    if (sm.dec && !sm.dec.done && t >= sm.dec.t) {
+      const w = weights(sm), sh = 0.3 + Bs.vis / 40, ww = {}; let tot = 0;
+      for (const k in w) { ww[k] = Math.pow(w[k], sh); tot += ww[k]; }
+      let r = Math.random() * tot, ch = 'carry'; for (const k in ww) { r -= ww[k]; if (r <= 0) { ch = k; break; } }
+      sm.dec.done = true; sm.dec.ch = ch; sm.dec.d = dd; sm.dec.p = probs(sm); sm.marks.push(t);
+      sm.log.push('判断：' + CH_JA[ch] + '（' + dd.toFixed(1) + 'm で決めた）');
+      if (dd < 1.25 && ch !== 'carry' && Math.random() < 0.7) { sm.own = 'd'; sm.lostT = t; sm.log.push('決めるのが遅く、奪われる'); return; }
+      if (ch === 'carry') sm.mode = 'carry';
+      else if (ch === 'break') { a.pace = { until: t + 0.8 }; a.paceCd = t + 9; const lag = clamp(0.15 + (Bs.dash - Rd.dash) * 0.01 + (Bs.drb - Rd.def) * 0.004, 0.03, 0.7); d.lagT = t + lag; sm.lag = lag; a.side = Math.sign(a.y - d.y) || -1; }
+      else { const tx = ch === 'through' ? tm.x + 5.5 : tm.x + tm.vx * 0.5, ty = tm.y, l = hyp(tx - b.x, ty - b.y), v = ch === 'through' ? 14 : 13; sm.fly = { to: 'tm', tgt: { x: tx, y: ty }, vx: (tx - b.x) / l * v, vy: (ty - b.y) / l * v }; sm.own = 'fly'; }
+    }
+  }
+  const DT = 0.1;
+  function tick(sm) {
+    const a = sm.a, d = sm.d, b = sm.ball, t = T, Bs = sm.B, mode = sm.mode;
+    if (sm.judge) { judgeTick(sm); if (sm.own !== 'a') { move(a, a.x + 3, a.y, 3, 5.6, 8, false); if (sm.own === 'd') move(d, d.x - 2, d.y, 2, 6, 8, false); else move(d, b.x, b.y, 4, 6, 8, false); sm.hist.push({ t, a: hyp(a.vx, a.vy), d: hyp(d.vx, d.vy), lag: false }); return; } }
+    if (mode === 'break') {
+      let bend = 0; const dd = hyp(d.x - a.x, d.y - a.y), ahead = d.x > a.x - 0.3;
+      if (!a.side) a.side = Math.sign(a.y - d.y) || Math.sign(7 - a.y) || 1;
+      if (dd < 7 && ahead && !(sm.judge && !a.pace)) bend += (Math.abs(a.y - d.y) < 0.6 ? a.side * 0.6 : a.y - d.y) / (dd * dd + 1);
+      if (a.pace && ahead) bend = a.side * 0.25;   // グン！の間は相手の脇を斜めに抜ける
+      const dir = [1, clamp(bend * 3, -0.9, 0.9)], l = hyp(dir[0], dir[1]); a.dir = [dir[0] / l, dir[1] / l];
+    } else if (t >= a.decT || (hyp(d.x - a.x, d.y - a.y) < 4 && ((d.x - a.x) * a.dir[0] + (d.y - a.y) * a.dir[1]) / hyp(d.x - a.x, d.y - a.y) > 0.2)) {
+      // 運ぶ：16方向から一番良い向きを選ぶ（ゲームの carryDir と同じ）。9m手前から相手を見て、向かう先に4m以内まで来たらその場で選び直す
+      //  ①相手の方へは行かない（近いほど強く避ける） ②縦→横→後ろ ③前で待つFW（黄色い髪）の方へ体を向ける ④今の向きを保つ
+      let best = a.dir, bs = -1e9; const dd = hyp(d.x - a.x, d.y - a.y), fw = sm.fw;
+      for (let k = 0; k < 16; k++) {
+        const an = k * Math.PI / 8, vx = Math.cos(an), vy = Math.sin(an);
+        let sc = vx * 1.0;
+        if (dd < 9) { const tq = ((d.x - a.x) * vx + (d.y - a.y) * vy) / dd; if (tq > -0.2) sc -= (tq + 0.2) * 2.6 * clamp(4 / dd, 0.45, 3); }
+        if (fw && fw.x > a.x + 5) { const fd = hyp(fw.x - a.x, fw.y - a.y); sc += ((fw.x - a.x) * vx + (fw.y - a.y) * vy) / fd * 0.45; }
+        sc += (vx * a.dir[0] + vy * a.dir[1]) * 0.45;
+        if ((a.y < Y0 + 1.2 && vy < -0.2) || (a.y > Y1 - 1.2 && vy > 0.2)) sc -= 2;
+        if (sc > bs) { bs = sc; best = [vx, vy]; }
+      }
+      a.dir = best; a.decT = t + 0.35 + Math.random() * 0.35;
+    }
+    let vm = vMax(Bs.spd) * (0.8 + Bs.drb * 0.0016), accV = 5.6 + Bs.dash * 0.028;
+    if (mode === 'carry') vm *= 0.58 + Bs.drb * 0.0015;
+    else {
+      if (a.pace && t > a.pace.until) a.pace = null;
+      const dd = hyp(d.x - a.x, d.y - a.y), ahead = (d.x - a.x) * a.dir[0] + (d.y - a.y) * a.dir[1];
+      if (a.pace) { vm = vMax(Bs.spd) * (0.96 + Bs.drb * 0.001); accV = 6 + Bs.dash * 0.12; }
+      else if (paceOn && !sm.judge && ahead > 0.5 && dd < 8) {
+        vm *= 0.6 + Bs.drb * 0.0016;   // 巡航：間合いを測る
+        if (dd < 5 && dd > 2.5 && a.paceCd < t) {
+          a.pace = { until: t + 0.8 }; a.paceCd = t + 2.5; sm.marks.push(t); accV = 6 + Bs.dash * 0.12; vm = vMax(Bs.spd) * (0.96 + Bs.drb * 0.001);
+          const lag = clamp(0.15 + (Bs.dash - Rd.dash) * 0.01 + (Bs.drb - Rd.def) * 0.004, 0.03, 0.7); d.lagT = t + lag; sm.lag = lag;
+          sm.log.push('グン！と加速（' + t.toFixed(1) + '秒）→ 赤は ' + lag.toFixed(2) + ' 秒 遅れる');
+        }
+      }
+      else if (sm.judge && !a.pace) vm *= 0.6 + Bs.drb * 0.0016;   // 判断の場面：決めるまでは普通のドリブル
+    }
+    move(a, a.x + a.dir[0] * 7, a.y + a.dir[1] * 7, vm, accV, 8 + Bs.spd * 0.075, false);
+    let tx, ty;
+    if (mode === 'carry' || (sm.judge && !a.pace)) { const ux = d.x - a.x, uy = d.y - a.y, ul = hyp(ux, uy) || 1; tx = a.x + ux / ul * 1.1; ty = a.y + uy / ul * 1.1; }   // 寄せる：体がぶつからない1.1mまで詰めてボールを狙う（ゲームではここで奪い合い）
+    else { tx = d.x < a.x - 0.3 ? b.x : b.x + 1.6; ty = b.y; }
+    const lagging = d.lagT > t;
+    move(d, tx, ty, vMax(Rd.spd) * 0.95, 5.6 + Rd.dash * 0.028, 8 + Rd.spd * 0.075, lagging);
+    const spd = hyp(a.vx, a.vy), carry = mode === 'carry';
+    if (spd > 1.6) {
+      a.dV -= 3.4 * DT; a.dO += a.dV * DT;
+      if (a.dO <= (carry ? 0.3 : 0.4)) { a.dO = carry ? 0.3 : 0.4; a.dV = carry ? 0.55 + spd * 0.05 : 1.1 + spd * 0.14; }
+      a.dO = Math.min(a.dO, carry ? 0.55 : 1.3);
+    } else { a.dO += (0.5 - a.dO) * 0.3; a.dV = 0; }
+    sm.target = { x: a.x + a.dir[0] * a.dO, y: a.y + a.dir[1] * a.dO };
+    if (sm.passed == null && mode === 'break' && a.x > d.x + 1.2) { sm.passed = t; sm.gap = 0; sm.log.push('赤を置き去りにした（' + t.toFixed(1) + '秒）'); }
+    if (sm.passed != null && t - sm.passed < 1.01) sm.gap = Math.max(sm.gap, a.x - d.x);
+    sm.hist.push({ t, a: spd, d: hyp(d.vx, d.vy), lag: lagging });
+  }
+  function move(p, tx, ty, vm, accV, brakeV, lag) {
+    const dx = tx - p.x, dy = ty - p.y, dd = hyp(dx, dy), want = Math.min(vm, dd * 1.6);
+    let dvx = (dd > 0.01 ? dx / dd * want : 0) - p.vx, dvy = (dd > 0.01 ? dy / dd * want : 0) - p.vy;
+    if (lag) { dvx = 0; dvy = 0; }
+    const brake = (p.vx * dvx + p.vy * dvy) < 0, a = (brake ? brakeV : accV) * DT, dv = hyp(dvx, dvy), k = dv > a ? a / dv : 1;
+    p.vx += dvx * k; p.vy += dvy * k;
+  }
+  function update(dt) {
+    acc += dt;
+    while (acc >= DT) { acc -= DT; for (const sm of sims) tick(sm); T += DT; }
+    for (const sm of sims) {
+      const a = sm.a, d = sm.d, b = sm.ball;
+      for (const p of sm.judge ? [a, d, sm.tm] : [a, d]) { p.x += p.vx * dt; p.y += p.vy * dt; const s = hyp(p.vx, p.vy); p.ph += dt * s / (0.6 + 0.14 * Math.max(3, s)) / 2; }
+      a.y = clamp(a.y, Y0 + 0.4, Y1 - 0.4); d.y = clamp(d.y, Y0 + 0.4, Y1 - 0.4);
+      if (sm.judge && sm.own === 'fly') { b.x += sm.fly.vx * dt; b.y += sm.fly.vy * dt; if (hyp(b.x - sm.fly.tgt.x, b.y - sm.fly.tgt.y) < 0.35 || hyp(b.x - sm.tm.x, b.y - sm.tm.y) < 0.6) { sm.own = 'tm'; sm.log.push(sm.dec.ch === 'through' ? 'スルーパスが通る' : 'パスがつながる'); } continue; }
+      if (sm.judge && sm.own === 'tm') { const k = 1 - Math.pow(0.4, dt / DT); b.x += (sm.tm.x + 0.5 - b.x) * k; b.y += (sm.tm.y - b.y) * k; continue; }
+      if (sm.judge && sm.own === 'd') { const k = 1 - Math.pow(0.4, dt / DT); b.x += (d.x - 0.5 - b.x) * k; b.y += (d.y - b.y) * k; continue; }
+      if (sm.target) { const k = 1 - Math.pow(0.4, dt / DT); b.x += (sm.target.x + a.vx * dt - b.x) * k; b.y += (sm.target.y + a.vy * dt - b.y) * k; }
+    }
+    if (loopOn && (T > 6.5 || sims.every((sm) => sm.a.x > 38))) reset();
+  }
+  // ---- 描画 ----
+  function sprite(o, x, y, rot) {
+    const f = DotMan.frame(o), dot = 5 * ZM * DotMan.fitScale(f, o.facing, o.pose);   // 自動で組む絵も、写した絵と同じ背の高さに
+    ctx.save(); ctx.imageSmoothingEnabled = false; ctx.translate(Math.round(SX(x)), Math.round(SY(y))); if (rot) ctx.rotate(rot);
+    ctx.drawImage(f.cv, Math.round(-f.px * dot), Math.round(-f.py * dot), f.cv.width * dot, f.cv.height * dot); ctx.restore();
+  }
+  function shadow(x, y, w) { ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(SX(x), SY(y), w * ZM / 1.5, w * ZM / 1.5 * 0.3, 0, 0, 7); ctx.fill(); }
+  function dust(x, y, u) { ctx.fillStyle = 'rgba(220,235,190,' + (0.85 * (1 - u)) + ')'; for (let k = 0; k < 5; k++) ctx.fillRect(Math.round(SX(x) - k * 8 * ZM - u * 26), Math.round(SY(y) - 4 - (k % 2) * 7 * ZM), 6 * ZM, 6 * ZM); }
+  const lvName = (bs) => bs.drb === bs.dash && bs.dash === bs.spd ? 'オール' + LV[bs.drb] : `ドリブル${LV[bs.drb]}・瞬発力${LV[bs.dash]}・スピード${LV[bs.spd]}`;
+  function draw() {
+    { const xs = sims.map((sm) => (sm.a.x + sm.d.x) / 2), want = cv.width * 0.42 - (xs.reduce((p, c) => p + c, 0) / xs.length) * PXM; OX += (want - OX) * 0.08; }
+    ctx.fillStyle = '#2f8a3a'; ctx.fillRect(0, 0, cv.width, cv.height);
+    for (let k = -20; k < 90; k += 4) { ctx.fillStyle = ((k / 4) % 2 + 2) % 2 ? 'rgba(255,255,255,.035)' : 'rgba(0,0,0,.03)'; ctx.fillRect(SX(k), 0, PXM * 4, cv.height); }
+    ctx.fillStyle = 'rgba(255,255,255,.8)'; ctx.font = '14px sans-serif'; ctx.fillText('相手ゴールの方 →', cv.width - 150, 20);
+    for (const sm of sims) {
+      const yo = sm.lane;
+      ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0, SY(yo + Y0)); ctx.lineTo(cv.width, SY(yo + Y0)); ctx.moveTo(0, SY(yo + Y1)); ctx.lineTo(cv.width, SY(yo + Y1)); ctx.stroke();
+      ctx.fillStyle = sm.lane ? '#9fd0ff' : '#ffffff'; ctx.font = 'bold 15px sans-serif'; ctx.fillText((sm.lane ? '下：' : '上：') + '青 ' + lvName(sm.B) + (mode === 'judge' ? '・判断力' + LV[sm.B.vis] : ''), 10, SY(yo + Y0) - 8);
+    }
+    const items = [];
+    for (const sm of sims) {
+      const a = sm.a, d = sm.d, b = sm.ball, yo = sm.lane, col = sm.lane ? BLUE2 : BLUE;
+      items.push({ y: a.y + yo, f: () => {
+        const fa = Math.atan2(a.vy || a.dir[1], a.vx || a.dir[0]), s = hyp(a.vx, a.vy), mf = Math.cos(fa) >= 0 ? 1 : -1; shadow(a.x, a.y + yo, 30);
+        let rot = 0;
+        if (a.pace) { const u = 1 - (a.pace.until - T) / 0.8; rot = mf * 0.32 * (u < 0.15 ? u / 0.15 : 1 - (u - 0.15) * 0.8); if (u < 0.45) dust(a.x - mf * 0.9, a.y + yo, u / 0.45); sm.pose = 'グン！（前傾して一気に加速）'; }
+        else if (sm.judge && sm.own !== 'a') sm.pose = sm.own === 'd' ? '奪われた' : 'パスを出した';
+        else sm.pose = sm.mode === 'carry' ? '運ぶ（足元に置いたまま）' : (hyp(d.x - a.x, d.y - a.y) < 8 && d.x > a.x ? '巡航（間合いを測る）' : '突破（大きく押し出して走る）');
+        if (s > 0.4) sprite({ ...col, facing: fa, pose: 'run', art: true, frame: DotMan.artFrame(fa, a.ph) }, a.x, a.y + yo, rot);
+        else sprite({ ...col, facing: fa, pose: 'stand', art: true }, a.x, a.y + yo, rot);
+      } });
+      items.push({ y: d.y + yo, f: () => {
+        const s = hyp(d.vx, d.vy), fa = s > 0.4 ? Math.atan2(d.vy, d.vx) : Math.atan2(a.y - d.y, a.x - d.x); shadow(d.x, d.y + yo, 30);
+        const lag = d.lagT > T;
+        if (s > 0.4) sprite({ ...RED, facing: fa, pose: 'run', art: true, frame: DotMan.artFrame(fa, d.ph) }, d.x, d.y + yo, lag ? -Math.sign(Math.cos(fa) || 1) * 0.1 : 0);
+        else sprite({ ...RED, facing: fa, pose: 'stand', art: true }, d.x, d.y + yo);
+      } });
+      items.push({ y: b.y + yo + 0.01, f: () => { shadow(b.x, b.y + yo, 8); const br = 5.5 * ZM, bx = SX(b.x), by = SY(b.y + yo) - br; ctx.fillStyle = '#fff'; ctx.strokeStyle = '#222'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(bx, by, br, 0, 7); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(bx, by, br * 0.38, 0, 7); ctx.fill(); } });
+      if (sm.fw) {
+        const fw = sm.fw, MATE = { ...col, hair: '#e8c040' };
+        items.push({ y: fw.y + yo, f: () => { shadow(fw.x, fw.y + yo, 30); sprite({ ...MATE, facing: Math.PI, pose: 'stand', art: true }, fw.x, fw.y + yo); } });
+        if (guide && fw.x > a.x + 5) items.push({ y: 997, f: () => { ctx.strokeStyle = 'rgba(232,192,64,.55)'; ctx.lineWidth = 2; ctx.setLineDash([3, 6]); ctx.beginPath(); ctx.moveTo(SX(a.x), SY(a.y + yo) - 20); ctx.lineTo(SX(fw.x), SY(fw.y + yo) - 20); ctx.stroke(); ctx.setLineDash([]); } });
+      }
+      if (sm.judge) {
+        const tm = sm.tm, MATE = { ...col, hair: '#e8c040' };
+        items.push({ y: tm.y + yo, f: () => { const fa = Math.atan2(tm.vy, tm.vx || 1); shadow(tm.x, tm.y + yo, 30); sprite({ ...MATE, facing: fa, pose: 'run', art: true, frame: DotMan.artFrame(fa, tm.ph) }, tm.x, tm.y + yo); } });
+        if (guide && !(sm.dec && sm.dec.done)) items.push({ y: 998, f: () => { const r = notice(sm.B.vis) * PXM; ctx.strokeStyle = sm.dec ? 'rgba(255,224,90,.95)' : 'rgba(255,255,255,.45)'; ctx.lineWidth = 2; ctx.setLineDash([6, 5]); ctx.beginPath(); ctx.ellipse(SX(a.x), SY(a.y + yo), r, r * TILT, 0, 0, 7); ctx.stroke(); ctx.setLineDash([]); } });
+      }
+      if (guide) items.push({ y: 999, f: () => { ctx.strokeStyle = 'rgba(255,224,90,.9)'; ctx.lineWidth = 2; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(SX(a.x), SY(a.y + yo)); ctx.lineTo(SX(b.x), SY(b.y + yo)); ctx.stroke(); ctx.setLineDash([]); } });
+    }
+    items.sort((p, q) => p.y - q.y).forEach((it) => it.f());
+    drawGraph(); drawRes();
+    const sm = sims[0], a = sm.a, d = sm.d;
+    document.getElementById('info').textContent =
+      `時間　　　：${T.toFixed(1)} 秒\n` + sims.map((s) => `${s.lane ? '下' : '上'}の青：${s.pose || ''}　${hyp(s.a.vx, s.a.vy).toFixed(1)} m/s・ボールと足 ${hyp(s.ball.x - s.a.x, s.ball.y - s.a.y).toFixed(2)} m`).join('\n') + '\n' +
+      sims.map((s) => (s.lane ? '下：' : '上：') + (s.log.join(' ／ ') || '－')).join('\n');
+  }
+  function drawRes() {
+    if (mode === 'judge') {
+      const r = (s) => [s.dec ? (s.dec.ch === 'none' ? '気づかない' : s.dec.seenD.toFixed(1) + ' m') : '－', s.dec && s.dec.done ? s.dec.d.toFixed(1) + ' m' : '－', s.dec && s.dec.done ? CH_JA[s.dec.ch] : '－', s.own === 'd' ? '奪われた' : s.own === 'tm' ? 'つながった' : s.dec && s.dec.done ? '成功' : '－'];
+      let h = '<span class="h"></span><span class="h">上の青</span><span class="h">下の青</span>';
+      [['気づいた距離', 0], ['決めた距離', 1], ['選んだプレー', 2], ['結果', 3]].forEach(([n, i]) => { h += `<span class="h">${n}</span><b>${r(sims[0])[i]}</b><b>${sims[1] ? r(sims[1])[i] : '－'}</b>`; });
+      document.getElementById('res').innerHTML = h; return;
+    }
+    const r = (s) => mode !== 'break' ? ['－', '－', '－'] : [s.lag != null ? s.lag.toFixed(2) + ' 秒' : '－', s.passed != null ? s.passed.toFixed(1) + ' 秒' : '抜けない', s.gap != null ? s.gap.toFixed(1) + ' m' : '－'];
+    const rows = [['赤の遅れ', 0], ['抜いた時間', 1], ['1秒後の差', 2]];
+    let h = '<span class="h"></span><span class="h">上の青</span><span class="h">下の青</span>';
+    for (const [n, i] of rows) h += `<span class="h">${n}</span><b>${r(sims[0])[i]}</b><b>${sims[1] ? r(sims[1])[i] : '－'}</b>`;
+    document.getElementById('res').innerHTML = h;
+  }
+  function drawGraph() {
+    if (mode === 'judge') {
+      // 判断の中身：その瞬間にどのプレーをどれくらいの確率で選ぶか（判断力が高いほど、一番良いものに寄る）
+      const W = gr.width, H = gr.height; gx.fillStyle = '#0b1a12'; gx.fillRect(0, 0, W, H); gx.font = '12px sans-serif';
+      const COL = { carry: '#6fd08c', pass: '#5aa0ff', through: '#c08cff', break: '#ffb347' };
+      sims.forEach((sm, i) => {
+        const y = 22 + i * 62, p = sm.dec && sm.dec.p ? sm.dec.p : probs(sm); let x = 90;
+        gx.fillStyle = '#cfe'; gx.fillText((sm.lane ? '下' : '上') + '・判断力' + LV[sm.B.vis], 6, y + 16);
+        for (const k of ['carry', 'pass', 'through', 'break']) { const w = p[k] * (W - 110); gx.fillStyle = COL[k]; gx.globalAlpha = sm.dec && sm.dec.done && sm.dec.ch !== k ? 0.45 : 1; gx.fillRect(x, y, w, 26); gx.globalAlpha = 1; if (w > 70) { gx.fillStyle = '#122'; gx.fillText(CH_JA[k].replace('（グン！）', '') + ' ' + Math.round(p[k] * 100) + '%', x + 4, y + 17); } if (sm.dec && sm.dec.ch === k) { gx.strokeStyle = '#fff'; gx.lineWidth = 3; gx.strokeRect(x + 1, y + 1, w - 2, 24); gx.lineWidth = 1; } x += w; }
+        gx.fillStyle = 'rgba(255,255,255,.6)'; gx.fillText(sm.dec && sm.dec.done ? '↑決めた瞬間の確率（白枠が選んだプレー）' : '↑今この瞬間に決めるとしたら', 90, y + 42);
+      });
+      return;
+    }
+    const W = gr.width, H = gr.height, Tm = 6.5, X = (t) => 40 + t / Tm * (W - 50), Y = (v) => H - 18 - v / 10 * (H - 30);
+    gx.fillStyle = '#0b1a12'; gx.fillRect(0, 0, W, H);
+    gx.strokeStyle = 'rgba(255,255,255,.12)'; gx.fillStyle = 'rgba(255,255,255,.5)'; gx.font = '11px sans-serif';
+    for (let v = 0; v <= 10; v += 2) { gx.beginPath(); gx.moveTo(40, Y(v)); gx.lineTo(W - 10, Y(v)); gx.stroke(); gx.fillText(v + 'm/s', 2, Y(v) + 4); }
+    for (let t = 0; t <= 6; t++) gx.fillText(t + '秒', X(t) - 8, H - 4);
+    const s0 = sims[0];
+    gx.fillStyle = 'rgba(192,140,255,.3)'; for (const h of s0.hist) if (h.lag) gx.fillRect(X(h.t), 6, X(0.1) - X(0) + 1, H - 24);
+    for (const sm of sims) for (const m of sm.marks) { gx.strokeStyle = '#ffe05a'; gx.setLineDash(sm.lane ? [3, 3] : []); gx.beginPath(); gx.moveTo(X(m), 6); gx.lineTo(X(m), H - 18); gx.stroke(); gx.setLineDash([]); gx.fillStyle = '#ffe05a'; gx.fillText(sm.lane ? '下 グン' : '上 グン', X(m) + 3, sm.lane ? 28 : 16); }
+    const line = (sm, key, col, dash) => { gx.strokeStyle = col; gx.lineWidth = 2; gx.setLineDash(dash ? [5, 4] : []); gx.beginPath(); sm.hist.forEach((h, i) => { const x = X(h.t), y = Y(h[key]); i ? gx.lineTo(x, y) : gx.moveTo(x, y); }); gx.stroke(); gx.setLineDash([]); };
+    line(s0, 'd', '#ff6a5a'); if (sims[1]) line(sims[1], 'a', '#9fd0ff', true); line(s0, 'a', '#5aa0ff');
+    gx.lineWidth = 1;
+  }
+  let last = 0, stepReq = 0;
+  function loop(now) { const dt = Math.min(0.05, (now - (last || now)) / 1000); last = now; if (!paused) update(dt * speed); else if (stepReq) { for (let k = 0; k < 6; k++) update(1 / 60); stepReq = 0; } draw(); requestAnimationFrame(loop); }
+  // ---- 操作 ----
+  const mk = (id, items, on, def) => { const el = document.getElementById(id); el.innerHTML = items.map(([v, t]) => `<button data-v="${v}">${t}</button>`).join(''); el.querySelectorAll('button').forEach((b) => b.onclick = () => { on(b.dataset.v); el.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); }); const d0 = el.querySelector(`button[data-v="${def}"]`); if (d0) d0.classList.add('on'); };
+  const NOTE = {
+    carry: '<b>運ぶドリブル</b>：ボールキープが目的。ボールは足元（0.3〜0.55m）から離れず、360°どこへでも動ける。速さは控えめで、奪われにくい。<br>向きの優先順位：①取られない（相手の方へは行かない） ②<b>縦→横→後ろ</b> ③前で待つFW（黄色い髪・点線）の方へ体を向けておく。相手を背にしたら真っ直ぐ。<br>試合では、相手に寄せられている時・自陣で多く出る。',
+    judge: '<b>判断</b>：青がドリブルし、赤が寄せてくる。黄色い髪の味方が前へ走っている。青は赤に<b>気づいた瞬間</b>（点線の輪に赤が入る）から少し考えて、運ぶ・預ける・スルーパス・自分で突破のどれかを選ぶ。<br>判断力が高いほど、①早く（遠くで）気づき、②決めるのが早く、③一番良いプレーを選ぶ。判断力が50未満（E）だと寄せてくる相手に気づかず、そのまま奪われることが多い。<br>下のグラフは、その瞬間にどのプレーを選ぶかの確率。',
+    break: '<b>突破のドリブル</b>：相手を抜く・縦に速く運ぶのが目的。前に相手がいる間は普通のドリブルで間合いを測り、2.5〜5mまで来たら<b>前傾してグン！と一気に加速</b>。瞬発力が高いほど加速が鋭く、相手の反応も遅れる。<br>試合では、前が空いている時・相手陣・高速ドリブルやカットインを持つ選手で多く出る。',
+  };
+  const setMode = (v) => { mode = v; document.getElementById('modeNote').innerHTML = NOTE[v]; document.getElementById('pace').style.opacity = v === 'break' ? 1 : 0.35; document.getElementById('bVis').parentElement.style.opacity = v === 'judge' ? 1 : 0.45; reset(); };
+  mk('mode', [['carry', '運ぶドリブル'], ['break', '突破のドリブル'], ['judge', '判断（味方あり）']], setMode, 'break');
+  mk('pace', [['1', '緩急あり'], ['0', '緩急なし']], (v) => { paceOn = v === '1'; reset(); }, '1');
+  const lv = [['40', LVN[40]], ['65', LVN[65]], ['90', LVN[90]]];
+  mk('bDrb', lv, (v) => { B.drb = +v; reset(); }, '90'); mk('bDash', lv, (v) => { B.dash = +v; reset(); }, '90'); mk('bSpd', lv, (v) => { B.spd = +v; reset(); }, '90'); mk('bVis', lv, (v) => { B.vis = +v; reset(); }, '90');
+  mk('cmp', [['0', '比べない'], ['40', 'オールE'], ['65', 'オールC'], ['90', 'オールS']], (v) => { cmpLv = +v; reset(); }, '40');
+  mk('rDef', lv, (v) => { Rd.def = +v; reset(); }, '65'); mk('rDash', lv, (v) => { Rd.dash = +v; reset(); }, '65'); mk('rSpd', lv, (v) => { Rd.spd = +v; reset(); }, '65');
+  mk('spd', [['1', '1倍'], ['0.5', '1/2'], ['0.25', '1/4']], (v) => { speed = +v; }, '1');
+  mk('zm', [['0.75', '遠い'], ['1.0', 'ふつう'], ['1.3', '近い']], (v) => { ZM = +v; reset(); }, '1.0');
+  document.getElementById('pause').onclick = (e) => { paused = !paused; e.target.textContent = paused ? '再生' : '一時停止'; };
+  document.getElementById('step').onclick = () => { paused = true; document.getElementById('pause').textContent = '再生'; stepReq = 1; };
+  document.getElementById('reset').onclick = reset;
+  document.getElementById('guide').onclick = (e) => { guide = !guide; e.target.textContent = '補助線：' + (guide ? 'オン' : 'オフ'); e.target.classList.toggle('on', guide); };
+  document.getElementById('loop').onclick = (e) => { loopOn = !loopOn; e.target.textContent = 'くり返し：' + (loopOn ? 'オン' : 'オフ'); e.target.classList.toggle('on', loopOn); };
+  cv.onclick = (e) => { const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) * cv.width / r.width, y = (e.clientY - r.top) * cv.height / r.height; const wy = (y - OY) / (PXM * TILT * 2); redAt = { x: clamp((x - OX) / PXM, 6, 30), y: clamp(wy >= LANE + Y0 - 0.5 ? wy - LANE : wy, Y0 + 0.5, Y1 - 0.5) }; reset(); };
+  setMode('break'); requestAnimationFrame(loop);
+  window.__lab = { sims, reset, update, set: (o) => { if (o.mode) mode = o.mode; if (o.pace != null) paceOn = o.pace; Object.assign(B, o.B || {}); if (o.cmp != null) cmpLv = o.cmp; Object.assign(Rd, o.R || {}); reset(); } };
+})();
+</script>
+</body></html>

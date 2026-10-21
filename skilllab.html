@@ -1,0 +1,653 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>合格済みの動き</title>
+<style>
+:root{--bg:#2f8a3a;--panel:#10241a;--ink:#f3f6ef;--mut:#a9c3ad;--acc:#ffe05a}
+*{box-sizing:border-box}body{margin:0;background:var(--panel);color:var(--ink);font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif}
+.wrap{display:grid;grid-template-columns:1fr 330px;gap:10px;padding:10px;min-height:100vh}
+@media(max-width:820px){.wrap{grid-template-columns:1fr}}
+canvas{width:100%;border-radius:8px;image-rendering:pixelated;display:block}
+#cv{background:var(--bg)}#gr{background:#0b1a12;margin-top:8px}
+.side{display:flex;flex-direction:column;gap:7px;font-size:13px}
+h1{font-size:16px;margin:0}h2{font-size:13px;margin:6px 0 2px;color:var(--mut)}
+button{font:inherit;background:#2c4a36;color:var(--ink);border:1px solid #4d7a5a;border-radius:6px;padding:6px 4px;cursor:pointer}
+button.on{background:var(--acc);color:#222;border-color:var(--acc)}
+.row{display:flex;gap:4px;flex-wrap:wrap}.row button{flex:1}
+.info{background:#0b1a12;border-radius:6px;padding:8px;line-height:1.6;font-family:ui-monospace,Menlo,monospace;font-size:12px;white-space:pre-wrap}
+.note{background:#0b1a12;border-radius:6px;padding:8px;line-height:1.6;font-size:12px}
+.res{display:grid;grid-template-columns:auto 1fr 1fr;gap:2px 8px;background:#0b1a12;border-radius:6px;padding:8px;font-size:12px}
+.res b{color:var(--acc);font-weight:400}.res .h{color:var(--mut)}
+.lg i{display:inline-block;width:18px;height:3px;vertical-align:middle;margin-right:4px}
+</style></head><body>
+<div class="wrap">
+ <div>
+  <canvas id="cv" width="960" height="540"></canvas>
+  <div id="vwBox" style="display:none;margin-top:8px;background:#0b1a12;border-radius:8px;padding:8px">
+   <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start">
+    <canvas id="vbig" width="560" height="380" style="width:560px;max-width:100%;background:#2f8a3a;border-radius:6px"></canvas>
+    <div style="display:flex;flex-direction:column;gap:6px;font-size:13px;min-width:200px">
+     <b>8方向で動かして見る（赤＝守備つき）</b>
+     <div>上の場面（上の青と赤）を、選んだ向きから見ます。矢印ボタン（またはキーボードの矢印キー・WASD）で向きを変えられます。一時停止・コマ送りは上の場面と一緒に動きます。</div>
+     <div id="vpad" style="display:grid;grid-template-columns:repeat(3,56px);gap:4px"></div>
+     <div class="row"><button id="vplay">一時停止</button><button id="vback">◀ コマ</button><button id="vfwd">コマ ▶</button></div>
+     <div class="row"><button id="vspin">自動で一周：オフ</button></div>
+     <div id="vinfo" style="font-family:ui-monospace,Menlo,monospace;font-size:12px;line-height:1.6"></div>
+    </div>
+   </div>
+   <div style="font-size:13px;margin:8px 0 4px">5つの向きを並べて（試合の画面と同じ縮み方：奥行きは横の約0.55倍）</div>
+   <canvas id="vw" width="960" height="250" style="background:#2f8a3a"></canvas>
+  </div>
+  <canvas id="gr" width="960" height="150"></canvas>
+  <div class="lg" style="font-size:12px;margin-top:4px"><i style="background:#5aa0ff"></i>上の青の速さ　<i style="background:#9fd0ff"></i>下の青の速さ　<i style="background:#ff6a5a"></i>赤の速さ　<i style="background:#ffe05a"></i>ボールと足の距離（上）</div>
+ </div>
+ <div class="side">
+  <h1>合格済みの動き（シュート・パス・トラップ・ドリブル技）</h1>
+  <div>青がドリブル技を仕掛け、赤が止めにきます。上と下の2つの場面を同時に動かして見比べられます。</div>
+  <h2>技</h2>
+  <div class="row" id="sk"></div>
+  <div class="note" id="note"></div>
+  <canvas id="strip" width="640" height="190" style="background:#0b1a12;display:none"></canvas>
+  <h2>上の青（ドリブル・テクニック・スピード・瞬発力）</h2>
+  <div class="row" id="up"></div>
+  <h2>下の青（比べる方）</h2>
+  <div class="row" id="cmp"></div>
+  <h2>赤（守備・スピード・瞬発力）</h2>
+  <div class="row" id="red"></div>
+  <h2>フェイントの向き（ボディフェイント・シザース・キックフェイント）</h2>
+  <div class="row" id="fside"></div>
+  <h2>蹴る足（シュートフォーム・キックフェイント）</h2>
+  <div class="row" id="kfoot"></div>
+  <h2>シザース（読まれたら、反対の足でもう一回またぐ＝ダブルシザース）</h2>
+  <div class="row" id="dbl"></div>
+  <h2 id="scH">カットインの場面（切れ込む角度が変わる）</h2>
+  <div class="row" id="scene"></div>
+  <h2>結果</h2>
+  <div class="row" id="res0"></div>
+  <div class="res" id="res"></div>
+  <h2>再生</h2>
+  <div class="row" id="spd"></div>
+  <div class="row"><button id="pause">一時停止</button><button id="step">1コマ進む</button><button id="reset">やり直し</button></div>
+  <div class="row"><button id="guide" class="on">補助線：オン</button><button id="loop" class="on">くり返し：オン</button></div>
+  <div class="info" id="info"></div>
+ </div>
+</div>
+<script src="sprites/run_art.js"></script><script src="sprites/dotman.js"></script>
+<script>
+(() => {
+  const cv = document.getElementById('cv'), gr = document.getElementById('gr'), gx = gr.getContext('2d'); let ctx = cv.getContext('2d');
+  let VIEW = null;   // 向きを変えて大きく見る画面を描いている間だけ：{ th, cx, cy, W, H, ppm, k }
+  const VP = (x, y) => { const rx = x - VIEW.cx, ry = y - VIEW.cy, c = Math.cos(VIEW.th), n = Math.sin(VIEW.th); return [VIEW.W / 2 + (rx * c - ry * n) * VIEW.ppm, VIEW.H * 0.6 + (rx * n + ry * c) * VIEW.ppm * 0.55]; };   // 試合と同じく奥行きは0.55倍
+  // ゲームと同じ数字（engine.js の skillMove・高速ドリブル）
+  //  成功率 = 0.5 +（ドリブル − 相手の守備）×0.008 +（テクニック − 60）×0.002 + 場面が合っている 0.1（18〜90%）
+  //  カットイン：縦へ外へ運ぶ 0.26秒（秒速5.8）→ 踏ん張る 0.1秒 → 斜め内へ最高速×0.95・グン！の加速（6＋瞬発力×0.12）／相手は外へつられて0.4秒後に逆を取られる
+  //  股抜き：0.12秒で構える → つま先で股の間へ（秒速6.5で相手の3m裏へ）→ 相手の脇を秒速6で0.3秒回り込み → 裏のボールへ秒速7.2
+  //  高速ドリブル：前が4.5m以上空いていれば最高速×1.02（普通の突破ドリブルは ×（0.8＋ドリブル×0.0016）＝S約0.94・E約0.86）。ボールを大きく蹴り出す（最大2.4m、普通の突破は1.3m）
+  const TILT = 0.45, LANE = 11, Y0 = 2, Y1 = 12;
+  let ZM = 1.0, PXM = 30, OX = 0, OY = 0;
+  const SX = (x) => VIEW ? NaN : OX + x * PXM, SY = (y) => VIEW ? NaN : OY + y * PXM * TILT * 2;   // 向きを変えた画面では、片方の座標しか使わない描き方（風の線など）は描かない
+  const RED = { shirt: '#e2453a', shorts: '#ffffff', socks: '#e2453a', hair: '#7a4a22', skin: '#f7c99c' };
+  const BLUE = { shirt: '#2f6fd6', shorts: '#ffffff', socks: '#2f6fd6', hair: '#2a2420', skin: '#e0a46e' };
+  const BLUE2 = { shirt: '#7ab8ff', shorts: '#ffffff', socks: '#7ab8ff', hair: '#2a2420', skin: '#e0a46e' };
+  const LV = { 40: 'E', 65: 'C', 90: 'S' };
+  let skill = 'cutIn', scene = 'open', fside = 'L', up = 90, cmp = 40, red = 65, force = 'auto', dblMode = 'auto', kfoot = 'R', speed = 1, paused = false, guide = true, loopOn = true, T = 0, acc = 0;
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v)), hyp = Math.hypot, vMax = (s) => 4.4 + s * 0.047, DT = 0.1;
+  const sims = [];
+  const NAME = { trap: 'トラップ（インサイド）', trapSole: 'トラップ（足裏）', chest: '胸トラップ', pass: 'パス', shot: 'シュートフォーム', cutIn: 'カットイン', speed: '高速ドリブル', nutmeg: '股抜き', bodyFeint: 'ボディフェイント', scissors: 'シザース', kickFeint: 'キックフェイント' };
+  const NOTE = {
+    trap: '<b>トラップ（インサイド）</b>（試合で足元のボールを受ける時もこの絵）：右の味方からのパスを、ボールの方を向いて受ける。①受ける足を前へ出し、足の内側で触る → ②足を引いて勢いを吸収し、足元へ収める。8方向・右足／左足。',
+    trapSole: '<b>トラップ（足裏）</b>（試合でも4回に1回くらい）：転がってきたボールを、足の裏で上から押さえて止める。',
+    chest: '<b>胸トラップ</b>（試合で浮き球を受ける時もこの絵）：①胸を張って上体を少し後ろへ反らし、両腕を広げる → ②胸を引いてひざを曲げ、ボールを足元へ落とす。8方向。',
+    pass: '<b>パス</b>（試合のパスもこの絵）：シュートの小さいバージョン。①踏み込み（軸足をボールの横へ）→ ②小さく振りかぶる → ③インパクト → ④小さく振り抜く（足は腰の高さまで）。体の使い方はシュートと同じ。8方向すべて・右足／左足の両方。右の味方へ転がす。',
+    shot: '<b>シュートフォーム</b>（試合のシュートもこの絵）：①踏み込み（軸足をボールの横へ、蹴り足は後ろへ）→ ②大きく振りかぶる（かかとがお尻に付くくらい、腕を大きく広げる）→ ③インパクト（足の甲で、ひざから下を振り出す）→ ④振り抜き（足が前に高く上がる）。上の4コマが今どこかを黄色で示す。キックフェイントは①②まで同じフォームで、③を打たずに止める。',
+    bodyFeint: '<b>ボディフェイント</b>（参考動画を写す）：<b>前を向いたまま</b>、見せる側の足を真横へ大きく踏み出し（スタンプ）、腰を落として体ごとそちらへ傾ける（ボールには触らない）→ 踏み出した足で地面を蹴り返し、反対の足のアウトでボールを逆へ運ぶ → そのままグン！と逆へ。左を見せるなら左足でスタンプ、右足のアウトで右へ。<br>赤は見せた側へつられる。つられ方は（ドリブル・テクニック）と守備の差で決まる（右下の「赤のつられ方」）。',
+    scissors: '<b>シザース</b>：左に行くフリをしながら、左足でボールの外側をぐるっとまたぐ（ボールは触らない）。①ひざを高く上げる → ②足の裏がボールの真上を通る（白い弧が足の通り道）→ ③ボールの向こう側へ着地→ 右足でボールを右へ転がし、そのまま右へグン！とドリブル。右を見せて左も同じ。ボディフェイントより「またぐ」分だけ長く見せる。<br><b>ダブルシザース</b>：1回目が読まれた（赤が動かず、行きたい右を待っている）とき、テクニックがあれば<b>反対の足でもう一度またいで右を見せる</b> → 赤が右へ体重を乗せた瞬間、1回目に見せた左へグン！と抜ける（1回目は「見せ」、2回目で本当にだます）。「いつもダブル」で必ず見られる。',
+    kickFeint: '<b>キックフェイント</b>：<b>本物のシュートと同じフォーム</b>（①踏み込み→②大きく振りかぶる）で打つと見せる → 赤はシュートブロックのためにコースに立ちはだかって<b>止まる</b>（腰を落として構えたまま固まる）→ ③打たずに、振りかぶった足を外へ踏み下ろし、<b>反対の足のアウト</b>でボールを横へ運ぶ（脚は交差させない）→ ④<b>運んだ側の足でシュート</b>（右へ運んだら右足、左へ運んだら左足。振りかぶって見せるのは反対の足）。だまされるほど、赤が固まる時間が長い。',
+    cutIn: '<b>カットイン</b>（突破のドリブル）：<b>緩</b>＝ゆっくり外へ運んで赤を誘う → 外の足で踏ん張ってほぼ止まる → <b>急</b>＝インで中へ持ち出し、止まった所から前傾してグン！と最高速まで一気に加速して斜め内へ。瞬発力が高いほど加速が鋭い（グラフの立ち上がり）。赤は縦を切りに外へつられて逆を取られる。中へ入ったらシュートへ。<br><b>角度は場面で変わる（25°〜90°）</b>：切れ込んだ先が空いているか・ゴールへ近づけるか・ゴールラインの外へ出ないかで決める。判断力が高いほど一番良い角度を選ぶ（点線の％が選ぶ確率、黄色が選んだ角度）。「失敗①／②」は股抜きのとき。',
+    speed: '<b>高速ドリブル</b>（突破のドリブル）：前が空いていれば、ボールを大きく前へ蹴り出しては全力で追いつく。体の後ろに風の線が流れる。<br><b>デメリット</b>：①続けられるのは3秒まで（そのあと4秒は使えない） ②使っている間はスタミナの減りが2.2倍 ③ボールが足から大きく離れるので、その瞬間は奪われやすい。<br>下の段は「同じ選手が技なしで突破のドリブル」をした場合。',
+    nutmeg: '<b>股抜き</b>：赤が足を開いて止めにきた瞬間、つま先でちょんと股の間へ通し、相手が届かない5m先まで転がす。自分は赤の脇を回り込んで、裏でボールを拾い直す。成功率は（ドリブル＋テクニック）と相手の守備力の差で決まる。<br><b>失敗は2通り</b>：①そもそも通せない（読まれて足を閉じられる）／②股は抜いて、ボールも後ろへ転がった。でも赤の反応が速く、振り返って先に追いつく → 背中を向けてボールを隠し、青が寄った瞬間に<b>肩・背中をぶつけてブロック → マイボール</b>（抜かれそうな時の守備の基本。守備力・瞬発力が高い赤ほど②になる）。',
+  };
+  // カットインの角度（ゲームの cutInScores と同じ計算）：前から内側へ 25°〜90° の5つ。切れ込んだ先5mまでの空き・ゴールへの近さ・ゴールラインの外へ出ないか
+  const CUT_ANG = [25, 40, 55, 70, 90];
+  function segD(px, py, ax, ay, bx, by) { const vx = bx - ax, vy = by - ay, l2 = vx * vx + vy * vy || 1, u = clamp(((px - ax) * vx + (py - ay) * vy) / l2, 0, 1); return hyp(px - (ax + vx * u), py - (ay + vy * u)); }
+  function cutScores(sm) {
+    const a = sm.a, G = sm.goal;
+    return CUT_ANG.map((deg) => { const r = deg * Math.PI / 180, ux = Math.cos(r), uy = Math.sin(r), ex = a.x + ux * 5, ey = a.y + uy * 5;
+      let space = 4; for (const o of sm.others) space = Math.min(space, segD(o.x, o.y, a.x, a.y, ex, ey));
+      let sc = space * 0.45 - hyp(G.x - ex, G.y - ey) * 0.09; if (ex > G.line - 0.8) sc -= 3; return { deg, ux, uy, sc }; });
+  }
+  function cutProbs(sm) { const cs = cutScores(sm), sh = 0.3 + sm.lv / 40; let tot = 0; for (const c of cs) { c.w = Math.pow(Math.exp(c.sc * 2), sh); tot += c.w; } for (const c of cs) c.p = c.w / tot; return cs; }
+  const pS = (lv) => skill === 'nutmeg' ? clamp(0.5 + (lv - red) * 0.012 + 0.05, 0.12, 0.92) : clamp(0.5 + (lv - red) * 0.008 + (lv - 60) * 0.002 + 0.1, 0.18, 0.9);   // 股抜きは（ドリブル＋テクニック）の平均と守備力の差
+  function mk1(lv, lane, noSkill) {
+    const sm = { lv, lane, noSkill, log: [], hist: [], a: { x: 2, y: 0, vx: 0, vy: 0, ph: 0, dO: 0.45, dV: 0, dir: [1, 0], q: null, end: null, mv: null }, d: { x: 0, y: 0, vx: 0, vy: 0, ph: 0, act: null, lagT: -1 }, ball: { x: 0, y: 0, vx: 0, vy: 0, free: false }, own: 'a' };
+    const a = sm.a, d = sm.d;
+    if (skill === 'cutIn') {
+      a.x = 2; a.y = Y0 + 1.4; a.vx = 5; d.x = 12; d.y = Y0 + 2.6;
+      sm.goal = { x: 30, y: Y0 + 16, line: scene === 'endline' ? 11 : 60 };   // ゴールはずっと内側の先。ゴールライン際の場面はすぐ先にゴールライン
+      sm.others = scene === 'cover' ? [{ x: 13.8, y: Y0 + 5.2, cover: 1, vx: 0, vy: 0, ph: 0 }] : [];   // 中のカバー（斜めのコースに立つ）
+    }
+    else if (skill === 'nutmeg' || skill === 'bodyFeint' || skill === 'scissors') { a.x = 2; a.y = 7; a.vx = 4.5; d.x = 11; d.y = 7; }
+    else if (skill === 'kickFeint') { a.x = 2; a.y = 7; a.vx = 4.5; d.x = 12; d.y = 7; sm.goal = { x: 26, y: 7 }; }
+    else if (RECV(skill)) { a.x = 8; a.y = 7; a.vx = 0; d.x = -30; d.y = 7; sm.goal = { x: 17, y: 7, mate: 1 }; sm.ok = true; sm.recv = true; sm.own = 'free'; sm.ball.x = 16.3; sm.ball.y = 7; sm.ball.z = 0; }   // 右の味方からパスを受ける
+    else if (skill === 'pass') { a.x = 4; a.y = 7; a.vx = 4; d.x = -30; d.y = 7; sm.goal = { x: 20, y: 7, mate: 1 }; sm.ok = true; }   // 赤はいない。右の味方へパス
+    else if (skill === 'shot') { a.x = 4; a.y = 7; a.vx = 4; d.x = -30; d.y = 7; sm.goal = { x: 26, y: 7 }; sm.ok = true; }   // 赤はいない（フォームだけを見る）   // 右にゴール（ゴールまで約24m）
+    else { a.x = 2; a.y = 7; a.vx = 5; d.x = -2; d.y = 9.5; }
+    sm.ok = force === 'auto' ? Math.random() < pS(lv) : force === 'ok';
+    // 股抜きの失敗は2通り：①通せない（足を閉じて止められる）②通したけど相手が先にボールへ（体を入れて奪われる）
+    sm.defFirst = skill === 'nutmeg' && (force === 'ng2' || (force === 'auto' && sm.ok && Math.random() < clamp(0.2 + (red - lv) * 0.016, 0.05, 0.75)));
+    if (force === 'ng1') sm.ok = false; if (force === 'ng2') sm.ok = true;
+    if (skill === 'shot' || skill === 'pass' || RECV(skill)) sm.ok = true;
+    // ダブルシザース：シザースが読まれたら、テクニックがあれば反対の足でもう一度またぐ（ゲームと同じ：テクニック50以上・0.35＋（テクニック−50）×0.01 の確率で、2回目が成功率どおりに決まれば抜ける）
+    if (skill === 'scissors') {
+      if (dblMode === '2') { sm.dbl = force !== 'ng1' && force !== 'ng2'; if (sm.dbl) sm.ok = true; }
+      else if (dblMode === 'auto' && !sm.ok && force === 'auto' && lv >= 50 && Math.random() < clamp(0.35 + (lv - 50) * 0.01, 0, 0.75) && Math.random() < pS(lv)) { sm.ok = true; sm.dbl = true; }
+    }
+    return sm;
+  }
+  function reset() {
+    PXM = 30 * ZM; OY = 60 - Y0 * PXM * TILT * 2; OX = cv.width * 0.25 - 6 * PXM; T = 0; acc = 0; sims.length = 0; if (typeof HIST !== 'undefined') HIST.length = 0; VC = null;
+    sims.push(mk1(up, 0, false));
+    if (skill === 'speed') sims.push(mk1(up, LANE, true));
+    else if (cmp) sims.push(mk1(cmp, LANE, false));
+  }
+  function move(p, tx, ty, vm, accV, brakeV, lag) {
+    const dx = tx - p.x, dy = ty - p.y, dd = hyp(dx, dy), want = Math.min(vm, dd * 1.6);
+    let dvx = (dd > 0.01 ? dx / dd * want : 0) - p.vx, dvy = (dd > 0.01 ? dy / dd * want : 0) - p.vy;
+    if (lag) { dvx = 0; dvy = 0; }
+    const brake = (p.vx * dvx + p.vy * dvy) < 0, a = (brake ? brakeV : accV) * DT, dv = hyp(dvx, dvy), k = dv > a ? a / dv : 1;
+    p.vx += dvx * k; p.vy += dvy * k;
+  }
+  // 技を始める（ゲームの skillMove と同じ足の運び）
+  function startSkill(sm) {
+    const a = sm.a, d = sm.d, lv = sm.lv, t = T;
+    a.skT = t;
+    if (!sm.ok) {   // 読まれた：足を出されて奪われる
+      if (skill === 'nutmeg') {   // 失敗①：股を抜けない。読まれて足を閉じられ、ボールが足に当たって止まる
+        const ux = a.x - d.x, uy = a.y - d.y, ul = hyp(ux, uy) || 1;
+        a.mv = { k: 'fail', t, dur: 0.45 }; d.act = { k: 'legsClose', t, dur: 0.55, ux: ux / ul, uy: uy / ul }; d.vx = d.vy = 0; d.lagT = t + 0.4; sm.own = 'd'; a.stunT = t + 0.7;
+        sm.log.push('失敗①：読まれて足を閉じられ、股を抜けない'); return;
+      }
+      a.mv = { k: 'fail', t, dur: 0.45 }; d.act = { k: 'poke', t, dur: 0.35 }; sm.own = 'd'; sm.log.push('読まれて奪われる（成功率 ' + Math.round(pS(lv) * 100) + '%）'); return;
+    }
+    if (skill === 'pass') {   // ゲームと同じ長さ：振りかぶるまで0.3秒（①0.12秒・②0.18秒）→ インパクト → 振り抜き0.32秒
+      a.q = [{ until: t + 0.3, dx: 1, dy: 0, v: 1.4, snap: 0.5 }, { until: t + 0.7, dx: 1, dy: 0, v: 0.3, snap: 0.5 }]; a.end = { dx: 1, dy: 0, v: 0 }; a.mv = { k: 'shot', pass: 1, t, dur: 0.75 };
+      sm.shotAt = t + 0.3; sm.log.push('パス'); return;
+    }
+    if (skill === 'shot') {   // ゲームと同じ長さ：振りかぶるまで0.38秒（①0.145秒・②0.235秒）→ インパクト → 振り抜き0.5秒
+      a.q = [{ until: t + 0.38, dx: 1, dy: 0, v: 1.6, snap: 0.5 }, { until: t + 0.9, dx: 1, dy: 0, v: 0.3, snap: 0.5 }]; a.end = { dx: 1, dy: 0, v: 0 }; a.mv = { k: 'shot', t, dur: 0.95 };
+      sm.shotAt = t + 0.38; sm.log.push('シュート'); return;
+    }
+    if (skill === 'cutIn') {
+      const nz = (x, y) => { const l = hyp(x, y) || 1; return [x / l, y / l]; };
+      const [ox, oy] = nz(0.9, -0.35);
+      const cs = cutProbs(sm); let r = Math.random(), pick = cs[2]; for (const c of cs) { r -= c.p; if (r <= 0) { pick = c; break; } }
+      const ix = pick.ux, iy = pick.uy; sm.cut = pick; sm.cutP = cs;
+      a.q = [{ until: t + 0.33, dx: ox, dy: oy, v: 3.4, snap: 0.6 }, { until: t + 0.46, dx: ox, dy: oy, v: 0.5, snap: 0.85 }];   // 緩：ゆっくり外へ誘う → ほぼ止まる
+      a.end = { dx: ix, dy: iy, v: 2.4 }; a.burstAcc = 6 + lv * 0.12; a.mv = { k: 'cutIn', t, dur: 1.1, ox, oy, ix, iy };   // 急：止まった所から瞬発力でグン！
+      d.vx = ox * 3.8; d.vy = oy * 3.8; d.lagT = t + 0.5; d.act = { k: 'lose', t: t + 0.5, dur: 0.9 };
+      sm.log.push('カットイン ' + pick.deg + '°（成功率 ' + Math.round(pS(lv) * 100) + '%）');
+    } else if (skill === 'bodyFeint' || skill === 'scissors') {
+      // ゲームの feintMove と同じ：見せる側へ（踏み出す／またぐ）→ ほぼ止まる → 反対の足で転がし、反発でグン！と逆へ
+      const sc = skill === 'scissors', nz = (x, y) => { const l = hyp(x, y) || 1; return [x / l, y / l]; };
+      const ly = fside === 'L' ? 1 : -1, lx = 0;   // 本当に行く側（左を見せる＝右（画面の手前）へ行く）
+      const [ax, ay] = sc ? nz(-lx * 0.5 + 0.5, -ly * 0.5) : nz(-lx * 0.7 + 0.3, -ly * 0.7), [bx, by] = nz(lx * 0.75 + 0.45, ly * 0.75);
+      if (sc && sm.dbl) {   // ダブルシザース（ゲームの feintMove と同じ）：1回目は読まれて赤は動かない（右を待つ）→ 反対の足でもう一度またいで右を見せる → 赤が右へ体重を乗せた瞬間、1回目に見せた左へグン！
+        const [cx, cy] = nz(lx * 0.5 + 0.5, ly * 0.5), [gx, gy] = nz(-lx * 0.17 + 0.98, -ly * 0.17);   // 空いた側へ10°だけ斜め
+        a.q = [{ until: t + 0.38, dx: ax, dy: ay, v: 2.2, snap: 0.6 }, { until: t + 0.76, dx: cx, dy: cy, v: 2.2, snap: 0.6 }, { until: t + 0.84, dx: cx, dy: cy, v: 0.4, snap: 0.85 }];
+        a.end = { dx: gx, dy: gy, v: 2.4 }; a.burstAcc = 6 + lv * 0.12; a.mv = { k: skill, dbl: 1, t, dur: 1.35, ax, ay, cx, cy, bx: gx, by: gy, ly: -ly };
+        const fool = clamp(0.75 + (lv - red) * 0.01 + (lv - 60) * 0.004, 0.4, 1); sm.fool = fool;
+        d.vx = lx * 0.8; d.vy = ly * 0.8; d.lagT = t + 0.5; d.sway = { t: t + 0.5, vx: cx * 3.6 * fool, vy: cy * 3.6 * fool, lag: t + 0.84 + 0.4 * fool }; d.act = { k: 'lose', t: t + 0.84, dur: 0.5 + 0.6 * fool };
+        sm.log.push('ダブルシザース：1回目（' + (fside === 'L' ? '左' : '右') + 'を見せる）は読まれた → 反対の足でもう一度またいで' + (fside === 'L' ? '右' : '左') + 'を見せる → ' + (fside === 'L' ? '左' : '右') + 'へ（赤のつられ方 ' + Math.round(fool * 100) + '%）');
+        return;
+      }
+      const t1 = sc ? 0.38 : 0.3, t2 = sc ? 0.46 : 0.4;
+      a.q = [{ until: t + t1, dx: ax, dy: ay, v: sc ? 2.2 : 2.8, snap: 0.6 }, { until: t + t2, dx: ax, dy: ay, v: 0.4, snap: 0.85 }];
+      a.end = { dx: bx, dy: by, v: 2.4 }; a.burstAcc = 6 + lv * 0.12; a.mv = { k: skill, t, dur: sc ? 0.95 : 0.9, ax, ay, bx, by, ly };
+      const fool = clamp(0.55 + (lv - red) * 0.01 + (lv - 60) * 0.004, 0.15, 1); sm.fool = fool;
+      d.vx = ax * 3.6 * fool; d.vy = ay * 3.6 * fool; d.lagT = t + t2 + 0.4 * fool; d.act = { k: 'lose', t: t + t2, dur: 0.5 + 0.6 * fool };
+      sm.log.push(NAME[skill] + '：' + (fside === 'L' ? '左を見せて右へ' : '右を見せて左へ') + '（成功率 ' + Math.round(pS(lv) * 100) + '%・赤のつられ方 ' + Math.round(fool * 100) + '%）');
+    } else if (skill === 'kickFeint') {
+      // 振りかぶる（0.36秒）→ インで横へずらす（0.2秒）→ 構え直してシュート
+      const ly = fside === 'L' ? 1 : -1, cx = 0.3, cy = ly * 0.9, cl = hyp(cx, cy);
+      a.q = [{ until: t + 0.36, dx: 1, dy: 0, v: 0.9, snap: 0.8 }, { until: t + 0.56, dx: cx / cl, dy: cy / cl, v: 5.5, snap: 0.9 }];
+      a.end = { dx: cx / cl, dy: cy / cl, v: 1.8 }; a.mv = { k: 'kickFeint', t, dur: 1.0, ly };
+      const fool = clamp(0.55 + (lv - red) * 0.01 + (lv - 60) * 0.003, 0.2, 1); sm.fool = fool;
+      d.act = { k: 'block', t, dur: 0.6 + 0.5 * fool }; d.vx = d.vy = 0; d.lagT = t + 0.45 + 0.45 * fool; d.freeze = true;
+      sm.shotAt = t + 0.68;
+      sm.log.push('キックフェイント（成功率 ' + Math.round(pS(lv) * 100) + '%・赤が固まる ' + (0.45 + 0.45 * fool).toFixed(2) + '秒）');
+    } else if (skill === 'nutmeg') {
+      const ux = d.x - a.x, uy = d.y - a.y, ul = hyp(ux, uy) || 1, sx = 0, sy = 1;
+      const far = sm.defFirst ? 3.5 : 5.0, bv = sm.defFirst ? 7.0 : 8.5;   // 成功：相手が届かない5m先まで／失敗②：ちゃんと股を通って3.5m後ろへ（でも相手の反応が速い）
+      const tx = d.x + ux / ul * far, ty = d.y + uy / ul * far;
+      sm.own = 'free'; const b = sm.ball, bl = hyp(tx - b.x, ty - b.y); b.vx = (tx - b.x) / bl * bv; b.vy = (ty - b.y) / bl * bv; b.tgt = { x: tx, y: ty };
+      const ax = sx * 0.85 + 0.35, ay = sy * 0.85, al = hyp(ax, ay);
+      a.q = [{ until: t + 0.12, dx: ux / ul, dy: uy / ul, v: 1.2, snap: 0.8 }, { until: t + 0.55, dx: ax / al, dy: ay / al, v: 6.0, snap: 0.85 }];   // 相手の脇を大きく回り込む（体1つ半ぶん横へ）
+      const px = a.x + ax / al * 2.6, py = a.y + ay / al * 2.6, bx = tx - px, by = ty - py, bb = hyp(bx, by);
+      a.end = { dx: bx / bb, dy: by / bb, v: 7.2 }; a.mv = { k: 'nutmeg', t, dur: 0.8, ux: ux / ul, uy: uy / ul }; a.mv0x = d.x;
+      const tPass = hyp(d.x - b.x, d.y - b.y) / bv + 0.08;   // ボールが股の間を通り抜けるまで、赤は足を開いたまま
+      if (sm.defFirst) { d.act = { k: 'spread', t, dur: tPass + 0.06, ux: -ux / ul, uy: -uy / ul }; d.lagT = t + tPass + 0.06; d.vx = d.vy = 0; d.chase = true; sm.log.push('股は抜いた！ボールは後ろへ転がる（成功率 ' + Math.round(pS(lv) * 100) + '%）'); }
+      else { d.act = { k: 'spread', t, dur: 0.55, ux: -ux / ul, uy: -uy / ul }; d.lagT = t + 0.55; d.vx = d.vy = 0; d.after = { k: 'lose', t: t + 0.55, dur: 0.9 }; sm.log.push('股抜き成功（成功率 ' + Math.round(pS(lv) * 100) + '%）'); }
+    }
+  }
+  function tick(sm) {
+    const a = sm.a, d = sm.d, b = sm.ball, t = T, lv = sm.lv;
+    // 技のきっかけ
+    if (!a.skT && (skill === 'shot' || skill === 'pass')) { if (a.x >= (skill === 'pass' ? 8 : 12)) startSkill(sm); }
+    else if (!a.skT && skill !== 'speed') { const dd = hyp(d.x - a.x, d.y - a.y); if (dd < (skill === 'nutmeg' ? 2.5 : skill === 'kickFeint' ? 3.4 : skill === 'scissors' ? 3.8 : skill === 'cutIn' ? 3.4 : 2.6)) startSkill(sm); }   // カットインは少し離れた所から
+    // 青の動き
+    if (sm.recv && !sm.recvDone) { a.vx = 0; a.vy = 0; }   // パスを待つ（止まってボールの方を向く）
+    else if (a.q && a.q.length) {
+      while (a.q.length && t >= a.q[0].until) a.q.shift();
+      if (a.q.length) { const m = a.q[0]; a.vx += (m.dx * m.v - a.vx) * m.snap; a.vy += (m.dy * m.v - a.vy) * m.snap; }
+      else if (a.end) { a.vx = a.end.dx * a.end.v; a.vy = a.end.dy * a.end.v; a.dir = [a.end.dx, a.end.dy]; a.end = null; }
+    } else if (sm.own === 'd') { if (a.stunT > t) { const k = Math.exp(-DT * 3); a.vx *= k; a.vy *= k; } else if (sm.shield && !sm.shield.bumped) move(a, b.x, b.y, 6, 7, 9, false); else move(a, a.x + 1, a.y, 1.5, 6, 9, false); }   // 体を入れられたら弾かれて止まる
+    else {
+      let vm, accV = 5.6 + lv * 0.028;
+      if (skill === 'speed') {
+        // 高速ドリブルは3秒まで（そのあと4秒は使えない）。使っている間はスタミナの減りが2.2倍
+        if (!sm.noSkill) { if (sm.sdStart == null) sm.sdStart = t; const on = t - sm.sdStart <= 3; if (sm.sdOn && !on) sm.log.push('3秒で高速ドリブル終わり（このあと4秒は使えない）'); sm.sdOn = on; }
+        vm = sm.sdOn ? vMax(lv) * 1.02 : vMax(lv) * (0.8 + lv * 0.0016);
+      }
+      else if (a.burstAcc && t - a.skT < 1.3) { vm = vMax(lv) * 0.95; accV = a.burstAcc; }
+      else vm = vMax(lv) * (0.8 + lv * 0.0016) * (a.skT ? 1 : 0.7);
+      const tx = sm.own === 'free' && b.tgt ? b.x : a.x + a.dir[0] * 7, ty = sm.own === 'free' && b.tgt ? b.y : a.y + a.dir[1] * 7;
+      move(a, tx, ty, vm, accV, 8 + lv * 0.075, false);
+    }
+    // キックフェイント：ずらした後、空いたコースへシュート
+    if (sm.shotAt && t >= sm.shotAt && sm.own === 'a') {
+      sm.shotAt = null; const G = sm.goal, gy = G.y + (skill === 'pass' ? 0 : skill === 'shot' ? -1.6 : a.mv.ly > 0 ? 2.6 : -2.6), l = hyp(G.x - b.x, gy - b.y);
+      const bsp = skill === 'pass' ? 12 : 22; b.vx = (G.x - b.x) / l * bsp; b.vy = (gy - b.y) / l * bsp; b.tgt = { x: G.x, y: gy }; sm.own = 'shot'; a.kickT = t;
+      const blocked = segD(d.x, d.y, b.x, b.y, G.x, gy) < 0.7 && d.lagT <= t;
+      sm.blocked = blocked; if (skill !== 'shot' && skill !== 'pass') sm.log.push(blocked ? 'シュート → 赤に当たってブロックされた' : 'ずらしてシュート！赤は固まったままでブロックできない');
+    }
+    // 赤の動き
+    if (d.sway && t >= d.sway.t) { d.vx = d.sway.vx; d.vy = d.sway.vy; d.lagT = Math.max(d.lagT, d.sway.lag); d.sway = null; }   // ダブルシザースの2回目につられる
+    const lag = d.lagT > t;
+    if (skill === 'speed') move(d, a.x, a.y, vMax(red) * 0.95, 5.6 + red * 0.028, 8 + red * 0.075, false);
+    else if (sm.own === 'd') { const ac = d.act && (d.act.k === 'bodyIn' || d.act.k === 'shield') ? d.act : null; if (ac) move(d, d.x + ac.ux * 2, d.y + ac.uy * 2, ac.k === 'shield' ? 0.8 : 2.2, 6, 9, false); else move(d, d.x - 1, d.y, 2, 6, 9, false); }   // ボールを隠したまま、相手から離れる向きへ   // 体を入れたら、ボールを隠したまま相手から離れる
+    else if (!a.skT) { if (skill === 'nutmeg' || skill === 'bodyFeint' || skill === 'scissors') move(d, d.x, d.y, 0, 5.6, 8 + red * 0.075, false); else if (skill === 'kickFeint') move(d, a.x + 3.0, a.y, 2.0, 5.6 + red * 0.028, 8 + red * 0.075, false); else move(d, a.x + 2.0, a.y + (skill === 'cutIn' ? 1.0 : 0), 2.5, 5.6 + red * 0.028, 8 + red * 0.075, false); }   // 股抜き：赤は足を開いて構えて待つ   // 間合いを詰めて構える（カットインは中を切りつつ縦も見る）
+    else if (d.freeze && sm.own !== 'free') { if (lag) { d.vx = d.vy = 0; } else move(d, b.x, b.y, vMax(red) * 0.9, 5.6 + red * 0.028, 8 + red * 0.075, false); }
+    else if (d.chase) move(d, d.x + (b.x - d.x) * 4, d.y + (b.y - d.y) * 4, vMax(red) * 1.02, 6 + red * 0.12, 8 + red * 0.075, lag);   // 減速せず、全力のままボールへ   // 素早く振り返って全力でボールへ（鋭いダッシュ）
+    else move(d, b.x, b.y, vMax(red) * 0.9, 5.6 + red * 0.028, 8 + red * 0.075, lag);
+    // ボール
+    if (sm.own === 'a') {
+      const spd = hyp(a.vx, a.vy), sd = skill === 'speed' && sm.sdOn;
+      if (spd > 1.6) { a.dV -= 3.4 * DT; a.dO += a.dV * DT; if (a.dO <= 0.4) { a.dO = 0.4; a.dV = sd ? 1.9 + spd * 0.2 : 1.1 + spd * 0.14; } a.dO = Math.min(a.dO, sd ? 2.4 : 1.3); }
+      const vl = hyp(a.vx, a.vy) || 1; sm.target = { x: a.x + a.vx / vl * a.dO, y: a.y + a.vy / vl * a.dO };
+    }
+    // 失敗②：股は抜いた。でも赤の反応が速く、振り返って先にボールへ → ①背中を向けてボールを隠す（シールド） → ②青が来たら肩・背中でぶつけてブロック → マイボール
+    if (sm.defFirst && sm.own === 'free' && t >= d.lagT && b.x > a.mv0x + 0.5 && hyp(b.x - d.x, b.y - d.y) < 0.6) {   // ボールが股を抜けて後ろへ転がってから、振り返った赤が追いつく
+      const bx = d.x - a.x, by = d.y - a.y, bl = hyp(bx, by) || 1;
+      d.act = { k: 'shield', t, dur: 1.4, ux: bx / bl, uy: by / bl }; d.after = null; d.chase = false; sm.own = 'd'; sm.shield = { bumped: false };
+      sm.log.push('赤が先に追いつく（振り返りが速い）→ 背中を向けてボールを隠す');
+    }
+    if (sm.shield && !sm.shield.bumped && sm.own === 'd' && hyp(a.x - d.x, a.y - d.y) < 1.4) {
+      const bx = d.x - a.x, by = d.y - a.y, bl = hyp(bx, by) || 1;
+      sm.shield.bumped = true; d.act = { k: 'bodyIn', t, dur: 0.85, ux: bx / bl, uy: by / bl, bump: 1 };
+      a.vx = -bx / bl * 2.4; a.vy = -by / bl * 2.4; a.q = null; a.end = null; a.stunT = t + 0.9;
+      sm.log.push('青が寄った瞬間、肩・背中でぶつけてブロック → マイボールにされた（失敗②）');
+    }
+    if (sm.own === 'free' && hyp(b.x - a.x, b.y - a.y) < 0.7 && t - a.skT > 0.4) { sm.own = 'a'; b.tgt = null; a.dir = [1, 0]; a.dO = 0.5; sm.log.push('裏で拾い直した（' + (t - a.skT).toFixed(2) + '秒）'); }
+    if (sm.passT == null && sm.own === 'a' && a.skT && a.x > d.x + 1.5) { sm.passT = t; sm.gapT = t; sm.log.push('赤を抜いた'); }
+    if (sm.passT != null && t - sm.passT < 1.01) sm.gap = Math.max(sm.gap || 0, hyp(a.x - d.x, a.y - d.y));
+    { const fr = hyp(a.vx, a.vy) / (4.4 + lv * 0.034 + 1); sm.stam = (sm.stam ?? 100) - (0.6 + fr * fr * 4) * (sm.sdOn ? 2.2 : 1) * DT; }   // スタミナ（減り方の比べ用。高速ドリブル中は2.2倍）
+    sm.hist.push({ t, a: hyp(a.vx, a.vy), d: hyp(d.vx, d.vy), bo: sm.own === 'a' ? a.dO : null });
+  }
+  // トラップの確認：味方のパス（転がる／浮き球）→ 受ける → 足元へ収めてドリブルへ。確認画面は選手の絵が2倍なので、触る位置も2倍
+  function recvBall(sm, dt) {
+    const a = sm.a, b = sm.ball, mv = a.mv, ch = skill === 'chest';
+    if (T < 0.3) { b.x = sm.goal.x - 0.7; b.y = sm.goal.y; b.z = 0; return; }
+    if (!sm.launched) { sm.launched = 1; b.vx = ch ? -11 : -9; b.vy = 0; b.z = 0.05; b.vz = ch ? 5.2 : 0; sm.log.push(ch ? '味方が浮き球のパス' : '味方がパス'); }
+    if (!mv) {
+      b.x += b.vx * dt; if (ch) { b.z = Math.max(0, b.z + b.vz * dt); b.vz -= 9.8 * dt; } else b.z = 0;
+      if (b.x <= a.x + (ch ? 0.55 : skill === 'trapSole' ? 1.25 : 1.35)) { a.mv = { k: skill, t: T, dur: ch ? 0.4 : 0.35 }; a.skT = T; sm.trapZ = b.z; sm.log.push(ch ? '胸で受ける（高さ ' + b.z.toFixed(1) + ' m）' : skill === 'trapSole' ? '足裏で止める' : 'インサイドで受ける'); }
+      return;
+    }
+    const u = clamp((T - mv.t) / mv.dur, 0, 1);
+    if (ch) { b.x = a.x + 0.55 + 0.5 * u; b.z = sm.trapZ * (1 - u) * (1 - u); }
+    else if (skill === 'trapSole') { b.x += (a.x + 1.15 - b.x) * Math.min(1, dt * 30); b.z = 0; }
+    else { b.x += (a.x + (u < 0.4 ? 1.25 : 0.95) - b.x) * Math.min(1, dt * 14); b.z = 0; }
+    b.y += (a.y - b.y) * Math.min(1, dt * 10);
+    if (T - mv.t > mv.dur + 0.3) { sm.recvDone = 1; sm.own = 'a'; a.dir = [1, 0]; b.z = 0; b.vx = b.vy = 0; a.dO = 0.5; sm.log.push('足元に収めて前へ'); }
+  }
+  const RECV = (k) => k === 'trap' || k === 'trapSole' || k === 'chest';
+  function update(dt) {
+    acc += dt;
+    while (acc >= DT) { acc -= DT; for (const sm of sims) tick(sm); T += DT; }
+    for (const sm of sims) {
+      const a = sm.a, d = sm.d, b = sm.ball;
+      for (const p of [a, d]) { p.x += p.vx * dt; p.y += p.vy * dt; const s = hyp(p.vx, p.vy); p.ph += dt * s / (0.6 + 0.14 * Math.max(3, s)) / 2; }
+      a.y = clamp(a.y, Y0 + 0.3, Y1 - 0.3); d.y = clamp(d.y, Y0 + 0.3, Y1 - 0.3);
+      if (sm.recv && !sm.recvDone) recvBall(sm, dt);
+      else if (sm.own === 'shot') { if (sm.blocked && hyp(b.x - d.x, b.y - d.y) < 0.6) { b.vx *= -0.3; b.vy = (Math.random() - 0.5) * 6; sm.blocked = 'done'; } b.x += b.vx * dt; b.y += b.vy * dt; if (b.x > sm.goal.x - (sm.goal.mate ? 0.9 : 0)) { b.vx = 0; b.vy = 0; } }
+      else if (sm.own === 'free') { b.x += b.vx * dt; b.y += b.vy * dt; if (b.tgt && hyp(b.x - b.tgt.x, b.y - b.tgt.y) < 0.3) { b.vx *= 0.3; b.vy *= 0.3; } }
+      else if (sm.own === 'd') { const k = 1 - Math.pow(0.4, dt / DT), ac = d.act && (d.act.k === 'bodyIn' || d.act.k === 'shield') ? d.act : null; b.x += (d.x + (ac ? ac.ux * 0.5 : -0.5) - b.x) * k; b.y += (d.y + (ac ? ac.uy * 0.5 : 0) - b.y) * k; }
+      else if (sm.target) {
+        let tx = sm.target.x, ty = sm.target.y;
+        const mv = a.mv;
+        if (mv && (mv.k === 'bodyFeint' || mv.k === 'scissors' || mv.k === 'kickFeint' || mv.k === 'shot')) {   // ゲームの skillBallOffset と同じ：[本当に行く側, 前]
+          const u = (T - mv.t) / mv.dur, c1 = (v) => clamp(v, 0, 1); let o = null;
+          if (mv.k === 'bodyFeint') o = u < 0.33 ? [-0.05, 0.35] : u < 0.45 ? [-0.05 + 0.75 * c1((u - 0.33) / 0.12), 0.35] : null;
+          else if (mv.k === 'scissors') { const t1 = mv.dbl ? 0.593 : 0.42, t2 = mv.dbl ? 0.667 : 0.5; o = u < t1 ? [0, 1.2] : u < t2 ? [(mv.dbl ? 0.3 : 0.75) * c1((u - t1) / (t2 - t1)), 1.2 - 0.6 * c1((u - t1) / (t2 - t1))] : null; }   // 足がボールの真上を通る位置（ゲームの0.6m。確認画面は選手の絵が2倍なので1.2m）
+          else if (mv.k === 'shot') o = sm.own === 'a' ? [0, mv.pass ? 1.3 : 1.6] : null;   // 蹴り足が届く所（確認画面は選手の絵が2倍）
+          else o = u < 0.36 ? [0, 1.5] : u < 0.56 ? [1.24 * c1((u - 0.36) / 0.2), 1.5 - 1.0 * c1((u - 0.36) / 0.2)] : null;
+          if (o) { tx = a.x + o[1]; ty = a.y + (mv.ly || 0) * o[0]; }
+        }
+        if (mv && mv.k === 'cutIn') { const u = (T - mv.t) / mv.dur; if (u >= 0.3 && u < 0.5) { const o = 0.2 + 0.35 * clamp((u - 0.3) / 0.12, 0, 1); tx = a.x + mv.ix * o; ty = a.y + mv.iy * o; } }
+        const k = 1 - Math.pow(mv && mv.k === 'scissors' && (T - mv.t) / mv.dur < (mv.dbl ? 0.6 : 0.5) ? 0.05 : 0.4, dt / DT); b.x += (tx + a.vx * dt - b.x) * k; b.y += (ty + a.vy * dt - b.y) * k;
+      }
+    }
+    if (loopOn && T > (skill === 'speed' ? 6 : 4.5)) reset();
+  }
+  // ---- 描画（ゲームの app.js と同じ姿勢） ----
+  function sprite(o, x, y, rot) {
+    if ((o.pose === 'shotA' || o.pose === 'passA' || o.pose === 'trapI') && !o.foot) o = { ...o, foot: kfoot };   // 右足・左足
+    if (VIEW) { const o2 = { ...o, facing: (o.facing || 0) + VIEW.th }, f = DotMan.frame(o2), dot = 5 * ZM * VIEW.k * DotMan.fitScale(f, o2.facing, o2.pose), [X, Y] = VP(x, y);
+      ctx.save(); ctx.imageSmoothingEnabled = false; ctx.translate(Math.round(X), Math.round(Y)); if (rot) ctx.rotate(rot); ctx.drawImage(f.cv, Math.round(-f.px * dot), Math.round(-f.py * dot), f.cv.width * dot, f.cv.height * dot); ctx.restore(); return; }
+    const f = DotMan.frame(o), dot = 5 * ZM * DotMan.fitScale(f, o.facing, o.pose);   // 自動で組む絵も、写した絵と同じ背の高さに
+    ctx.save(); ctx.imageSmoothingEnabled = false; ctx.translate(Math.round(SX(x)), Math.round(SY(y))); if (rot) ctx.rotate(rot);
+    ctx.drawImage(f.cv, Math.round(-f.px * dot), Math.round(-f.py * dot), f.cv.width * dot, f.cv.height * dot); ctx.restore();
+  }
+  function shadow(x, y, w) { if (VIEW) { const [X, Y] = VP(x, y); ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(X, Y, w * ZM / 1.5 * VIEW.k, w * ZM / 1.5 * 0.3 * VIEW.k, 0, 0, 7); ctx.fill(); return; } ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(SX(x), SY(y), w * ZM / 1.5, w * ZM / 1.5 * 0.3, 0, 0, 7); ctx.fill(); }
+  function dust(x, y, u) { if (VIEW) { const [X, Y] = VP(x, y), z = ZM * VIEW.k; ctx.fillStyle = 'rgba(220,235,190,' + (0.85 * (1 - u)) + ')'; for (let k = 0; k < 5; k++) ctx.fillRect(Math.round(X + (k - 2) * 8 * z), Math.round(Y - 4 - (k % 2) * 7 * z), 6 * z, 6 * z); return; } ctx.fillStyle = 'rgba(220,235,190,' + (0.85 * (1 - u)) + ')'; for (let k = 0; k < 5; k++) ctx.fillRect(Math.round(SX(x) - k * 8 * ZM - u * 26), Math.round(SY(y) - 4 - (k % 2) * 7 * ZM), 6 * ZM, 6 * ZM); }
+  // 使う足：シザースは見せる側の足でまたぐ（左を見せて右へ＝左足）、ダブルの2回目は反対の足。キックフェイントは、ずらした側の足でシュート（振りかぶって見せるのは反対の足）
+  const scFoot = (st) => { const f1 = fside === 'L' ? 'L' : 'R'; return st ? (f1 === 'R' ? 'L' : 'R') : f1; };
+  const kfShotFoot = () => fside === 'L' ? 'R' : 'L', kfFakeFoot = () => fside === 'L' ? 'L' : 'R';
+  // 風の線（高速ドリブル・グン！の瞬間）：x,y から dx,dy（ピッチ上の向き）へ走っている。向きを変えた画面でもその向きに描く
+  function windFx(x, y, dx, dy) {
+    let X0, Y0p, sx0, sy0;
+    if (VIEW) { const p0 = VP(x, y), p1 = VP(x + dx, y + dy); X0 = p0[0]; Y0p = p0[1]; sx0 = p1[0] - p0[0]; sy0 = p1[1] - p0[1]; } else { X0 = SX(x); Y0p = SY(y); sx0 = dx; sy0 = dy * TILT; }
+    const dl = hyp(sx0, sy0) || 1, ux = sx0 / dl, uy = sy0 / dl, px = 2.6 * ZM * 1.6 * (VIEW ? VIEW.k : 1);
+    const vy = Math.abs(uy) > 0.6 ? Math.abs(uy) : 0;   // 手前・奥へ走る時は、体の左右に風の線を流す（体に隠れないように）
+    for (let k = 0; k < 5; k++) { const off = ((T * 9 + k * 0.37) % 1), len = px * (7 + (k % 3) * 3), h = -px * (3 + k * 2.2) * (1 - vy * 0.6), sd = vy * (k % 2 ? 1 : -1) * px * (5 + k * 1.2), sx = X0 - ux * px * (4 + off * 10) + sd, sy = Y0p + h - uy * px * (4 + off * 10); ctx.strokeStyle = `rgba(255,255,255,${0.75 * (1 - off)})`; ctx.lineWidth = Math.max(1.5, px * 0.6); ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx - ux * len, sy - uy * len); ctx.stroke(); }
+  }
+  // 体の傾き：走る向きの「画面の横向きの成分」だけ傾ける（手前・奥へ走る時は横に倒さない）
+  function leanFor(x, y, dx, dy, amt) { if (!VIEW) return amt * (Math.sign(dx) || 1) * Math.min(1, Math.abs(dx) / (hyp(dx, dy) || 1) * 1.2); const p0 = VP(x, y), p1 = VP(x + dx, y + dy), sx = p1[0] - p0[0], sy = (p1[1] - p0[1]) / 0.55; return amt * sx / (hyp(sx, sy) || 1); }
+  function drawBlue(sm, yo) {
+    sm.art = null; sm.arcFx = null; let pfoot = null;
+    const a = sm.a, col = sm.lane ? BLUE2 : BLUE, s = hyp(a.vx, a.vy);
+    let fa = Math.atan2(a.vy || a.dir[1], a.vx || a.dir[0]); const mf = Math.cos(fa) >= 0 ? 1 : -1;
+    let pose = null, rot = 0, nm = '';
+    const mv = a.mv, u = mv ? (T - mv.t) / mv.dur : 9;
+    if (a.stunT > T && sm.own === 'd' && sm.shield && sm.shield.bumped) {   // ぶつけられて弾かれる：赤の方を向いたまま、よろけて下がる（背中は向けない）
+      const uu = 1 - (a.stunT - T) / 0.9, k = Math.sin(Math.PI * Math.min(1, uu * 1.15)), toR = Math.cos(Math.atan2(sm.d.y - a.y, sm.d.x - a.x)) >= 0 ? 1 : -1;
+      shadow(a.x, a.y + yo, 30); sprite({ ...col, facing: toR > 0 ? 0 : Math.PI, pose: 'jump' }, a.x, a.y + yo, -toR * (0.32 * k + Math.sin(uu * 22) * 0.08 * k));
+      sm.pose = '肩・背中をぶつけられて弾かれる（赤の方を向いたまま）'; return;
+    }
+    if (mv && u < 1) {
+      if (mv.k === 'cutIn') {
+        if (u < 0.3) { fa = Math.atan2(mv.oy, mv.ox); nm = '①緩：ゆっくり外へ運んで相手を誘う'; }
+        else if (u < 0.42) { fa = Math.atan2(mv.oy, mv.ox); pose = 'crouch'; rot = 0.16; nm = '②外の足で踏ん張って止まる'; dust(a.x - 0.6, a.y + yo, (u - 0.3) / 0.12); }
+        else { fa = Math.atan2(mv.iy, mv.ix); rot = 0.34 * (u < 0.5 ? (u - 0.42) / 0.08 : 1 - (u - 0.5) / 0.5 * 0.7); nm = '③急：インで持ち出し、前傾してグン！と ' + (sm.cut ? sm.cut.deg + '°' : '') + ' 内へ'; if (u < 0.7) dust(a.x - 0.8, a.y + yo, (u - 0.42) / 0.28);
+          windFx(a.x, a.y + yo, mv.ix, mv.iy); }
+      } else if (mv.k === 'nutmeg') {
+        if (u < 0.15) { fa = Math.atan2(mv.uy, mv.ux); pose = 'crouch'; nm = '①相手に向かって腰を落とす'; }
+        else if (u < 0.3) { fa = Math.atan2(mv.uy, mv.ux); pose = 'sole'; nm = '②つま先でちょんと股の間へ'; }
+        else { rot = mf * 0.2 * (1 - (u - 0.3) / 0.7); nm = '③相手の脇を回り込んで裏へ'; if (u < 0.5) dust(a.x - mf * 0.7, a.y + yo, (u - 0.3) / 0.2); }
+      } else if (mv.k === 'bodyFeint' || mv.k === 'scissors') {
+        const sc = mv.k === 'scissors', t1 = sc ? (mv.dbl ? 0.593 : 0.42) : 0.33, t2 = sc ? (mv.dbl ? 0.667 : 0.5) : 0.45, fk = -mv.ly;   // 見せる側（画面の上下）
+        if (u < t1 && sc) {   // 手で描いた「またぐ」絵：①ひざを上げる → ②足の裏がボールの真上を通る → ③ボールの向こうへ着地（白い弧＝足の通り道）
+          fa = 0; const el = mv.dbl ? u * 1.35 : u * 0.95, st = mv.dbl && el >= 0.4 ? 1 : 0, e = (el - st * 0.4) / 0.4, fi = e < 0.24 ? 0 : e < 0.64 ? 1 : 2, nmB = st ? 'scisB' : 'scis'; pose = 'scis' + fi; pfoot = scFoot(st); sm.art = [nmB, fi, pfoot];
+          nm = st ? ['④読まれた → 反対の足でもう一度、ひざを上げる', '⑤反対の足がボールの真上を通る', '⑥ボールの向こう側へ着地（赤がつられる）'][fi] : ['①ひざを高く上げる（見せる側の足）', '②足がボールの真上を通る（ボールは触らない）', '③ボールの向こう側へ着地'][fi];
+          if (e >= 0.14 && e < 0.8) sm.arcFx = [a.x, a.y + yo, clamp((e - 0.14) / 0.57, 0, 1)];
+        }
+        else if (u < t1) { fa = 0; pose = 'bfStep0'; pfoot = fside === 'L' ? 'L' : 'R'; sm.art = ['bfStep', 0]; nm = '①前を向いたまま、見せる側の足を真横へ大きく踏み出す（ボールには触らない）'; rot = leanFor(a.x, a.y + yo, 0, -mv.ly, 0.26) * Math.min(1, u / (t1 * 0.5)); if (u > t1 * 0.4) dust(a.x + 0.2, a.y + yo - mv.ly * 0.6, (u - t1 * 0.4) / (t1 * 0.6)); }
+        else if (u < t2 && !sc) { fa = 0; pose = 'bfPush0'; pfoot = fside === 'L' ? 'L' : 'R'; sm.art = ['bfPush', 0]; nm = '②踏み出した足で蹴り返し、反対の足のアウトでボールを逆へ運ぶ'; rot = leanFor(a.x, a.y + yo, 0, mv.ly, 0.2); dust(a.x, a.y + yo - mv.ly * 0.6, (u - t1) / (t2 - t1)); }
+        else if (u < t2) { pose = 'sole'; nm = (mv.dbl ? '⑦' : '②') + '反対の足でボールを逆へ転がす'; dust(a.x - 0.4, a.y + yo, (u - t1) / (t2 - t1)); }
+        else { fa = Math.atan2(mv.by, mv.bx); rot = leanFor(a.x, a.y + yo, mv.bx, mv.by, mv.dbl ? 0.12 : 0.3) * (1 - (u - t2) / (1 - t2) * 0.75); nm = (mv.dbl ? '⑧1回目に見せた側へ' : '③踏み出した足の反発で、') + 'グン！と逆へ'; if (u < t2 + 0.2) dust(a.x - 0.8, a.y + yo, (u - t2) / 0.2);
+          if (u < t2 + 0.3) windFx(a.x, a.y + yo, mv.bx, mv.by); }
+      } else if (mv.k === 'kickFeint') {
+        fa = 0;
+        if (u < 0.36) { const fi = u < 0.12 ? 0 : 1; pose = 'shotA' + fi; pfoot = kfFakeFoot(); sm.art = ['shotA', fi]; nm = fi ? '②本物のシュートと同じく、大きく振りかぶる' : '①シュートと同じ踏み込み'; }
+        else if (u < 0.56) { pose = 'bfPush0'; pfoot = kfFakeFoot(); sm.art = ['bfPush', 0]; nm = '③打たずに、振りかぶった足を外へ踏み下ろし、反対の足のアウトでボールを横へ運ぶ'; }
+        else if (!a.kickT) { pose = 'crouch'; nm = '④空いたコースへ構え直す'; }
+      } else if (mv.k === 'shot' && mv.pass && !a.kickT) { fa = 0; const fi = T - mv.t < 0.12 ? 0 : 1; pose = 'passA' + fi; sm.art = ['passA', fi]; nm = fi ? '②小さく振りかぶる' : '①踏み込み（軸足をボールの横へ）'; }
+      else if (mv.k === 'shot' && !a.kickT) { fa = 0; const fi = T - mv.t < 0.145 ? 0 : 1; pose = 'shotA' + fi; sm.art = ['shotA', fi]; nm = fi ? '②大きく振りかぶる' : '①踏み込み（軸足をボールの横へ）'; }
+      else if (mv.k === 'fail') { pose = 'sole'; nm = '読まれた'; }
+      else if (mv.k === 'trap') { fa = 0; const fi = u < 0.4 ? 0 : 1; pose = 'trapI' + fi; sm.art = ['trapI', fi]; nm = fi ? '②足を引いて勢いを吸収し、足元へ収める' : '①受ける足を前へ出し、足の内側で触る'; }
+      else if (mv.k === 'trapSole') { fa = 0; pose = 'sole'; sm.art = ['sole', 0]; nm = '足の裏で上から押さえて止める'; }
+      else if (mv.k === 'chest') { fa = 0; const fi = u < 0.5 ? 0 : 1; pose = 'trapC' + fi; sm.art = ['trapC', fi]; nm = fi ? '②胸を引いてひざを曲げ、足元へ落とす' : '①胸を張って両腕を広げ、胸で受ける'; }
+    } else if (skill === 'speed' && sm.sdOn && s > 3) {
+      rot = leanFor(a.x, a.y + yo, a.vx, a.vy, 0.2); nm = '高速ドリブル（前傾・大きく蹴り出す）残り ' + Math.max(0, 3 - (T - sm.sdStart)).toFixed(1) + '秒';
+      windFx(a.x, a.y + yo, a.vx, a.vy);   // 体の後ろに流れる風の線（ゲームと同じ。どの向きでも）
+    }
+    else nm = sm.own === 'd' ? '奪われた' : skill === 'speed' ? '普通の突破ドリブル' : (a.skT ? '抜けて前へ' : 'ドリブル');
+    sm.pose = nm;
+    shadow(a.x, a.y + yo, 30);
+    if (a.kickT && skill === 'pass' && T - a.kickT < 0.32) { const fi = T - a.kickT < 0.12 ? 2 : 3; sm.art = ['passA', fi]; sprite({ ...col, facing: 0, pose: 'passA', frame: fi, foot: kfoot }, a.x, a.y + yo); sm.pose = fi === 2 ? '③インパクト（シュートより小さく）' : '④小さく振り抜く（足は腰の高さまで）'; return; }
+    if (a.kickT && skill !== 'pass' && T - a.kickT < 0.5) { const fi = T - a.kickT < 0.14 ? 2 : 3; sm.art = ['shotA', fi]; sprite({ ...col, facing: 0, pose: 'shotA', frame: fi, foot: skill === 'kickFeint' ? kfShotFoot() : kfoot }, a.x, a.y + yo); sm.pose = fi === 2 ? '③インパクト（足の甲で振り出す）' : '④振り抜き（足が前に高く上がる）'; return; }
+    if (pose && /^(trapI|trapC|passA|shotA|scisB|scis|bfStep|bfPush)\d$/.test(pose)) sprite({ ...col, facing: fa, pose: pose.slice(0, -1), frame: +pose.slice(-1), ...(pfoot ? { foot: pfoot } : {}) }, a.x, a.y + yo, rot);
+    else if (pose === 'shot') sprite({ ...col, facing: fa, pose: 'shot', frame: 1 }, a.x, a.y + yo, rot);
+    else if (pose === 'follow') sprite({ ...col, facing: fa, pose: 'shot', frame: 3 }, a.x, a.y + yo, rot);   // ゲームと同じ：足を大きく回す絵
+    else if (pose) sprite({ ...col, facing: fa, pose }, a.x, a.y + yo, rot);
+    else if (s > 0.4) sprite({ ...col, facing: fa, pose: 'run', art: true, frame: DotMan.artFrame(fa, a.ph) }, a.x, a.y + yo, rot);
+    else sprite({ ...col, facing: fa, pose: 'stand', art: true }, a.x, a.y + yo, rot);
+  }
+  function mateO(sm) {   // 味方：トラップの確認では、こちらへパスを出す（パスの絵）
+    const fa = Math.atan2(sm.a.y - sm.goal.y, sm.a.x - sm.goal.x);
+    if (RECV(skill) && T < 0.62) { const fi = T < 0.12 ? 0 : T < 0.3 ? 1 : T < 0.42 ? 2 : 3; return { ...BLUE2, facing: fa, pose: 'passA', frame: fi, foot: 'R' }; }
+    return { ...BLUE2, facing: fa, pose: 'stand', art: true };
+  }
+  function drawRed(sm, yo) {
+    const d = sm.d, a = sm.a, s = hyp(d.vx, d.vy);
+    let act = d.act; if (d.after && T >= d.after.t) act = d.after;
+    const u = act ? (T - act.t) / act.dur : 9; shadow(d.x, d.y + yo, 30);
+    if (act && u >= 0 && u < 1) {
+      if (act.k === 'bodyIn') {
+        const bf = Math.sign(-act.ux) || 1, fa = Math.atan2(act.uy, act.ux);
+        if (u < 0.25) { const k = Math.sin(Math.PI * u / 0.25); sprite({ ...RED, facing: fa, pose: 'stand', art: true }, d.x - bf * 0.1 * k, d.y + yo, bf * 0.26 * k); if (u < 0.18) dust(d.x - bf * 0.5, d.y + yo - 1.2, u / 0.18); sm.rpose = '①ボールと青の間に体を入れ、肩・背中をぶつける'; }
+        else { sprite({ ...RED, facing: fa, pose: u < 0.6 ? 'crouch' : 'stand', art: u >= 0.6 }, d.x, d.y + yo, bf * 0.08); sm.rpose = '②青をブロックしてから、マイボールにする'; }
+        return;
+      }
+      if (act.k === 'shield') { sprite({ ...RED, facing: Math.atan2(act.uy, act.ux), pose: 'crouch' }, d.x, d.y + yo, (Math.sign(-act.ux) || 1) * 0.06); sm.rpose = '先に追いつき、背中を向けてボールを隠す（シールド）'; return; }
+      if (act.k === 'block') { sprite({ ...RED, facing: Math.atan2(a.y - d.y, a.x - d.x), pose: 'crouch' }, d.x, d.y + yo); sm.rpose = d.lagT > T ? 'シュートブロックのために止まり、構えたまま固まる' : '慌てて動き出す'; return; }
+      if (act.k === 'legsClose') { sprite({ ...RED, facing: Math.atan2(act.uy, act.ux), pose: 'crouch' }, d.x, d.y + yo); sm.rpose = '読んで足を閉じ、股の間でボールを止める'; return; }
+      if (act.k === 'spread') { sprite({ ...RED, facing: Math.atan2(act.uy, act.ux), pose: 'crouch' }, d.x, d.y + yo); sm.rpose = '足を開いたまま固まる（股を抜かれる）'; return; }
+      if (act.k === 'poke') { const pa = Math.atan2(sm.ball.y - d.y, sm.ball.x - d.x); sprite({ ...RED, facing: pa, pose: 'pass', frame: 2 }, d.x, d.y + yo); sm.rpose = '足を出して奪う'; return; }
+      if (act.k === 'lose') { const k = Math.sin(Math.PI * u), away = Math.sign(d.vx || -1); sprite({ ...RED, facing: away > 0 ? 0 : Math.PI, pose: 'jump' }, d.x, d.y + yo, away * (0.3 * k + Math.sin(u * 22) * 0.07 * k)); sm.rpose = skill === 'cutIn' ? '外へつられて逆を取られる' : '振り返るのが遅れる'; return; }
+    }
+    sm.rpose = d.lagT > T ? 'つられて外へ流れる' : '寄せる・構える';
+    const fa = s > 0.4 ? Math.atan2(d.vy, d.vx) : Math.atan2(a.y - d.y, a.x - d.x);
+    if (s > 0.4) sprite({ ...RED, facing: fa, pose: 'run', art: true, frame: DotMan.artFrame(fa, d.ph) }, d.x, d.y + yo);
+    else sprite({ ...RED, facing: fa, pose: 'stand', art: true }, d.x, d.y + yo);
+  }
+  function draw() {
+    { const xs = sims.map((sm) => RECV(skill) ? (sm.a.x + sm.goal.x) / 2 : skill === 'shot' || skill === 'pass' ? sm.a.x + 4 : (sm.a.x + sm.d.x) / 2), want = cv.width * 0.45 - (xs.reduce((p, c) => p + c, 0) / xs.length) * PXM; OX += (want - OX) * 0.08; }
+    ctx.fillStyle = '#2f8a3a'; ctx.fillRect(0, 0, cv.width, cv.height);
+    for (let k = -20; k < 90; k += 4) { ctx.fillStyle = ((k / 4) % 2 + 2) % 2 ? 'rgba(255,255,255,.035)' : 'rgba(0,0,0,.03)'; ctx.fillRect(SX(k), 0, PXM * 4, cv.height); }
+    ctx.fillStyle = 'rgba(255,255,255,.8)'; ctx.font = '14px sans-serif'; ctx.fillText('相手ゴールの方 →', cv.width - 150, 20);
+    const items = [];
+    for (const sm of sims) {
+      const yo = sm.lane, a = sm.a, b = sm.ball;
+      ctx.strokeStyle = 'rgba(255,255,255,.6)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0, SY(yo + Y0)); ctx.lineTo(cv.width, SY(yo + Y0)); ctx.moveTo(0, SY(yo + Y1)); ctx.lineTo(cv.width, SY(yo + Y1)); ctx.stroke();
+      ctx.fillStyle = sm.lane ? '#9fd0ff' : '#fff'; ctx.font = 'bold 15px sans-serif';
+      ctx.fillText((sm.lane ? '下：' : '上：') + (sm.noSkill ? '同じ選手・技なし（普通の突破ドリブル）' : '青 オール' + LV[sm.lv] + '・' + NAME[skill]) + (skill === 'cutIn' ? '　（上の線＝タッチライン）' : ''), 10, SY(yo + Y0) - 8);
+      if (sm.others) for (const o of sm.others) items.push({ y: o.y + yo, f: () => { shadow(o.x, o.y + yo, 30); sprite({ ...RED, facing: Math.atan2(sm.a.y - o.y, sm.a.x - o.x), pose: 'stand', art: true }, o.x, o.y + yo); } });
+      if (sm.goal && (skill === 'kickFeint' || skill === 'shot')) { const G = sm.goal; ctx.strokeStyle = '#fff'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(SX(G.x), SY(yo + G.y - 3.66)); ctx.lineTo(SX(G.x), SY(yo + G.y + 3.66)); ctx.stroke(); ctx.fillStyle = 'rgba(255,255,255,.25)'; ctx.fillRect(SX(G.x), SY(yo + G.y - 3.66), 14, SY(yo + G.y + 3.66) - SY(yo + G.y - 3.66)); ctx.fillStyle = '#fff'; ctx.font = '12px sans-serif'; ctx.fillText('ゴール', SX(G.x) + 4, SY(yo + G.y - 3.66) - 4); }
+      if (sm.goal && sm.goal.line < 50) { ctx.strokeStyle = 'rgba(255,255,255,.75)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(SX(sm.goal.line), SY(yo + Y0)); ctx.lineTo(SX(sm.goal.line), SY(yo + Y1)); ctx.stroke(); ctx.fillStyle = '#fff'; ctx.font = '12px sans-serif'; ctx.fillText('ゴールライン', SX(sm.goal.line) + 4, SY(yo + Y0) + 16); }
+      if (guide && sm.cutP && !(sm.a.mv && T - sm.a.mv.t > 0.5)) for (const c of sm.cutP) items.push({ y: 996, f: () => { const L2 = 3.5, al = 0.25 + c.p * 0.75; ctx.strokeStyle = c === sm.cut ? `rgba(255,224,90,${al})` : `rgba(255,255,255,${al * 0.6})`; ctx.lineWidth = c === sm.cut ? 4 : 2; ctx.beginPath(); ctx.moveTo(SX(sm.a.x), SY(sm.a.y + yo)); ctx.lineTo(SX(sm.a.x + c.ux * L2), SY(sm.a.y + yo + c.uy * L2)); ctx.stroke(); ctx.fillStyle = ctx.strokeStyle; ctx.font = '11px sans-serif'; ctx.fillText(c.deg + '° ' + Math.round(c.p * 100) + '%', SX(sm.a.x + c.ux * (L2 + 0.4)), SY(sm.a.y + yo + c.uy * (L2 + 0.4))); } });
+      items.push({ y: a.y + yo, f: () => drawBlue(sm, yo) });
+      if (skill !== 'shot' && skill !== 'pass' && !RECV(skill)) items.push({ y: sm.d.y + yo, f: () => drawRed(sm, yo) });
+      if (sm.goal && sm.goal.mate) { const G = sm.goal; items.push({ y: G.y + yo, f: () => { shadow(G.x, G.y + yo, 30); sprite(mateO(sm), G.x, G.y + yo); } }); }
+      items.push({ y: b.y + yo + 0.01, f: () => { shadow(b.x, b.y + yo, 8); const br = 5.5 * ZM, bx = SX(b.x), by = SY(b.y + yo) - br - (b.z || 0) * PXM * 2.5; ctx.fillStyle = '#fff'; ctx.strokeStyle = '#222'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(bx, by, br, 0, 7); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(bx, by, br * 0.38, 0, 7); ctx.fill(); } });
+      if (guide && sm.own === 'a') items.push({ y: 999, f: () => { ctx.strokeStyle = 'rgba(255,224,90,.9)'; ctx.lineWidth = 2; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(SX(a.x), SY(a.y + yo)); ctx.lineTo(SX(b.x), SY(b.y + yo)); ctx.stroke(); ctx.setLineDash([]); } });
+    }
+    items.sort((p, q) => p.y - q.y).forEach((it) => it.f());
+    // シザース：足がボールの外側をぐるっと回って通る道（白い弧）。選手の絵の上に描く
+    for (const sm of sims) if (sm.arcFx) { const [x, y, ph] = sm.arcFx, d0 = 4 * ZM, cx0 = SX(x) + 9 * d0, cy0 = SY(y) - 2 * d0, R = 6 * d0, a0 = Math.PI * 1.02, a1 = a0 + Math.PI * 0.96 * Math.min(1, ph * 1.2);
+      ctx.save(); ctx.lineCap = 'round'; for (let k = 0; k < 3; k++) { ctx.strokeStyle = `rgba(255,255,255,${0.9 - k * 0.28})`; ctx.lineWidth = Math.max(2, d0 * (1.2 - k * 0.35)); ctx.beginPath(); ctx.arc(cx0, cy0, R + k * d0, a0, a1); ctx.stroke(); }
+      const ex = cx0 + Math.cos(a1) * R, ey = cy0 + Math.sin(a1) * R; ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ex, ey, d0 * 1.1, 0, 7); ctx.fill(); ctx.restore(); }
+    drawGraph(); drawRes(); drawStrip(); drawViews();
+    document.getElementById('info').textContent = `時間：${T.toFixed(1)} 秒\n` + sims.map((sm) => `${sm.lane ? '下' : '上'}の青：${sm.pose || ''}\n${sm.lane ? '下' : '上'}の赤：${sm.rpose || ''}\n　${sm.log.join(' ／ ') || '－'}`).join('\n');
+  }
+  // コマ送りの帯：手で描いた絵を大きく並べ、今のコマを黄色で囲む
+  const STRIP = { trap: [['trapI', 0, '①足を前へ出し内側で'], ['trapI', 1, '②引いて吸収']], trapSole: [['sole', 0, '足裏で止める']], chest: [['trapC', 0, '①胸を張る'], ['trapC', 1, '②足元へ落とす']],
+    pass: [['passA', 0, '①踏み込み'], ['passA', 1, '②小さく振りかぶる'], ['passA', 2, '③インパクト'], ['passA', 3, '④小さく振り抜く']],
+    shot: [['shotA', 0, '①踏み込み'], ['shotA', 1, '②振りかぶる'], ['shotA', 2, '③インパクト'], ['shotA', 3, '④振り抜き']],
+    kickFeint: [['shotA', 0, '①踏み込み', 'kf'], ['shotA', 1, '②振りかぶる', 'kf'], ['bfPush', 0, '③横へ運ぶ', 'kf'], ['shotA', 2, '④運んだ側の足で', 'ks']],
+    scissors: [['scis', 0, '①ひざを上げる', 1], ['scis', 1, '②ボールの真上', 1], ['scis', 2, '③向こうへ着地', 1]],
+    bodyFeint: [['bfStep', 0, '①見せる側へスタンプ', 'bf'], ['bfPush', 0, '②逆へ持ち出す', 'bf']],
+    scissors2: [['scis', 0, '①ひざ', 1], ['scis', 1, '②真上', 1], ['scis', 2, '③着地', 1], ['scisB', 0, '④反対の足', 2], ['scisB', 1, '⑤真上', 2], ['scisB', 2, '⑥着地', 2]] };
+  function drawStrip() {
+    const sc = document.getElementById('strip'), L = STRIP[skill === 'scissors' && (dblMode === '2' || (sims[0] && sims[0].dbl)) ? 'scissors2' : skill]; sc.style.display = L ? 'block' : 'none'; if (!L) return;
+    const NC = Math.max(4, L.length), g = sc.getContext('2d'), cw = sc.width / NC, cur = sims[0] && sims[0].art; g.fillStyle = '#0b1a12'; g.fillRect(0, 0, sc.width, sc.height); g.imageSmoothingEnabled = false;
+    L.forEach(([pose, fr, lab, fk], i) => {
+      const x0 = i * cw + (NC - L.length) * cw / 2, on = cur && cur[0] === pose && cur[1] === fr;
+      g.fillStyle = on ? 'rgba(255,224,90,.18)' : 'rgba(255,255,255,.04)'; g.fillRect(x0 + 4, 4, cw - 8, sc.height - 8);
+      if (on) { g.strokeStyle = '#ffe05a'; g.lineWidth = 3; g.strokeRect(x0 + 4, 4, cw - 8, sc.height - 8); }
+      const ft = fk === 'ks' ? kfShotFoot() : fk === 'bf' ? (fside === 'L' ? 'L' : 'R') : fk === 'kf' ? kfFakeFoot() : fk === 1 ? scFoot(0) : fk === 2 ? scFoot(1) : kfoot, f = DotMan.frame({ ...BLUE, facing: 0, pose: pose === 'scisB' ? 'scis' : pose, frame: fr, foot: ft }), dot = (pose === 'sole' ? 3.4 : 4.2) * (NC > 4 ? 0.72 : 1);
+      g.drawImage(f.cv, x0 + cw / 2 - f.px * dot, 150 - f.py * dot, f.cv.width * dot, f.cv.height * dot);
+      if (skill === 'pass' && fr <= 2) { const bx = x0 + cw / 2 + (fr === 2 ? 8.5 : 7) * dot, by = 150 - 1.5 * dot; g.fillStyle = '#fff'; g.strokeStyle = '#222'; g.lineWidth = 2; g.beginPath(); g.arc(bx, by, 1.6 * dot, 0, 7); g.fill(); g.stroke(); }
+      if (skill === 'scissors' || (skill === 'shot' && fr <= 2)) { const bx = x0 + cw / 2 + (skill === 'scissors' ? 9 : fr === 2 ? 13.5 : 11) * dot, by = 150 - (skill === 'shot' && fr === 2 ? 5 : 1.5) * dot; g.fillStyle = '#fff'; g.strokeStyle = '#222'; g.lineWidth = 2; g.beginPath(); g.arc(bx, by, 1.6 * dot, 0, 7); g.fill(); g.stroke(); }
+      g.fillStyle = on ? '#ffe05a' : '#cfe0d2'; g.font = (NC > 4 ? 17 : 20) + 'px sans-serif'; g.textAlign = 'center'; g.fillText(lab, x0 + cw / 2, 180); g.textAlign = 'left';
+    });
+  }
+  // ---- 向きの確認：横・斜め手前・手前・斜め奥・奥 の5つで、同じ技の絵を同時に再生する ----
+  const VIEWS = [['横（→）', 0], ['斜め手前（↘）', Math.PI / 4], ['手前へ（↓）', Math.PI / 2], ['斜め奥（↗）', -Math.PI / 4], ['奥へ（↑）', -Math.PI / 2]];
+  function viewPose(sk, t, dbl) {   // その時刻の絵・ボールの位置（前・横〔本当に行く側＝+〕[m]）・弧
+    if (sk === 'trap' || sk === 'trapSole') { const T2 = t % 1.5, so = sk === 'trapSole'; if (T2 < 0.5) return { p: 'stand', fw: 0.55 + (0.5 - T2) * 7 }; if (T2 < 0.85) return so ? { p: 'sole', fw: 0.5, nm: '足裏で止める' } : T2 < 0.64 ? { p: 'trapI', f: 0, fw: 0.6 } : { p: 'trapI', f: 1, fw: 0.45 }; return { p: 'stand', fw: 0.45 }; }
+    if (sk === 'chest') { const T2 = t % 1.6; if (T2 < 0.5) { const k = (0.5 - T2) / 0.5; return { p: 'stand', fw: 0.25 + k * 3.5, z: 1.3 + k * 1.2 - k * k * 1.6 }; } if (T2 < 0.7) return { p: 'trapC', f: 0, fw: 0.25, z: 1.3 - (T2 - 0.5) * 1.5 }; if (T2 < 0.9) { const k = (T2 - 0.7) / 0.2; return { p: 'trapC', f: 1, fw: 0.25 + k * 0.25, z: 1.0 * (1 - k) * (1 - k) }; } return { p: 'stand', fw: 0.5 }; }
+    if (sk === 'pass') { const T2 = t % 1.3; if (T2 < 0.12) return { p: 'passA', f: 0, fw: 0.55 }; if (T2 < 0.3) return { p: 'passA', f: 1, fw: 0.55 }; if (T2 < 0.42) return { p: 'passA', f: 2, fw: 0.55 + (T2 - 0.3) * 12 }; if (T2 < 0.62) return { p: 'passA', f: 3, fw: 0.55 + (T2 - 0.3) * 12 }; return { p: 'stand', fw: null }; }
+    if (sk === 'shot') { const T2 = t % 1.6; if (T2 < 0.145) return { p: 'shotA', f: 0, fw: 0.8 }; if (T2 < 0.38) return { p: 'shotA', f: 1, fw: 0.8 }; if (T2 < 0.52) return { p: 'shotA', f: 2, fw: 0.8 + (T2 - 0.38) * 20 }; if (T2 < 0.88) return { p: 'shotA', f: 3, fw: 0.8 + (T2 - 0.38) * 20 }; return { p: 'stand', fw: null }; }
+    if (sk === 'kickFeint') { const T2 = t % 1.9; if (T2 < 0.12) return { p: 'shotA', f: 0, fw: 0.45 }; if (T2 < 0.36) return { p: 'shotA', f: 1, fw: 0.45 }; if (T2 < 0.56) return { p: 'bfPush', fw: 0.45, lat: 1.24 * (T2 - 0.36) / 0.2, nm: '横へ運ぶ（反対の足のアウト）' }; if (T2 < 0.68) return { p: 'crouch', fw: 0.45, lat: 1.24 }; if (T2 < 0.82) return { p: 'shotA', f: 2, fw: 0.45 + (T2 - 0.68) * 18, lat: 1.24 }; if (T2 < 1.1) return { p: 'shotA', f: 3, fw: 0.45 + (T2 - 0.68) * 18, lat: 1.24 }; return { p: 'stand', fw: null }; }
+    if (sk === 'scissors') { const L = dbl ? 1.35 : 0.95, T2 = t % (L + 0.5), el = T2, end = dbl ? 0.8 : 0.4;
+      if (el < end) { const st = dbl && el >= 0.4 ? 1 : 0, e = (el - st * 0.4) / 0.4; return { p: 'scis', lab2: st, f: e < 0.24 ? 0 : e < 0.64 ? 1 : 2, fw: 0, st, arc: e >= 0.14 && e < 0.8 ? Math.min(1, (e - 0.14) / 0.57) : null }; }
+      if (el < end + 0.08) return { p: 'sole', fw: 0, lat: (dbl ? -0.3 : 0.75) * (el - end) / 0.08 };
+      return { p: 'run', fw: 0, lat: dbl ? -0.3 : 0.75, go: 1 }; }
+    // face＝体の向き [前, 横（本当に行く側＝+）]。ゲームの app.js と同じ順番・長さ
+    if (sk === 'bodyFeint') { const T2 = t % 1.5; if (T2 < 0.3) return { p: 'bfStep', fw: 0.35, lat: -0.05, face: [1, 0], nm: '①見せる側の足を真横へスタンプ' }; if (T2 < 0.405) return { p: 'bfPush', fw: 0.35, lat: -0.05 + 0.75 * (T2 - 0.3) / 0.105, face: [1, 0], nm: '②反対の足のアウトで逆へ' }; if (T2 < 0.95) return { p: 'run', fw: 0.5, lat: 0.7, face: [0.45, 0.75], nm: '③グン！と逆へ' }; return { p: 'stand', fw: 0.45, lat: 0 }; }
+    if (sk === 'cutIn') { const T2 = t % 1.7; if (T2 < 0.33) return { p: 'run', fw: 0.45, lat: -0.2, face: [0.9, -0.35], nm: '①ゆっくり外へ運ぶ' }; if (T2 < 0.46) return { p: 'crouch', fw: 0.4, lat: -0.25, face: [0.9, -0.35], nm: '②外の足で踏ん張る' }; if (T2 < 1.2) return { p: 'run', fw: 0.5, lat: 0.35, face: [0.6, 0.8], nm: '③グン！と内へ' }; return { p: 'stand', fw: 0.45, lat: 0 }; }
+    if (sk === 'nutmeg') { const T2 = t % 1.5; if (T2 < 0.12) return { p: 'crouch', fw: 0.4, face: [1, 0], nm: '①腰を落とす' }; if (T2 < 0.24) return { p: 'sole', fw: 0.4 + (T2 - 0.12) * 20, face: [1, 0], nm: '②つま先で股の間へ' }; if (T2 < 0.9) return { p: 'run', fw: null, face: [0.35, 0.85], nm: '③脇を回り込む' }; return { p: 'stand', fw: null }; }
+    if (sk === 'speed') { const T2 = t % 1.2; return { p: 'run', fw: 0.6 + 1.6 * (T2 % 0.6), face: [1, 0], wind: 1, nm: '高速ドリブル（大きく蹴り出して全力で追う）' }; }
+    return null;
+  }
+  // ひとつの向きで、その時刻の技の絵を1人ぶん描く（ボール・弧・コマの名前も）
+  function drawOne(g, X0, Y0, D, fa, t, dbl, labY, fs) {
+    const Fx = Math.cos(fa), Fy = Math.sin(fa), Rx = -Fy, Ry = Fx;   // 前と、本人の右（本当に行く側）
+    const S = (fw, lat) => [X0 + (Fx * fw + Rx * lat) * 15 * D, Y0 + (Fy * fw + Ry * lat) * 15 * 0.55 * D];   // 試合と同じ：1m＝横15ドット、奥行きは0.55倍
+    const v = viewPose(skill, t, dbl); if (!v) return null;
+    const fwB = v.fw == null ? null : (skill === 'scissors' ? (Math.abs(Fy) > 0.92 ? 0.35 : Math.abs(Fy) > 0.38 ? 0.5 : 0.6) : v.fw), lat = (v.lat || 0) * (fside === 'L' ? 1 : -1);
+    const ball = fwB == null ? null : S(fwB, lat), ballBehind = ball && ball[1] < Y0, br = 1.55 * D;
+    const drawBall = () => { if (!ball) return; const zz = (v.z || 0) * 11 * D; g.fillStyle = 'rgba(0,0,0,.28)'; g.beginPath(); g.ellipse(ball[0], ball[1] + D * 0.5, br * 1.1, br * 0.45, 0, 0, 7); g.fill(); g.fillStyle = '#fff'; g.strokeStyle = '#222'; g.lineWidth = Math.max(2, D * 0.5); g.beginPath(); g.arc(ball[0], ball[1] - br - zz, br, 0, 7); g.fill(); g.stroke(); };
+    g.fillStyle = 'rgba(0,0,0,.28)'; g.beginPath(); g.ellipse(X0, Y0, 7.2 * D, 2.2 * D, 0, 0, 7); g.fill();
+    if (ballBehind) drawBall();
+    const gk = (dbl ? -0.17 : 0.6) * (fside === 'L' ? 1 : -1), sd = fside === 'L' ? 1 : -1, facing = v.face ? Math.atan2(Fy * v.face[0] + Ry * v.face[1] * sd, Fx * v.face[0] + Rx * v.face[1] * sd) : v.go ? Math.atan2(Fy + Ry * gk, Fx + Rx * gk) : fa;   // 抜ける向き
+    const vfoot = skill === 'kickFeint' && v.p === 'bfPush' ? kfFakeFoot() : v.p === 'bfStep' || v.p === 'bfPush' ? (fside === 'L' ? 'L' : 'R') : v.p === 'scis' ? scFoot(v.st) : skill === 'kickFeint' && v.p === 'shotA' ? (v.f < 2 ? kfFakeFoot() : kfShotFoot()) : kfoot;
+    const o = { ...BLUE, foot: vfoot, facing, pose: v.p === 'run' ? 'run' : v.p, frame: v.p === 'run' ? DotMan.artFrame(facing, t * 2.2) : v.f || 0, art: v.p === 'run' || v.p === 'stand' };
+    const f = DotMan.frame(o), dot = D * DotMan.fitScale(f, facing, o.pose);
+    if (v.wind) { const ux0 = Math.cos(facing), uy0 = Math.sin(facing) * 0.55, ul0 = hyp(ux0, uy0) || 1, ux = ux0 / ul0, uy = uy0 / ul0, px = D * 1.2;   // 風の線（ゲームと同じ）
+      for (let k = 0; k < 5; k++) { const off = ((t * 9 + k * 0.37) % 1), len = px * (7 + (k % 3) * 3), h = -px * (3 + k * 2.2), sx = X0 - ux * px * (4 + off * 10), sy = Y0 + h - uy * px * (4 + off * 10); g.strokeStyle = `rgba(255,255,255,${0.75 * (1 - off)})`; g.lineWidth = Math.max(1.5, px * 0.6); g.beginPath(); g.moveTo(sx, sy); g.lineTo(sx - ux * len, sy - uy * len); g.stroke(); } }
+    g.drawImage(f.cv, Math.round(X0 - f.px * dot), Math.round(Y0 - f.py * dot), f.cv.width * dot, f.cv.height * dot);
+    if (!ballBehind) drawBall();
+    if (v.arc != null && ball) {   // 足がボールの上を回って通る道（試合と同じ白い弧）
+      const sn = Math.sin(fa), lr = sn > 0.92 ? (vfoot === 'R' ? -1 : 1) : sn < -0.92 ? (vfoot === 'R' ? 1 : -1) : (Math.cos(fa) >= 0 ? 1 : -1), d0 = D * 0.8, cx0 = ball[0], cy0 = ball[1] - 2 * d0, R = 6 * d0, span = Math.PI * 0.96 * Math.min(1, v.arc * 1.2);
+      g.save(); g.lineCap = 'round'; for (let k = 0; k < 3; k++) { g.strokeStyle = `rgba(255,255,255,${0.85 - k * 0.25})`; g.lineWidth = Math.max(2, d0 * (1.1 - k * 0.3)); g.beginPath(); if (lr > 0) g.arc(cx0, cy0, R + k * d0 * 0.9, Math.PI * 1.02, Math.PI * 1.02 + span); else g.arc(cx0, cy0, R + k * d0 * 0.9, -Math.PI * 0.02, -Math.PI * 0.02 - span, true); g.stroke(); } g.restore(); }
+    const nm = { trapI: ['①足を前へ出し内側で触る', '②引いて勢いを吸収'], trapC: ['①胸を張って両腕を広げる', '②胸を引いて足元へ'], passA: ['①踏み込み', '②小さく振りかぶる', '③インパクト', '④小さく振り抜く'], shotA: ['①踏み込み', '②振りかぶる', '③インパクト', '④振り抜き'], scis: ['①ひざを上げる', '②ボールの真上', '③向こうへ着地'], scisB: ['④反対の足で', '⑤ボールの真上', '⑥向こうへ着地'] }[v.p === 'scis' && v.lab2 ? 'scisB' : v.p];
+    const name = v.nm ? v.nm : nm ? nm[v.f] : v.p === 'sole' ? '足裏で転がす' : v.p === 'crouch' ? '構え直す' : v.p === 'run' ? 'グン！' : '';
+    g.fillStyle = '#ffe05a'; g.font = fs + 'px sans-serif'; g.textAlign = 'center'; g.fillText(name, X0, labY); g.textAlign = 'left';
+    const sn2 = Math.sin(facing), art = DotMan.ART_POSE && DotMan.ART_POSE[o.pose] ? (sn2 > 0.92 ? '手前の絵' : sn2 > 0.38 ? '斜め手前の絵' : sn2 < -0.92 ? '奥の絵' : sn2 < -0.38 ? '斜め奥の絵' : '横の絵') + (Math.cos(facing) < -0.01 && Math.abs(sn2) <= 0.92 ? '（裏返し）' : '') : (o.pose === 'run' || o.pose === 'stand' ? '走りの絵' : '自動で組む絵');
+    return { name, pose: o.pose, frame: o.frame, art };
+  }
+  const VDIRS = [['↖', -3 * Math.PI / 4, '左上（斜め奥）'], ['↑', -Math.PI / 2, '上（奥へ）'], ['↗', -Math.PI / 4, '右上（斜め奥）'], ['←', Math.PI, '左（横）'], ['', null, ''], ['→', 0, '右（横）'], ['↙', 3 * Math.PI / 4, '左下（斜め手前）'], ['↓', Math.PI / 2, '下（手前へ）'], ['↘', Math.PI / 4, '右下（斜め手前）']];
+  let vdir = 5, vclock = 0, vpause = false, vspin = false, vlast = 0, vspinT = 0;
+  { const pad = document.getElementById('vpad');
+    pad.innerHTML = VDIRS.map(([a, fa], k) => fa == null ? '<span></span>' : `<button data-k="${k}" style="font-size:22px;padding:8px 0">${a}</button>`).join('');
+    const mark = () => pad.querySelectorAll('button').forEach((b) => b.classList.toggle('on', +b.dataset.k === vdir));
+    pad.querySelectorAll('button').forEach((b) => b.onclick = () => { vdir = +b.dataset.k; vspin = false; document.getElementById('vspin').textContent = '自動で一周：オフ'; mark(); });
+    window.__vmark = mark; mark();
+    const setPause = (v) => { paused = v; document.getElementById('pause').textContent = paused ? '再生' : '一時停止'; document.getElementById('vplay').textContent = paused ? '再生' : '一時停止'; };
+    document.getElementById('vplay').onclick = () => setPause(!paused);
+    document.getElementById('vfwd').onclick = () => { setPause(true); stepReq = 2; };
+    document.getElementById('vback').onclick = () => { setPause(true); while (HIST.length && HIST[HIST.length - 1].T > T - 0.045) HIST.pop(); const h = HIST.pop(); if (h) { const st = JSON.parse(h.s); sims.length = 0; sims.push(...st); T = h.T; acc = h.acc; } };
+    document.getElementById('vspin').onclick = (e) => { vspin = !vspin; e.target.textContent = '自動で一周：' + (vspin ? 'オン' : 'オフ'); };
+    const keys = new Set(), KM = { ArrowUp: 'u', KeyW: 'u', ArrowDown: 'd', KeyS: 'd', ArrowLeft: 'l', KeyA: 'l', ArrowRight: 'r', KeyD: 'r' };
+    const apply = () => { const dx = (keys.has('r') ? 1 : 0) - (keys.has('l') ? 1 : 0), dy = (keys.has('d') ? 1 : 0) - (keys.has('u') ? 1 : 0); if (!dx && !dy) return; vdir = (dy + 1) * 3 + (dx + 1); vspin = false; document.getElementById('vspin').textContent = '自動で一周：オフ'; mark(); };
+    addEventListener('keydown', (e) => { const k = KM[e.code]; if (!k || document.getElementById('vwBox').style.display === 'none') return; e.preventDefault(); keys.add(k); apply(); });
+    addEventListener('keyup', (e) => { const k = KM[e.code]; if (k) keys.delete(k); });
+  }
+  // ---- 大きな画面：上の場面（青と赤）を、選んだ向きに回して描く。試合と同じく奥行きは0.55倍 ----
+  let VC = null;
+  function drawBig(t) {
+    const cb = document.getElementById('vbig'), gb = cb.getContext('2d'), sm = sims[0]; if (!sm) return;
+    gb.fillStyle = '#2f8a3a'; gb.fillRect(0, 0, cb.width, cb.height); gb.imageSmoothingEnabled = false;
+    const a = sm.a, d = sm.d, b = sm.ball, th = VDIRS[vdir][1];
+    const want = skill === 'shot' || skill === 'pass' || RECV(skill) ? (skill === 'pass' || RECV(skill) ? [RECV(skill) ? a.x + (sm.goal.x - a.x) * 0.38 : (a.x + sm.goal.x) / 2 - 2, a.y] : [a.x + 3, a.y]) : [(a.x + d.x) / 2, (a.y + d.y) / 2];
+    if (!VC || T < 0.05) VC = want.slice(); VC[0] += (want[0] - VC[0]) * 0.12; VC[1] += (want[1] - VC[1]) * 0.12;
+    const save = ctx; VIEW = { th, cx: VC[0], cy: VC[1], W: cb.width, H: cb.height, ppm: 30 * ZM * 1.25, k: 1.25 }; ctx = gb;
+    try {
+      // 芝の縞（ピッチの向きに合わせて回す）
+      for (let k = -12; k < 12; k++) { const p0 = VP(VC[0] + k * 2, VC[1] - 30), p1 = VP(VC[0] + k * 2, VC[1] + 30), p2 = VP(VC[0] + k * 2 + 2, VC[1] + 30), p3 = VP(VC[0] + k * 2 + 2, VC[1] - 30);
+        gb.fillStyle = k % 2 ? 'rgba(255,255,255,.035)' : 'rgba(0,0,0,.035)'; gb.beginPath(); gb.moveTo(...p0); gb.lineTo(...p1); gb.lineTo(...p2); gb.lineTo(...p3); gb.fill(); }
+      if (sm.goal && (skill === 'kickFeint' || skill === 'shot')) { const G = sm.goal, g0 = VP(G.x, G.y - 3.66), g1 = VP(G.x, G.y + 3.66); gb.strokeStyle = '#fff'; gb.lineWidth = 4; gb.beginPath(); gb.moveTo(...g0); gb.lineTo(...g1); gb.stroke(); }
+      const items = [];
+      if (sm.others) for (const o of sm.others) items.push({ y: VP(o.x, o.y)[1], f: () => { shadow(o.x, o.y, 30); sprite({ ...RED, facing: Math.atan2(a.y - o.y, a.x - o.x), pose: 'stand', art: true }, o.x, o.y); } });
+      items.push({ y: VP(a.x, a.y)[1], f: () => drawBlue(sm, 0) });
+      if (skill !== 'shot' && skill !== 'pass' && !RECV(skill)) items.push({ y: VP(d.x, d.y)[1], f: () => drawRed(sm, 0) });
+      if (sm.goal && sm.goal.mate) { const G = sm.goal; items.push({ y: VP(G.x, G.y)[1], f: () => { shadow(G.x, G.y, 30); sprite(mateO(sm), G.x, G.y); } }); }
+      items.push({ y: VP(b.x, b.y)[1] + 0.01, f: () => { const [X, Y0b] = VP(b.x, b.y), br = 5.5 * ZM * VIEW.k, Y = Y0b - (b.z || 0) * VIEW.ppm * 2.5; shadow(b.x, b.y, 8); gb.fillStyle = '#fff'; gb.strokeStyle = '#222'; gb.lineWidth = 2; gb.beginPath(); gb.arc(X, Y - br, br, 0, 7); gb.fill(); gb.stroke(); gb.fillStyle = '#222'; gb.beginPath(); gb.arc(X, Y - br, br * 0.38, 0, 7); gb.fill(); } });
+      items.sort((p, q) => p.y - q.y).forEach((it) => it.f());
+      if (sm.arcFx) {   // シザース：足がボールの上を回って通る道（試合と同じ。ボールを中心に）
+        const [x0, y0, ph] = sm.arcFx, fa = th, sn = Math.sin(fa), stf = sm.art && sm.art[2] || 'R', lr = sn > 0.92 ? (stf === 'R' ? -1 : 1) : sn < -0.92 ? (stf === 'R' ? 1 : -1) : (Math.cos(fa) >= 0 ? 1 : -1);
+        const [X, Y] = VP(b.x, b.y), d0 = 4 * ZM * VIEW.k, R = 6 * d0, span = Math.PI * 0.96 * Math.min(1, ph * 1.2);
+        gb.save(); gb.lineCap = 'round'; for (let k = 0; k < 3; k++) { gb.strokeStyle = `rgba(255,255,255,${0.85 - k * 0.25})`; gb.lineWidth = Math.max(2, d0 * (1.1 - k * 0.3)); gb.beginPath(); if (lr > 0) gb.arc(X, Y - 2 * d0, R + k * d0 * 0.9, Math.PI * 1.02, Math.PI * 1.02 + span); else gb.arc(X, Y - 2 * d0, R + k * d0 * 0.9, -Math.PI * 0.02, -Math.PI * 0.02 - span, true); gb.stroke(); } gb.restore(); }
+    } finally { VIEW = null; ctx = save; }
+    const [arrow, , labB] = VDIRS[vdir];
+    gb.fillStyle = '#fff'; gb.font = 'bold 18px sans-serif'; gb.fillText(arrow + ' ' + labB + 'へ ' + NAME[skill] + '（赤＝守備）', 12, 28);
+    document.getElementById('vinfo').textContent = `向き：${labB}\n時間：${T.toFixed(1)} 秒\n青：${sm.pose || ''}\n赤：${sm.rpose || ''}`;
+  }
+  function drawViews() {
+    const box = document.getElementById('vwBox'), show = true; box.style.display = show ? 'block' : 'none'; if (!show) return;
+    const now = performance.now() / 1000, dt = Math.min(0.1, now - (vlast || now)); vlast = now;
+    if (!vpause) vclock += dt * speed;
+    if (vspin && !vpause) { vspinT += dt * speed; if (vspinT > 1.6) { vspinT = 0; const ORD = [5, 8, 7, 6, 3, 0, 1, 2]; vdir = ORD[(ORD.indexOf(vdir) + 1) % 8]; window.__vmark(); } }
+    const t = window.__vt != null ? window.__vt : vclock, dbl = skill === 'scissors' && dblMode === '2';
+    drawBig(t);
+    // 5つの向きを並べて
+    const c = document.getElementById('vw'), g = c.getContext('2d'); g.fillStyle = '#2f8a3a'; g.fillRect(0, 0, c.width, c.height); g.imageSmoothingEnabled = false;
+    const cw = c.width / VIEWS.length;
+    VIEWS.forEach(([lab, fa], i) => {
+      const X0 = i * cw + cw / 2;
+      g.fillStyle = 'rgba(255,255,255,.85)'; g.font = '14px sans-serif'; g.textAlign = 'center'; g.fillText(lab, X0, 20); g.textAlign = 'left';
+      if (i) { g.fillStyle = 'rgba(255,255,255,.12)'; g.fillRect(i * cw, 30, 1, c.height - 40); }
+      drawOne(g, X0, 175, 3.6, fa, t, dbl, c.height - 12, 13);
+    });
+  }
+  function drawRes() {
+    const r = (sm) => [skill === 'speed' ? '－' : Math.round(pS(sm.lv) * 100) + '%', sm.own === 'd' ? '奪われた' : sm.blocked === true || sm.blocked === 'done' ? 'ブロックされた' : sm.own === 'shot' ? (skill === 'pass' ? 'パスを出せた' : 'シュートを打てた') : sm.passT != null ? '抜いた' : '－', sm.gap != null ? sm.gap.toFixed(1) + ' m' : '－', Math.max(...sm.hist.map((h) => h.a)).toFixed(1) + ' m/s', Math.max(0, ...sm.hist.map((h) => h.bo || 0)).toFixed(2) + ' m', (sm.stam ?? 100).toFixed(1), sm.cut ? sm.cut.deg + '°' : '－', sm.fool != null ? Math.round(sm.fool * 100) + '%' : '－'];
+    let h = '<span class="h"></span><span class="h">上の青</span><span class="h">下の青</span>';
+    [['成功率', 0], ['切れ込んだ角度', 6], ['赤のつられ方', 7], ['結果', 1], ['抜いて1秒後の差', 2], ['最高の速さ', 3], ['ボールの最大距離', 4], ['スタミナ（100から）', 5]].forEach(([n, i]) => { h += `<span class="h">${n}</span><b>${r(sims[0])[i]}</b><b>${sims[1] ? r(sims[1])[i] : '－'}</b>`; });
+    document.getElementById('res').innerHTML = h;
+  }
+  function drawGraph() {
+    const W = gr.width, H = gr.height, Tm = skill === 'speed' ? 6 : 4.5, X = (t) => 40 + t / Tm * (W - 50), Y = (v) => H - 18 - v / 10 * (H - 30);
+    gx.fillStyle = '#0b1a12'; gx.fillRect(0, 0, W, H); gx.strokeStyle = 'rgba(255,255,255,.12)'; gx.fillStyle = 'rgba(255,255,255,.5)'; gx.font = '11px sans-serif';
+    for (let v = 0; v <= 10; v += 2) { gx.beginPath(); gx.moveTo(40, Y(v)); gx.lineTo(W - 10, Y(v)); gx.stroke(); gx.fillText(v + 'm/s', 2, Y(v) + 4); }
+    for (let t = 0; t <= Tm; t++) gx.fillText(t + '秒', X(t) - 8, H - 4);
+    const line = (sm, f, col, dash) => { gx.strokeStyle = col; gx.lineWidth = 2; gx.setLineDash(dash ? [5, 4] : []); gx.beginPath(); let st = false; sm.hist.forEach((h) => { const v = f(h); if (v == null) { st = false; return; } const x = X(h.t), y = Y(v); st ? gx.lineTo(x, y) : gx.moveTo(x, y); st = true; }); gx.stroke(); gx.setLineDash([]); };
+    line(sims[0], (h) => h.d, '#ff6a5a'); if (sims[1]) line(sims[1], (h) => h.a, '#9fd0ff', true); line(sims[0], (h) => h.a, '#5aa0ff'); line(sims[0], (h) => h.bo == null ? null : h.bo * 4, '#ffe05a');
+    gx.fillStyle = '#ffe05a'; gx.fillText('ボールの距離は ×4 で表示（2m＝8の線）', W - 260, 14); gx.lineWidth = 1;
+  }
+  let last = 0, stepReq = 0; const HIST = [];   // 1コマ戻す用：少し前の場面を覚えておく
+  const snap = () => { HIST.push({ T, acc, s: JSON.stringify(sims) }); if (HIST.length > 600) HIST.shift(); };
+  function loop(now) { const dt = Math.min(0.05, (now - (last || now)) / 1000); last = now; if (!paused) { snap(); update(dt * speed); } else if (stepReq) { const n = stepReq === 2 ? 3 : 6; for (let k = 0; k < n; k++) { snap(); update(1 / 60); } stepReq = 0; } draw(); requestAnimationFrame(loop); }
+  const mk = (id, items, on, def) => { const el = document.getElementById(id); el.innerHTML = items.map(([v, t]) => `<button data-v="${v}">${t}</button>`).join(''); el.querySelectorAll('button').forEach((b) => b.onclick = () => { on(b.dataset.v); el.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); }); const d0 = el.querySelector(`button[data-v="${def}"]`); if (d0) d0.classList.add('on'); };
+  mk('sk', [['trap', 'トラップ（インサイド）'], ['trapSole', 'トラップ（足裏）'], ['chest', '胸トラップ'], ['pass', 'パス'], ['shot', 'シュートフォーム'], ['cutIn', 'カットイン'], ['speed', '高速ドリブル'], ['nutmeg', '股抜き'], ['bodyFeint', 'ボディフェイント'], ['scissors', 'シザース'], ['kickFeint', 'キックフェイント']], (v) => { skill = v; document.getElementById('note').innerHTML = NOTE[v]; document.getElementById('scene').style.opacity = v === 'cutIn' ? 1 : 0.35; reset(); }, 'cutIn');
+  const lv = [['40', 'オールE'], ['65', 'オールC'], ['90', 'オールS']];
+  mk('up', lv, (v) => { up = +v; reset(); }, '90');
+  mk('cmp', [['0', '比べない'], ...lv], (v) => { cmp = +v; reset(); }, '40');
+  mk('red', [['40', '赤 E'], ['65', '赤 C'], ['90', '赤 S']], (v) => { red = +v; reset(); }, '65');
+  mk('fside', [['L', '左を見せて右へ'], ['R', '右を見せて左へ']], (v) => { fside = v; reset(); }, 'L');
+  mk('scene', [['open', '中が空いている'], ['cover', '中にカバーがいる'], ['endline', 'ゴールライン際']], (v) => { scene = v; reset(); }, 'open');
+  mk('res0', [['auto', '成功率どおり'], ['ok', 'いつも成功'], ['ng1', '失敗①'], ['ng2', '失敗②']], (v) => { force = v; reset(); }, 'auto');
+  mk('kfoot', [['R', '右足で蹴る'], ['L', '左足で蹴る']], (v) => { kfoot = v; }, 'R');
+  mk('dbl', [['auto', '読まれたら自動で'], ['1', 'いつも1回'], ['2', 'いつもダブル']], (v) => { dblMode = v; reset(); }, 'auto');
+  mk('spd', [['1', '1倍'], ['0.5', '1/2'], ['0.25', '1/4']], (v) => { speed = +v; }, '1');
+  document.getElementById('pause').onclick = (e) => { paused = !paused; e.target.textContent = paused ? '再生' : '一時停止'; };
+  document.getElementById('step').onclick = () => { paused = true; document.getElementById('pause').textContent = '再生'; stepReq = 1; };
+  document.getElementById('reset').onclick = reset;
+  document.getElementById('guide').onclick = (e) => { guide = !guide; e.target.textContent = '補助線：' + (guide ? 'オン' : 'オフ'); e.target.classList.toggle('on', guide); };
+  document.getElementById('loop').onclick = (e) => { loopOn = !loopOn; e.target.textContent = 'くり返し：' + (loopOn ? 'オン' : 'オフ'); e.target.classList.toggle('on', loopOn); };
+  document.getElementById('note').innerHTML = NOTE[skill]; reset(); requestAnimationFrame(loop);
+  window.__lab = { sims, reset, update, set: (o) => { if (o.skill) skill = o.skill; if (o.fside) fside = o.fside; if (o.up) up = o.up; if (o.cmp != null) cmp = o.cmp; if (o.force) force = o.force; if (o.dbl) dblMode = o.dbl; if (o.foot) kfoot = o.foot; reset(); } };
+})();
+</script>
+</body></html>

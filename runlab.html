@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>走り確認画面</title>
+<style>
+:root{--bg:#16241b;--panel:#1f3326;--ink:#eef3ee;--sub:#a9bfae;--acc:#ffd84a}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#16241b}}
+:root[data-theme="dark"]{--bg:#16241b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;font-size:14px}
+.wrap{max-width:1100px;margin:0 auto;padding:12px 16px}
+h1{font-size:18px;margin:4px 0 10px}h2{font-size:15px;margin:14px 0 6px;color:var(--acc)}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start}
+.card{background:var(--panel);border-radius:10px;padding:10px}
+canvas{image-rendering:pixelated;display:block;max-width:100%}
+button{background:#2c4a36;color:var(--ink);border:1px solid #4d7a5c;border-radius:8px;padding:8px 12px;font-size:14px;cursor:pointer}
+button.on{background:var(--acc);color:#222;border-color:var(--acc)}
+.ctl{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.lg span{display:inline-block;margin-right:12px}.lg i{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:-1px;margin-right:4px}
+.note{color:var(--sub);line-height:1.7}
+img.ref{width:100%;image-rendering:pixelated;border-radius:6px}
+</style></head><body>
+<div class="wrap">
+<h1>走り確認画面（背中向き・全身を描いたコマ）</h1>
+<h2>走りの2つの形（左右）</h2>
+<div class="card"><canvas id="pair" width="620" height="330"></canvas>
+ <div class="note">本家の動画の走りの2つの形（A・C）。全身を1枚の絵として描き、キャンバスの大きさと足もとの基準点は同じです。</div></div>
+<h2>実際の試合と同じ大きさ</h2>
+<div class="card"><canvas id="small" width="620" height="120"></canvas>
+ <div class="note">左：試合と同じ大きさ（1ドット＝2.6画素）で再生／右：いまあるコマを同じ大きさで並べたもの</div></div>
+<h2>拡大して再生・コマ送り</h2>
+<div class="row">
+ <div class="card"><canvas id="big" width="340" height="340"></canvas>
+  <div class="ctl"><button id="play" class="on">再生中</button><button id="step">次のコマ</button></div>
+  <div class="ctl" id="spd"></div>
+  <div id="now" class="note"></div>
+ </div>
+ <div class="card" style="flex:1;min-width:300px">
+  <div class="lg" id="lg" style="display:none"><span><i style="background:#ff4d4d"></i>左手</span><span><i style="background:#4da3ff"></i>右手</span><span><i style="background:#ffa733"></i>左足</span><span><i style="background:#3de0d0"></i>右足</span></div>
+  <h2>いまあるコマ（拡大）</h2>
+  <canvas id="strip" width="1200" height="260"></canvas>
+  <div class="ctl"><button id="mk">印なし</button><button id="col">色：白シャツ（本家に近い）</button></div>
+  <h2>本家（背中向きの走り・動画から切り出し）</h2>
+  <img class="ref" src="ref_back_run.png" alt="本家の背中向きの走り">
+ </div>
+</div>
+<h2>このコマの決め方</h2>
+<div class="note">
+・カルチョビットAの背中（写真）と走り（動画）を、ドット単位で読み取って描き直しました（23×29ドット）。頭身・髪・服（白シャツと背中の赤い線）・色は本家に合わせています。<br>
+・形：肩は首から階段状に下がり、腕は胴とつながった短い袖、手は小さく腰の横に出ます（ゴツい四角い肩や太い腕はやめました）。<br>
+・本家の走りは4枚のくり返し：A（左腕を後ろへ振り出し、右足を後ろへ蹴る）→ N（待機と同じ形）→ C（Aの左右逆）→ N。A・Cは約0.13秒、Nは約0.1秒（動画30コマ/秒で 4・3・4・3コマ）。<br>
+・振り出した腕：袖が胴から離れて外へ出て、手が外の下を向きます。反対の腕は前へ振って隠れ、その側の胴の横はまっすぐになります。<br>
+・後ろへ蹴った足：くつ下の下に濃い靴が出て、手前に来るので接地した足より1段下に見えます（本家どおり）。<br>
+・全コマ同じ大きさ・同じ足もとの基準点で、位置の補正はしていません。今までの絵より少し大きい（高さ29ドット）ので、試合に入れるときに大きさを合わせます。
+</div>
+</div>
+<script src="sprites/backrun_art.js"></script>
+<script src="sprites/dotman.js"></script>
+<script>
+(() => {
+  const ART = window.BACKRUN_ART;
+  const NAMES = ART.order.map((k, i) => '①②③④⑤⑥⑦⑧'[i] + ' ' + ART.names[k]);
+  const N = NAMES.length;
+  const DUR = ART.dur || NAMES.map(() => 0.25 / (N / 2));   // 本家の動画どおりの長さ
+  const COLS = [{ shirt: '#1e64e6', shorts: '#ffffff', socks: '#d23c3c' }, { shirt: '#f6f6f6', shorts: '#f6f6f6', socks: '#1428dc', hair: '#de9228', stripe: '#e6321e', skin: '#f0b88c' }];
+  let col = 1, marks = false, playing = true, spd = 1, f = 0, acc = 0, last = 0;
+  const facing = -Math.PI / 2;   // 背中向き（奥へ走る）
+  const frameOf = (i) => DotMan.frame(Object.assign({ facing, pose: 'run4', frame: i }, COLS[col]));
+  function mark(x, cx, cy, Z, F, j, c, label) {
+    if (!j) return; const px = cx + (j.x - F.px) * Z, py = cy + (j.y - F.py) * Z;
+    x.fillStyle = c; x.strokeStyle = '#000'; x.lineWidth = 2; x.beginPath(); x.arc(px, py, Math.max(4, Z * 0.7), 0, 7); x.fill(); x.stroke();
+    if (label) { x.font = 'bold 12px sans-serif'; x.fillStyle = c; x.fillText(label, px + 8, py + 4); }
+  }
+  function drawOne(x, i, cx, cy, Z, labels) {
+    const F = frameOf(i); x.imageSmoothingEnabled = false;
+    x.fillStyle = 'rgba(0,0,0,.25)'; x.beginPath(); x.ellipse(cx, cy - Z * 0.4, 6.4 * Z, 2 * Z, 0, 0, 7); x.fill();
+    x.drawImage(F.cv, Math.round(cx - F.px * Z), Math.round(cy - F.py * Z), F.cv.width * Z, F.cv.height * Z);
+    // 足もとの基準点
+    if (marks) { x.strokeStyle = '#fff'; x.lineWidth = 2; x.beginPath(); x.moveTo(cx - 8, cy); x.lineTo(cx + 8, cy); x.moveTo(cx, cy - 8); x.lineTo(cx, cy + 8); x.stroke(); }
+    if (marks) { const J = F.joints; mark(x, cx, cy, Z, F, J.handL, '#ff4d4d', labels && '左手'); mark(x, cx, cy, Z, F, J.handR, '#4da3ff', labels && '右手'); mark(x, cx, cy, Z, F, J.footL, '#ffa733', labels && '左足'); mark(x, cx, cy, Z, F, J.footR, '#3de0d0', labels && '右足'); }
+  }
+  const big = document.getElementById('big').getContext('2d'), strip = document.getElementById('strip').getContext('2d');
+  function draw() {
+    big.fillStyle = '#3c8f2c'; big.fillRect(0, 0, 340, 340); drawOne(big, f, 170, 300, 9, true);
+    document.getElementById('now').textContent = 'いまのコマ：' + NAMES[f];
+    strip.fillStyle = '#3c8f2c'; strip.fillRect(0, 0, 1200, 260);
+    for (let i = 0; i < N; i++) { drawOne(strip, i, 100 + i * 200, 225, 6, false); strip.fillStyle = i === f ? '#ffd84a' : '#fff'; strip.font = 'bold 20px sans-serif'; strip.fillText(NAMES[i].split('・')[0].split('（')[0], 14 + i * 200, 30); }
+  }
+  const pair = document.getElementById('pair').getContext('2d'), small = document.getElementById('small').getContext('2d');
+  function drawPair() {
+    pair.fillStyle = '#3c8f2c'; pair.fillRect(0, 0, 620, 330);
+    [ART.order.indexOf('A'), ART.order.indexOf('C')].forEach((fr, k) => {
+      const cx = 155 + k * 310, cy = 290, Z = 9;
+      // 地面の線（足の裏の高さ）
+      pair.fillStyle = 'rgba(255,255,255,.55)'; pair.fillRect(cx - 120, cy, 240, 2);
+      drawOne(pair, fr, cx, cy, Z, false);
+      pair.fillStyle = '#fff'; pair.font = 'bold 15px sans-serif'; pair.fillText(NAMES[fr].split('（')[0], cx - 120, 24);
+      
+    });
+  }
+  function drawSmall() {
+    small.imageSmoothingEnabled = false; small.fillStyle = '#3c8f2c'; small.fillRect(0, 0, 620, 120);
+    const G = 2.6, put = (i, cx, cy) => { const F = frameOf(i); small.fillStyle = 'rgba(0,0,0,.25)'; small.beginPath(); small.ellipse(cx, cy - G * 0.4, 6.4 * G, 2 * G, 0, 0, 7); small.fill(); small.drawImage(F.cv, Math.round(cx - F.px * G), Math.round(cy - F.py * G), F.cv.width * G, F.cv.height * G); };
+    put(f, 80, 95);
+    for (let i = 0; i < N; i++) { put(i, 200 + i * 70, 95); small.fillStyle = '#fff'; small.font = '12px sans-serif'; small.fillText(NAMES[i].slice(0, 1), 195 + i * 70, 16); }
+  }
+  function loop(t) { const dt = Math.min(0.1, (t - (last || t)) / 1000); last = t; if (playing) { acc += dt * spd; while (acc >= DUR[f]) { acc -= DUR[f]; f = (f + 1) % N; } } draw(); drawPair(); drawSmall(); requestAnimationFrame(loop); }
+  document.getElementById('play').onclick = (e) => { playing = !playing; e.target.textContent = playing ? '再生中' : '一時停止'; e.target.classList.toggle('on', playing); };
+  document.getElementById('step').onclick = () => { playing = false; const b = document.getElementById('play'); b.textContent = '一時停止'; b.classList.remove('on'); f = (f + 1) % N; };
+  document.getElementById('mk').onclick = (e) => { marks = !marks; document.getElementById('lg').style.display = marks ? '' : 'none'; e.target.textContent = marks ? '印あり' : '印なし'; e.target.classList.toggle('on', marks); };
+  document.getElementById('col').onclick = (e) => { col = 1 - col; e.target.textContent = col ? '色：白シャツ（本家に近い）' : '色：青シャツ'; };
+  const sp = document.getElementById('spd');
+  [[1, '1倍'], [0.5, '1/2'], [0.25, '1/4']].forEach(([v, t], k) => { const b = document.createElement('button'); b.textContent = t; if (!k) b.classList.add('on'); b.onclick = () => { spd = v; sp.querySelectorAll('button').forEach((q) => q.classList.toggle('on', q === b)); }; sp.appendChild(b); });
+  window.__run = { frameOf, setF: (i) => { f = i; playing = false; } };
+  requestAnimationFrame(loop);
+})();
+</script>
+</body></html>

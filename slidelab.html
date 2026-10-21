@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>スライディングとドリブル技の確認</title>
+<style>
+:root{--bg:#2f8a3a;--panel:#10241a;--ink:#f3f6ef;--mut:#a9c3ad;--acc:#ffe05a}
+*{box-sizing:border-box}body{margin:0;background:var(--panel);color:var(--ink);font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif}
+.wrap{display:grid;grid-template-columns:1fr 310px;gap:10px;padding:10px;min-height:100vh}
+@media(max-width:820px){.wrap{grid-template-columns:1fr}}
+canvas{width:100%;background:var(--bg);border-radius:8px;image-rendering:pixelated;cursor:crosshair;display:block}
+.side{display:flex;flex-direction:column;gap:8px;font-size:13px}
+h1{font-size:16px;margin:0}h2{font-size:13px;margin:6px 0 2px;color:var(--mut)}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:3px}.grid button{font-size:11px;padding:6px 2px;line-height:1.2}
+button{font:inherit;background:#2c4a36;color:var(--ink);border:1px solid #4d7a5a;border-radius:6px;padding:6px 4px;cursor:pointer}
+button.on{background:var(--acc);color:#222;border-color:var(--acc)}
+.row{display:flex;gap:4px;flex-wrap:wrap}.row button{flex:1}
+.info{background:#0b1a12;border-radius:6px;padding:8px;line-height:1.6;font-family:ui-monospace,Menlo,monospace;font-size:12px;white-space:pre-wrap}
+.lg i{display:inline-block;width:18px;height:3px;vertical-align:middle;margin-right:4px}
+.tl{position:relative;height:26px;background:#0b1a12;border-radius:6px;overflow:hidden}
+.tl b{position:absolute;top:0;bottom:0;font-size:10px;font-weight:400;display:flex;align-items:center;justify-content:center;color:#222;white-space:nowrap;overflow:hidden}
+.tl s{position:absolute;top:0;bottom:0;width:2px;background:#fff}
+</style></head><body>
+<div class="wrap">
+ <canvas id="cv" width="960" height="560"></canvas>
+ <div class="side">
+  <h1>スライディング・ドリブル技 確認画面</h1>
+  <div>赤の選手が、ドリブルしてくる青の選手を止めにいきます。画面をクリックすると、その場所でぶつかるようにやり直します。</div>
+  <h2>赤の守り方</h2>
+  <div class="row" id="def"></div>
+  <h2 id="sdirH">滑り込む向き（赤の選手が滑る方向）</h2>
+  <div class="grid" id="sdir"></div>
+  <h2>結果</h2>
+  <div class="row" id="res"></div>
+  <h2>ドリブルの向き（青の選手）</h2>
+  <div class="row" id="ddir"></div>
+  <h2>かわし方（結果が「かわされる」のとき）</h2>
+  <div class="row" id="dodge"></div>
+  <div class="info" id="judge" style="font-family:inherit"></div>
+  <h2>再生</h2>
+  <div class="row" id="spd"></div>
+  <div class="row" id="zm"></div>
+  <div class="row"><button id="pause">一時停止</button><button id="step">1コマ進む</button><button id="reset">やり直し</button></div>
+  <div class="row"><button id="guide" class="on">補助線：オン</button><button id="loop" class="on">くり返し：オン</button></div>
+  <div class="tl" id="tl"></div>
+  <div class="lg"><i style="background:#ff5a4a"></i>滑る方向　<i style="background:#ffe05a"></i>足がボールに届く所　<i style="background:#fff"></i>ドリブルの向き</div>
+  <div class="info" id="info"></div>
+ </div>
+</div>
+<script src="sprites/run_art.js"></script><script src="sprites/dotman.js"></script>
+<script>
+(() => {
+  const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+  // ゲームと同じ数字（engine.js）：1ステップ0.1秒、滑り出し秒速7.5m・毎ステップ0.82倍・0.45秒、そのあと0.7秒地面に、絵は滑り出しから1.03秒で起き上がる
+  const DT = 0.1, SLIDE_V = 7.5, SLIDE_K = 0.82, SLIDE_T = 0.45, DOWN_T = 0.7, ART_UP = 1.25 * 0.82;
+  let PXM = 30, ZM = 1.5; const TILT = 0.45; let OX = 60, OY = 70;   // 1m＝30画面ピクセル。奥行きは0.45倍（ぶつかる地点を画面のまん中に）
+  const SX = (x) => OX + x * PXM, SY = (y) => OY + y * PXM * TILT * 2;
+  const N = 16, STEP = Math.PI * 2 / N, DIRS = Array.from({ length: N }, (_, i) => [Math.cos(i * STEP), Math.sin(i * STEP)]);
+  const DNAME = ['右', '右・少し手前', '右手前', '手前・少し右', '手前', '手前・少し左', '左手前', '左・少し手前', '左', '左・少し奥', '左奥', '奥・少し左', '奥', '奥・少し右', '右奥', '右・少し奥'];
+  const dirN = (x, y) => ((Math.round(Math.atan2(y, x) / STEP) % N) + N) % N;
+  const RED = { shirt: '#e2453a', shorts: '#ffffff', socks: '#e2453a', hair: '#7a4a22', skin: '#f7c99c' };
+  const BLUE = { shirt: '#2f6fd6', shorts: '#ffffff', socks: '#2f6fd6', hair: '#2a2420', skin: '#e0a46e' };
+  let sdir = 8, res = 'win', ddirMode = 'cross', dodgeMode = 'auto', defMode = 'slide', speed = 1, paused = false, guide = true, loopOn = true;
+  let meet = { x: 18, y: 7.5 };
+  const st = {};
+  // ゲームと同じ決まり（engine.js の SLIDE_RULE）：どこから滑ったかで、外れたときの反則・カードの出やすさが変わる
+  const SLIDE_RULE = { back: { foul: 0.45, win: -0.1, yellow: 0.42, red: 0.015 }, side: { foul: 0.22, win: 0, yellow: 0.2, red: 0.01 }, front: { foul: 0.06, win: 0.04, yellow: 0.06, red: 0.005 } };
+  const FROM_JA = { back: '後ろから', side: '横から', front: '正面から' };
+  const DODGE_JA = { hurdle: 'ボールを浮かせて飛び越える', swerve: '置き去りにする', doubleTouch: 'ダブルタッチ', roulette: 'マルセイユルーレット' };
+  const DODGE_DUR = { hurdle: 0.85, swerve: 0.7, doubleTouch: 0.55, roulette: 0.85 };
+  function slideFrom() { const sd = DIRS[sdir], c = st.dd[0] * sd[0] + st.dd[1] * sd[1]; return c > 0.45 ? 'back' : c < -0.45 ? 'front' : 'side'; }
+  // 自動のときの選び方（テクニック70・ダブルタッチとルーレットは覚えていない選手として）
+  function pickDodge(from) {
+    const w = { hurdle: (from === 'back' ? 0.5 : 1.2) * 1.1, swerve: 1.6, doubleTouch: from === 'back' ? 0 : 0.7, roulette: 0 };
+    let r = Math.random() * (w.hurdle + w.swerve + w.doubleTouch + w.roulette); for (const k in w) { r -= w[k]; if (r <= 0) return k; } return 'swerve';
+  }
+  // ---- 場面を作る：ぶつかる地点・滑る向き・ドリブルの向きから、2人の出発点を逆算 ----
+  function reset() {
+    PXM = 30 * ZM; OX = cv.width / 2 - meet.x * PXM; OY = cv.height * 0.58 - meet.y * PXM * TILT * 2;
+    const sd = DIRS[sdir];
+    if (defMode === 'stand') {
+      // 立って守る相手（赤はぶつかる地点に立ち、向かってくる青を待つ）→ 青はスキルで抜く（試合でスキルが出たときと同じ）
+      const dd = [-sd[0], -sd[1]], dribV = 5;
+      Object.assign(st, {
+        t: 0, phase: 'standoff', tSlide: 1.2, result: res, contactT: null,
+        d: { x: meet.x, y: meet.y, vx: 0, vy: 0, mode: 'guard', pokeT: 0, ph: 0 },
+        a: null, dd, dribV, ball: { x: 0, y: 0, vx: 0, vy: 0, free: false }, log: ['1 赤は立って待つ・青が向かってくる'], ended: 0,
+      });
+      st.a = { x: meet.x - dd[0] * (2.1 + dribV * 1.2), y: meet.y - dd[1] * (2.1 + dribV * 1.2), vx: dd[0] * dribV, vy: dd[1] * dribV, mode: 'run', ph: 0.3, tilt: 0 };
+      placeBall(); buildTimeline(); return;
+    }
+    // ドリブルの向き：横切る（滑る向きと直角）／向かってくる（正面から）
+    const dd = ddirMode === 'head' ? [-sd[0], -sd[1]] : ddirMode === 'away' ? [sd[0], sd[1]] : [-sd[1], sd[0]];
+    const slideDist = slideDistance();
+    const tRun = 1.2, runV = 6, dribV = 5;
+    // 滑り始める地点（ぶつかる地点の手前、滑る距離ぶん）
+    const s0 = { x: meet.x - sd[0] * slideDist, y: meet.y - sd[1] * slideDist };
+    Object.assign(st, {
+      t: 0, phase: 'approach', tSlide: tRun, result: res, contactT: null,
+      d: { x: s0.x - sd[0] * runV * tRun, y: s0.y - sd[1] * runV * tRun, vx: sd[0] * runV, vy: sd[1] * runV, mode: 'run', s0, slideT: 0, downT: 0, ph: 0 },
+      // 青：ぶつかる時刻（滑り始め＋届くまで）にぶつかる地点へ来るように
+      a: null, dd, dribV, ball: { x: 0, y: 0, vx: 0, vy: 0, free: false }, log: ['1 赤が寄せていく'], ended: 0,
+    });
+    const tHit = tRun + hitTime();
+    st.a = { x: meet.x - dd[0] * dribV * tHit, y: meet.y - dd[1] * dribV * tHit, vx: dd[0] * dribV, vy: dd[1] * dribV, mode: 'run', ph: 0.3, tilt: 0 };
+    placeBall();
+    buildTimeline();
+  }
+  function slideDistance() { let v = SLIDE_V, x = 0; for (let t = 0; t < SLIDE_T - 1e-6; t += DT) { x += v * DT; v *= SLIDE_K; } return x; }
+  function hitTime() { let v = SLIDE_V, x = 0, t = 0; const D = slideDistance() - 0.35; while (x < D && t < SLIDE_T) { x += v * DT; v *= SLIDE_K; t += DT; } return t; }
+  function placeBall() { const a = st.a; if (st.ball.free) return; const v = Math.hypot(a.vx, a.vy) || 1; st.ball.x = a.x + a.vx / v * 0.55; st.ball.y = a.y + a.vy / v * 0.55; }
+  // ---- かわす動き（engine.js の slideDodge と同じ足の運び） ----
+  function startDodge() {
+    const a = st.a, sd = DIRS[sdir], stand = defMode === 'stand', from = stand ? 'front' : slideFrom();
+    let k = dodgeMode === 'auto' ? (stand ? (Math.random() < 0.5 ? 'doubleTouch' : 'roulette') : pickDodge(from)) : dodgeMode, note = '';
+    if (stand && k === 'hurdle') { k = 'doubleTouch'; note = '\n※飛び越えるのはスライディングのときだけ。立っている相手にはダブルタッチ'; }
+    const fdx = st.dd[0], fdy = st.dd[1], d = st.d;
+    // よける向き：滑ってくる線（立っている相手なら向かい合う線）に対して90°。そのあと前へ直進しても相手の体を横切らない側（正面からなら今いる側）
+    const px = -sd[1], py = sd[0], fp = fdx * px + fdy * py;
+    const side = Math.abs(fp) > 0.15 ? Math.sign(fp) : (Math.sign(px * (a.x - d.x) + py * (a.y - d.y)) || 1);
+    let lx = px * side, ly = py * side;
+    if (k === 'doubleTouch' || k === 'roulette') {
+      // 技は、ドリブルの向きに対して真横・相手の体と遠い側へ（ゲームと同じ）
+      const p2x = -fdy, p2y = fdx, oq = p2x * (d.x - a.x) + p2y * (d.y - a.y);
+      const s2 = Math.abs(oq) > 0.3 ? -Math.sign(oq) : (Math.sign(p2x * lx + p2y * ly) || 1); lx = p2x * s2; ly = p2y * s2;
+    }
+    let q, end, dur = DODGE_DUR[k];
+    if (k === 'hurdle') { q = [{ until: 0.12, dx: fdx, dy: fdy, v: 3.2, snap: 0.6 }, { until: 0.62, dx: fdx, dy: fdy, v: 5.2, snap: 0.8 }]; end = { dx: fdx, dy: fdy, v: 6.8 }; }
+    else if (k === 'swerve') { q = [{ until: 0.36, dx: lx, dy: ly, v: 7.2, snap: 0.85 }]; end = { dx: fdx, dy: fdy, v: 6.8 }; }
+    else if (k === 'doubleTouch') {
+      // ゲームの doubleTouchMove と同じ：最初の12%で踏み込み、45%までに2タッチで横へ約1.8m、そのあと斜め前へ（スライディング相手は1.5倍速）
+      dur = stand ? 0.8 : 0.55; const sv = 1.8 / (dur * 0.33);   // 横へ約1.8m（1人分）
+      q = [{ until: dur * 0.12, dx: fdx, dy: fdy, v: 1.6, snap: 0.8 }, { until: dur * 0.28, dx: lx, dy: ly, v: sv, snap: 0.95 }, { until: dur * 0.45, dx: lx * 0.9 + fdx * 0.3, dy: ly * 0.9 + fdy * 0.3, v: sv, snap: 0.95 }];
+      const ex = fdx * 0.75 + lx * 0.5, ey = fdy * 0.75 + ly * 0.5, el = Math.hypot(ex, ey) || 1; end = { dx: ex / el, dy: ey / el, v: 7.4 };
+    }
+    else { q = [{ until: 0.6, dx: lx * 0.9 + fdx * 0.2, dy: ly * 0.9 + fdy * 0.2, v: 3.8, snap: 0.8 }]; end = { dx: fdx, dy: fdy, v: 6.8 }; }
+    { const ox = d.x - a.x, oy = d.y - a.y, ol = Math.hypot(ox, oy) || 1; var odir = [ox / ol, oy / ol]; }   // 足を出してくる相手の方向（ルーレットの回る向き）
+    Object.assign(a, { mode: 'dodge', dk: k, du: 0, dur, dg: { q, end, lx, ly, ox: odir[0], oy: odir[1] } });
+    st.log.push('2b ' + DODGE_JA[k] + (dodgeMode === 'auto' ? '（自動で選んだ）' : '') + note + (!stand && k === 'roulette' && from !== 'front' ? '\n※ルーレットは試合では「正面から」のときだけ出ます（ドリブルの向き＝向かってくる）' : ''));
+  }
+  // マルセイユルーレットの体の向き（ゲームの rouletteAng と同じ）：前 → よける側と逆 → 背中 → よける側 → 前
+  function rouletteAng(u) {
+    if (u >= 0.75) return null; const dg = st.a.dg;
+    const a0 = Math.atan2(st.dd[1], st.dd[0]), aq = Math.atan2(-dg.ly, -dg.lx), W2 = (v) => Math.atan2(Math.sin(v), Math.cos(v));
+    let d = W2(aq - a0);
+    // 相手が横から足を出してきたら、その足に背中を向ける方へ回る（左から足→時計回り、右から→反時計回り）。正面の相手なら今まで通り
+    // よける側（相手の体と遠い側）と逆を先に向いて回る＝相手の体から遠い方へ回り込む（横から来た相手でも同じ）
+    const sg = d >= 0 ? 1 : -1, ph = Math.min(1, u / 0.75), e = ph < 0.5 ? 2 * ph * ph : 1 - 2 * (1 - ph) * (1 - ph);
+    return a0 + sg * Math.PI * 2 * e;
+  }
+  // ボールの位置（ゲームの skillBallOffset と同じ）：[横, 前, 高さ]
+  function ballOffset(k, u) {
+    const c = (v) => Math.max(0, Math.min(1, v));
+    if (k === 'doubleTouch') {   // ゲームと同じ：選手の足元から [横, 前]。利き足の前 → 逆足の前 → さらに横・少し前
+      if (u >= 0.5) return null;
+      const lat = u < 0.12 ? -0.22 : u < 0.28 ? -0.22 + 0.55 * c((u - 0.12) / 0.12) : 0.33 + 0.3 * c((u - 0.28) / 0.13);
+      const fw = u < 0.28 ? 0.32 : 0.32 + 0.25 * c((u - 0.28) / 0.13);
+      return { abs: [lat, fw] };
+    }
+    if (k === 'roulette') { const ra = rouletteAng(u); if (ra == null) return null; const vx = Math.cos(ra), vy = Math.sin(ra), dg = st.a.dg; return [(vx * dg.lx + vy * dg.ly) * 0.3, (vx * st.dd[0] + vy * st.dd[1]) * 0.3 - 0.3]; }
+    if (k === 'hurdle') { const ph = c((u - 0.08) / 0.7); return u > 0.85 ? null : [0, 0.45 + 0.35 * ph, 0.85 * Math.sin(ph * Math.PI)]; }
+    if (k === 'swerve') return u < 0.5 ? [0.35, 0.35] : null;
+    return null;
+  }
+  // ---- 1ステップ ----
+  function update(dt) {
+    st.t += dt;
+    const d = st.d, a = st.a, b = st.ball;
+    if (st.phase === 'standoff' || st.phase === 'react') {
+      // 立って守る赤：青が約2.1mまで来たら、ボールへ足を伸ばす → 抜かれたら逆へつられてよろける（ゲームの poke → lateLose と同じ）
+      if (st.phase === 'standoff' && Math.hypot(a.x - d.x, a.y - d.y) < 2.1 && a.mode === 'run') {
+        st.phase = 'react'; d.mode = 'poke'; d.pokeT = 0; d.pk = [b.x - d.x, b.y - d.y];
+        st.log.push('2 赤が足を伸ばす');
+        if (st.result === 'beat') startDodge();
+        else if (st.result === 'win') { b.free = true; const l = Math.hypot(d.pk[0], d.pk[1]) || 1; b.vx = -d.pk[0] / l * 3 + st.dd[1] * 3; b.vy = -d.pk[1] / l * 3 - st.dd[0] * 3; a.mode = 'lose'; a.loseT = 0; st.log.push('3 足先でボールを奪う → 青はよろける'); }
+        else { b.free = true; b.vx = a.vx * 0.4; b.vy = a.vy * 0.4; a.mode = 'fall'; a.loseT = 0; st.log.push('3 足に引っかかる → ファール、青は倒れる'); }
+      }
+      if (d.mode === 'poke') { d.pokeT += dt; if (d.pokeT > 0.45) { if (st.result === 'beat') { d.mode = 'lose'; d.loseT = 0; const dg = a.dg; d.vx = -dg.lx * 3.5 - st.dd[0] * 1.5; d.vy = -dg.ly * 3.5 - st.dd[1] * 1.5; st.log.push('4 赤は逆へつられてよろける'); } else d.mode = 'guard'; } }
+      else if (d.mode === 'lose') { d.loseT += dt; const k = Math.exp(-dt * 3); d.vx *= k; d.vy *= k; d.x += d.vx * dt; d.y += d.vy * dt; if (d.loseT > 0.9) { d.mode = 'guard'; st.log.push('5 体勢を立て直す'); } }
+    } else if (st.phase === 'approach') {
+      d.x += d.vx * dt; d.y += d.vy * dt; d.ph += dt * 6 / (0.6 + 0.14 * 6) / 2;
+      if (st.t >= st.tSlide) { st.phase = 'slide'; d.mode = 'slide'; d.slideT = 0; d.vx = DIRS[sdir][0] * SLIDE_V; d.vy = DIRS[sdir][1] * SLIDE_V; d.acc = 0; st.log.push('2 滑り込む（秒速7.5m）・' + FROM_JA[slideFrom()]); if (st.result === 'beat') startDodge(); }
+    } else if (st.phase === 'slide' || st.phase === 'down') {
+      d.slideT += dt; d.acc += dt;
+      while (d.acc >= DT) { d.acc -= DT; if (st.phase === 'slide') { d.vx *= SLIDE_K; d.vy *= SLIDE_K; } }
+      if (st.phase === 'slide') { d.x += d.vx * dt; d.y += d.vy * dt; }
+      if (st.phase === 'slide' && d.slideT >= SLIDE_T) { st.phase = 'down'; d.vx = d.vy = 0; st.log.push('4 止まって地面に（0.7秒）'); }
+      if (d.slideT >= ART_UP && d.mode === 'slide') { d.mode = 'stand'; st.log.push('5 起き上がる'); }
+      if (st.phase === 'down' && d.slideT >= SLIDE_T + DOWN_T) { st.phase = 'after'; }
+    }
+    // 届いたか（足の先＝滑る向きの前、体から約1.1m）
+    if (st.contactT == null && (st.phase === 'slide')) {
+      const sd = DIRS[sdir], fx = d.x + sd[0] * 1.1, fy = d.y + sd[1] * 1.1;
+      if (Math.hypot(fx - b.x, fy - b.y) < 0.75) {
+        st.contactT = st.t;
+        if (st.result === 'win') { b.free = true; const ang = Math.atan2(sd[1], sd[0]) + 0.5; b.vx = Math.cos(ang) * 6; b.vy = Math.sin(ang) * 6; a.mode = 'lose'; a.loseT = 0; st.log.push('3 ボールだけをかき出す → 青はよろける'); }
+        else if (st.result === 'foul') { b.free = true; b.vx = a.vx * 0.4; b.vy = a.vy * 0.4; a.mode = 'fall'; a.loseT = 0; st.log.push('3 足に当たる → ファール、青は倒れる'); }
+        else { st.log.push('3 足は空振り（青はもうよけている）'); }
+      }
+    }
+    // 青
+    if (a.mode === 'dodge') {
+      a.du += dt; const dg = a.dg;
+      while (dg.q.length && a.du >= dg.q[0].until) dg.q.shift();
+      if (dg.q.length) { const m = dg.q[0], k = 1 - Math.pow(1 - m.snap, dt / DT); a.vx += (m.dx * m.v - a.vx) * k; a.vy += (m.dy * m.v - a.vy) * k; }
+      else if (dg.end) { a.vx = dg.end.dx * dg.end.v; a.vy = dg.end.dy * dg.end.v; dg.end = null; }
+      a.x += a.vx * dt; a.y += a.vy * dt; a.ph += dt * 5 / (0.6 + 0.14 * 5) / 2;
+      const off = ballOffset(a.dk, Math.min(1, a.du / a.dur)), fl = Math.hypot(a.vx, a.vy) || 1;
+      if (off && off.abs) { b.x = a.x + dg.lx * off.abs[0] + st.dd[0] * off.abs[1]; b.y = a.y + dg.ly * off.abs[0] + st.dd[1] * off.abs[1]; b.z = 0; } else {
+      b.x = a.x + st.dd[0] * 0.45 + (off ? dg.lx * off[0] + st.dd[0] * off[1] : a.vx / fl * 0.1); b.y = a.y + st.dd[1] * 0.45 + (off ? dg.ly * off[0] + st.dd[1] * off[1] : a.vy / fl * 0.1); b.z = off && off[2] ? off[2] : 0; }
+      if (a.du >= a.dur + 0.2) { a.mode = 'run'; b.z = 0; }
+    } else if (a.mode === 'run') { a.x += a.vx * dt; a.y += a.vy * dt; a.ph += dt * 5 / (0.6 + 0.14 * 5) / 2; placeBall(); }
+    else { a.loseT += dt; const k = Math.exp(-dt * (a.mode === 'fall' ? 6 : 3)); a.vx *= k; a.vy *= k; a.x += a.vx * dt; a.y += a.vy * dt; }
+    if (b.free) { const v = Math.hypot(b.vx, b.vy); if (v > 0) { const nv = Math.max(0, v - 4 * dt); b.vx *= nv / v; b.vy *= nv / v; } b.x += b.vx * dt; b.y += b.vy * dt; }
+    if (loopOn && st.t > st.tSlide + 2.8) reset();
+  }
+  // ---- 描画 ----
+  function sprite(o, x, y, extra) {
+    const f = DotMan.frame(o), dot = 5 * ZM * DotMan.fitScale(f, o.facing, o.pose);   // 自動で組む絵も、写した絵と同じ背の高さに
+    ctx.save(); ctx.imageSmoothingEnabled = false; ctx.translate(Math.round(SX(x)), Math.round(SY(y)));
+    if (extra && extra.rot) ctx.rotate(extra.rot);
+    ctx.drawImage(f.cv, Math.round(-f.px * dot), Math.round(-f.py * dot), f.cv.width * dot, f.cv.height * dot);
+    ctx.restore();
+    return f;
+  }
+  function shadow(x, y, w) { ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(SX(x), SY(y), w * ZM / 1.5, w * ZM / 1.5 * 0.3, 0, 0, 7); ctx.fill(); }
+  function arrow(x, y, dx, dy, len, col, w) { const L = Math.hypot(dx, dy * TILT) || 1, ex = x + dx / L * len, ey = y + dy * TILT / L * len; ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(ex, ey); ctx.stroke(); const an = Math.atan2(ey - y, ex - x); ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(ex - 10 * Math.cos(an - 0.4), ey - 10 * Math.sin(an - 0.4)); ctx.lineTo(ex - 10 * Math.cos(an + 0.4), ey - 10 * Math.sin(an + 0.4)); ctx.fill(); }
+  let frameName = { d: '', a: '' };
+  // かわす絵（ゲームの app.js の技の描き方と同じ）
+  function drawDodge(a) {
+    const u = Math.min(1, a.du / a.dur), dg = a.dg, seg = (a0, a1) => Math.max(0, Math.min(1, (u - a0) / (a1 - a0)));
+    const sx = Math.sign(dg.lx) || 1, ffw = Math.sign(st.dd[0]) || 1, SA = (f) => f > 0 ? 0 : Math.PI;
+    let pose = null, facing = ffw, tilt = 0, lift = 0, view = null, name = '', angle = null;
+    switch (a.dk) {
+      case 'hurdle':
+        if (u < 0.14) { pose = 'crouch'; tilt = ffw * 0.1; name = '踏み切り（つま先でボールを浮かす）'; }
+        else if (u < 0.74) { const ph = seg(0.14, 0.74); lift = 0.95 * Math.sin(ph * Math.PI); pose = 'hurdle'; tilt = ffw * 0.12 * (1 - ph); name = '飛び越える（膝をたたむ）'; }
+        else { pose = u < 0.86 ? 'crouch' : null; name = '着地'; }
+        break;
+      case 'swerve':
+        if (u < 0.55) { facing = sx; pose = Math.floor(u * 10) % 2 ? 'lunge' : null; tilt = sx * 0.22 * Math.sin(seg(0, 0.55) * Math.PI); name = '真横へ一気に加速'; }
+        else { facing = ffw; tilt = ffw * 0.1 * (1 - seg(0.55, 1)); name = 'そのまま前へ（置き去り）'; }
+        break;
+      case 'doubleTouch': {   // ゲームと同じ：前を向いたまま腰を落とし、インで逆足へ・逆足でさらに横へ → 斜め前へ加速
+        const fA = Math.atan2(st.dd[1], st.dd[0]);
+        if (u < 0.12) { angle = fA; pose = 'crouch'; name = '腰を落として踏み込む'; }
+        else if (u < 0.28) { angle = fA; pose = 'sole'; tilt = sx * 0.12; name = '1タッチ目：インで逆足の前へ'; }
+        else if (u < 0.45) { angle = fA; pose = 'crouch'; tilt = sx * 0.2; name = '2タッチ目：逆足でさらに横へ（体ごとずれる）'; }
+        else { angle = Math.atan2(st.dd[1] * 0.75 + dg.ly * 0.5, st.dd[0] * 0.75 + dg.lx * 0.5); pose = u < 0.7 ? 'lunge' : null; tilt = sx * 0.14 * (1 - seg(0.45, 1)); name = '斜め前へ加速して抜ける'; }
+        break;
+      }
+      case 'roulette': {
+        const ra = rouletteAng(u);
+        if (ra != null) { angle = ra; const deg = ((Math.round(((ra - Math.atan2(st.dd[1], st.dd[0])) / (Math.PI * 2)) * 4) % 4) + 4) % 4; name = 'くるっと回る（' + ['前', 'よける側と逆', '背中を相手に', 'よける側'][deg] + '）'; }
+        else { angle = Math.atan2(st.dd[1] + dg.ly * 0.3, st.dd[0] + dg.lx * 0.3); pose = u < 0.9 ? 'lunge' : null; facing = Math.cos(angle) >= 0 ? 1 : -1; tilt = facing * 0.15; name = '前へ抜ける'; }
+        break;
+      }
+    }
+    shadow(a.x, a.y, lift > 0.1 ? 26 : 30);
+    // ゲームと同じ：体の向きは動いている向き（ルーレットの回転中だけ、回る角度）
+    const fang = angle != null ? angle : Math.atan2(a.vy, a.vx);   // （ダブルタッチは技の間、前を向いたまま）
+    const o = pose === 'hurdle' ? { ...BLUE, facing: fang, pose, art: true } : pose ? { ...BLUE, facing: fang, pose } : view && view !== 'side' ? { ...BLUE, facing: fang, pose: 'run', art: true, frame: DotMan.artFrame(fang, a.ph) } : { ...BLUE, facing: fang, pose: 'run', art: true, frame: DotMan.artFrame(fang, a.ph) };
+    sprite(o, a.x, a.y - lift / (TILT * 2), { rot: tilt });
+    frameName.a = DODGE_JA[a.dk] + '：' + name;
+  }
+  function draw() {
+    ctx.fillStyle = '#2f8a3a'; ctx.fillRect(0, 0, cv.width, cv.height);
+    for (let k = -40; k < 80; k += 4) { ctx.fillStyle = ((k / 4) % 2 + 2) % 2 ? 'rgba(255,255,255,.035)' : 'rgba(0,0,0,.03)'; ctx.fillRect(SX(k), 0, PXM * 4, cv.height); }
+    const d = st.d, a = st.a, b = st.ball, sd = DIRS[sdir];
+    // ぶつかる地点
+    if (guide) { ctx.strokeStyle = 'rgba(255,224,90,.5)'; ctx.setLineDash([6, 6]); ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(SX(meet.x), SY(meet.y), 18, 18 * TILT, 0, 0, 7); ctx.stroke(); ctx.setLineDash([]); }
+    const items = [];
+    // 赤（スライディングする選手）
+    items.push({ y: d.y, draw: () => {
+      const fa = Math.atan2(sd[1], sd[0]);
+      if (defMode === 'stand') {
+        shadow(d.x, d.y, 30);
+        if (d.mode === 'poke') { const pa = Math.atan2(d.pk[1], d.pk[0]); sprite({ ...RED, facing: pa, pose: 'pass', frame: d.pokeT < 0.32 ? 2 : 1 }, d.x, d.y); frameName.d = '足を伸ばす（元のボールの所へ）'; }
+        else if (d.mode === 'lose') { const u = Math.min(1, d.loseT / 0.9), k = Math.sin(Math.PI * u), away = Math.sign(d.vx || 1); sprite({ ...RED, facing: away > 0 ? 0 : Math.PI, pose: 'jump' }, d.x, d.y, { rot: away * (0.3 * k + Math.sin(u * 22) * 0.07 * k) }); frameName.d = 'つられてよろける'; }
+        else { const ta = Math.atan2(a.y - d.y, a.x - d.x); sprite({ ...RED, facing: ta, pose: 'stand', art: true }, d.x, d.y); frameName.d = '構えて待つ'; }
+        return;
+      }
+      if (d.mode === 'slide') {
+        const dir = Math.cos(fa) >= 0 ? 1 : -1, fb = Math.abs(sd[1]) > Math.abs(sd[0]) * 1.7 ? (sd[1] > 0 ? 'slideF' : 'slideB') : null;   // 手前は正面、奥は背中
+        shadow(d.x + dir * 0.8, d.y, 34);
+        if (st.phase === 'slide') { ctx.fillStyle = 'rgba(210,235,170,0.8)'; const u = d.slideT / SLIDE_T; for (let k = 0; k < 6; k++) { const ex = SX(d.x) + dir * (80 + k * 12) - dir * u * 50, ey = SY(d.y) - (k % 3) * 7 - u * 34; ctx.fillRect(Math.round(ex), Math.round(ey), 6, 6); } }
+        if (fb) { sprite({ ...RED, facing: fb === 'slideF' ? Math.PI / 2 : -Math.PI / 2, pose: fb, art: true }, d.x, d.y); frameName.d = 'スライディング（' + (fb === 'slideF' ? '手前へ・正面' : '奥へ・背中') + '）'; }
+        else { sprite({ ...RED, facing: dir > 0 ? 0 : Math.PI, pose: 'slide', art: true }, d.x, d.y); frameName.d = 'スライディング（' + (dir > 0 ? '右向き' : '左向き・反転') + '）'; }
+      } else if (st.phase === 'approach') {
+        shadow(d.x, d.y, 30); const fr = DotMan.artFrame(fa, d.ph); sprite({ ...RED, facing: fa, pose: 'run', art: true, frame: fr }, d.x, d.y); frameName.d = '走り ' + fr;
+      } else { shadow(d.x, d.y, 30); sprite({ ...RED, facing: fa, pose: 'stand', art: true }, d.x, d.y); frameName.d = '立ち（起き上がり）'; }
+    } });
+    // 青（ドリブルしてくる選手）
+    items.push({ y: a.y, draw: () => {
+      const fa = Math.atan2(a.vy || st.dd[1], a.vx || st.dd[0]);
+      shadow(a.x, a.y, 30);
+      if (a.mode === 'dodge') { drawDodge(a); return; }
+      if (a.mode === 'run') { const fr = DotMan.artFrame(fa, a.ph); sprite({ ...BLUE, facing: fa, pose: 'run', art: true, frame: fr }, a.x, a.y); frameName.a = 'ドリブル ' + fr; }
+      else if (a.mode === 'lose') { const u = Math.min(1, a.loseT / 0.8), k = Math.sin(Math.PI * u); const away = -(Math.sign(sd[0]) || 1) * -1; sprite({ ...BLUE, facing: away > 0 ? 0 : Math.PI, pose: 'jump' }, a.x, a.y, { rot: away * (0.32 * k + Math.sin(u * 22) * 0.08 * k) }); frameName.a = 'よろける（今のゲームの描き方）'; }
+      else { const u = Math.min(1, a.loseT / 0.25), dir = Math.sign(sd[0]) || 1; sprite({ ...BLUE, facing: dir > 0 ? 0 : Math.PI, pose: 'stand' }, a.x, a.y, { rot: dir * 1.5 * u * u }); frameName.a = '倒れる（今のゲームの描き方）'; }
+    } });
+    // ボール
+    items.push({ y: b.y + 0.01, draw: () => { shadow(b.x, b.y, 8); const br = 5.5 * ZM, bx = SX(b.x), by = SY(b.y) - br - (b.z || 0) * PXM; ctx.fillStyle = '#fff'; ctx.strokeStyle = '#222'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(bx, by, br, 0, 7); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(bx, by, br * 0.38, 0, 7); ctx.fill(); } });
+    items.sort((p, q) => p.y - q.y).forEach((it) => it.draw());
+    if (guide) {
+      if (defMode !== 'stand') arrow(SX(d.x), SY(d.y), sd[0], sd[1], 70, '#ff5a4a', 3);
+      arrow(SX(a.x), SY(a.y) + 12, st.dd[0], st.dd[1], 50, '#ffffff', 2);
+      if (st.phase === 'slide' || st.phase === 'approach') { const fx = d.x + sd[0] * (st.phase === 'slide' ? 1.1 : 0), fy = d.y + sd[1] * (st.phase === 'slide' ? 1.1 : 0); if (st.phase === 'slide') { ctx.strokeStyle = '#ffe05a'; ctx.lineWidth = 3; const cx = SX(fx), cy = SY(fy); ctx.beginPath(); ctx.moveTo(cx - 9, cy); ctx.lineTo(cx + 9, cy); ctx.moveTo(cx, cy - 7); ctx.lineTo(cx, cy + 7); ctx.stroke(); } }
+    }
+    // タイムラインの今の位置
+    const tl = document.getElementById('tl'), now = tl.querySelector('s'); if (now) now.style.left = (Math.min(1, st.t / (st.tSlide + 2.6)) * 100) + '%';
+    const ph = { approach: '寄せる', slide: '滑っている', down: '地面に（止まっている）', after: '立って戻る', standoff: '向かい合う', react: '技の勝負' }[st.phase];
+    if (defMode === 'stand') document.getElementById('judge').innerHTML = '<b>立っている相手をスキルで抜く</b><br>試合でドリブル技（スキル）が出たときと同じ動きです。<br>かわし方の「自動」は、ダブルタッチかルーレットを半々で出します。<br><small>※「飛び越える」はスライディングのときだけ。ここではダブルタッチになります</small>';
+    else { const from = slideFrom(), r = SLIDE_RULE[from];
+      document.getElementById('judge').innerHTML = `<b>${FROM_JA[from]}のスライディング</b><br>ボールを奪える確率：五分の力なら ${Math.round((0.5 + r.win) * 100)}%<br>外れたとき反則になる：${Math.round(r.foul * 100)}%<br>反則のときのカード：イエロー ${Math.round(r.yellow * 100)}%・レッド ${(r.red * 100).toFixed(r.red < 0.01 ? 1 : 0)}%<br><small>※「ドリブルの向き」で変わります。逃げる＝後ろから、横切る＝横から、向かってくる＝正面から</small>`; }
+    document.getElementById('info').textContent =
+      `段階　　：${ph}\n` +
+      `赤の絵　：${frameName.d}\n` +
+      `青の絵　：${frameName.a}\n` +
+      `滑る向き：${DNAME[sdir]}\n` +
+      `滑る距離：${slideDistance().toFixed(2)} m（0.45秒）\n` +
+      `滑り出してから：${st.phase === 'approach' ? '－' : (st.t - st.tSlide).toFixed(2) + ' 秒'}\n` +
+      `ボールに届いた：${st.contactT != null ? (st.contactT - st.tSlide).toFixed(2) + ' 秒後' : '－'}\n` + st.log.join('\n');
+  }
+  function buildTimeline() {
+    if (defMode === 'stand') { const T = st.tSlide + 2.6, el = document.getElementById('tl'), pc = (t) => (t / T * 100) + '%', seg = (t0, t1, col, txt) => `<b style="left:${pc(t0)};width:calc(${pc(t1 - t0)});background:${col}">${txt}</b>`; el.innerHTML = seg(0, 1.2, '#8fd18f', '向かってくる') + seg(1.2, 2.0, '#ff8a6a', '技') + seg(2.0, T, '#a9c3ff', '抜けた後') + '<s></s>'; return; }
+    const T = st.tSlide + 2.6, el = document.getElementById('tl'), pc = (t) => (t / T * 100) + '%';
+    const seg = (t0, t1, col, txt) => `<b style="left:${pc(t0)};width:calc(${pc(t1 - t0)});background:${col}">${txt}</b>`;
+    el.innerHTML = seg(0, st.tSlide, '#8fd18f', '寄せる') + seg(st.tSlide, st.tSlide + SLIDE_T, '#ff8a6a', '滑る') + seg(st.tSlide + SLIDE_T, st.tSlide + ART_UP, '#ffd27a', '地面') + seg(st.tSlide + ART_UP, T, '#a9c3ff', '起き上がり') + '<s></s>';
+  }
+  let last = 0, stepReq = 0;
+  function loop(now) {
+    const dt = Math.min(0.05, (now - (last || now)) / 1000); last = now;
+    if (!paused) update(dt * speed); else if (stepReq) { for (let k = 0; k < 4; k++) update(1 / 60); stepReq = 0; }
+    draw(); requestAnimationFrame(loop);
+  }
+  // ---- 操作 ----
+  const mk = (id, items, on, def) => { const el = document.getElementById(id); el.innerHTML = items.map(([v, t]) => `<button data-v="${v}">${t}</button>`).join(''); el.querySelectorAll('button').forEach((b) => b.onclick = () => { if (b.dataset.v === '-2') return; on(b.dataset.v); el.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); }); const d0 = el.querySelector(`button[data-v="${def}"]`); if (d0) d0.classList.add('on'); return el; };
+  const order = []; for (let r = 0; r < 5; r++) for (let c = 0; c < 5; c++) order.push(r === 2 && c === 2 ? -2 : (r === 0 || r === 4 || c === 0 || c === 4) ? dirN(c - 2, r - 2) : -2);
+  mk('sdir', order.map((i) => i < 0 ? [-2, ''] : [i, DNAME[i]]), (v) => { sdir = +v; reset(); }, 8);
+  document.querySelectorAll('#sdir button[data-v="-2"]').forEach((b) => { b.style.visibility = 'hidden'; });
+  mk('res', [['win', 'ボールを奪う'], ['beat', 'かわされる'], ['foul', 'ファール']], (v) => { res = v; reset(); }, 'win');
+  mk('ddir', [['cross', '横切る'], ['head', '向かってくる'], ['away', '逃げる']], (v) => { ddirMode = v; reset(); }, 'cross');
+  mk('def', [['slide', 'スライディング'], ['stand', '立って足を出す（スキル）']], (v) => { defMode = v; document.getElementById('sdirH').textContent = v === 'stand' ? '赤の選手が向いている向き（青はその正面から来る）' : '滑り込む向き（赤の選手が滑る方向）'; document.getElementById('ddir').parentElement && (document.getElementById('ddir').style.opacity = v === 'stand' ? 0.35 : 1); reset(); }, 'slide');
+  mk('dodge', [['auto', '自動'], ['hurdle', '飛び越える'], ['swerve', '置き去り'], ['doubleTouch', 'ダブルタッチ'], ['roulette', 'ルーレット']], (v) => { dodgeMode = v; res = 'beat'; document.querySelectorAll('#res button').forEach((x) => x.classList.toggle('on', x.dataset.v === 'beat')); reset(); }, 'auto');
+  mk('zm', [['1', 'ふつう'], ['1.5', '近い'], ['2.2', 'もっと近い']], (v) => { ZM = +v; reset(); }, '1.5');
+  mk('spd', [['1', '1倍'], ['0.25', '1/4'], ['0.1', '1/10']], (v) => { speed = +v; }, '1');
+  document.getElementById('pause').onclick = (e) => { paused = !paused; e.target.textContent = paused ? '再生' : '一時停止'; };
+  document.getElementById('step').onclick = () => { paused = true; document.getElementById('pause').textContent = '再生'; stepReq = 1; };
+  document.getElementById('reset').onclick = reset;
+  document.getElementById('guide').onclick = (e) => { guide = !guide; e.target.textContent = '補助線：' + (guide ? 'オン' : 'オフ'); e.target.classList.toggle('on', guide); };
+  document.getElementById('loop').onclick = (e) => { loopOn = !loopOn; e.target.textContent = 'くり返し：' + (loopOn ? 'オン' : 'オフ'); e.target.classList.toggle('on', loopOn); };
+  cv.onclick = (e) => { const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) * cv.width / r.width, y = (e.clientY - r.top) * cv.height / r.height; meet = { x: Math.max(4, Math.min(36, (x - OX) / PXM)), y: Math.max(2, Math.min(16, (y - OY) / (PXM * TILT * 2))) }; reset(); };
+  reset(); requestAnimationFrame(loop);
+  window.__lab = { st, reset, update, set: (o) => { if (o.sdir != null) sdir = o.sdir; if (o.res) res = o.res; if (o.dodge) dodgeMode = o.dodge; if (o.ddir) ddirMode = o.ddir; if (o.def) defMode = o.def; reset(); } };
+})();
+</script>
+</body></html>

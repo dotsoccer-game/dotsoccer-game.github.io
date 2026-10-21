@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>真横の走り確認</title>
+<style>
+:root{--bg:#16241b;--panel:#1f3326;--ink:#eef3ee;--sub:#a9bfae;--acc:#ffd84a}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#16241b}}
+:root[data-theme="dark"]{--bg:#16241b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;font-size:14px}
+.wrap{max-width:1100px;margin:0 auto;padding:12px 16px}h1{font-size:18px;margin:4px 0 10px}h2{font-size:15px;margin:0 0 8px;color:var(--acc)}
+.card{background:var(--panel);border-radius:10px;padding:10px;margin-bottom:12px}.row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start}
+canvas{image-rendering:pixelated;display:block;max-width:100%}.note{color:var(--sub);line-height:1.7;font-size:13px}.cap{color:var(--sub);font-size:12px;margin-top:4px}
+button{background:#2c4a36;color:var(--ink);border:1px solid #4d7a5c;border-radius:8px;padding:8px 12px;font-size:14px;cursor:pointer}button.on{background:var(--acc);color:#222;border-color:var(--acc)}
+.ctl{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}
+</style></head><body><div class="wrap">
+<h1>真横の走り確認（送ってもらった動画から写したもの）</h1>
+<div class="ctl"><button id="play" class="on">再生中</button><button id="slow">スロー（1/4）</button><button id="step">次のコマ</button></div>
+<div class="card"><h2>本家の動画と並べて（同じ速さ）</h2><div class="row">
+ <div><canvas id="ref" width="270" height="330"></canvas><div class="cap">本家（動画の切り出し・3倍）</div></div>
+ <div><canvas id="mine" width="270" height="330"></canvas><div class="cap">今回の絵（同じ大きさ・その場で）</div></div>
+ <div><canvas id="field" width="200" height="330"></canvas><div class="cap">試合と同じ大きさで右へ走る</div></div>
+</div></div>
+<div class="card"><h2>4枚（拡大）</h2><canvas id="strip" width="900" height="250"></canvas></div>
+<div class="note">
+・送ってもらった動画（選手が右へ走る場面）を、ドット単位で読み取って描きました（27×31ドット）。服と色はうちの選手です。<br>
+・本家の真横の走りは4枚のくり返し：A（手前の腕を前へ伸ばし、奥の腕は後ろ上へ。脚は前後に大きく開き、後ろの足が上がる）→ N（腕を曲げて手は腰の前、脚はそろう）→ B（奥の腕を前へ、手前の腕は後ろで手が腰の後ろ。脚を開き、前の脚で着地）→ N。<br>
+・長さは動画どおり、どれも約0.1秒（3コマ）。<br>
+・A・Bのコマでは、体が前へ傾いて頭が2〜3ドット前に出て、1ドット沈みます（動画で測った値）。影は地面に残ります。<br>
+・白い服だと腕が服にとけるので、手前の腕はふちの線で、奥の腕は少し濃い色で形を見せています。左へ走るときは左右を写して使います。
+</div></div>
+<script>
+const D = {"frames": [["...........................", "..............oooooooo.....", "............oohhhhhhhhoo...", "...........ohhhhhhhhhhhho..", "..........ohhhhhhhhhhhhhho.", "..........oHHHhhhhhhhhhhho.", "..........oHHhhhhhhhssesso.", "..........oHHHHHHHHsssesso.", "..........oHHHHHHHHsssesso.", ".........oooHHHHHHHsssesso.", "........oBBBBHHHHHssssssSo.", "......ooBBBBBBBBBbssssssSo.", ".....oBBBBBBBBbbbbbbbbooo..", ".....osssbbbbbbboooooooooo.", ".....oSssbbbbbbobbbbbbbssso", "......oSbbbbbbbobbbbbbbssso", ".......obbbbbbboBBBBBBBSSo.", "........obbbbbbbooooooooo..", "....ooooobbbbbbbbbbbbbo....", "...opppppppppppppppppppo...", "..occccppppppppppppppoo....", ".occccpppppppppppppppo.....", ".occccppppooooppppppppo....", ".oxxxxoooo....oooooocco....", "..oooo...........occccco...", "..................occcco...", "..................oxxxo....", "...................ooo.....", "...........................", "...........................", "..........................."], ["...........oooooooo........", ".........oohhhhhhhhoo......", "........ohhhhhhhhhhhho.....", ".......ohhhhhhhhhhhhhho....", ".......oHHHhhhhhhhhhhho....", ".......oHHhhhhhhhssesso....", ".......oHHHHHHHHsssesso....", ".......oHHHHHHHHsssesso....", "........oHHHHHHHsssesso....", ".........oHHHHHssssssSo....", ".........obbbbbssssssSo....", ".......oobbbbbbooooooo.....", "......obbbbbbbbbbbbBo......", "......obbbobbbBbbbBo.......", ".....obbbbobbbBbbbBo.......", "....obbbbbobbbBbbbbBo......", "...obbbbbbobbbBbbbbBo......", "....obbbbboBBBBBBBoo.......", ".....obbbbbBBBBBBBo........", "....oppppppposssoo.........", "....opppppppossSo..........", "....oppppppppSSSo..........", "....opppppppppppo..........", ".....oopppppppoo...........", "......occppppo.............", "......occccccCo............", "......occccccCo............", "......occccccCo............", "......occcccxxo............", ".......ooooooo.............", "..........................."], ["...........................", ".............oooooooo......", "...........oohhhhhhhhoo....", "..........ohhhhhhhhhhhho...", ".........ohhhhhhhhhhhhhho..", ".........oHHHhhhhhhhhhhho..", ".........oHHhhhhhhhssesso..", ".........oHHHHHHHHsssesso..", ".........oHHHHHHHHsssesso..", "..........oHHHHHHHsssesso..", "...........oHHHHHssssssSo..", "........ooobbbbbbssssssSo..", ".......obbbbbbbbbbBBBBoo...", "......obbbbbbbbbbbBBBBBooo.", ".....obbbbbbobbbbbBBBBBssso", ".....ossbbbbbbbbbBBBBBBBsso", ".....osssbbbbbbbBBBBBBBBSSo", ".....ossssbbbbbbBBBooooooo.", "...oooossSbbbbbbbbo........", "..occppppppppppppo.........", ".occcpppppppppppoo.........", "occcopppppppppppppo........", "oxxxoopppoooopppppo........", ".ooo..ooo....oocccco.......", ".............occccco.......", ".............occccco.......", "..............occcco.......", "...............oxxxo.......", "................ooo........", "...........................", "..........................."], ["...........oooooooo........", ".........oohhhhhhhhoo......", "........ohhhhhhhhhhhho.....", ".......ohhhhhhhhhhhhhho....", ".......oHHHhhhhhhhhhhho....", ".......oHHhhhhhhhssesso....", ".......oHHHHHHHHsssesso....", ".......oHHHHHHHHsssesso....", "........oHHHHHHHsssesso....", ".........oHHHHHssssssSo....", ".........obbbbbssssssSo....", ".......oobbbbbbooooooo.....", "......obbbbbbbbbbbbBo......", "......obbbobbbBbbbBo.......", ".....obbbbobbbBbbbBo.......", "....obbbbbobbbBbbbbBo......", "...obbbbbbobbbBbbbbBo......", "....obbbbboBBBBBBBoo.......", ".....obbbbbBBBBBBBo........", "....oppppppposssoo.........", "....opppppppossSo..........", "....oppppppppSSSo..........", "....opppppppppppo..........", ".....oopppppppoo...........", "......occppppo.............", "......occccccCo............", "......occccccCo............", "......occccccCo............", "......occcccxxo............", ".......ooooooo.............", "..........................."]], "names": ["A 手前の腕を前へ・脚を開く", "N", "B 奥の腕を前へ・脚を開く", "N"], "dur": [0.1, 0.1, 0.1, 0.1], "cx": 13, "foot": 30};
+const PAL = { o:[40,36,42], h:[222,146,40], H:[160,105,29], b:[246,246,246], B:[200,200,206], p:[246,246,246], P:[200,200,206], s:[240,184,140], S:[204,156,119], c:[20,40,220], C:[16,32,176], x:[72,72,78], r:[230,50,30], e:[34,20,14] };
+function sprite(rows) { const w = rows[0].length, h = rows.length, cv = document.createElement('canvas'); cv.width = w; cv.height = h; const x = cv.getContext('2d'), im = x.createImageData(w, h);
+  rows.forEach((row, r) => [...row].forEach((ch, c) => { if (ch === '.') return; const i = (r * w + c) * 4, p = PAL[ch]; im.data[i] = p[0]; im.data[i + 1] = p[1]; im.data[i + 2] = p[2]; im.data[i + 3] = 255; }));
+  x.putImageData(im, 0, 0); return cv; }
+const SP = D.frames.map(sprite), REF = new Image(); REF.src = 'ref_side_run.png';
+let playing = true, slow = 1, t = 0, last = 0, manual = null;
+const tot = D.dur.reduce((a, b) => a + b, 0);
+function frameAt(tt) { let u = tt % tot, f = 0; while (u >= D.dur[f]) { u -= D.dur[f]; f++; } return f; }
+const ground = document.createElement('canvas'); ground.width = 200; ground.height = 330;
+{ const g = ground.getContext('2d'); for (let y = 0; y < 330; y += 30) { g.fillStyle = (y / 30) % 2 ? '#3a8a2b' : '#44982f'; g.fillRect(0, y, 200, 30); }
+  let s = 5; const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647); for (let i = 0; i < 500; i++) { g.fillStyle = rnd() < .5 ? 'rgba(20,70,20,.55)' : 'rgba(150,210,110,.45)'; g.fillRect(Math.floor(rnd() * 100) * 2, Math.floor(rnd() * 165) * 2, 2, 2); }
+  g.fillStyle = 'rgba(255,255,255,.85)'; g.fillRect(98, 0, 3, 330); }
+function draw() {
+  const f = manual != null ? manual : frameAt(t);
+  // 本家（30コマ/秒のまま）
+  const rx = document.getElementById('ref').getContext('2d'); rx.imageSmoothingEnabled = false; rx.fillStyle = '#2a6a20'; rx.fillRect(0, 0, 270, 330);
+  if (REF.complete && REF.width) { const n = REF.width / 80, k = Math.floor(t * 30) % n; rx.drawImage(REF, k * 80, 0, 80, 96, -5, 0, 280, 336); }
+  // 今回の絵（本家と同じ3倍）：1ドット＝本家の約2.9画素×3
+  const mx = document.getElementById('mine').getContext('2d'); mx.imageSmoothingEnabled = false; mx.fillStyle = '#3c8f2c'; mx.fillRect(0, 0, 270, 330);
+  const Z = 2.65 * 3.5; mx.fillStyle = 'rgba(0,0,0,.28)'; mx.beginPath(); mx.ellipse(125, 300, 40, 12, 0, 0, 7); mx.fill();
+  mx.drawImage(SP[f], Math.round(125 - (D.cx + .5) * Z), Math.round(300 - D.foot * Z), SP[f].width * Z, SP[f].height * Z);
+  // 試合の大きさで手前へ走る
+  const fx = document.getElementById('field').getContext('2d'); fx.imageSmoothingEnabled = false; fx.drawImage(ground, 0, 0);
+  const G = 2.6, u = (t * 60) % 170, y = 180, xx = 15 + u;
+  fx.fillStyle = 'rgba(0,0,0,.28)'; fx.beginPath(); fx.ellipse(xx, y - 1, 16, 5, 0, 0, 7); fx.fill();
+  fx.drawImage(SP[f], Math.round(xx - (D.cx + .5) * G), Math.round(y - D.foot * G), SP[f].width * G, SP[f].height * G);
+  // 4枚
+  const sx = document.getElementById('strip').getContext('2d'); sx.imageSmoothingEnabled = false; sx.fillStyle = '#3c8f2c'; sx.fillRect(0, 0, 900, 250);
+  SP.forEach((img, k) => { const z = 6.5; sx.drawImage(img, 10 + k * 220, 235 - D.foot * z, img.width * z, img.height * z); sx.fillStyle = k === f ? '#ffd84a' : '#fff'; sx.font = '13px sans-serif'; sx.fillText(D.names[k], 20 + k * 220, 16); });
+  sx.fillStyle = 'rgba(255,255,255,.6)'; sx.fillRect(0, 235, 900, 1);
+}
+function loop(now) { const dt = Math.min(0.05, (now - (last || now)) / 1000); last = now; if (playing) t += dt * slow; draw(); requestAnimationFrame(loop); }
+document.getElementById('play').onclick = (e) => { playing = !playing; manual = null; e.target.textContent = playing ? '再生中' : '一時停止'; e.target.classList.toggle('on', playing); };
+document.getElementById('slow').onclick = (e) => { slow = slow === 1 ? 0.25 : 1; e.target.classList.toggle('on', slow !== 1); };
+document.getElementById('step').onclick = () => { playing = false; const b = document.getElementById('play'); b.textContent = '一時停止'; b.classList.remove('on'); manual = ((manual == null ? frameAt(t) : manual) + 1) % 4; };
+requestAnimationFrame(loop);
+</script></body></html>

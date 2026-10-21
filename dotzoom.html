@@ -1,0 +1,14 @@
+<!doctype html><html><head><meta charset="utf-8"><style>body{margin:0;background:#2f8a3a}canvas{image-rendering:pixelated}</style></head><body>
+<canvas id="cv" width="1600" height="900"></canvas>
+<script src="sprites/gpt.js"></script><script src="sprites/dotman.js"></script>
+<script>
+const cv=document.getElementById('cv'),x=cv.getContext('2d');x.imageSmoothingEnabled=false;x.fillStyle='#2f8a3a';x.fillRect(0,0,1600,900);
+const S=window.GPT_SPR,M=S.meta,img=new Image();img.src=S.img;
+const q=new URLSearchParams(location.search),Z=+(q.get('z')||6),rows=(q.get('rows')||'stand').split(',');
+img.onload=()=>{let Y=0;
+ for(const r of rows){let X=4;
+  if(r==='gpt'){for(const k of ['front','f34','side','b34','back','pass0','pass1','pass2','pass3']){const m=M[k],sc=Z*(m[5]||1);x.drawImage(img,m[0],m[1],m[2],m[3],X,Y+(52*Z-m[3]*sc),m[2]*sc,m[3]*sc);X+=m[2]*sc+6;}}
+  else{const [pose,n]=r.split(':');const N=+(n||8);for(let i=0;i<N;i++){const f=pose==='stand'?DotMan.frame({facing:i*Math.PI/4,pose:'stand'}):pose==='st3'?DotMan.frame({facing:i*Math.PI/4,pose:'stand'}):DotMan.frame({facing:0,pose,frame:i});x.drawImage(f.cv,0,0,60,60,X-12*Z,Y-8*Z,60*Z,60*Z);X+=36*Z;}}
+  Y+=54*Z;}
+ window.done=1;};
+</script></body></html>

@@ -1,0 +1,26 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>ドット比較</title>
+<style>body{margin:0;background:#2f8a3a;font:12px sans-serif;color:#fff}canvas{image-rendering:pixelated}</style></head><body>
+<canvas id="cv" width="1400" height="900"></canvas>
+<script src="sprites/gpt.js"></script><script src="sprites/dotman.js"></script>
+<script>
+const cv=document.getElementById('cv'),x=cv.getContext('2d');x.imageSmoothingEnabled=false;
+const S=window.GPT_SPR,M=S.meta,img=new Image();img.src=S.img;
+const Z=+(new URLSearchParams(location.search).get('z')||3);
+img.onload=()=>{
+  x.fillStyle='#2f8a3a';x.fillRect(0,0,1400,900);
+  const put=(cvs,sx,sy,sw,sh,dx,dy,sc)=>x.drawImage(cvs,sx,sy,sw,sh,dx,dy,sw*sc,sh*sc);
+  // 1段目：GPT 立ち8方向
+  const gv=['side','f34','front','f34','side','b34','back','b34'],gf=[0,0,0,1,1,1,0,0];
+  let X=10;
+  for(let d=0;d<8;d++){const m=M[gv[d]];x.save();if(gf[d]){x.translate(X+60*Z/2,0);x.scale(-1,1);x.translate(-(X+60*Z/2),0);}put(img,m[0],m[1],m[2],m[3],X+(60*Z/2-m[4]*Z),10+(50-m[3])*Z,Z);x.restore();X+=60*Z/2+4;}
+  // 2段目：私の絵 立ち8方向
+  X=10;for(let d=0;d<8;d++){const f=DotMan.frame({facing:DotMan.dirAngle(d),pose:'stand'});put(f.cv,0,0,56,56,X+(60*Z/2-f.px*Z),10+52*Z-f.py*Z+ (50*Z),Z);X+=60*Z/2+4;}
+  // 3段目：走り（右向き）8コマ GPT / 私
+  X=10;const y3=10+110*Z;for(let i=0;i<8;i++){const m=M['run'+i];put(img,m[0],m[1],m[2],m[3],X+(30*Z/2-m[4]*Z)*1,y3+(50-m[3])*Z,Z);X+=30*Z/1.2;}
+  X=10;for(let i=0;i<8;i++){const f=DotMan.frame({facing:0,pose:'run',frame:i});put(f.cv,0,0,56,56,X+(30*Z/2-f.px*Z),y3+50*Z-f.py*Z+52*Z,Z);X+=30*Z/1.2;}
+  // 4段目：パス4コマ GPT / 私
+  X=10;const y4=y3+110*Z;for(let i=0;i<4;i++){const m=M['pass'+i],k=m[5]||1;put(img,m[0],m[1],m[2],m[3],X+(30*Z/2-m[4]*Z*k),y4+(50-m[3]*k)*Z,Z*k);X+=34*Z;}
+  for(let i=0;i<4;i++){const f=DotMan.frame({facing:0,pose:'pass',frame:i});put(f.cv,0,0,56,56,X+(30*Z/2-f.px*Z),y4+50*Z-f.py*Z,Z);X+=34*Z;}
+  window.done=1;
+};
+</script></body></html>

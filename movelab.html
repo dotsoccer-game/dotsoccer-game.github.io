@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>走り移動確認</title>
+<style>
+:root{--bg:#16241b;--panel:#1f3326;--ink:#eef3ee;--sub:#a9bfae;--acc:#ffd84a}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#16241b}}
+:root[data-theme="dark"]{--bg:#16241b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;font-size:14px}
+.wrap{max-width:1100px;margin:0 auto;padding:12px 16px}
+h1{font-size:18px;margin:4px 0 10px}h2{font-size:15px;margin:14px 0 6px;color:var(--acc)}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start}
+.card{background:var(--panel);border-radius:10px;padding:10px}
+.lane{width:320px}.lane h3{font-size:14px;margin:0 0 6px}
+.lane .sub{color:var(--sub);font-size:12px;margin:0 0 6px;min-height:4.2em;line-height:1.4}
+.cvbox{overflow:hidden}
+canvas{image-rendering:pixelated;display:block}
+button,select{background:#2c4a36;color:var(--ink);border:1px solid #4d7a5c;border-radius:8px;padding:8px 12px;font-size:14px;cursor:pointer}
+button.on{background:var(--acc);color:#222;border-color:var(--acc)}
+.ctl{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0;align-items:center}
+.ctl b{font-weight:normal;color:var(--sub);margin-right:2px}
+.note{color:var(--sub);line-height:1.7}
+.info{font-size:12px;color:var(--sub);margin-top:6px;min-height:1.4em}
+</style></head><body>
+<div class="wrap">
+<h1>走り移動確認（背中向き・奥へまっすぐ走る）：浮き沈みなし／あり</h1>
+<div class="ctl"><b>速さ</b><span id="spd"></span></div>
+<div class="ctl"><b>再生</b><button id="play" class="on">再生中</button><button id="slow">スロー（1/2）</button><button id="zoom">2倍で見る</button></div>
+<div class="ctl"><b>コマの進め方</b><button id="mAfter" class="on">移動速度に合わせる</button><button id="mBefore">一定（本家のテンポ）</button></div>
+
+<div class="row" id="lanes"></div>
+<h2>この画面の見方</h2>
+<div class="note">
+・絵は本家（カルチョビットA）の背中の走り4枚を写したもの：A（左腕を後ろ・右足をける）→ N → C（右腕を後ろ・左足をける）→ N。<br>
+・右の浮き沈み：足で地面をけるA・Cのコマで全身が1ドット浮き、足が体の真下に来るNのコマで沈みます。影は地面に残るので、浮いた分だけ影との間があきます。左はくらべる用に浮き沈みなし。<br>
+・選手は試合と同じ1ドット＝2.6画素（本家の絵は今の絵より少し大きい）。地面の草の粒と白線は動きません。<br>
+・下で少し立ち止まる → 走り出す → 奥へまっすぐ走る → 0.9mかけて止まる → 待機、をくり返します。位置は速度を積み上げて出し、歩数は進んだ距離で数えます（通常の速さで1秒に約4.3歩＝本家のテンポ）。<br>
+・止まっているときは真ん中の形（待機と同じ形）を出しています。
+</div>
+</div>
+<script>
+(() => {
+  // 今の絵（本家を写した背中の走り4枚）で、浮き沈みなし／ありを並べる
+  const VERS = [['flat', '浮き沈みなし'], ['bob', '浮き沈みあり（1ドット）']];
+  const Dm = {};
+  const load = (src, cb) => { const sc = document.createElement('script'); sc.src = src; sc.onload = cb; document.body.appendChild(sc); };
+  load('sprites/backrun_art.js', () => load('sprites/dotman.js', () => { Dm.flat = Dm.bob = window.DotMan; start(); }));
+
+  function start() {
+    const G = 2.6;                    // 試合と同じ：1ドット＝2.6画素
+    const PXM = 31 * 0.48;            // 試合の標準カメラで、奥へ1m進むと画面上で約15画素
+    const LW = 300, LH = 460;
+    const COL = { shirt: '#f6f6f6', shorts: '#f6f6f6', socks: '#1428dc', hair: '#de9228', stripe: '#e6321e', skin: '#f0b88c' };
+    const FACE = -Math.PI / 2;
+    const DUR = [0.15, 0.1, 0.15, 0.1];   // その場の走りのテンポ
+    const Y0 = LH - 40, Y1 = 80;
+    let V = 6.5, playing = true, slow = 1, zoom = 1;
+    let MODE = 'after', SLIP = true;   // コマの進め方：after＝移動速度に合わせる／before＝一定
+    const LANES = VERS.map(([k, t]) => ({ key: k, title: t, sub: k === 'flat' ? '絵を切りかえるだけ（足もとの高さは一定）' : '足で地面をけるコマで全身が1ドット浮き、真ん中のコマで沈む。影は地面に残る' }));
+    const host = document.getElementById('lanes');
+    const dpr = Math.max(1, Math.round(window.devicePixelRatio || 1));
+    LANES.forEach((L) => {
+      const card = document.createElement('div'); card.className = 'card lane';
+      card.innerHTML = '<h3>' + L.title + '</h3><div class="sub">' + L.sub + '</div><div class="cvbox"></div><div class="info"></div>';
+      const cv = document.createElement('canvas'); cv.width = LW * dpr; cv.height = LH * dpr; cv.style.width = LW + 'px'; cv.style.height = LH + 'px';
+      card.querySelector('.cvbox').appendChild(cv); host.appendChild(card);
+      L.cv = cv; L.x = cv.getContext('2d'); L.info = card.querySelector('.info'); L.card = card;
+    });
+    // 地面（動かない）：芝の帯＋草の粒＋白線
+    const ground = document.createElement('canvas'); ground.width = LW * dpr; ground.height = LH * dpr;
+    {
+      const g = ground.getContext('2d'); g.scale(dpr, dpr);
+      for (let y = 0; y < LH; y += 36) { g.fillStyle = (y / 36) % 2 ? '#3a8a2b' : '#44982f'; g.fillRect(0, y, LW, 36); }
+      let seed = 7; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+      for (let i = 0; i < 900; i++) { const x = Math.floor(rnd() * LW / 2) * 2, y = Math.floor(rnd() * LH / 2) * 2; g.fillStyle = rnd() < 0.5 ? 'rgba(20,70,20,.55)' : 'rgba(150,210,110,.45)'; g.fillRect(x, y, 2, 2); }
+      g.fillStyle = 'rgba(255,255,255,.85)';
+      [140, 300].forEach((y) => g.fillRect(20, y, LW - 40, 3));
+      g.fillRect(LW / 2 - 1.5, 60, 3, LH - 80);
+    }
+    // 動き：立ち止まる→加速→一定の速さ→減速して止まる→待機
+    // 位置は速度を積み上げて出す（位置の変化＝速度）。減速は一定の減速度で、ちょうど止まる所でぴったり止まる
+    const T_WAIT0 = 0.6, TA = 0.3, LD = 0.9, T_WAIT1 = 1.2;   // 加速0.3秒・止まるまでの距離0.9m
+    const distM = (Y0 - Y1) / PXM;
+    const stepLen = (v) => 0.6 + 0.14 * v;   // 1歩の距離（m）：6.5m/sで約1.5m＝本家のテンポ（1秒に約4.3歩）
+    let last = 0;
+    const mv = { phase: 'wait0', tt: 0, d: 0, v: 0, steps: 0, tRun: 0 };
+    function reset() { Object.assign(mv, { phase: 'wait0', tt: 0, d: 0, v: 0, steps: 0, tRun: 0 }); }
+    function sub(dt) {
+      if (mv.phase === 'wait0') { mv.tt += dt; if (mv.tt >= T_WAIT0) { mv.phase = 'run'; mv.tt = 0; } return; }
+      if (mv.phase === 'wait1') { mv.tt += dt; if (mv.tt >= T_WAIT1) reset(); return; }
+      const rem = distM - mv.d, dec = V * V / (2 * LD);
+      let v = Math.min(V, mv.v + (V / TA) * dt);
+      v = Math.min(v, Math.sqrt(2 * dec * Math.max(0, rem)));   // 止まる所までに止まれる速さ以下にする
+      let dd = v * dt;
+      if (dd >= rem || (rem < 0.02 && v < 0.5)) { dd = rem; v = 0; mv.phase = 'wait1'; mv.tt = 0; }
+      mv.d += dd; mv.v = v;
+      mv.steps += dd / stepLen(Math.max(v, 3));   // 歩数は実際に進んだ距離で数える
+      if (v > 0) mv.tRun += dt;
+    }
+    function tick(dt) { let left = dt; while (left > 1e-9) { const h = Math.min(0.004, left); sub(h); left -= h; } }
+    // コマ番号：6コマの版は1歩＝3コマ、4コマの版は今までどおり（接地6割・中間4割）
+    // コマ番号：1歩＝「けるコマ（A/C）」＋「真ん中のコマ（N）」。長さの比は本家どおり 0.133：0.1
+    const ART = window.BACKRUN_ART, KICK = ART.dur[0] / (ART.dur[0] + ART.dur[1]);
+    function frameOf() {
+      const steps = MODE === 'after' ? mv.steps : mv.tRun / (ART.dur[0] + ART.dur[1]);   // 一定：本家のテンポ（1歩0.233秒）
+      const k = Math.floor(steps), f = steps - k;
+      return (k % 2) * 2 + (f < KICK ? 0 : 1);
+    }
+    function drawLane(L) {
+      const DotMan = Dm[L.key], moving = mv.phase === 'run', fr = frameOf();
+      const x = L.x; x.setTransform(1, 0, 0, 1, 0, 0); x.imageSmoothingEnabled = false;
+      x.drawImage(ground, 0, 0);
+      x.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const cx = LW / 2 + 0.5, cy = Y0 - mv.d * PXM;
+      const F = DotMan.frame(Object.assign({ facing: FACE }, COL, moving ? { pose: 'run4', frame: fr, noBob: L.key === 'flat' } : { pose: 'run4', frame: 1, noBob: true }));
+      x.fillStyle = 'rgba(0,0,0,.28)'; x.beginPath(); x.ellipse(cx, cy - G * 0.4, 6.4 * G, 2 * G, 0, 0, 7); x.fill();
+      const k = G * dpr;
+      x.setTransform(1, 0, 0, 1, 0, 0);
+      x.drawImage(F.cv, Math.round(cx * dpr - F.px * k), Math.round(cy * dpr - F.py * k), F.cv.width * k, F.cv.height * k);
+      const names = ['A 左腕後ろ・右足をける', 'N 真ん中', 'C 右腕後ろ・左足をける', 'N 真ん中'];
+      L.info.textContent = moving ? ('秒速' + mv.v.toFixed(1) + 'm　' + names[fr] + (MODE === 'after' ? '　1秒に約' + (Math.max(mv.v, 3) / stepLen(Math.max(mv.v, 3))).toFixed(1) + '歩' : '　1秒に4歩（一定）')) : '待機';
+    }
+    function loop(now) {
+      const dt = Math.min(0.05, (now - (last || now)) / 1000); last = now;
+      if (playing) tick(dt * slow);
+      LANES.forEach((L) => drawLane(L));
+      requestAnimationFrame(loop);
+    }
+    const mA = document.getElementById('mAfter'), mB = document.getElementById('mBefore');
+    mA.onclick = () => { MODE = 'after'; mA.classList.add('on'); mB.classList.remove('on'); };
+    mB.onclick = () => { MODE = 'before'; mB.classList.add('on'); mA.classList.remove('on'); };
+    const sp = document.getElementById('spd');
+    [[4, 'ゆっくり（4m/s）'], [6.5, '通常（6.5m/s）'], [8.5, 'ダッシュ（8.5m/s）']].forEach(([v, txt]) => {
+      const b = document.createElement('button'); b.textContent = txt; if (v === V) b.classList.add('on');
+      b.onclick = () => { V = v; reset(); sp.querySelectorAll('button').forEach((q) => q.classList.toggle('on', q === b)); };
+      sp.appendChild(b); sp.appendChild(document.createTextNode(' '));
+    });
+    document.getElementById('play').onclick = (e) => { playing = !playing; e.target.textContent = playing ? '再生中' : '一時停止'; e.target.classList.toggle('on', playing); };
+    document.getElementById('slow').onclick = (e) => { slow = slow === 1 ? 0.5 : 1; e.target.classList.toggle('on', slow !== 1); };
+    document.getElementById('zoom').onclick = (e) => {
+      zoom = zoom === 1 ? 2 : 1; e.target.classList.toggle('on', zoom !== 1);
+      LANES.forEach((L) => { L.cv.style.width = LW * zoom + 'px'; L.cv.style.height = LH * zoom + 'px'; });
+    };
+    window.__move = { setT: (tt) => { reset(); tick(tt); playing = false; }, mv, tick, reset };
+    requestAnimationFrame(loop);
+  }
+})();
+</script>
+</body></html>
