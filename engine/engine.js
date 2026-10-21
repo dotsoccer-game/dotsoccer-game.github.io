@@ -1793,7 +1793,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             if (skZ(p, 'recovery') && fx(tm.ti, p.x) > bxf + 4) u = true;   // 帰陣ダッシュ：ボールより前に残っていたら全力で戻る
             // 版837：帰陣ダッシュ（目に見える形に）：ボールを失った直後、ボールより前にいたら、すぐにボールより後ろ（ゴール側）へ一直線に全力で戻る。少し速くなる
             if (p.sk.has('recovery') && !p.gk && !S.restart && !S.setPiece && S.t - (tm.atkT ?? -9) < 1.5 && fx(tm.ti, p.x) > bxf + 3 && !(p.recUntil > S.t) && S.t > (p.recNext || 0)) {
-              p.recUntil = S.t + R.range(2.6, 3.4); p.recNext = p.recUntil + R.range(5, 8); act(p, 'skill', 1.2, { k: 'recovery' }); act(p, 'recrun', p.recUntil - S.t); if (globalThis.__tyDbg) globalThis.__tyDbg.rec = (globalThis.__tyDbg.rec || 0) + 1; }
+              p.recUntil = S.t + R.range(2.6, 3.4); p.recNext = p.recUntil + R.range(5, 8); act(p, 'recrun', p.recUntil - S.t); /* 版839：帰陣ダッシュは吹き出しなし（オレンジの風の線だけ） */ if (globalThis.__tyDbg) globalThis.__tyDbg.rec = (globalThis.__tyDbg.rec || 0) + 1; }
             // 版838：インターセプト：持っている相手から、自分の近くの相手へのパスコースに先回りして立つ（パスを読んでいる）
             if (p.sk.has('intercept') && !p.gk && own && own.team !== tm.ti && !pressers.has(p.idx) && !S.restart) {
               let bq = null, bd = 14; for (const o of opps(p)) { if (o.off || o === own || o.gk) continue; const d0 = hyp(o.x - p.x, o.y - p.y); if (d0 < bd) { bd = d0; bq = o; } }
