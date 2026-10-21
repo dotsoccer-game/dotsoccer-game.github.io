@@ -1465,6 +1465,14 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             const pr = clamp(p.press + tm.mods.press + tm.tac.press + DOM[tm.ti] * 50 + urg * 40 + (skZ(p, 'pressMonster') ? 40 : 0), 0, 100);
             if (pr >= 35 && d < 3 + pr * 0.07 + urg * 4) { pressers.add(p.idx); extra++; }
           }
+          // 版841：守備の合図で一斉に寄せる（2人目も行く）：相手がタッチライン際・後ろ向き（自分のゴールへ戻りながら）で受けた時。抜かれた直後は隣がすぐカバーに出る
+          if (own && own.team !== tm.ti && !own.gk && ranked[1]) {
+            const touch = Math.abs(own.y - GOAL_Y) > 27, backT = (own.vx || 0) * sgn(own.team) < -0.6, beaten = S.t - (own.beatT ?? -9) < 1.2;
+            const org = clamp(0.4 + tm.pat * 0.6 + (tm.tac.press || 0) / 50, 0, 1.2);   // 組織の良いチームほど合図に反応する
+            if ((touch || backT) && ranked[1].d < 11 + org * 4 && R.next() < 0.08 + org * 0.12) { tm.trapT = S.t + 1.6; tm.trapP = ranked[1].p.idx; if (globalThis.__ctDbg) globalThis.__ctDbg.trap++; }
+            if (beaten && ranked[1].d < 14) { pressers.add(ranked[1].p.idx); if (globalThis.__ctDbg) globalThis.__ctDbg.cover++; }
+            if ((tm.trapT || 0) > S.t && P[tm.trapP] && !P[tm.trapP].off) pressers.add(tm.trapP);
+          }
           // シュートレンジ（ゴールから約30m）に入られたら、いちばん近いDFが必ず寄せて打たせない（原理原則）
           if (own && fx(tm.ti, own.x) < 32 && Math.abs(own.y - GOAL_Y) < 24) {   // いちばん早く寄せられる選手（DFでもMFでも）が、シュートコースを切りに行く
             const nd = tm.players.filter((p) => !p.gk && !p.off && p.position !== 'FW' && fx(tm.ti, p.x) < fx(tm.ti, own.x) + 6).map((p) => ({ p, t: hyp(p.x - own.x, p.y - own.y) / maxSpeed(p) })).sort((a, c) => a.t - c.t)[0];
@@ -1715,6 +1723,16 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
               else if (tt === 'シャドー') { if (bxf > L / 2 - 6) { tx = Math.max(tx, Math.min(offL - 1.5, bxf + 11)); ty = GOAL_Y + (ty - GOAL_Y) * 0.45; u = true; } }   // FWの後ろから、ゴール前へ飛び込む
               else if (tt === 'スイーパー' && s.line === 0) { tx = Math.min(tx, Lx + 1); }   // 上がらずに後ろを守る
               else if (tt === 'ビルドアップ型' && s.line === 0 && bxf < L / 2 + 6) { tx = Math.max(tx, Math.min(bxf - 4, L / 2 - 4)); ty += (b.y - ty) * 0.3; }   // 中盤へ持ち上がって、組み立てに加わる
+            }
+            // 版841：カウンター：奪った直後は、ボールより前・前線の選手が一気にゴールへ走る（サイドは外のレーン、真ん中はゴール前へ）。持つ人の両側を追い越して数で上回る
+            if (S.counter > 0 && s.line >= 1 && !p.run && own && own.team === tm.ti && own !== p && (fx(tm.ti, p.x) > bxf - 8 || s.last)) {
+              tx = Math.max(tx, Math.min(offL - 0.5, bxf + 12)); ty = wide ? GOAL_Y + Math.sign(s.y - GOAL_Y) * 19 : GOAL_Y + (ty - GOAL_Y) * 0.5; u = true;
+              if (globalThis.__ctDbg) globalThis.__ctDbg.run++; }
+            // 版841：攻めている時の備え：CBは上がりすぎない（ボールから20m後ろまで）。両SBが上がっている時は、ボールと逆のSBが内へ絞って残る
+            if (s.line === 0 && !(p.ovUntil > S.t) && bxf > L / 2 && !(S.counter > 0)) {
+              if (!wide) tx = Math.min(tx, Math.max(L / 2 - 8, bxf - 20));
+              else if (Math.sign(b.y - GOAL_Y) !== Math.sign(s.y - GOAL_Y)) { const other = tm.players.find((m) => m !== p && !m.off && m.slot && m.slot.line === 0 && Math.abs(m.slot.y - GOAL_Y) >= 9 && Math.sign(m.slot.y - GOAL_Y) !== Math.sign(s.y - GOAL_Y));
+                if (other && (fx(tm.ti, other.x) > bxf - 12 || other.ovUntil > S.t)) { tx = Math.min(tx, bxf - 16); ty += (GOAL_Y - ty) * 0.45; } }
             }
             // 味方と重なりすぎない
             for (const m of tm.players) {
@@ -2979,6 +2997,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
 
     function decide(p) {
       const b = S.ball, tm = T[p.team];
+      const PAT = S.counter > 0 && S.poss === p.team ? Math.min(0.15, tm.pat) : tm.pat;   // 版841：カウンターの間は、つながずに速く前へ
       if (globalThis.__mdE && p.uniq === 'midori') globalThis.__mdE.push([+fx(p.team, p.x).toFixed(0), S.setPiece ? 1 : 0, S.oneTouch ? 1 : 0]);
       if ((p.kgPin || 0) > S.t && !p.gk && !S.setPiece) {   // 影縫い（凸）：縫い止められている間は前を向けない。少しこらえてから、後ろの味方へ戻すだけ
         const back = mates(p).filter((q) => !q.off && !q.gk && fx(p.team, q.x) < fx(p.team, p.x) - 2 && hyp(q.x - p.x, q.y - p.y) < 30 && nearestOpp(q, q.x, q.y).d > 3).sort((a, c) => nearestOpp(c, c.x, c.y).d - nearestOpp(a, a.x, a.y).d)[0];
@@ -3203,7 +3222,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         const spaceBehind = L - offL > 8 && fx(p.team, q.x) > offL - 7 && fx(p.team, q.x) > xf - 2 && !q.gk;
         const isPasser = p.type === 'パサー';
         let through = !otR && ((q.run > 0 && fx(p.team, q.x) > offL - ((q.aoRun || 0) > S.t && uOn(p, 'aonoouza') ? 7 : 4)) || (spaceBehind && hrReady) || (spaceBehind && L - offL > 12 && (isPasser ? p.vision > 40 && R.next() < (p.vision - 30) / 50 * 0.6 : p.vision > 50 && R.next() < (p.vision - 45) / 55 * 0.4)));
-        if (through && !hrReady && tm.pat > 0 && L - offL < 16 && R.next() < 0.8 * tm.pat) through = false;   // 版840：つなぐチームは、裏が広く空いていなければ、走る味方の足もとへ（何でもスルーパスにしない）
+        if (through && !hrReady && PAT > 0 && L - offL < 16 && R.next() < 0.8 * PAT) through = false;   // 版840：つなぐチームは、裏が広く空いていなければ、走る味方の足もとへ（何でもスルーパスにしない）
         const lead = (through ? 1.0 : 0.35) * clamp(0.7 + p.vision * 0.005, 0.8, 1);   /* v740 判断：走る味方の先へ出せるか（低いと足元の後ろへ） */
         let px = q.x + q.vx * lead + (through ? sgn(p.team) * 3.5 : 0), py = q.y + q.vy * lead;
         if (otR) [px, py] = otSpot(p, q);
@@ -3236,7 +3255,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         if (uOn(p, 'aonoouza') && (q.aoRun || 0) > S.t) danger *= 0.35;   // 蒼の王座：穴へ走り込む味方への1本は、すき間を通せる
         // うまい選手ほど危ないパスを嫌い、確実につなぐ（Sクラスのビルドアップ）
         const care = 1.35 + Math.max(0, p.vision - 50) / 38, careS = 1 + Math.max(0, p.vision - 50) / CARE_S;
-        let v = 0.6 + (pxf - xf) * (1 - 0.45 * tm.pat) * (0.06 + Math.max(0, p.vision - 50) * 0.0009 + (S.counter > 0 ? 0.04 : 0) + DOM[p.team] * 0.06 + vert) + Math.min(recvOpp, 9) * 0.13 * careS - danger * 2.4 * care * (1 + 0.5 * tm.pat) * (1 - DOM[p.team] * 0.6) * (isPasser ? 0.85 : 1) - (d > 30 ? 0.5 : 0);
+        let v = 0.6 + (pxf - xf) * (1 - 0.45 * PAT) * (0.06 + Math.max(0, p.vision - 50) * 0.0009 + (S.counter > 0 ? 0.04 : 0) + DOM[p.team] * 0.06 + vert) + Math.min(recvOpp, 9) * 0.13 * careS - danger * 2.4 * care * (1 + 0.5 * PAT) * (1 - DOM[p.team] * 0.6) * (isPasser ? 0.85 : 1) - (d > 30 ? 0.5 : 0);
         if (pxf > L - 18 && Math.abs(py - GOAL_Y) < 20) v += 0.5;
         if (S.dribbleMode === 'carry' && p.carryFW === q.idx && danger < 0.5) v += 0.45;   // 運びながら意識していた前のFWへ、コースが空いた瞬間に縦パス
         if (tm.tac.side) v += Math.abs(py - GOAL_Y) > 14 ? tm.tac.side * 0.3 : -tm.tac.side * 0.15;
@@ -3293,15 +3312,16 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         const vital = xf > L - 38;
         if (vital && pxf < xf - 3) v -= pressure >= 2 ? 0.5 : 1.5;
         // 前が空いているのに横・後ろへ回さない（判断力が低い選手でも、ここは分かる）
-        if (frontSpace >= 5 && pressure <= 1 && xf > L / 2 - 15) { const k0 = 1 - 0.55 * tm.pat; if (pxf < xf - 3) v -= 2.2 * k0; else if (pxf < xf + 3) v -= 1.4 * k0; else if (!through) v -= 0.4 * k0; }
-        // 版840：つなぐサッカー（チームのつなぐ力 tm.pat）。前が詰まっている・寄せられている時は、空いている横・後ろの味方へつないでやり直す
-        { const P = tm.pat, safe = danger < 0.25 && recvOpp > 4.5;
+        if (frontSpace >= 5 && pressure <= 1 && xf > L / 2 - 15) { const k0 = 1 - 0.55 * PAT; if (pxf < xf - 3) v -= 2.2 * k0; else if (pxf < xf + 3) v -= 1.4 * k0; else if (!through) v -= 0.4 * k0; }
+        // 版840：つなぐサッカー（チームのつなぐ力 PAT）。前が詰まっている・寄せられている時は、空いている横・後ろの味方へつないでやり直す
+        { const P = PAT, safe = danger < 0.25 && recvOpp > 4.5;
           if (P > 0 && safe && pxf <= xf + 3) v += P * (frontSpace < 5 || pressure >= 1 ? 1.1 : 0.45) * (vital ? 0.6 : 1);
           if (P > 0 && safe && pxf < xf - 3 && xf < L / 2 + 12) v += P * 0.7;   // 組み立て：CB・GKへ戻してやり直す
           if (P > 0 && Math.abs(py - p.y) > 22 && recvOpp > 7 && danger < 0.4) v += P * 1.0;   // 逆サイドへ大きく展開
           if (P > 0 && xf > L - 36 && d < 14 && danger < 0.4 && pxf > xf - 8) v += P * 0.55;   // ゴール前の短いつなぎ（ワンツー・3人目）
           if (S.t - (p.beatT ?? -9) < 1.6 && danger < 0.6 && !(p.uniq && p.uOn > S.t)) v += 0.8; }   // 1人引きつけて抜いたら、空いた味方へはたく
         if (pxf > xf + 3) v += 0.02 * Math.min(20, pxf - xf);   // 前へのパスは、だれでも少し評価する
+        if (S.counter > 0 && S.poss === p.team && pxf > xf + 4 && danger < 0.7 && !qOff) v += 0.9 + (q.run > 0 || fx(p.team, q.x) > xf + 8 ? 0.5 : 0);   // 版841：カウンター：前を走る味方へ、速く
         // ワンツー：さっき預けてくれた味方が前へ走り込んでいたら、すぐ返す
         const pair = (S.passHist || []).filter((h) => S.t - h.t < 14 && ((h.a === p.idx && h.b === q.idx) || (h.a === q.idx && h.b === p.idx))).length;
         if (otR && S.t - S.oneTwo.t < 4 && pair < 3) v += 1.6 + (p.pass + p.vision) / 70;
@@ -3344,9 +3364,9 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         if (xf > L - 28 && !skZ(p, 'controlShot') && Math.abs(p.y - GOAL_Y) > 4 && Math.sign(dy2) === Math.sign(p.y - GOAL_Y)) dy2 = Math.sign(dy2) * Math.min(Math.abs(dy2) * 0.25, Math.abs(dir[1]) * 0.3) + (GOAL_Y - p.y) / (Math.abs(p.y - GOAL_Y) || 1) * 0.15;
         // 相手のバイタルエリアで前が空いていれば、どんどん仕掛ける
         if (xf > L - 38 && space > 4) w *= 1.8;
-        w *= 1 - 0.35 * tm.pat;   // 版840：つなぐチームほど、まずパス（ドリブルは空いた時・相手を引きつける時）
+        w *= 1 - 0.35 * PAT;   // 版840：つなぐチームほど、まずパス（ドリブルは空いた時・相手を引きつける時）
         if (S.t - (p.beatT ?? -9) < 1.6 && !(p.uniq && p.uOn > S.t) && !(xf > L - 22 && space > 7)) w *= 0.4;   // 版840：1人抜いたら、続けて何人も抜きにいかず、はたく（固有スキルの間は別）
-        else if (xf > L / 2 - 15 && space >= 5 && pressure <= 1) w *= (pressure ? 2.2 : 3.6) * (1 - 0.45 * tm.pat);   // 版840：つなぐチームは、むやみに運ばない   // 前が空いている：横パスより、まず縦に運ぶ
+        else if (xf > L / 2 - 15 && space >= 5 && pressure <= 1) w *= (pressure ? 2.2 : 3.6) * (1 - 0.45 * PAT);   // 版840：つなぐチームは、むやみに運ばない   // 前が空いている：横パスより、まず縦に運ぶ
         // ドリブルは2種類
         //  突破のドリブル：前へ速く・ボールを大きく押し出す・緩急で抜く（前が空いている時、相手陣、高速ドリブル・カットインを持つ選手）
         //  運ぶドリブル　：ボールを足元から離さず、360°どこへでも動いてキープ（囲まれている・前に相手・自陣）
@@ -4317,7 +4337,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         S.passStreak[prevTeam] = 0;
         // 奪った瞬間、相手の守備が整っていなければカウンター（前へのパス・裏への走りが増える）
         const behind = opps(p).filter((q) => !q.gk && fx(p.team, q.x) > fx(p.team, p.x)).length;
-        S.counter = behind <= 5 && fx(p.team, p.x) > 25 ? 4 : 0;
+        S.counter = behind <= 6 && fx(p.team, p.x) > 15 ? 6 : 0;   // 版841：4→6秒、少し自陣寄りで奪っても
+        if (S.counter && globalThis.__ctDbg) globalThis.__ctDbg.start.push({ t: S.t, team: p.team });
         if (T[p.team].urg && fx(p.team, p.x) > L / 2) stats[p.team].high_wins++;
       }
       const inOwnBox = fx(p.team, b.x) < 16.5 && Math.abs(b.y - GOAL_Y) < 20.2;
