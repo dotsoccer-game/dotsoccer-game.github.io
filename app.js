@@ -3712,7 +3712,8 @@
         else if (nb.prio) nextBanner = nb; // 大事な知らせは後で出す
       }
       if (e.type === 'goal') { oohT = -1; startGoalShow(e); SND().goal(true); goalSnd = true; setTimeout(() => { if (SND().chant(true)) { chantOn = true; chantUntil = performance.now() + 40000; } }, 1000); }   // 版730：ゴールの1秒後から、太鼓つきの応援を40秒   // 版723：ゴールの大歓声は、次のキックオフまで続ける
-      if ((e.type === 'foul' || e.type === 'offside') && speed < 16) SND().play('foul');   // 版558：本家のファールは「ピッピッ」
+      if ((e.type === 'foul' || e.type === 'offside') && speed < 16 && !match.events.some((x) => x.type === 'penalty' && Math.abs(x.t - e.t) < 0.05)) SND().play('foul');
+      if (e.type === 'penalty' && speed < 16) SND().play('pkcall');   // 版837：PKの判定は長い笛   // 版558：本家のファールは「ピッピッ」
       // 版721：「おぉー」は本当に惜しい時だけ（ポスト・バー、1対1や近くからのシュートが外れた・止められた時）。ふつうのキャッチでは鳴らさない
       if (e.type === 'shot') { lastShotEv = e; lastShotSimT = e.t; }
       if (e.type === 'shot' && speed < 16) { SND().play('shot'); if (!e.on && (e.one || e.d < 11)) oohT = e.t + 0.45; }

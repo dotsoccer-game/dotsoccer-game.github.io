@@ -951,7 +951,7 @@
     const opps = (p) => T[1 - p.team].players;
     function maxSpeed(p) {
       const st = 0.7 + 0.3 * (p.cur / 100);
-      return (4.4 + p.speed * 0.047) * st * (p.stun > 0 ? 0.45 : 1) * ((p.mtSlow || 0) > S.t ? 0.8 : 1) * (p.uniq && p.uOn > S.t ? uSpd(p) : 1) * (p.mtCharge && p.uOn > S.t ? 1.15 : 1) * ((p.mtHeld || 0) > S.t ? 0.25 : 1) * ((p.kgPin || 0) > S.t ? 0.08 : 1) * ((p.kgSlow || 0) > S.t ? 0.65 : 1) * ((p.hariT || 0) > S.t ? 1.22 : 1) * ((p.byT || 0) > S.t ? (p.byLv >= 2 ? 1.12 : 1.06) : 1) * ((p.byRunT || 0) > S.t ? (p.byRunLv >= 2 ? 1.2 : 1.15) : 1) * ((p.uzT || 0) > S.t ? 1.15 : 1) * ((p.aoFast || 0) > S.t || (p.aoKeepFast && S.ball.owner === p.idx) ? 1.15 : 1) * ((p.aoShield || 0) > S.t ? 0.3 : 1) * (S.lcStep && S.lcStep.mode === 'up' && S.lcStep.team === p.team && S.lcStep.until > S.t && p.position === 'DF' ? (S.lcStep.trap ? 1.55 : 1.2) : 1);   // オフサイドトラップ：一斉に鋭く押し上げる   // S（90台）は約8.7m/s、E（40台）は約6.4m/s
+      return (4.4 + p.speed * 0.047) * st * ((p.recUntil || 0) > S.t ? 1.1 : 1) * ((p.ovUntil || 0) > S.t ? 1.06 : 1) * (p.stun > 0 ? 0.45 : 1) * ((p.mtSlow || 0) > S.t ? 0.8 : 1) * (p.uniq && p.uOn > S.t ? uSpd(p) : 1) * (p.mtCharge && p.uOn > S.t ? 1.15 : 1) * ((p.mtHeld || 0) > S.t ? 0.25 : 1) * ((p.kgPin || 0) > S.t ? 0.08 : 1) * ((p.kgSlow || 0) > S.t ? 0.65 : 1) * ((p.hariT || 0) > S.t ? 1.22 : 1) * ((p.byT || 0) > S.t ? (p.byLv >= 2 ? 1.12 : 1.06) : 1) * ((p.byRunT || 0) > S.t ? (p.byRunLv >= 2 ? 1.2 : 1.15) : 1) * ((p.uzT || 0) > S.t ? 1.15 : 1) * ((p.aoFast || 0) > S.t || (p.aoKeepFast && S.ball.owner === p.idx) ? 1.15 : 1) * ((p.aoShield || 0) > S.t ? 0.3 : 1) * (S.lcStep && S.lcStep.mode === 'up' && S.lcStep.team === p.team && S.lcStep.until > S.t && p.position === 'DF' ? (S.lcStep.trap ? 1.55 : 1.2) : 1);   // オフサイドトラップ：一斉に鋭く押し上げる   // S（90台）は約8.7m/s、E（40台）は約6.4m/s
     }
     // 固有スキルが出ている間の速さ
     // 紫電の遊戯：運ぶ向きは縦が基本（横にも行くが、後ろへは戻らない）。ゴール前20m以内では、シュートコースを開けるための切り返し（後ろ向き）もあり
@@ -1435,6 +1435,7 @@
 
       for (const tm of T) {
         const attacking = S.poss === tm.ti;
+        if (attacking) tm.atkT = S.t;   // 版837：最後に攻めていた時刻（ボールを失った直後を知るため）
         const Lx = lineX(tm, attacking);
         const bxf = fx(tm.ti, b.x);
         const shiftY = (b.y - GOAL_Y) * (attacking ? 0.28 : 0.45);
@@ -1629,6 +1630,7 @@
             }
             // 幅を取る：サイドの選手はタッチライン際に張って相手の守備を広げる
             if (wide && !p.run) ty += (p.slot.y > GOAL_Y ? 1 : -1) * (6 + tm.tac.side * 3) - shiftY * 0.5;
+            if (p.ovUntil > S.t && p.ovSide) { tx = Math.min(Math.max(tx, bxf + 9), offL - 1); ty = GOAL_Y + p.ovSide * 29; u = true; }   // 版837：オーバーラップの走り（ボールの外側を追い越す）
             // サイドの深い所にボール → ゴール前へ飛び込む（ニア・ファー・こぼれ球）
             const bWide = bxf > L - 32 && Math.abs(b.y - GOAL_Y) > 11;
             if (bWide && (!own || own.idx !== p.idx)) {
@@ -1787,6 +1789,10 @@
               if (dq && !p.gk && !globalThis.__dcNoFollow) { const gx = fx(tm.ti, 0), gl2 = hyp(gx - dq.x, GOAL_Y - dq.y) || 1; const ax = dq.x + (dq.vx || 0) * 0.7, ay = dq.y + ((dq.dcY || dq.y) - dq.y) * 0.25 + (dq.vy || 0) * 0.4; tx = fx(tm.ti, ax + (gx - ax) / gl2 * 1.1); ty = ay + (GOAL_Y - ay) / gl2 * 1.1; u = true; }
             }
             if (skZ(p, 'recovery') && fx(tm.ti, p.x) > bxf + 4) u = true;   // 帰陣ダッシュ：ボールより前に残っていたら全力で戻る
+            // 版837：帰陣ダッシュ（目に見える形に）：ボールを失った直後、ボールより前にいたら、すぐにボールより後ろ（ゴール側）へ一直線に全力で戻る。少し速くなる
+            if (p.sk.has('recovery') && !p.gk && !S.restart && !S.setPiece && S.t - (tm.atkT ?? -9) < 1.5 && fx(tm.ti, p.x) > bxf + 3 && !(p.recUntil > S.t) && S.t > (p.recNext || 0)) {
+              p.recUntil = S.t + R.range(2.6, 3.4); p.recNext = p.recUntil + R.range(5, 8); act(p, 'skill', 1.2, { k: 'recovery' }); if (globalThis.__tyDbg) globalThis.__tyDbg.rec = (globalThis.__tyDbg.rec || 0) + 1; }
+            if (p.recUntil > S.t && !pressers.has(p.idx)) { if (fx(tm.ti, p.x) > bxf - 4) { tx = Math.min(tx, bxf - 5); ty += (b.y - ty) * 0.25; } else p.recUntil = 0; u = true; }
             if (pressers.has(p.idx)) {
               // ボール保持者へ寄せる：ゴール側から間合いを詰める（抜かれにくい位置）
               const tgt = own || b, gx0 = fx(tm.ti, 0);
@@ -2117,6 +2123,12 @@
         else if (S.poss === p.team && !p.gk && own && own.team === p.team && own !== p) {
           p.runCd -= DT;
           const xf = fx(p.team, p.x);
+          // 版837：オーバーラップ（目に見える形に）：同じサイドの味方が相手陣でボールを持ったら、その外側を後ろから全力で追い越して、タッチライン際の前のスペースへ
+          if (p.sk.has('overlap') && !(p.ovUntil > S.t) && S.t > (p.ovNext || 0) && !own.gk && !S.setPiece && !S.restart && p.slot && Math.abs(p.slot.y - GOAL_Y) > 9) {
+            const sd = Math.sign(p.slot.y - GOAL_Y), oxf = fx(p.team, own.x);
+            if (Math.sign(own.y - GOAL_Y) === sd && Math.abs(own.y - GOAL_Y) > 6 && oxf > L / 2 - 8 && oxf < L - 14 && xf < oxf + 1 && xf > oxf - 26) {
+              p.ovUntil = S.t + R.range(3, 4); p.ovNext = p.ovUntil + R.range(4, 7); p.ovSide = sd; act(p, 'skill', 1.2, { k: 'overlap' }); if (globalThis.__tyDbg) globalThis.__tyDbg.ov = (globalThis.__tyDbg.ov || 0) + 1; }
+          }
           const thr = clamp(p.run_space + T[p.team].mods.through + T[p.team].tac.through + T[p.team].urg * 35 + (T[p.team].attitude === 'defensive' ? 12 : 0), 0, 100);
           // 渦潮の囮：味方が前を向いて持ったら、裏へ全力で走る／月影の抜け出し：ボールを持った味方が近くにいたら、裏へ抜け出してスルーパスを呼び込む
           if (globalThis.__uzOpp && p.uniq === 'uzushio' && !own.gk) { const c = globalThis.__uzOpp; c.all++; if (own.position !== 'DF') c.nd++; if (own.position !== 'DF' && fx(p.team, own.x) > 62 && fx(p.team, own.x) < 90) { c.zone++; if (xf > 62) c.tz++; if (Math.abs(own.y - GOAL_Y) < 28) c.cen++; if (fx(p.team, own.x) < xf - 2) c.beh++; if (p.uCd > S.t) c.cd++; } }
@@ -3222,6 +3234,7 @@
         if (p.type === 'パサー' && xf > L - 45 && (through || ((q.run || 0) > 0 && fx(p.team, q.x) > xf))) v += 1.3;   // 版798：パサー（デブライネ）：前を向いたら、走っている味方へ決定的な1本
         if (p.type === 'パサー' && xf > L - 40 && Math.abs(p.y - GOAL_Y) > 6 && pxf > L - 14 && Math.abs(py - GOAL_Y) < 9) v += 1.5;   // 版798：パサー：ハーフスペースから、GKとDFの間へ速いクロス
         if ((q.shRun || 0) > S.t && through) v += 1.4;   // 版797：シャドーの飛び込みへ
+        if ((q.ovUntil || 0) > S.t && pxf > xf && danger < 1.2) { v += 1.4; if (globalThis.__tyDbg) globalThis.__tyDbg.ovPassV = (globalThis.__tyDbg.ovPassV || 0) + 1; }   // 版837：追い越した味方へ
         if (!globalThis.__noPullB && (q.stPullT || 0) > S.t) { v += 1.0; if (globalThis.__tyDbg) globalThis.__tyDbg.pullV = (globalThis.__tyDbg.pullV || 0) + 1; }   // 版796：プルアウェイで離れたストライカーの足元へ   // 版795：ストライカーの斜めの抜け出しへ、スルーパス
         if ((q.f9Run || 0) > S.t && p.type === '偽9番') v += 1.6 + (through ? 0.4 : 0);   // 版795：偽9番が下りて引きつけ、走り込んだ味方へ
         else if (q.position === 'FW' && mates(q).some((m) => m !== q && m.dcUntil > S.t)) v += 0.9;   // 版794：囮が引きつけている間は、空いた相棒のFWへ   // 版794：囮の走りをしているFWには出さない（引きつけた分、ほかへ）
