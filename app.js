@@ -1881,7 +1881,7 @@
   }
 
   // GKの姿勢：1/3 横っ跳び中、2/4 倒れている、5 キャッチして保持、6 パンチング
-  const diveStart = [-99, -99];
+  const diveStart = [-99, -99], highStart = [-99, -99];   // 版834：ハイボールに跳んだ時刻
   // あお向けに大の字（失点した時だけ）：いつもの正面の絵のまま、両手を横に投げ出し、脚を開いて目を閉じる（sprites/dotman.js の 'lie'）
   function lieOnBack(q, info, team) {
     const px = Math.max(1.4, 2.5 * q.s);
@@ -1927,6 +1927,13 @@
       dmFacing = null; sprite(0, H / 2, q.s, info, team, 1, 0, false, true, true, null, 0, 'front');   // 正面向き（顔はカメラ側）のまま体を横に倒し、両手を跳んだ方へ伸ばす
       ctx.restore();
       return { top: lifted.y - H * 0.7, px };
+    }
+    if (code === 7) {
+      // 版834：ハイボール：ボールに向かって踏み切り、いちばん高い所で両手をまっすぐ上へ伸ばす（キャッチ・パンチング）。影は高く跳ぶほど小さく
+      if (simT - (highStart[gi] ?? -9) > 0.9 || simT < (highStart[gi] ?? -9)) highStart[gi] = simT;
+      const u = Math.min(1, (simT - highStart[gi]) / 0.62), h = Math.sin(Math.PI * u) * 0.95, lifted = P3(p.x, p.y, h), px = Math.max(1.4, 2.5 * q.s);
+      ctx.fillStyle = 'rgba(0,30,0,0.3)'; ctx.beginPath(); ctx.ellipse(q.x, q.y - px * 0.2, (5.2 - h * 1.6) * px, (1.7 - h * 0.5) * px, 0, 0, Math.PI * 2); ctx.fill();
+      return sprite(lifted.x, lifted.y, q.s, info, team, facing, 1, false, true, true);
     }
     if (code === 6) {
       // パンチング：飛び上がって両手を突き上げる

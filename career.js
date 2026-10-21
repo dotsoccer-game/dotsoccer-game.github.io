@@ -870,7 +870,7 @@
     const st = standings(save), pos = st.findIndex((t) => t.me) + 1, id = myLgId(save);
     save.wrapped = save.season;
     const prize = save.prizePaid === save.season ? null : payPrize(save, id, pos, st.length, nx);
-    out.seasonEnd = { season: save.season, pos, from: LG[id].name, to: LG[nx].name, fromTier: LG[id].tier, toTier: LG[nx].tier, champ: pos === 1, cup: save.cup && save.cup.champion === me, prize };
+    out.seasonEnd = { season: save.season, pos, from: LG[id].name, to: LG[nx].name, fromId: id, toId: nx, fromTier: LG[id].tier, toTier: LG[nx].tier, champ: pos === 1, cup: save.cup && save.cup.champion === me, prize, rec: st[pos - 1] ? { ...st[pos - 1].stats } : null, n: st.length, post: save.post.matches.some((m) => m.a === me || m.b === me) };   // 版834：成績と、1月の試合（入れ替え戦など）に出たか
   }
   function addPrize(save, label, coins) {
     if (!save.prize || save.prize.season !== save.season) save.prize = { season: save.season, items: [] };
@@ -1107,7 +1107,8 @@
     if (save.prizePaid !== save.season) payPrize(save, fromId, pos, fin[fromId].length, myNew);   /* v762：ふつうは1月の試合が終わった時に払い済み */
     else save.lastPrize = null;
     const msg = up ? `${pos}位！${LG[myNew].name}へ昇格！` : down ? `${pos}位…${LG[myNew].name}へ降格` : LG[fromId].tier === 4 && pos === 1 ? 'D1リーグ優勝！！' : `${pos}位。${LG[fromId].name}に残留`;
-    save.history.push({ season: save.season, league: LG[fromId].name, pos, msg, cup: save.cup && save.cup.champion === me ? '国内カップ優勝' : '' });
+    { const rec = (() => { const t = (save.league && save.league.teams || []).find((x) => x.name === me); return t ? { ...t.stats } : null; })();   // 版834：監督成績用に、成績・リーグの数・行き先も残す
+      save.history.push({ season: save.season, league: LG[fromId].name, lgId: fromId, pos, n: (fin[fromId] || []).length || 0, msg, move: up ? 'up' : down ? 'dn' : 'st', to: LG[myNew].name, rec, club: save.team.name, cup: save.cup && save.cup.champion === me ? '国内カップ優勝' : '' }); }
     save.season++; save.week = 1; save.post = null;
     for (const id in save.world.leagues) for (const t of save.world.leagues[id]) if (ROSTERS[t.id]) t.lvl = lvlAt(t.id, save.season);   // 選手の成長・引退で強さが変わる
     for (const p of save.team.players) { p.fatigue = 0; p.injury = 0; }

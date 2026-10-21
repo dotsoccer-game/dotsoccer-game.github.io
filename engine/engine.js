@@ -1969,6 +1969,12 @@
         p.tackleCd = Math.max(0, p.tackleCd - DT);
         p.stun = Math.max(0, p.stun - DT);
         p.punchT = Math.max(0, (p.punchT || 0) - DT);
+        p.highT = Math.max(0, (p.highT || 0) - DT);
+        // 版834：ハイボール：出ると決めたGKは、ボールが来る少し前に踏み切って、いちばん高い所で両手を伸ばして取る（パンチング）
+        if (p.gk && !(p.highT > 0) && S.gkCk && S.gkCk.g === p.idx && S.gkCk.mode !== 'stay' && S.t < S.gkCk.until && S.ball.owner < 0 && S.ball.z > 1.3 && S.ball.vz < 2) {
+          const bb = S.ball, dd = hyp(bb.x - p.x, bb.y - p.y), cs = Math.max(4, hyp(bb.vx, bb.vy));
+          if (dd < cs * 0.32 + 0.6) { p.highT = 0.62; p.highZ = bb.z; act(p, 'jump', 0.62); }
+        }
         if (p.slideT > 0) {
           p.slideT -= DT;
           p.x += p.vx * DT; p.y += p.vy * DT; p.vx *= 0.82; p.vy *= 0.82;
@@ -2449,6 +2455,7 @@
         z: Math.max(b.z, 0.1), vz, spin, bs, knuckle, wob: 0, wobW: null, curveAll, curlP: kind === 'pass' && !loft && !!spin && opt.spinSign != null, aimY: ty, drive: driveG, driveUp, driveOn,
         lastTeam: p.team, lastPlayer: p.idx, kicker: p.idx, kickKind: kind, style: kind === 'shot' ? 'shot' : loft ? (typeof loft === 'string' ? loft : 'drive') : 'ground',
       });
+      if (kind === 'pass' && loft && !S.restart && !(S.gkCk && S.t < S.gkCk.until)) gkHighCall(p, b);   // 版834：浮き球のクロス・放り込みに、GKが出るか決める
       p.touchCd = 0.6; p.hold = false; p.dO = 0.5; p.dV = 0; p.settle = false;
       S.dribbleDir = null;
       S.kickRec = p.idx;   // キックのモーション用
@@ -3812,6 +3819,27 @@
 
     // CKに対するGKの判断：出てキャッチ／パンチング／判断ミス（かぶる）／出ずにゴールを守る
     // ジャンプ力（届く高さ）・判断力（出るかどうか）・テクニック（キャッチの確かさ）で決まる
+    // 版834：流れの中のハイボール（クロス・放り込み）に対するGKの判断。CKと同じ「出てキャッチ／パンチング／かぶる／出ない」
+    //  落ちてくる場所がゴールに近いほど出る。判断力・ジャンプ力が高いほど出て、ミスも少ない。人が密集しているところはパンチングが増える
+    function gkHighCall(kk, b) {
+      let x = b.x, y = b.y, z = b.z, vx = b.vx, vy = b.vy, w = b.vz, t = 0, lx = null, ly = null, lt = 0;
+      for (let k = 0; k < 120 && t < 4; k++) { const v3 = Math.hypot(vx, vy, w); vx -= AIR * v3 * vx * 0.05; vy -= AIR * v3 * vy * 0.05; w -= (9.8 + AIR * v3 * w) * 0.05; x += vx * 0.05; y += vy * 0.05; z += w * 0.05; t += 0.05;
+        if (w < 0 && z < 3.0 && lx == null) { lx = x; ly = y; lt = t; } if (z <= 0) break; }   // 頭の上（3m）まで落ちてきた所＝GKが手を伸ばして取れる高さ
+      if (lx == null || lt < 0.5) return;
+      const dt = 1 - kk.team, g = T[dt].players.find((q) => q.gk && !q.off); if (!g) return;
+      const dx = fx(dt, lx), dy = Math.abs(ly - GOAL_Y);
+      if (dx > 16.5 || dy > 20 || dx < -0.5) return;   // ペナルティエリアの外に落ちる球は関係ない
+      const reach = hyp(lx - g.x, ly - g.y) / (maxSpeed(g) * 1.1) + 0.25; if (reach > lt + 0.15) return;   // 間に合わない球には出ない
+      const zone = dx < 6 && dy < 10 ? 0.92 : dx < 11 ? 0.55 : 0.22;   // ゴールエリア／PKスポットまで／その外
+      const crowd = P.filter((q) => !q.off && !q.gk && hyp(q.x - lx, q.y - ly) < 3).length;   // 落下点のまわりの人の数
+      const comeP = clamp(zone * (0.7 + g.vision * 0.004 + g.jump * 0.003) * (g.gkAtk ? 1.2 : 1) * (g.type === 'スイーパーキーパー' ? 1.15 : 1) - crowd * 0.05, 0, 0.97);
+      if (R.next() > comeP) return;   // 出ない（DFに任せて、ゴールを守る）
+      const miss = clamp(0.22 - g.vision * 0.0016 - g.jump * 0.0012 + crowd * 0.02, 0.03, 0.25);
+      const catchP = clamp(0.55 + g.technique * 0.004 - crowd * 0.08 - (g.sk.has('punching') ? 0.15 : 0), 0.15, 0.92);
+      const v = R.next();
+      S.gkCk = { g: g.idx, mode: v < miss ? 'miss' : v < miss + (1 - miss) * catchP ? 'claim' : 'punch', until: S.t + lt + 1.2, hb: 1 };
+      if (globalThis.__hbLog) globalThis.__hbLog.push({ t: S.t, mode: S.gkCk.mode, dx: +dx.toFixed(1), crowd });
+    }
     function gkCornerCall(tk, ck) {
       const g = T[1 - tk.team].players.find((p) => p.gk && !p.off);
       if (!g) return;
@@ -5303,7 +5331,7 @@
         else if (p.team === b.lastTeam && b.intended === p.idx && p.technique >= 55 && sp < 20 + pvB && b.z < 1.0) prob = Math.max(prob, 0.97);   // テクニックC以上：味方からの普通のパスは、まず止める   // D1・D2レベル（テクニック68以上）：味方からのパスを置き去りにするトラップミスは、ほぼしない
         if (b.tsukiP && b.kind === 'pass' && p.idx === b.intended) prob = Math.max(prob, 0.97);   // 月影の抜け出し：走りながらぴたりと収める
         if (gkHands && S.gkCk && S.gkCk.g === p.idx && S.gkCk.mode !== 'stay' && b.z > 0.8 && b.kind === 'pass') {
-          const m = S.gkCk.mode; S.gkCk = null; act(p, 'jump', 0.55);
+          const m = S.gkCk.mode; S.gkCk = null; if (!(p.highT > 0)) { p.highT = 0.45; act(p, 'jump', 0.45); }
           if (m === 'miss') { p.touchCd = 1.2; ev('gk', { team: p.team, player: p.name, act: 'miss' }); continue; }   // 目測を誤って、かぶる
           if (m === 'punch') { p.punchT = 0.5; p.touchCd = 0.6; stats[p.team].saves++; ev('save', { team: p.team, player: p.name, act: 'punch' }); punchTo(p, b, true); return; }
           gainBall(p, 'control'); ev('gk', { team: p.team, player: p.name, act: 'claim' }); return;
@@ -5386,7 +5414,7 @@
       for (const p of P) f.push(+p.x.toFixed(2), +p.y.toFixed(2), Math.round(p.cur));
       f.push(r ? (r.offside ? 8 : RESTART_CODE[r.type]) : S.celebrate > 0 ? 6 : 0, held, S.ball.drive && S.ball.kind === 'shot' && S.ball.z > 0.1 ? 4 : S.ball.knuckle && S.ball.z > 0.1 ? 1 : Math.abs(S.ball.spin || 0) > 0.3 && S.ball.z > 0.1 ? (S.ball.spin > 0 ? 2 : 3) : 0);
       // 審判・副審・カード・GKの姿勢・退場者
-      const gkCode = (g) => (g.diveT > 0 ? (g.diveDir > 0 ? 1 : 3) : g.downT > 0 ? (g.diveDir > 0 ? 2 : 4) : g.punchT > 0 ? 6 : g.hold && S.ball.owner === g.idx ? 5 : 0);
+      const gkCode = (g) => (g.diveT > 0 ? (g.diveDir > 0 ? 1 : 3) : g.downT > 0 ? (g.diveDir > 0 ? 2 : 4) : g.highT > 0 ? 7 : g.punchT > 0 ? 6 : g.hold && S.ball.owner === g.idx ? 5 : 0);   // 版834：7＝ハイボールに跳んでいる
       let gone = 0;
       for (const p of P) if (p.off && p.y > W + 2.5) gone += 2 ** p.idx;
       f.push(+ref.x.toFixed(2), +ref.y.toFixed(2), +ar[0].toFixed(2), +ar[1].toFixed(2), S.refCard && S.refCard.show ? S.refCard.code : 0, gkCode(P[0]), gkCode(P[11]), gone, side[0], r ? r.team : -1, r ? +r.x.toFixed(1) : -1, r ? +r.y.toFixed(1) : -1, +(S.ball.bs || 0).toFixed(2), S.kickRec, S.ball.owner < 0 && (S.ball.kind === 'pass') ? (S.ball.intended ?? -1) : -1);

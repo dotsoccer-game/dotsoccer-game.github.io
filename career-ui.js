@@ -1922,6 +1922,18 @@
     return new Promise((res) => { $('#crModalBody').querySelectorAll('.cr-mbtns button').forEach((el) => el.onclick = () => { $('#crModal').hidden = true; res(buttons[+el.dataset.k].value); }); });
   }
   const pname = (k) => C.PNAME[k] || k;
+  // 版834：新しいデザインの結果カード（覚醒の画面と同じ見た目：青い帯の見出し・白い枠・大きいボタン）。画面に合わせて縮む
+  //  o.tag：見出しの上の小さい札　o.title：見出し　o.theme：'win'（金）・'lose'（灰）・''（青）　o.body：中身　o.btn：ボタン
+  function resCard(o) {
+    return new Promise((done) => {
+      const d = document.createElement('div'); d.className = 'rc2' + (o.who ? ' who' : '');
+      d.innerHTML = `${o.who ? `<img class="rc2-bg" src="${clubhouseBg()}" alt=""><img class="rc2-who${staffImg[o.who] ? ' art' : ''}" src="${staffFace(o.who)}" alt="">` : ''}<div class="rc2-box ${o.theme || ''}"><div class="rc2-hd">${o.tag ? `<span class="rc2-tag">${o.tag}</span>` : ''}<b>${o.title}</b></div><div class="rc2-body">${o.body}</div><div class="rc2-btns"><button class="rc2-ok">${esc(o.btn || 'OK')}</button></div></div>`;
+      (document.getElementById('app') || document.body).appendChild(d);
+      const bx = d.querySelector('.rc2-box'), fit = () => { bx.style.transform = ''; const k = Math.min(1, (d.clientWidth - 16 - (o.who ? 330 : 0)) / bx.offsetWidth, (d.clientHeight - 16) / bx.offsetHeight); bx.style.transform = `scale(${k.toFixed(3)})`; };
+      fit(); requestAnimationFrame(fit); try { faceFill(); } catch (_) {}
+      d.querySelector('.rc2-ok').onclick = (e) => { e.stopPropagation(); d.remove(); done(); };
+    });
+  }
 
   // ---------- 週をすすめる：練習 → 結果 → 試合 ----------
   // 1人の特訓結果カード
@@ -2021,8 +2033,12 @@
   }
   // コーチからの報告（ケガ）
   const WHERE = { practice: 'クラブハウスでの練習中に', match: '試合中に', train: '特訓中に' };
-  async function coachNews(list) {
-    for (const n of list) await modal(`<div class="cnews"><div class="cn-face">${coachFace()}</div><div class="cn-say"><b class="cn-name">コーチ</b><p>監督！${WHERE[n.where] || ''}${esc(n.name)}がケガをしてしまいました。<br>${esc(n.kind)}で、回復には<b>${n.weeks}週間</b>必要です。</p></div></div>`, [{ label: '▶', primary: true }]);
+  async function coachNews(list) {   // 版834：ケガの知らせも、ほかの会話と同じ画面（コーチの絵＋下の帯）に
+    if (!list || !list.length) return;
+    await facesReady();
+    const F = { name: 'コーチ', face: staffFace('coach'), art: !!staffImg.coach };
+    await talkScreen(list.map((n) => ({ ...F, text: `監督！${WHERE[n.where] || ''}${n.name}がケガをしてしまいました。\n${n.kind}で、回復には${n.weeks}週間必要です。` })), `<img class="sec-bg" src="${clubhouseBg()}" alt="">`);
+    await blackClear(300);
   }
   // 1週間を終える（全体練習・疲労回復・ケガの経過 → 次の週）
   // 版478：週が変わる時、画面が一瞬うす暗くなって、新しい週を見せて、また明るくなる
@@ -2049,7 +2065,7 @@
       const pos = res.pos, id = save.league.id, nT = ((save.league && save.league.teams) || []).length || 8, lg = save.league.name, F = { name: '秘書', face: staffFace('sec'), art: !!staffImg.sec };
       const tier = (C.LG[id] || {}).tier ?? 0, byTier = (t) => (t <= 0 ? '地域2部リーグ' : t === 1 ? '地域1部リーグ' : (C.LEAGUES.find((l) => l.tier === t) || {}).name || '');
       const up = byTier(tier + 1), dn = byTier(tier - 1), z = zoneOf(id, pos - 1, nT), place = pos === 1 ? `${lg}優勝！` : `${lg}、${pos}位。`;
-      const L = [{ ...F, text: '監督、お疲れさまです。\nリーグの全日程が終了しました。' }];
+      const L = [{ ...F, text: z && (z[0] === 'ex' || (z[0] === 'up' && z[1] !== '昇格')) ? '監督、お疲れさまです。\nリーグ戦の全試合が終わりました。' : '監督、お疲れさまです。\nリーグの全日程が終了しました。' }];   // 版834：1月に入れ替え戦などがある時は、まだ「全日程」ではない
       if (id === 'd1' && pos === 1) L.push({ ...F, text: 'D1リーグ優勝！日本一ですね！\n来年も王者として、よろしくお願いします！' });
       else if (z && z[0] === 'up' && z[1] === '昇格') L.push({ ...F, text: `${place}\n来年は${up}ですね！更に厳しいスケジュールにはなりますが、よろしくお願いします！` });
       else if (z && z[0] === 'up') L.push({ ...F, text: `${place}\n1月の「${z[1]}」に出場します。\n勝ち抜けば、来年は${up}です！` });
@@ -2061,6 +2077,7 @@
       await talkScreen(L, `<img class="sec-bg" src="${clubhouseBg()}" alt="">`);
       await new Promise(async (done) => { await blackFade(250); openAssoc({ tab: 'stats', sub: { kind: 'table', id }, direct: true, onClose: async () => { await blackFade(300); done(); } }); await blackClear(300); });
     }
+    if (res.seasonEnd && res.seasonEnd.post) { await facesReady(); await talkScreen([{ name: '秘書', face: staffFace('sec'), art: !!staffImg.sec, text: '監督、お疲れさまです。\n今シーズンの全日程が終了しました。' }], `<img class="sec-bg" src="${clubhouseBg()}" alt="">`); await blackClear(250); }   // 版834：入れ替え戦などが終わってから「全日程が終了」
     if (res.seasonEnd) await seasonEndCard(res.seasonEnd);   /* 版762：自分の1月の試合が全部終わった時が、シーズンの終わり */
     if (res.renovStart) await renovTalk('start', res.renovStart);
     if (res.renovDone) await renovTalk('done', res.renovDone);
@@ -2068,7 +2085,7 @@
     if (res.season) await seasonStartCard(res.season);   /* 版762：シーズンの終わりは1月に済んでいる。3月は新シーズンの開幕 */
     if (res.season && res.season.prize && res.season.prize.total > 0) {   /* 版747：シーズンの賞金をまとめて受け取る */
       const pz = res.season.prize;
-      await modal(`<h2>シーズン${pz.season}の賞金</h2><div class="pz-list">${pz.items.map((x) => `<p><span>${esc(x.label)}</span><b>${DCOIN}${x.coins.toLocaleString()}</b></p>`).join('')}</div><h2 class="coin big">合計 ${DCOIN}+${pz.total.toLocaleString()} Dコイン</h2>`, [{ label: '受け取る', primary: true }]);
+      await resCard({ tag: `シーズン${pz.season}`, title: 'シーズンの賞金', theme: 'win', body: prizeHTML(pz), btn: '受け取る' });
     }
     const cs = C.campState(save);
     if (res.campStart && cs) { const summer = cs.name === '夏合宿';
@@ -2161,7 +2178,7 @@
         el.className = '';
         try { const kk = C.kitsFor(save, op.name, meta.kitSel, meta.oppSel); crowdCol = meta.home ? [kk[0].shirt, kk[1].shirt] : [kk[1].shirt, kk[0].shirt]; } catch (_) {}   // 版604：観客の服（ホームのサポーターが多い）
         const tt = totoOf(op, meta);
-        const sub = (nm, side, lg) => { const rk = rankOf(nm); return `<div class="vs-sub">${side}${lgBadge(lg)}${rk ? `<b>${rk}位</b>` : ''}</div>`; };
+        const sub = (nm, side, lg) => { const rk = meta.online ? 0 : rankOf(nm); return `<div class="vs-sub">${side}${lgBadge(lg)}${rk ? `<b>${rk}位</b>` : ''}</div>`; };
         el.innerHTML = `<canvas width="1280" height="720"></canvas><div class="vs2">
           <div class="vs-top">${title}</div>
           <div class="vs-row h"><div class="vs-ban"><img src="${emblemURL(home.name, 96)}" alt=""><b>${esc(home.name)}</b></div>${sub(home.name, 'HOME', lgH)}</div>
@@ -3310,10 +3327,32 @@
         ${ace.length ? `<div class="tv-rh">注目の選手</div>${ace.map((q) => `<div class="tv-ace" data-pi="${cpuList(t.id).indexOf(q)}" data-tid="${t.id}">${(C.faceKeyOf(t.id, q) ? starPic(C.faceKeyOf(t.id, q), shirt, q.pos === 'GK', 'tv-af') : '')}<div><b>${esc(q.name)}</b><small>${esc(q.pos)}・${esc(q.type)}</small>${starHTML(C.starOf(t.id, q), C.totsuOf(t.id, q), 'sm')}</div></div>`).join('')}` : ''}</div>
     </div></div></div>`;
   }
+  // 版834：監督成績（作り込み）。左に監督のプロフィールとタイトル、右に通算成績・今シーズン・シーズンごとの成績・クラブの得点ランキング
   function mgrHTML() {
-    const lg = save.league, st = C.standings(save), pos = st.findIndex((t) => t.me) + 1, me = st.find((t) => t.me);
-    const hist = save.history.length ? save.history.map((h) => `<div class="mg-row"><span>シーズン${h.season}</span><span>${esc(h.league)}</span><span>${esc(h.msg)}</span><span>${esc(h.cup || '')}</span></div>`).join('') : '<p class="std-soon">まだありません</p>';
-    return `<div class="std-body"><div class="std-h"><span>監督成績</span></div><div class="mgr">${save.manager ? `<div class="mg-name">監督　<b>${esc(save.manager)}</b></div>` : ''}<div class="mg-now"><b>シーズン${save.season}</b>　${esc(lg.name)}　<b>${pos}位</b>（${me.stats.W}勝 ${me.stats.D}分 ${me.stats.L}敗）</div><div class="mg-h">これまでのシーズン</div>${hist}<p class="std-soon">監督成績は、これから作り込みます。</p></div></div>`;
+    const lg = save.league, st = C.standings(save), pos = st.findIndex((t) => t.me) + 1, me = st.find((t) => t.me) || { stats: { W: 0, D: 0, L: 0, GF: 0, GA: 0, Pts: 0, P: 0 } }, cur = me.stats;
+    const H = save.history || [], tro = save.trophies || [], on = save.online || {};
+    const tot = { W: cur.W, D: cur.D, L: cur.L, GF: cur.GF, GA: cur.GA };
+    for (const h of H) if (h.rec) for (const k in tot) tot[k] += h.rec[k] || 0;
+    const games = tot.W + tot.D + tot.L, wr = games ? Math.round(tot.W / games * 100) : 0;
+    const nLg = tro.filter((t) => t.kind === 'league').length, nCup = tro.filter((t) => t.kind === 'cup').length, nUp = H.filter((h) => h.move === 'up' || /昇格/.test(h.msg || '')).length;
+    const lgIdOf = (name) => (C.LEAGUES.find((l) => l.name === name) || {}).id || Object.keys(C.LG).find((k) => C.LG[k].name === name) || '';
+    const mv = (h) => { const m = h.move || (/昇格/.test(h.msg) ? 'up' : /降格/.test(h.msg) ? 'dn' : 'st'); return `<b class="mg-mv ${m}">${m === 'up' ? '昇格' : m === 'dn' ? '降格' : '残留'}</b>`; };
+    const rows = H.slice().reverse().map((h) => { const id = h.lgId || lgIdOf(h.league), r = h.rec;
+      return `<tr><td>${h.season}</td><td class="lg">${id ? lgBadge(id) : ''}${esc(h.league)}</td><td class="ps${h.pos === 1 ? ' g' : ''}">${h.pos}位</td><td>${r ? `${r.W}勝${r.D}分${r.L}敗` : '—'}</td><td>${r ? `${r.GF}−${r.GA}` : '—'}</td><td>${mv(h)}</td><td>${h.cup ? '<b class="mg-cup">🏆 カップ</b>' : ''}</td></tr>`; }).join('');
+    // クラブの得点ランキング（今いる選手の、このクラブでの通算）
+    const club = save.team.short || save.team.name, all = [...save.team.players, ...(save.reserve || [])];
+    const sc = all.map((p) => { let G = 0, A = 0, P = 0; for (const k in p.rec || {}) { const r = p.rec[k]; if (r.club === club) { G += r.G || 0; A += r.A || 0; P += r.P || 0; } } return { p, G, A, P }; }).filter((x) => x.P > 0).sort((a, b) => b.G - a.G || b.A - a.A).slice(0, 5);
+    const trCups = `${Array.from({ length: Math.min(nLg, 6) }, () => `<img src="${trophyImg('league')}" alt="">`).join('')}${Array.from({ length: Math.min(nCup, 6) }, () => `<img src="${trophyImg('cup')}" alt="">`).join('')}`;
+    const tile = (l, v, u) => `<div class="mg-t"><small>${l}</small><b>${v}${u ? `<em>${u}</em>` : ''}</b></div>`;
+    return `<div class="std-body"><div class="std-h"><span>監督成績</span></div><div class="mg2">
+      <div class="mg2-l"><div class="mg2-pf"><img class="mg2-emb" src="${emblemURL(save.team.name, 120)}" alt=""><small>監督</small><b class="mg2-nm">${esc(save.manager || '監督')}</b><span class="mg2-cl">${esc(save.team.name)}</span><span class="mg2-yr">就任 <b>${save.season}</b> 年目</span>${on.rp != null ? rankBadge(rankIdx(on.rp), true) : ''}</div>
+        <div class="mg2-tr"><div class="mg2-trh">獲得タイトル</div><div class="mg2-trc">${trCups || '<span class="none">まだありません</span>'}</div><div class="mg2-trn"><span>リーグ優勝 <b>${nLg}</b></span><span>カップ優勝 <b>${nCup}</b></span><span>昇格 <b>${nUp}</b></span></div></div></div>
+      <div class="mg2-r">
+        <div class="mg2-sh">通算成績</div><div class="mg-ts">${tile('試合', games)}${tile('勝ち', tot.W)}${tile('分け', tot.D)}${tile('負け', tot.L)}${tile('勝率', wr, '%')}${tile('得点', tot.GF)}${tile('失点', tot.GA)}</div>
+        <div class="mg2-sh">今シーズン</div><div class="mg2-now">${lgBadge(save.world && save.world.me || lg.id)}<b>${esc(lg.name)}</b><span class="ps">${pos}位</span><span>${cur.W}勝 ${cur.D}分 ${cur.L}敗</span><span>得点 ${cur.GF}・失点 ${cur.GA}</span><span>勝ち点 <b>${cur.Pts}</b></span></div>
+        <div class="mg2-sh">これまでのシーズン</div>${rows ? `<table class="mg2-tb"><tr><th>シーズン</th><th>リーグ</th><th>順位</th><th>成績</th><th>得失</th><th>結果</th><th></th></tr>${rows}</table>` : '<p class="std-soon">まだありません（シーズンが終わると、ここに残ります）</p>'}
+        <div class="mg2-sh">クラブの得点ランキング（今の選手の通算）</div>${sc.length ? `<div class="mg2-sc">${sc.map((x, k) => `<div><i>${k + 1}</i><b>${esc(x.p.name)}</b><small>${esc(x.p.position || '')}</small><span>${x.G}<em>点</em></span><span>${x.A}<em>アシスト</em></span><span>${x.P}<em>試合</em></span></div>`).join('')}</div>` : '<p class="std-soon">まだ公式戦の記録がありません</p>'}
+      </div></div></div>`;
   }
   let assocBefore = null;   // 試合の前の順位（順位表の矢印）
 
@@ -3443,7 +3482,7 @@
     const ps = save.team.players.slice(0, 11).filter((p) => !p.gk && p.position !== 'GK'), p = ps[Math.floor(Math.random() * ps.length)] || save.team.players[0];
     const name = save.team.name, title = ch.kind === 'cup' ? '国内カップ' : ch.title;
     const lines = [];
-    if (ch.kind === 'league' && ch.last) lines.push({ name: p.name, face: faceOf(p), text: 'リーグ戦の全日程が終了しました。' });
+    if (ch.kind === 'league' && ch.last) lines.push({ name: p.name, face: faceOf(p), text: 'リーグ戦の全試合が終わりました。' });   // 版834：「全日程が終了」は1月の入れ替え戦などが終わった後
     lines.push({ name: p.name, face: faceOf(p), text: `監督、${title}を制覇しましたね！\n${name}でプレーできて幸せです。` });
     await talkScreen(lines, `<img class="sec-bg" src="${clubhouseBg()}" alt="">`);
     await trophyRoom(ch);
@@ -3488,11 +3527,16 @@
       box.querySelector('.cp-ok').onclick = async (e) => { e.stopPropagation(); await blackFade(250); el.hidden = true; res(); blackClear(300); };
     });
   }
+  // 版834：賞金の表（新しいデザイン）
+  const prizeHTML = (pz) => `<div class="rc2-sec"><div class="rc2-sh dk">シーズンの賞金</div><div class="rc2-pz">${pz.items.map((x) => `<p><span>${esc(x.label)}</span><em>${DCOIN}${x.coins.toLocaleString()}</em></p>`).join('')}<p class="tot"><span>合計</span><em>${DCOIN}+${pz.total.toLocaleString()}</em></p></div></div>`;
+  // 版834：シーズン終了の画面（新しいデザイン）：見出し・リーグの移動（昇格／残留／降格）・成績・賞金
   function seasonEndCard(se) {
-    const up = se.toTier > se.fromTier, dn = se.toTier < se.fromTier, st = up ? ['up', '昇格'] : dn ? ['dn', '降格'] : ['st', '残留'];
-    const pz = se.prize && se.prize.total > 0 ? `<div class="sn-pz"><b class="sn-pzh">シーズンの賞金</b>${se.prize.items.map((x) => `<p><span>${esc(x.label)}</span><em>${DCOIN}${x.coins.toLocaleString()}</em></p>`).join('')}<p class="sn-tot"><span>合計</span><em>${DCOIN}+${se.prize.total.toLocaleString()}</em></p></div>` : '';
-    return storyCard({ theme: up ? 'win' : dn ? 'lose' : '', tag: `シーズン${se.season} 終了`, title: se.champ ? `${esc(se.from)} 優勝！` : `${esc(se.from)} ${se.pos}位`,
-      body: `<div class="sn-move"><span>${esc(se.from)}</span><i>→</i><span class="nx">${esc(se.to)}</span><b class="sn-st ${st[0]}">${st[1]}</b></div>${se.cup ? '<p class="sn-cup">🏆 国内カップ 優勝</p>' : ''}${pz}<p class="cp-msg sn-msg">${up ? '来年は新しいリーグです。春季キャンプで力をつけましょう！' : dn ? 'また上を目指して、チームを鍛え直しましょう。' : '春季キャンプで力をつけて、来年こそ上を目指しましょう！'}</p>`, btn: 'OK' });
+    const up = se.toTier > se.fromTier, dn = se.toTier < se.fromTier, st = up ? ['up', '昇格'] : dn ? ['dn', '降格'] : ['st', '残留'], r = se.rec;
+    const body = `<div class="rc2-move">${se.fromId ? lgBadge(se.fromId) : ''}<span>${esc(se.from)}</span><i>▶</i>${se.toId ? lgBadge(se.toId) : ''}<span class="nx">${esc(se.to)}</span><b class="rc2-st ${st[0]}">${st[1]}</b></div>
+      <div class="rc2-recs"><div><small>順位</small><b>${se.pos}<em>位</em></b></div>${r ? `<div><small>成績</small><b>${r.W}<em>勝</em>${r.D}<em>分</em>${r.L}<em>敗</em></b></div><div><small>得点・失点</small><b>${r.GF}<em>−</em>${r.GA}</b></div><div><small>勝ち点</small><b>${r.Pts}</b></div>` : ''}</div>
+      ${se.cup ? '<div class="rc2-ban up">🏆 国内カップ 優勝</div>' : ''}${se.prize && se.prize.total > 0 ? prizeHTML(se.prize) : ''}
+      <p class="rc2-note">${up ? '来年は新しいリーグです。春季キャンプで力をつけましょう！' : dn ? 'また上を目指して、チームを鍛え直しましょう。' : '春季キャンプで力をつけて、来年こそ上を目指しましょう！'}</p>`;
+    return resCard({ tag: `シーズン${se.season} 終了`, title: se.champ ? `${esc(se.from)} 優勝！` : `${esc(se.from)} ${se.pos}位`, theme: se.champ || up ? 'win' : dn ? 'lose' : '', body, who: 'sec' });
   }
   function seasonStartCard(se) {
     const ti = (se.titles || []).map((x) => x.mine ? `<p class="cr-learn">★ ${esc(x.name)}が「国内屈指の${esc(x.type)}」になった！</p>` : x.lost ? `<p>${esc(x.lost)}は「国内屈指の${esc(x.type)}」ではなくなった…（${esc(x.team)}の${esc(x.name)}へ）</p>` : `<p class="sn-t">国内屈指の${esc(x.type)}：${esc(x.team)}の${esc(x.name)}</p>`).join('');
@@ -4459,6 +4503,12 @@
     C.ensureGacha(save); save.kakera = (save.kakera || 0) + RW.kak; C.earnCoins(save, RW.coins);
     return { cards, kak: RW.kak, coins: RW.coins, rank: i1 };
   }
+  // 版834：スコアの段（左に自分、右に相手。エンブレムと名前、大きい数字）
+  const rcScore = (score, op) => `<div class="rc2-score"><div class="rc2-tm"><img src="${emblemURL(save.team.name, 96)}" alt=""><b>${esc(save.team.name)}</b></div><div class="rc2-sc"><b class="${score[0] > score[1] ? 'w' : ''}">${score[0]}</b><i>−</i><b class="${score[1] > score[0] ? 'w' : ''}">${score[1]}</b></div><div class="rc2-tm"><img src="${emblemURL(op.srcName || op.name, 96)}" alt=""><b>${esc(op.name)}</b></div></div>`;
+  // 版834：ライセンス取得のごほうび（新しいデザイン）
+  const rewardCard = (rw) => ({ tag: 'ライセンス取得', title: `${RANKS[rw.rank].n}ライセンス 取得のごほうび！`, theme: 'win', body: `<div class="rc2-lic">${rankBadge(rw.rank, true)}</div>
+    <div class="rc2-gifts"><div class="rc2-gift"><img src="icons/coin.png" alt=""><span>コイン</span><b>+${rw.coins}</b></div>${rw.kak ? `<div class="rc2-gift"><img src="icons/kakera.png" alt=""><span>覚醒のカケラ</span><b>+${rw.kak}</b></div>` : ''}<div class="rc2-gift"><img src="icons/cb_train.png" alt=""><span>特訓カード</span><b>${rw.cards.length}枚</b></div></div>
+    ${RANK_REWARD[rw.rank].pack ? `<p class="rc2-note">${RANK_REWARD[rw.rank].pack}つき</p>` : ''}<div class="rc2-cards">${[...new Set(rw.cards)].map((c) => { const n = rw.cards.filter((x) => x === c).length; return `<div class="rc2-cw">${artCard(c, { ups: true })}${n > 1 ? `<i>×${n}</i>` : ''}</div>`; }).join('')}</div>` });
   const rewardHTML = (rw) => `<h2>${rankBadge(rw.rank, true)} 取得のごほうび！</h2><p class="coin big">${COIN}+${rw.coins} コイン${rw.kak ? `　／　覚醒のカケラ +${rw.kak}` : ''}</p><p>特訓カード ${rw.cards.length}枚${RANK_REWARD[rw.rank].pack ? `（${RANK_REWARD[rw.rank].pack}）` : ''}</p><div class="hrow rw ap-rw">${[...new Set(rw.cards)].map((c) => { const n = rw.cards.filter((x) => x === c).length; return `<div class="ap-rwc">${artCard(c, { ups: true })}${n > 1 ? `<b>×${n}</b>` : ''}</div>`; }).join('')}</div>`;
   // ================= 版618：ポスト（フレンド申請・守備の結果・お知らせ） =================
   function ensurePost() { if (!save.mbox) save.mbox = { items: [], newsRead: {} }; return save.mbox; }   // save.post はシーズン後の大会で使っているので別の名前
@@ -4687,19 +4737,22 @@
       on.best = Math.max(on.best || 0, on.rp);
       if (op.ruid && window.DotNet && DotNet.on) { try { DotNet.report(op.ruid, { res, s: score.slice(), name: save.team.name, mgr: save.manager || '' }); } catch (_) {} }   // 版616：相手に守備の結果を届ける
       const d = on.rp - before;
-      html = `<h2>ランクマッチ　${resTxt}</h2><p class="cr-score">${esc(save.team.short)} ${score[0]} − ${score[1]} ${esc(op.short || op.name)}</p>
-        <div class="ap-rp">${rankBadge(rankIdx(on.rp), true)}<b>${on.rp} RP</b><em class="${d >= 0 ? 'up' : 'down'}">${d >= 0 ? '+' : ''}${d}</em></div>
-        ${i1 > i0 ? `<p class="ap-up">昇格！ ${RANKS[i0].n} → <b>${RANKS[i1].n}ライセンス</b></p>` : i1 < i0 ? `<p class="ap-down">降格… ${RANKS[i0].n} → ${RANKS[i1].n}ライセンス</p>` : ''}`;
+      // 版834：新しいデザインの結果カード（スコア・ライセンスとRP・次の級までのゲージ・昇格／降格）
+      const nx = RANK_AT[i1 + 1], lo = RANK_AT[i1], pct = nx ? Math.max(0, Math.min(100, Math.round((on.rp - lo) / (nx - lo) * 100))) : 100;
+      html = { tag: 'ランクマッチ', title: resTxt, theme: res === 'W' ? 'win' : res === 'L' ? 'lose' : '', body: `${rcScore(score, op)}
+        <div class="rc2-sec"><div class="rc2-sh">ライセンス</div><div class="rc2-rp">${rankBadge(i1, true)}<b class="rc2-rpn">${on.rp}<small>RP</small></b><em class="${d >= 0 ? 'up' : 'down'}">${d >= 0 ? '+' : ''}${d}</em>
+          <div class="rc2-bar"><i style="width:${pct}%;--rc:${RANKS[i1].c}"></i></div><small class="rc2-nx">${nx ? `${RANKS[i1 + 1].n}ライセンスまで あと${nx - on.rp} RP` : '最高のライセンスです'}</small></div></div>
+        ${i1 > i0 ? `<div class="rc2-ban up">昇格！　${RANKS[i0].n} ▶ <b>${RANKS[i1].n}ライセンス</b></div>` : i1 < i0 ? `<div class="rc2-ban dn">降格…　${RANKS[i0].n} ▶ ${RANKS[i1].n}ライセンス</div>` : ''}` };
     } else {
       on['f' + res.toLowerCase()]++;
       const f = on.friends.find((x) => x.name === op.srcName); if (f) { f[res.toLowerCase()] = (f[res.toLowerCase()] || 0) + 1; }
       if (op.fuid) { const g2 = (on.flist || []).find((x) => x.uid === op.fuid); if (g2) g2[res.toLowerCase()] = (g2[res.toLowerCase()] || 0) + 1; }
-      html = `<h2>フレンド対戦　${resTxt}</h2><p class="cr-score">${esc(save.team.short)} ${score[0]} − ${score[1]} ${esc(op.short || op.name)}</p>${f ? `<p>${esc(op.srcName)}との対戦成績：${f.w || 0}勝 ${f.d || 0}分 ${f.l || 0}敗</p>` : ''}`;
+      html = { tag: 'フレンド対戦', title: resTxt, theme: res === 'W' ? 'win' : res === 'L' ? 'lose' : '', body: `${rcScore(score, op)}${f ? `<p class="rc2-note">${esc(op.srcName)}との対戦成績：<b>${f.w || 0}勝 ${f.d || 0}分 ${f.l || 0}敗</b></p>` : ''}` };
     }
     store(); open(); publishMe();
     (async () => {
-      await modal(html, [{ label: 'OK', primary: true }]);
-      if (rewards) await modal(rewardHTML(rewards), [{ label: 'OK', primary: true }]);
+      await resCard(html);
+      if (rewards) await resCard(rewardCard(rewards));
       store(); try { renderHome(); } catch (_) {}
     })();
   }
@@ -5026,7 +5079,7 @@
     draw();
     if (loading) { try { const r = await DotNet.cloudInfo(code()); cloud = r ? { info: r.info, at: r.at } : null; } catch (_) { flash('通信できませんでした（クラウドの情報が読めません）'); } loading = false; if (document.body.contains(scr) && !scr.querySelector('.cs-dlg')) draw(); }
   }
-  window.__career = { playerDetail: (i, o) => playerDetail(i, o), gachaDemo: (st, pr, fx) => gachaDemo(st, pr, fx), storyCard: (o) => storyCard(o), gotCardsHTML: (got) => `<div class="gc-cards${got.length > 8 ? ' lots' : got.length > 4 ? ' many' : ''}">${got.map((c) => artCard(c, { ups: true })).join('')}</div><p class="cp-msg gc-msg">クラブハウスの「特訓」で、選手に最大3枚セットできます。</p>`, trainResult: (o) => trainResult(o), airport, openPost, syncPost, onlineDone, setVenue: (k) => { venueNow = k; }, champDemo, champAfter, coinShop, faceFill: () => faceFill(), openGacha, venueTalk: (se) => venueTalk(se), matchFace, openOffice, cpuCard, openClub, openAssoc, open, go, stadium, advance, subSheet, labMatch, townRect, tutPractice, shop, store: () => store(), renderHome: () => renderHome(), clubhouseBg: () => clubhouseBg(), isMatchWeek: () => isMatchWeek(), get view() { return view; }, staffFace: (k) => staffFace(k), get save() { return save; }, get drill() { return clubDrill; }, faceURL, starFace, setDrill(d) { clubDrill = d; drillT0 = -1; drillSnap = true; } };
+  window.__career = { playerDetail: (i, o) => playerDetail(i, o), resCard: (o) => resCard(o), seasonEndCard: (o) => seasonEndCard(o), coachNews: (l) => coachNews(l), rewardCard: (r) => rewardCard(r), gachaDemo: (st, pr, fx) => gachaDemo(st, pr, fx), storyCard: (o) => storyCard(o), gotCardsHTML: (got) => `<div class="gc-cards${got.length > 8 ? ' lots' : got.length > 4 ? ' many' : ''}">${got.map((c) => artCard(c, { ups: true })).join('')}</div><p class="cp-msg gc-msg">クラブハウスの「特訓」で、選手に最大3枚セットできます。</p>`, trainResult: (o) => trainResult(o), airport, openPost, syncPost, onlineDone, setVenue: (k) => { venueNow = k; }, champDemo, champAfter, coinShop, faceFill: () => faceFill(), openGacha, venueTalk: (se) => venueTalk(se), matchFace, openOffice, cpuCard, openClub, openAssoc, open, go, stadium, advance, subSheet, labMatch, townRect, tutPractice, shop, store: () => store(), renderHome: () => renderHome(), clubhouseBg: () => clubhouseBg(), isMatchWeek: () => isMatchWeek(), get view() { return view; }, staffFace: (k) => staffFace(k), get save() { return save; }, get drill() { return clubDrill; }, faceURL, starFace, setDrill(d) { clubDrill = d; drillT0 = -1; drillSnap = true; } };
   window.__career.openCloud = openCloud;
   window.__career.shop = (t) => shop(t); window.__career.premDaily = () => premDaily();
   window.__career.embURL = () => { try { return save ? embFromLook(C.ensureClub(save).emb, 96) : ''; } catch (_) { return ''; } };   // 版680：設定のアカウントIDの横に出す、自分のクラブのエンブレム
