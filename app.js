@@ -200,7 +200,7 @@
   const slowAt = (t) => { for (const w of bySlow) if (t >= w[0] && t < w[1]) return 0.3; return 1; };
   const viewHold = [];
   // 動きの印だけで、姿勢には使わないもの
-  const MARK = { skill: 1, win: 1, beat: 1, dmode: 1, dshot: 1, uniq: 1, uend: 1, tact: 1, tactbuf: 1, lcread: 1, gkplay: 1, myb: 1, sweep: 1, sjline: 1, taiko: 1, mthit: 1, mtrush: 1, mtslow: 1, mtpush: 1, kgon: 1, kgpin: 1, kgsew: 1, kgsh: 1, kgoff: 1, sdzap: 1, hrpass: 1, hrbuf: 1, cdon: 1, cdoff: 1, bycalm: 1, bypass: 1, bybuf: 1, byrun: 1, ksrun: 1, aopull: 1, uzpull: 1, aorun: 1, uzrun: 1, upoff: 1, aopost: 1, aopostend: 1, aoflash: 1, aopass: 1, kmfire: 1, kmshade: 1, kmshot: 1, kmrun: 1, kmpass: 1, ttgate: 1, ttwolf: 1, ttsteal: 1, ttpass: 1, mdfire: 1, mdlure: 1, mdpull: 1, mdrun: 1, mdpass: 1, mdfree: 1, mdguard: 1, mdbuff: 1 };
+  const MARK = { ovrun: 1, recrun: 1, icpt: 1, capcall: 1, capbuf: 1, pppass: 1, skill: 1, win: 1, beat: 1, dmode: 1, dshot: 1, uniq: 1, uend: 1, tact: 1, tactbuf: 1, lcread: 1, gkplay: 1, myb: 1, sweep: 1, sjline: 1, taiko: 1, mthit: 1, mtrush: 1, mtslow: 1, mtpush: 1, kgon: 1, kgpin: 1, kgsew: 1, kgsh: 1, kgoff: 1, sdzap: 1, hrpass: 1, hrbuf: 1, cdon: 1, cdoff: 1, bycalm: 1, bypass: 1, bybuf: 1, byrun: 1, ksrun: 1, aopull: 1, uzpull: 1, aorun: 1, uzrun: 1, upoff: 1, aopost: 1, aopostend: 1, aoflash: 1, aopass: 1, kmfire: 1, kmshade: 1, kmshot: 1, kmrun: 1, kmpass: 1, ttgate: 1, ttwolf: 1, ttsteal: 1, ttpass: 1, mdfire: 1, mdlure: 1, mdpull: 1, mdrun: 1, mdpass: 1, mdfree: 1, mdguard: 1, mdbuff: 1 };
   const SKILL_NAME = { offTrap: 'オフサイドトラップ', lineDrop: 'ラインを下げろ', gkPass: 'つなぐ', gkClear: 'クリア', dfClear: 'クリア', knuckle: '無回転シュート', curve: 'カーブキック', fk: 'FKマイスター', ckMaster: 'CKマイスター', longThrow: 'ロングスロー', pkMaster: 'PKの名手', wallPass: '壁パス', slide: 'スライディング', feint: 'ボディフェイント', scissors: 'シザース', doubleScissors: 'ダブルシザース', roulette: 'マルセイユルーレット', elastico: 'エラシコ', doubleTouch: 'ダブルタッチ', bodyFeint: 'ボディフェイント', nutmeg: '股抜き', speedDribble: '高速ドリブル', cutback: '切り返し', cutIn: 'カットイン', heelLift: 'ヒールリフト', kickFeint: 'キックフェイント', dribbleShot: 'ドリブルシュート', driveShot: 'ドライブシュート', volley: 'ボレー', lob: 'ループ', direct: 'ダイレクト', bicycle: 'バイシクル', divingHeader: 'ダイビングヘッド', toeKick: 'トゥーキック', nearPost: 'ニア上ぶち抜き', powerMid: '強烈ミドル', controlShot: 'コントロールショット', superLong: '超ロングシュート', throughPass: 'スルーパス', loftedThrough: '浮き球スルーパス', noLook: 'ノールックパス', oneTouchPass: 'ワンタッチパス', heelPass: 'ヒールパス', longFeed: 'ロングフィード', earlyCross: 'アーリークロス', pinpointCross: 'ピンポイントクロス', switchPlay: 'サイドチェンジ', intercept: 'インターセプト', manMark: 'マンマーク', cover: 'カバーリング', shoulder: 'ショルダーチャージ', aerial: '空中戦の鬼', shotBlock: 'シュートブロック', pressMonster: 'プレスの鬼', recovery: '帰陣ダッシュ', superReflex: '超反応', punching: 'パンチング', rushOut: '飛び出し', pkStopper: 'PKストッパー', oneOnOne: '1対1の鬼', lowThrow: '低弾道スロー', lowPunt: '低弾道パントキック', coaching: 'コーチング', behindRun: '裏への抜け出し', postPlay: 'ポストプレー', nearRun: 'ニアに飛び込む', farWait: 'ファーで待つ', overlap: 'オーバーラップ', looseBall: 'こぼれ球の嗅覚', oneTwo: 'ワンツーの名手', captaincy: 'キャプテンシー', bigStage: '大舞台に強い', lateGrit: '終盤の粘り', clutch: '勝負強さ', moodMaker: 'ムードメーカー', fighting: '闘志', calm: '冷静', ironMan: '鉄人' };
   // いま進行中の動き（ヘディング・スライディングなど）。u は 0〜1 の進み具合
   function actionAt(i) {
@@ -3248,6 +3248,18 @@
           if (!gT4 && a.a === 'ttpass' && simT - a.t < a.d) { gT4 = true; const pts = [], t1 = Math.min(simT, a.t + a.d); let ended = false, tEnd = 0;
             for (let k2 = 0; k2 <= 16; k2++) { const tt = a.t + (t1 - a.t) * k2 / 16, s2 = k2 === 16 ? st : stateAt(tt), rp = a.r != null ? s2.players[a.r] : null; if (k2 > 2 && ((s2.owner >= 0 && s2.owner !== i) || s2.code || (rp && Math.hypot(rp.x - s2.ball.x, rp.y - s2.ball.y) < 1.6))) { ended = true; tEnd = tt; break; } const bq = P3(s2.ball.x, s2.ball.y, (s2.ball.z || 0) + 0.11); pts.push([bq.x, bq.y]); }
             if (!ended || simT - tEnd < 0.25) tactFx.push(['ctrail', pts, simT - a.t, a.d, r.px || q.s * 2.6, '150,170,205', ended ? simT - tEnd : -1]); } } }
+      // 版838：スキルの効果を目に見える形に（オーバーラップ・帰陣ダッシュ・インターセプト・キャプテンシー・ピンポイントクロス）
+      { const LS = actsOf[i]; const seen = {}; if (LS) for (let k = LS.length - 1; k >= 0; k--) { const a = LS[k]; if (a.t > simT) continue; if (simT - a.t > 50) break; if (seen[a.a] || simT - a.t >= a.d) continue;
+          const px0 = r.px || q.s * 2.6, el = simT - a.t;
+          if (a.a === 'ovrun' && st.owner !== i) { seen.ovrun = 1; tactFx.push(['urun', q.x, q.y, '80,205,255', px0, el / a.d]); }
+          else if (a.a === 'recrun') { seen.recrun = 1; tactFx.push(['urun', q.x, q.y, '255,160,60', px0, el / a.d]); }
+          else if (a.a === 'icpt') { seen.icpt = 1; tactFx.push(['ring2', q.x, q.y, px0, el / a.d, '90,170,255', 1]); }
+          else if (a.a === 'capcall') { seen.capcall = 1; tactFx.push(['ring2', q.x, q.y, px0, el / a.d, '255,205,60', 1.6]); }
+          else if (a.a === 'capbuf') { seen.capbuf = 1; tactFx.push(['gbuf', q.x, q.y, px0, el, a.d, a.c]); }
+          else if (a.a === 'pppass' && el < a.d) { seen.pppass = 1; const pts = [], t1 = Math.min(simT, a.t + a.d); let ended = false, tEnd = 0;
+            for (let k2 = 0; k2 <= 16; k2++) { const tt = a.t + (t1 - a.t) * k2 / 16, s2 = k2 === 16 ? st : stateAt(tt), rp = a.r != null ? s2.players[a.r] : null; if (k2 > 2 && ((s2.owner >= 0 && s2.owner !== i) || s2.code || (rp && Math.hypot(rp.x - s2.ball.x, rp.y - s2.ball.y) < 1.6))) { ended = true; tEnd = tt; break; } const bq = P3(s2.ball.x, s2.ball.y, (s2.ball.z || 0) + 0.11); pts.push([bq.x, bq.y]); }
+            if (!ended || simT - tEnd < 0.25) { tactFx.push(['ctrail', pts, el, a.d, px0, '255,214,70', ended ? simT - tEnd : -1]); if (!ended && a.lx != null) { const g = proj(a.lx, a.ly); tactFx.push(['pptgt', g.x, g.y, px0, el, a.d]); } } }
+        } }
       // 翠の起点（むらおか・翠）：発動で翠の輪が弾け、晒している間は足もとへ吸い寄せる翠の輪。食いついた相手へ翠の点線、走り出す仲間に翠の風、裏返す1本は翠の光の尾
       { const LM = actsOf[i]; let gM1 = false, gM2 = false, gM3 = false, gM4 = false, gM5 = false; if (LM) for (let k = LM.length - 1; k >= 0; k--) { const a = LM[k]; if (a.t > simT) continue; if (simT - a.t > 8) break;
           if (!gM1 && a.a === 'mdfire' && simT - a.t < a.d) { gM1 = true; tactFx.push(['mdfire', q.x, q.y, r.px || q.s * 2.6, (simT - a.t) / a.d, a.lv || 1]); }
@@ -3539,6 +3551,22 @@
       } else if (f[0] === 'ctrail') {   // 色つきの光の尾（鉄狼の関所の縦パスなど）
         const [, pts, el, d, px0, rgb, ended] = f, px = Math.max(2.4, px0), al = Math.max(0, Math.min(1, (d - el) / 0.6, el / 0.05)) * (ended >= 0 ? Math.max(0, 1 - ended / 0.4) : 1);
         if (pts.length >= 2) { const n = pts.length, from = Math.max(0, n - 12); ctx.save(); ctx.lineCap = 'round'; for (let k = from + 1; k < n; k++) { const w = (k - from) / (n - from); ctx.strokeStyle = `rgba(${rgb},${al * w * 0.95})`; ctx.lineWidth = px * 2.4 * w + 1.5; ctx.beginPath(); ctx.moveTo(pts[k - 1][0], pts[k - 1][1]); ctx.lineTo(pts[k][0], pts[k][1]); ctx.stroke(); } ctx.restore(); }
+      } else if (f[0] === 'ring2') {   // 版838：技の瞬間に広がる色の輪（インターセプト：青、キャプテンシー：金）
+        const [, x, y, px0, u, rgb, big] = f, px = Math.max(2.4, px0), rr = px * (3 + u * 9) * big;
+        ctx.strokeStyle = `rgba(${rgb},${Math.max(0, 1 - u) * 0.95})`; ctx.lineWidth = Math.max(2, px * 0.9);
+        ctx.beginPath(); ctx.ellipse(x, y - px * 0.5, rr, rr * 0.42, 0, 0, Math.PI * 2); ctx.stroke();
+        if (u < 0.5) { ctx.fillStyle = `rgba(${rgb},${(0.5 - u) * 0.5})`; ctx.beginPath(); ctx.ellipse(x, y - px * 0.5, rr * 0.7, rr * 0.3, 0, 0, Math.PI * 2); ctx.fill(); }
+      } else if (f[0] === 'gbuf') {   // 版838：キャプテンシーの間、足もとにうっすら金の輪（キャプテンは濃く）
+        const [, x, y, px0, el, d, cap] = f, px = Math.max(2.4, px0), fade = Math.min(1, el / 0.4, (d - el) / 2), ph = (simT * 1.2) % 1;
+        ctx.strokeStyle = `rgba(255,208,70,${(cap ? 0.75 : 0.45) * fade * (0.6 + 0.4 * Math.sin(ph * Math.PI * 2))})`; ctx.lineWidth = Math.max(1.6, px * (cap ? 0.8 : 0.55));
+        ctx.beginPath(); ctx.ellipse(x, y - px * 0.4, px * 4.2, px * 1.6, 0, 0, Math.PI * 2); ctx.stroke();
+      } else if (f[0] === 'pptgt') {   // 版838：ピンポイントクロスの落ちる所：金の的（だんだん小さく絞る）
+        const [, x, y, px0, el, d] = f, px = Math.max(2.4, px0), u = Math.min(1, el / Math.max(0.6, d * 0.6)), rr = px * (7 - u * 3.5), al = Math.min(1, el / 0.15);
+        ctx.save(); ctx.strokeStyle = `rgba(255,214,70,${0.9 * al})`; ctx.lineWidth = Math.max(1.8, px * 0.6);
+        ctx.beginPath(); ctx.ellipse(x, y, rr, rr * 0.42, 0, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.ellipse(x, y, rr * 0.45, rr * 0.19, 0, 0, Math.PI * 2); ctx.stroke();
+        for (const s0 of [-1, 1]) { ctx.beginPath(); ctx.moveTo(x + s0 * rr * 1.25, y); ctx.lineTo(x + s0 * rr * 0.7, y); ctx.stroke(); ctx.beginPath(); ctx.moveTo(x, y + s0 * rr * 0.52); ctx.lineTo(x, y + s0 * rr * 0.3); ctx.stroke(); }
+        ctx.restore();
       } else if (f[0] === 'urun') {   // 走り込む・入ってくる味方：足もとに色の風の線
         const [, x, y, rgb, px0, u] = f, px = Math.max(2.4, px0), al = Math.sin(Math.min(1, u) * Math.PI) * 0.6 + 0.3;
         ctx.strokeStyle = `rgba(${rgb},${0.85 * al})`; ctx.lineWidth = Math.max(1.5, px * 0.5);
