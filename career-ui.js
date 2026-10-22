@@ -974,7 +974,7 @@
   // 選手データからは大きな窓で、特訓画面では左上にそのまま埋め込んで使う（ups：特訓で伸びる予定の分）
   let pcPage = 0;
   // 版856：総合力（12能力の平均）。固有スキルの強さもこれで決まる
-  const ovrBadge = (q) => { const v = Math.round(D.PARAMS.reduce((a, x) => a + (+q[x.k] || 0), 0) / D.PARAMS.length), g = D.grade(v); return `<em class="pc-ovr" title="総合力（12能力の平均）">総合<b class="rk rk-${g}">${g}</b><i>${v}</i></em>`; };
+  const ovrBadge = (q) => { const v = Math.round(D.PARAMS.reduce((a, x) => a + (+q[x.k] || 0), 0) / D.PARAMS.length), g = D.grade(v); return `<em class="pc-ovr" title="総合力（12能力の平均）">総合<i>${v}</i></em>`; };
   function playerCardHTML(i, ups, embed) {
     const ps = save.team.players, p = ps[i];
     C.ensurePts(p);
@@ -1449,7 +1449,7 @@
   const ovrG = (q) => { const v = resPow(q); let g = 'E'; for (const [k, t] of OVR) if (v >= t) g = k; return g; };
   // 版858：顔の横の小さな総合評価は、能力の平均（総合力）のランク（選手カード・試合の一覧と同じ）。数字は長押し・カーソルで
   const statOvr = (q) => Math.round(D.PARAMS.reduce((a, x) => a + (+q[x.k] || 0), 0) / D.PARAMS.length);
-  const ovrTag = (q, cls) => { const v = statOvr(q), g = D.grade(v); return `<i class="ovr g-${g}${cls ? ' ' + cls : ''}" title="総合力 ${v}">${g}<small>${v}</small></i>`; };
+  const ovrTag = (q, cls) => { const v = statOvr(q), g = D.grade(v); return `<i class="ovr g-${g}${cls ? ' ' + cls : ''}" title="総合力 ${v}">${v}</i>`; };
   // 顔の白い背景を抜く（ふちから続く白だけ透明に）。小さく描いてもにじまないよう、ほどよい大きさで作っておく
   const cutCache = new Map();
   function cutFace(img) {
