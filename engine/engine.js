@@ -1463,14 +1463,25 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
                 .sort((a, c) => hyp(a.x - own.x, a.y - own.y) - hyp(c.x - own.x, c.y - own.y)).slice(0, n);
               if (cand.length >= 2) {
                 const oy = own.y, sd = Math.sign(GOAL_Y - oy) || 1, cen = Math.abs(oy - GOAL_Y) < 8;
-                const spots = [[6, cen ? 7 : sd * 8], [-5, cen ? -7 : sd * 5], [11, cen ? -3 : sd * 13], [-2, cen ? 12 : -sd * 6]];
+                const spots = [[9, cen ? 9 : sd * 10], [-7, cen ? -9 : sd * 7], [14, cen ? -4 : sd * 15], [-3, cen ? 14 : -sd * 9]];
                 const used = new Set(), ids = [], spot = {};
                 for (const m of cand) { let bi = -1, bd = 1e9; spots.forEach((sp, i) => { if (used.has(i) || i >= cand.length) return; const dd = hyp(fx(tm.ti, m.x) - (ox + sp[0]), m.y - (oy + sp[1])); if (dd < bd) { bd = dd; bi = i; } }); if (bi < 0) continue; used.add(bi); ids.push(m.idx); spot[m.idx] = bi; }
                 tm.ovl = { until: S.t + R.range(5, 8), ids, spot, t0: S.t };
-                if (globalThis.__ovDbg) { globalThis.__ovDbg.n++; globalThis.__ovDbg.p += ids.length; }
+                if (globalThis.__ovDbg) { globalThis.__ovDbg.n++; globalThis.__ovDbg.p += ids.length; } if (globalThis.__scnLog) globalThis.__scnLog.push(['ovl', +S.t.toFixed(1), tm.ti, ids.length]);
               }
             }
           }
+        }
+        // 版844：サイドの深い所（ゴールまで約24m）で持ったら、3〜4人がゴール前の決まった所へ入る（ニア・ファー・PKマーク・マイナス）。えぐった時に中に誰もいない、をなくす
+        tm.boxR = null;
+        if (attacking && own && own.team === tm.ti && !own.gk && !S.restart && !S.setPiece && fx(tm.ti, own.x) > L - 24 && Math.abs(own.y - GOAL_Y) > 11) {
+          const ns = Math.sign(own.y - GOAL_Y) || 1, ol = offL;
+          const spots = [[L - 5.5, GOAL_Y + ns * 2.5, 1], [L - 7.5, GOAL_Y - ns * 4.5, 1], [L - 11, GOAL_Y - ns * 0.5, 1], [L - 15.5, GOAL_Y + ns * 2, 0]];
+          const nB = 3 + (tm.attitude === 'attacking' || S.score[tm.ti] < S.score[1 - tm.ti] ? 1 : 0) - (tm.attitude === 'defensive' ? 1 : 0);
+          const cand = tm.players.filter((m) => m !== own && !m.gk && !m.off && m.slot && (m.slot.line >= 1 || (m.ovUntil || 0) > S.t) && !((m.run > 0) && m.otRun && S.t < m.otRun.until && m.uniq));
+          const R2 = {}, used = new Set();
+          for (const [i, sp] of spots.slice(0, Math.max(3, nB)).entries()) { let bm = null, bc = 1e9; for (const m of cand) { if (used.has(m.idx)) continue; const c = hyp(fx(tm.ti, m.x) - sp[0], m.y - sp[1]) - (sp[2] && m.position === 'FW' ? 12 : 0) - (!sp[2] && m.position === 'MF' ? 6 : 0) + (m.slot.line === 0 ? 8 : 0); if (c < bc) { bc = c; bm = m; } } if (bm && bc < 70) { used.add(bm.idx); R2[bm.idx] = [Math.min(sp[0], ol - 0.3), sp[1]]; } }
+          tm.boxR = R2;
         }
         // 守備でボールに寄せる選手
         const pressers = new Set();
@@ -1502,7 +1513,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           // 版843：即時奪回：ボールを失った直後（約3〜4.5秒）、相手陣〜中盤なら、近くの2〜3人が一斉に奪い返しに行く（組織・プレスが強いチームほど多く・長く）
           if (own && own.team !== tm.ti && !own.gk && !globalThis.__noCP) {
             const org = clamp(0.3 + tm.pat * 0.4 + (tm.tac.press || 0) / 50 + (tm.attitude === 'attacking' ? 0.2 : 0) - (tm.attitude === 'defensive' ? 0.3 : 0) + DOM[tm.ti] * 0.3, 0, 1.2), dur = 2.8 + org * 1.6;
-            if (S.t - (tm.lostT ?? -9) < dur && bxf > 30) {
+            if (S.t - (tm.lostT ?? -9) < dur && bxf > 30 && (tm.lostT ?? -9) - (tm.ownSince ?? -99) > 3) {   // 版844：落ち着いて持っていた時に失った場合だけ（奪い合いの最中は全員で群がらない）
               const nCP = org > 0.75 ? 3 : org > 0.35 ? 2 : 1; let k2 = 0;
               for (const r of ranked) { if (k2 >= nCP) break; if (r.p.off || pressers.has(r.p.idx)) continue; if (r.d > 10 + org * 6) break; if (r.p.slot && r.p.slot.line === 0 && Math.abs(r.p.slot.y - GOAL_Y) < 9) continue; pressers.add(r.p.idx); r.p.cpT = S.t; k2++; }
             }
@@ -1696,6 +1707,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
               else if (skZ(p, 'nearRun')) { tx = L - 5; ty = GOAL_Y + nearSide * 2.8; u = true; }
               else if (skZ(p, 'farWait')) { tx = L - 7.5; ty = GOAL_Y - nearSide * 5; u = true; }
             }
+            if (tm.boxR && tm.boxR[p.idx] && own !== p && !(b.intended === p.idx && !own)) { const sp = tm.boxR[p.idx]; tx = sp[0] + Math.sin(S.t * 1.1 + p.idx) * 0.8; ty = sp[1]; u = true; p.boxIn = S.t; }   // 版844：ゴール前の決まった所へ入る
             // こぼれ球の嗅覚：味方がシュートしたら、こぼれそうな所へすぐ詰める
             if (skZ(p, 'looseBall') && b.kind === 'shot' && b.lastTeam === tm.ti && b.kicker !== p.idx) { tx = L - 7; ty = GOAL_Y + (b.y - GOAL_Y) * 0.5; u = true; }
             // 裏へ走る
@@ -1764,14 +1776,14 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
               tx = Math.max(tx, Math.min(offL - 0.5, bxf + (fx(tm.ti, p.x) > bxf - 4 ? 14 : 6))); ty = wide ? GOAL_Y + Math.sign(s.y - GOAL_Y) * 19 : GOAL_Y + (ty - GOAL_Y) * 0.5; u = true;
               if (globalThis.__ctDbg) globalThis.__ctDbg.run++; }
             // 版843：こぼれ球待ち：ゴール前で攻めている時、中盤の1人（ミドルが打てる選手ほど）はエリアの外（ゴールまで約20m）に残り、クリア・はじかれたボールを拾う
-            if (bxf > L - 30 && s.line >= 1 && !wide && !s.last && !(p.run > 0) && own && own.team === tm.ti && own !== p && !(tm.ovl && tm.ovl.spot[p.idx] != null)) {
+            if (bxf > L - 30 && s.line >= 1 && !wide && !s.last && !(p.run > 0) && own && own.team === tm.ti && own !== p && p.boxIn !== S.t && !(tm.ovl && tm.ovl.spot[p.idx] != null)) {
               if (tm.rbT !== S.t) { tm.rbT = S.t; const c = tm.players.filter((m) => m !== own && !m.off && !m.gk && m.slot && m.slot.line >= 1 && !m.slot.last && Math.abs(m.slot.y - GOAL_Y) <= 14 && !(tm.ovl && tm.ovl.spot[m.idx] != null)).sort((a, c2) => (c2.kick + c2.technique + (c2.sk.has('volley') ? 30 : 0) + (c2.sk.has('powerMid') ? 30 : 0)) - (a.kick + a.technique + (a.sk.has('volley') ? 30 : 0) + (a.sk.has('powerMid') ? 30 : 0)))[0]; tm.rbP = c ? c.idx : -1; }
               if (tm.rbP === p.idx) { tx = L - 20.5; ty = GOAL_Y + (b.y - GOAL_Y) * 0.25 + Math.sin(S.t * 0.6 + p.idx) * 2; p.rbWait = S.t; }
             }
             // 版843：崩しの局面：選ばれた選手は、ボールのまわりの決まった場所（斜め前の内側・斜め後ろ・ライン際・外側の追い越し）へ寄る
-            if (tm.ovl && tm.ovl.until > S.t && own && own.team === tm.ti && own !== p && !(p.run > 0 && p.otRun && S.t < p.otRun.until) && !(b.intended === p.idx && !own) && tm.ovl.spot[p.idx] != null && !(bWide && (s.last || p.position === 'FW' || p.cbWaitT === S.t))) {
+            if (tm.ovl && tm.ovl.until > S.t && own && own.team === tm.ti && own !== p && !(p.run > 0 && p.otRun && S.t < p.otRun.until) && !(b.intended === p.idx && !own) && tm.ovl.spot[p.idx] != null && p.boxIn !== S.t && !(bWide && (s.last || p.position === 'FW' || p.cbWaitT === S.t))) {
               const k = tm.ovl.spot[p.idx], ox = fx(tm.ti, own.x), oy = own.y, sd = Math.sign(GOAL_Y - oy) || 1, cen = Math.abs(oy - GOAL_Y) < 8;
-              const sp = [[Math.min(ox + 6, offL - 0.6, L - 9), cen ? oy + 7 : oy + sd * 8], [ox - 5, cen ? oy - 7 : oy + sd * 5], [Math.min(offL - 0.5, ox + 11, L - 8), cen ? oy - 3 : oy + sd * 13], [Math.min(ox - 2, offL - 1), cen ? oy + 12 : oy - sd * 6]][k];
+              const sp = [[Math.min(ox + 9, offL - 0.6, L - 9), cen ? oy + 9 : oy + sd * 10], [ox - 7, cen ? oy - 9 : oy + sd * 7], [Math.min(offL - 0.5, ox + 14, L - 8), cen ? oy - 4 : oy + sd * 15], [Math.min(ox - 3, offL - 1), cen ? oy + 14 : oy - sd * 9]][k];   // 版844：近すぎて団子にならないよう、8〜15m離れて三角形を作る
               tx = sp[0] + Math.sin(S.t * 0.9 + p.idx) * 1.5; ty = clamp(sp[1] + Math.cos(S.t * 0.7 + p.idx) * 1.5, 3, W - 3); u = hyp(fx(tm.ti, p.x) - tx, p.y - ty) > 4; p.ovlOn = S.t;
             }
             // 版841：攻めている時の備え：CBは上がりすぎない（ボールから20m後ろまで）。両SBが上がっている時は、ボールと逆のSBが内へ絞って残る
@@ -1783,7 +1795,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             // 味方と重なりすぎない
             for (const m of tm.players) {
               if (m === p || m.gk) continue;
-              const d = hyp(fx(tm.ti, m.x) - tx, m.y - ty), mn = p.ovlOn === S.t ? 5 : 9;   // 版843：崩しの局面では、近い距離で立つ
+              const d = hyp(fx(tm.ti, m.x) - tx, m.y - ty), mn = p.ovlOn === S.t ? 7 : 9;   // 版843：崩しの局面では、近い距離で立つ
               if (d < mn) { ty += (ty >= m.y ? 1 : -1) * (mn - d) * 0.5; }
             }
           } else {
@@ -1815,7 +1827,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
                     p.kgCover = S.t; u = true; } } }
             }
             if (s.line >= 1 && p.position !== 'FW' && bxf < 36) { tx = Math.min(tx, bxf + 1.5); ty += (b.y - ty) * 0.25; }
-            if (s.line >= 1 && p.position !== 'FW' && bxf < 24 && !globalThis.__noBoxD) { tx = Math.min(tx, Math.max(9, Math.min(17, bxf + 3))); ty = GOAL_Y + (ty - GOAL_Y) * 0.6 + (b.y - GOAL_Y) * 0.15; u = hyp(fx(tm.ti, p.x) - tx, p.y - ty) > 4; }   // 版843：ゴール前まで来られたら、中盤もペナルティエリアの中まで戻って人数で固める（シュートコースに体を入れる）
+            if (s.line >= 1 && p.position !== 'FW' && bxf < 24 && !globalThis.__noBoxD) { tx = Math.min(tx, Math.max(9, Math.min(15, bxf - 5))); ty = GOAL_Y + (ty - GOAL_Y) * 0.6 + (b.y - GOAL_Y) * 0.15; u = hyp(fx(tm.ti, p.x) - tx, p.y - ty) > 4; }   // 版843：ゴール前まで来られたら、中盤もペナルティエリアの中まで戻って人数で固める（シュートコースに体を入れる）
             else if (s.line === 0 && bxf < 22 && !globalThis.__noBoxD) tx = Math.min(tx, Math.max(6, Math.min(13, bxf - 1)));   // 版843：最終ラインも、ボールがゴール前まで来たらエリアの中まで下がって守る
             else if (s.line >= 1 && p.position === 'FW' && bxf < 24 && !s.last) { tx = Math.min(tx, 24); ty += (GOAL_Y - ty) * 0.3; }   // 前の選手も、エリアの外（こぼれ球の所）まで戻る   // ゴール前に攻め込まれたら、中盤はボールより後ろ（ゴール側）へ戻り、ボールの方へ寄って、シュートを打つスペースを消す   // 5バックの中盤：少し下がって幅を詰め、DFラインの前で壁を作る（ミドルを打たせない）
             p.sw5 = sweep5 && p.type === 'スイーパー' ? S.t : 0;   // 真ん中のスイーパー：カバーが上手い（下の読み・競り合いの補正）
@@ -2276,7 +2288,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           }
           const runMul = (1 + 0.25 * aura(p, 'signal') + 0.2 * aura(p, 'stir'));   // 港の指揮者・攻めの合図・かき回し
           if (p.run > 0) { /* 走り出した */ }
-          else if (p.runCd <= 0 && xf > (S.counter > 0 ? 35 : 45) && fx(p.team, own.x) > (S.counter > 0 ? 20 : 30) && R.next() < Math.pow(thr / 100, 1.5) * 0.4 * (0.5 + p.speed / 100) * (S.counter > 0 ? 2.2 : 1) * (skZ(own, 'throughPass') || skZ(own, 'loftedThrough') ? 2 : 1) * (skZ(p, 'behindRun') ? 2.2 : 1) * (0.7 + Math.max(0, own.vision - 40) / 40) * runMul) { p.run = R.range(2.4, 3.8); counterRead(p); }   // 判断力の高い味方が持てば、裏へ走り出す（守る側の対策役は、ふつうの走り出しも読む）
+          else if (p.runCd <= 0 && !(p.slot && p.slot.line === 0 && (Math.abs(p.slot.y - GOAL_Y) < 9 || Math.sign(p.slot.y - GOAL_Y) !== Math.sign(own.y - GOAL_Y))) && xf > (S.counter > 0 ? 35 : 45) && fx(p.team, own.x) > (S.counter > 0 ? 20 : 30) && R.next() < Math.pow(thr / 100, 1.5) * 0.4 * (0.5 + p.speed / 100) * (S.counter > 0 ? 2.2 : 1) * (skZ(own, 'throughPass') || skZ(own, 'loftedThrough') ? 2 : 1) * (skZ(p, 'behindRun') ? 2.2 : 1) * (0.7 + Math.max(0, own.vision - 40) / 40) * runMul) { p.run = R.range(2.4, 3.8); counterRead(p); }   // 判断力の高い味方が持てば、裏へ走り出す（守る側の対策役は、ふつうの走り出しも読む）
         } else if (S.poss !== p.team) { p.run = 0; p.brOwn = -1; }
       }
     }
@@ -2705,7 +2717,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       // 蹴り方：サイドからゴール前へはクロス、相手の頭越しはふわっと、遠くは低めの弾道
       const wideFinal = fx(p.team, p.x) > L - 32 && Math.abs(p.y - GOAL_Y) > 15 && fx(p.team, tx) > L - 18 && Math.abs(ty - GOAL_Y) < 12;
       const cutB = fx(p.team, p.x) > L - 17 && Math.abs(p.y - GOAL_Y) > 7 && fx(p.team, tx) < fx(p.team, p.x) - 2 && Math.abs(ty - GOAL_Y) < 12 && !skill;   // 版843：マイナスの折り返しは、速いグラウンダー
-      if (cutB) stats[p.team].cutbacks = (stats[p.team].cutbacks || 0) + 1;
+      if (cutB) { stats[p.team].cutbacks = (stats[p.team].cutbacks || 0) + 1; if (globalThis.__scnLog) globalThis.__scnLog.push(['cut', +S.t.toFixed(1), p.team]); }
       let style = (wideFinal && d > 12 && !cutB) || skill === 'earlyCross' || skill === 'pinpointCross' ? 'cross' : chip ? 'lob' : d > 27 || (through && d > 18) ? (d > 40 && R.next() < 0.35 ? 'high' : 'drive') : false;
       if (style === 'cross' && !skill && p.sk.has('pinpointCross') && skZ(p, 'pinpointCross') && !S.setPiece) skill = 'pinpointCross';   // 版838：ピンポイントクロスを持つ選手は、サイドからのクロスをいつもピンポイントで（効果が見えるように）
       if (skill === 'longFeed') style = 'drive';
@@ -4377,9 +4389,10 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       S.forceShot = null;
       const prevTeam = b.lastTeam, prevKind = b.kind, prevPlayer = b.lastPlayer, inAir0 = (b.z || 0) > 0.3, bSpd0 = hyp(b.vx || 0, b.vy || 0);
       // 版843：攻撃のスイッチ：何本かつないだ後、相手の中盤の間・前へ縦パスが入った瞬間に、チーム全体がテンポを上げる（6秒）
-      if (prevKind === 'pass' && prevTeam === p.team && P[prevPlayer] && prevPlayer !== p.idx && !S.setPiece && (S.passStreak[p.team] || 0) >= 2 && fx(p.team, p.x) > L / 2 - 12 && fx(p.team, p.x) - fx(p.team, P[prevPlayer].x) > 7) { T[p.team].accelT = S.t + 6; T[p.team].ovlNext = 0; if (globalThis.__ovDbg) globalThis.__ovDbg.acc++; }
+      if (prevKind === 'pass' && prevTeam === p.team && P[prevPlayer] && prevPlayer !== p.idx && !S.setPiece && (S.passStreak[p.team] || 0) >= 2 && fx(p.team, p.x) > L / 2 - 12 && fx(p.team, p.x) - fx(p.team, P[prevPlayer].x) > 7) { T[p.team].accelT = S.t + 6; T[p.team].ovlNext = 0; if (globalThis.__scnLog) globalThis.__scnLog.push(['acc', +S.t.toFixed(1), p.team]); if (globalThis.__ovDbg) globalThis.__ovDbg.acc++; }
       // 版843：奪い返し：失ってから3秒以内に、相手陣で奪い返した
       if (prevTeam != null && prevTeam !== p.team && S.t - (T[p.team].lostT ?? -9) < 3.5 && fx(p.team, p.x) > L / 2 - 10) stats[p.team].counterpress_wins++;
+      if (prevTeam != null && prevTeam !== p.team) T[p.team].ownSince = S.t;
       if (globalThis.__ksStat) { const k = (globalThis.__ksStat[p.name] ||= { win: 0, recv: 0 }); if (prevTeam != null && prevTeam !== p.team) k.win++; else if (prevKind === 'pass' && prevPlayer !== p.idx) k.recv++; }
       // ボールが相手チームに渡ったら、前のプレーの続き（カットインからのシュートなど）は全部取り消す
       if (prevTeam != null && prevTeam !== p.team) { for (const q of P) { q.cutInShot = 0; q.wantShot = 0; } p.wonT = S.t; T[prevTeam].lostT = S.t; }
@@ -4399,7 +4412,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             return;
           }
           stats[p.team].passes_completed++;
-                    if (b.otRet) { stats[p.team].one_two++; b.otRet = false; ev('onetwo', { team: p.team, player: p.name }); }
+                    if (b.otRet) { stats[p.team].one_two++; b.otRet = false; if (globalThis.__scnLog) globalThis.__scnLog.push(['12', +S.t.toFixed(1), p.team]); ev('onetwo', { team: p.team, player: p.name }); }
           const bs = (stats[p.team].byStyle ||= {}); (bs[b.style] ||= [0, 0])[0]++;
           S.passStreak[p.team]++;
         } else {
@@ -4418,7 +4431,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         const behind = opps(p).filter((q) => !q.gk && fx(p.team, q.x) > fx(p.team, p.x)).length;
         S.counter = behind <= 6 && fx(p.team, p.x) > 15 ? 6 : 0;   // 版841：4→6秒、少し自陣寄りで奪っても
         if (S.counter && globalThis.__ctDbg) globalThis.__ctDbg.start.push({ t: S.t, team: p.team });
-        if (S.counter) ctLaunch(p);   // 版842：奪った瞬間、前の選手が一斉にゴールへスプリント（中は斜めに裏へ、サイドは外のレーンを駆け上がる。ボールの後ろの中盤も追い越す）
+        if (S.counter) { ctLaunch(p); if (globalThis.__scnLog) globalThis.__scnLog.push(['ctr', +S.t.toFixed(1), p.team]); }   // 版842：奪った瞬間、前の選手が一斉にゴールへスプリント（中は斜めに裏へ、サイドは外のレーンを駆け上がる。ボールの後ろの中盤も追い越す）
         if (T[p.team].urg && fx(p.team, p.x) > L / 2) stats[p.team].high_wins++;
       }
       const inOwnBox = fx(p.team, b.x) < 16.5 && Math.abs(b.y - GOAL_Y) < 20.2;
@@ -4519,7 +4532,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           const bl = opps(p).filter((q) => !q.gk && !q.off && segDist(q.x, q.y, p.x, p.y, gx4, GOAL_Y).d < 1.2 && segDist(q.x, q.y, p.x, p.y, gx4, GOAL_Y).u > 0.04).length;
           if (bl <= 1 && R.next() < 0.12 + p.kick / 400 + (p.sk.has('volley') ? 0.25 : 0) + (p.sk.has('powerMid') ? 0.15 : 0) + ((p.rbWait || 0) > S.t - 0.5 ? 0.15 : 0)) {
             const gk = opps(p).find((q) => q.gk && !q.off), side = gk && Math.abs(gk.y - GOAL_Y) > 0.4 ? (gk.y > GOAL_Y ? -1 : 1) : (R.next() < 0.5 ? -1 : 1);
-            S.forceShot = GOAL_Y + side * R.range(1.5, 3.2); S.forceHow = inAir0 && p.sk.has('volley') ? 'volley' : 'oneTouch'; S.decision = 0.1; stats[p.team].edge_volleys++;
+            S.forceShot = GOAL_Y + side * R.range(1.5, 3.2); S.forceHow = inAir0 && p.sk.has('volley') ? 'volley' : 'oneTouch'; S.decision = 0.1; stats[p.team].edge_volleys++; if (globalThis.__scnLog) globalThis.__scnLog.push(['vol', +S.t.toFixed(1), p.team]);
           }
         }
       }
