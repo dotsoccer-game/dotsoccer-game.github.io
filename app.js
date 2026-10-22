@@ -1943,6 +1943,27 @@
       ctx.beginPath(); ctx.ellipse(q.x, q.y - px * 0.2, 5.2 * px, 1.7 * px, 0, 0, Math.PI * 2); ctx.fill();
       return sprite(lifted.x, lifted.y, q.s, info, team, facing, 1, false, true, true);   // パンチング：両手を突き上げる（向きはいまの体の向き）
     }
+    // 版862：セーブの型ごとの姿勢
+    if (code === 8) {   // 指先でバーの上へ：高く跳んで、体を後ろへ反らしながら片手を伸ばす
+      if (simT - (highStart[gi] ?? -9) > 0.9 || simT < (highStart[gi] ?? -9)) highStart[gi] = simT;
+      const u = Math.min(1, (simT - highStart[gi]) / 0.6), h = Math.sin(Math.PI * u) * 1.1, lifted = P3(p.x, p.y, h), px = Math.max(1.4, 2.5 * q.s), H = 18 * px;
+      ctx.fillStyle = 'rgba(0,30,0,0.3)'; ctx.beginPath(); ctx.ellipse(q.x, q.y - px * 0.2, (5.2 - h * 1.6) * px, (1.7 - h * 0.5) * px, 0, 0, Math.PI * 2); ctx.fill();
+      const gx = proj(team === 0 ? 0 : 105, p.y).x - q.x, lean = (Math.sign(gx) || 1) * 0.35 * Math.min(1, u * 2);
+      ctx.save(); ctx.translate(lifted.x, lifted.y); ctx.rotate(lean); const r8 = sprite(0, 0, q.s, info, team, facing, 1, false, true, true); ctx.restore();
+      return { top: lifted.y - H * 0.7, px: (r8 && r8.px) || px };
+    }
+    if (code === 9 || code === 10) {   // 足を伸ばして止める（スライディングのように片足を投げ出す）
+      dmFacing = Math.atan2(code === 9 ? 1 : -1, team === 0 ? 0.35 : -0.35);
+      const r9 = sprite(q.x, q.y, q.s, info, team, facing, 0, false, false, false, 'slide', 0, 'side'); dmFacing = null; return r9;
+    }
+    if (code === 11) {   // 1対1：両手両足を大きく広げて、体ごと壁になる
+      dmFacing = Math.atan2(0, team === 0 ? 1 : -1);
+      const r11 = sprite(q.x, q.y, q.s, info, team, facing, 0, false, false, false, 'jump', 0, 'front'); dmFacing = null; return r11;
+    }
+    if (code === 12) {   // 正面の低い球：腰を落として、すくい上げるように抱える
+      dmFacing = Math.atan2(0, team === 0 ? 1 : -1);
+      const r12 = sprite(q.x, q.y, q.s, info, team, facing, 0, false, false, false, 'gkCrouch', 0, 'front'); dmFacing = null; return r12;
+    }
     const r = sprite(q.x, q.y, q.s, info, team, facing, frame, p.moving, false);
     if (code === 5) {
       // ボールを胸に抱える腕
@@ -3715,7 +3736,7 @@
   // ---------- 出来事 ----------
   const TEXT = {
     shot: (e) => ({ text: e.knuckle ? '無回転シュート！' : e.power >= 105 ? '強烈なシュート！' : 'シュート！', color: e.knuckle ? '#ffe680' : '#fff' }),
-    save: (e) => ({ text: e.fumble ? 'こぼした！' : e.act === 'punch' ? 'パンチング！' : e.act === 'diveparry' ? 'ファインセーブ！' : 'セーブ！', color: '#9fe3ff' }),
+    save: (e) => ({ text: e.fumble ? 'こぼした！' : e.act === 'punch' ? 'パンチング！' : e.act === 'diveparry' || e.act === 'tipover' || e.act === 'footsave' ? 'ファインセーブ！' : e.act === 'block' ? 'ブロック！' : 'セーブ！', color: '#9fe3ff' }),
     gk: (e) => ({ text: e.act === 'fumble' ? 'ファンブル！' : e.act === 'miss' ? 'GKが目測を誤った！' : e.act === 'divecatch' ? 'ダイビングキャッチ！' : e.act === 'claim' ? 'ハイボールをキャッチ' : 'がっちりキャッチ！', color: e.act === 'miss' ? '#ffb347' : '#9fe3ff' }),
     penalty: (e) => ({ text: 'PK！', color: '#ffe680', sub: `キッカー：${e.player}`, life: 2.6, prio: 2 }),
     freekick: (e) => ({ text: e.wall ? 'フリーキック（壁）' : 'フリーキック', color: '#fff' }),
