@@ -3970,3 +3970,7 @@ img:not([src]),img[src=""]{visibility:hidden}
 .mg-t small{white-space:nowrap;font-size:12px}.mg-t b{font-size:22px}
 .mg2-now{gap:10px;font-size:15px;white-space:nowrap;flex-wrap:nowrap}.mg2-now>b{font-size:17px}.mg2-now .ps{font-size:20px}
 .std-body .mg2{flex:1 1 auto;width:100%;height:auto;min-height:0;background:#eef2f8;align-self:stretch}
+
+/* 版853：選手カードのページ（習得スキルなど）が入りきらない時は、中をスクロールできる */
+.pc-right{min-height:0}.pc-page{overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y}.pc-embed .pc-page{overflow-y:auto}
+.pc-page::-webkit-scrollbar{width:5px}.pc-page::-webkit-scrollbar-thumb{background:rgba(120,100,40,.45);border-radius:3px}
