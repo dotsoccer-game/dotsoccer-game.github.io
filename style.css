@@ -1391,6 +1391,7 @@ html.short .pc-card:not(.pc-embed) .pc-photo:has(.fc.sf){height:226px}
 .pc-uq summary{list-style:none;display:flex;align-items:center;gap:6px}.pc-uq summary::-webkit-details-marker{display:none}
 .pc-uqh{display:inline-block;background:#ffcf3a;color:#3a1a00;font-weight:900;font-size:12px;padding:0 8px;border-radius:4px}
 .pc-uq b{font-size:17px;font-weight:900;color:#ffe45a;text-shadow:0 1px 0 #000;flex:1}
+.pc-uq summary{flex-wrap:wrap}.pc-uqp{flex-basis:100%;display:flex;flex-wrap:wrap;align-items:center;gap:2px 6px;margin:3px 0 1px;font-size:12px}.pc-uqp>span{font-weight:800;color:#ffe9a8}.pc-uqp .bar{flex:1;min-width:60px;height:8px;background:rgba(0,0,0,.45);border-radius:4px;overflow:hidden;display:block}.pc-uqp .bar i{display:block;height:100%;background:linear-gradient(90deg,#ffcf3a,#ff7a2a)}.pc-uq .pc-uqp b{font-size:14px;flex:0 0 auto;color:#fff}.pc-uqp em{font-style:normal;font-weight:800;color:#9fe6ff}.pc-uqp small{flex-basis:100%;color:#e8dcff;font-size:11px}
 .pc-uqi{font-style:normal;font-size:11px;font-weight:800;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.5);border-radius:10px;padding:0 8px}
 .pc-uq[open] .pc-uqi{background:#ffcf3a;color:#3a1a00}
 .pc-uqd{margin-top:4px;border-top:1px dashed rgba(255,255,255,.35);padding-top:3px}

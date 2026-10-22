@@ -194,6 +194,12 @@
     { k: 'mental', name: 'メンタル', g: 'mind', desc: 'PK・1対1・終盤など大事な場面の強さ' },
   ];
   const PARAM_KEYS = PARAMS.map((p) => p.k);
+  // 版850・852：固有スキルの強さ＝本人の総合力（50で4割・80で満点）×所属リーグ（地域0.7・D3 0.75・D2 0.9・D1 1.0）。発動しやすさは（0.5＋0.5×総合力の係数）×√リーグ
+  const UNIQ_LG = { regE2: 0.7, regW2: 0.7, regE1: 0.7, regW1: 0.7, d3: 0.75, d2: 0.9, d1: 1 };
+  function uniqStrength(p, lgId) {
+    const ovr = PARAM_KEYS.reduce((a, k) => a + (p[k] || 0), 0) / PARAM_KEYS.length, ef = Math.max(0.15, Math.min(1, (ovr - 50) / 30)), lf = lgId ? UNIQ_LG[lgId] ?? 1 : 1;
+    return { ovr, ef, lf, power: (0.4 + 0.6 * ef) * lf, chance: (0.5 + 0.5 * ef) * Math.sqrt(lf), powerD1: 0.4 + 0.6 * ef };
+  }
   // タイプごとの得意・不得意（5つの基本能力から残りの7つを作る時のくせ）
   const TYPE_BIAS = {
     'ゴールキーパー': { jump: 10, mental: 4, dribble: -16, pass: -6, defense: -10, vision: 2, dash: 2 },
@@ -631,7 +637,7 @@
     // 版850：固有スキルは「国内屈指級の選手」の特権。本人の総合力（12能力の平均）が低いうちは、発動しにくく・効き目も弱い（総合50で約半分、80で満点）
     const uOvrC = new WeakMap(), uOvr = (p) => { let v = uOvrC.get(p); if (v == null) { v = PARAM_KEYS.reduce((a, k) => a + (p[k] || 0), 0) / PARAM_KEYS.length; uOvrC.set(p, v); } return v; };
     // 版851：所属リーグでも変わる（下のリーグほど弱い）。リーグ戦・カップ戦など、両チームのリーグが分かる試合だけ（対人戦などは満点）
-    const LG_UF = { regE2: 0.6, regW2: 0.6, regE1: 0.6, regW1: 0.6, d3: 0.75, d2: 0.9, d1: 1 };
+    const LG_UF = UNIQ_LG;
     const uLgF = (p) => { const a = T[p.team] && T[p.team].lgId, b = T[1 - p.team] && T[1 - p.team].lgId; return a && b ? LG_UF[a] ?? 1 : 1; };
     const uEF = (p) => clamp((uOvr(p) - 50) / 30, 0.15, 1), uEK = (p) => (0.4 + 0.6 * uEF(p)) * uLgF(p);
     const uP = (p) => (p.uniqLv >= 2 ? 1.3 : 1) * uEK(p);   // 凸で強化：効果が1.3倍
@@ -5909,5 +5915,5 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
     };
   }
 
-  root.DotSoccer = { UNIQ, UNIQ_BY_TOP, PASSIVE, simulateMatch, buildSlots, beginningTeam, presetTeam, atLevel, PRESET_NAMES, PARAMS, PARAM_KEYS, SKILLS, TYPE_HIDDEN, HIDDEN0, grade, fillParams, CONST: { L, W, GOAL_Y, POST, BAR, HALF, CLOCK_SCALE } };
+  root.DotSoccer = { uniqStrength, UNIQ_LG, UNIQ, UNIQ_BY_TOP, PASSIVE, simulateMatch, buildSlots, beginningTeam, presetTeam, atLevel, PRESET_NAMES, PARAMS, PARAM_KEYS, SKILLS, TYPE_HIDDEN, HIDDEN0, grade, fillParams, CONST: { L, W, GOAL_Y, POST, BAR, HALF, CLOCK_SCALE } };
 })(typeof globalThis !== 'undefined' ? globalThis : window);

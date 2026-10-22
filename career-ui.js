@@ -996,7 +996,11 @@
     } else {
       const n = C.slots(p), sk = p.skills || [], si = C.slotInfo(p);
       const cells = Array.from({ length: Math.max(n, sk.length) }, (_, k) => sk[k] ? `<button class="has pc-skb" data-sk="${sk[k]}">${esc(D.SKILLS[sk[k]].name)}<i>説明</i></button>` : '<span>？</span>');
-      const u = p.uniq && D.UNIQ[p.uniq], uq = u ? `<details class="pc-uq"><summary><span class="pc-uqh">固有スキル${p.uniqLv >= 2 ? '・覚醒' : ''}</span><b>${esc(u.name)}</b><i class="pc-uqi">説明</i></summary><div class="pc-uqd"><p><span>発動</span>${esc(u.sw || u.when)}</p><p><span>効果</span>${esc(u.se || u.what)}</p>${u.st ? `<p><span>凸</span>${esc(u.st)}</p>` : ''}</div></details>` : '';
+      // 版852：固有スキルのいまの強さ（総合力×所属リーグ）。上のリーグ・総合力80で満点
+      const uqPow = (q) => { if (!D.uniqStrength) return ''; const lg = (save.world && save.world.me) || null, r = D.uniqStrength(q, lg), pc = Math.round(r.power * 100), d1 = Math.round(r.powerD1 * 100), lgN = { regE2: '地域2部', regW2: '地域2部', regE1: '地域1部', regW1: '地域1部', d3: 'D3', d2: 'D2', d1: 'D1' }[lg] || '';
+        const tip = pc >= 100 ? '本来の力を出し切れる' : r.ef < 1 && r.lf < 1 ? `総合力${Math.floor(r.ovr)}・${lgN}のため。総合力80・D1で100%` : r.ef < 1 ? `総合力${Math.floor(r.ovr)}のため。総合力80で100%` : `${lgN}のため。D1で100%`;
+        return `<span class="pc-uqp"><span>いまの強さ</span><i class="bar"><i style="width:${Math.min(100, pc)}%"></i></i><b>${pc}%</b>${lg !== 'd1' && d1 > pc ? `<em>D1なら ${d1}%</em>` : ''}<small>${esc(tip)}</small></span>`; };
+      const u = p.uniq && D.UNIQ[p.uniq], uq = u ? `<details class="pc-uq"><summary><span class="pc-uqh">固有スキル${p.uniqLv >= 2 ? '・覚醒' : ''}</span><b>${esc(u.name)}</b><i class="pc-uqi">説明</i>${uqPow(p)}</summary><div class="pc-uqd"><p><span>発動</span>${esc(u.sw || u.when)}</p><p><span>効果</span>${esc(u.se || u.what)}</p>${u.st ? `<p><span>凸</span>${esc(u.st)}</p>` : ''}</div></details>` : '';
       body = `${uq}<div class="pc-sk"><div class="pc-skh">習得スキル　${sk.length}/${n}</div><div class="pc-skg">${cells.join('')}</div><div class="pc-skd" hidden></div></div><p class="pc-note">${si.nextAvg ? `能力の平均が ${si.nextAvg} になると、スキル枠がもう1つ増えます（今 ${Math.floor(si.avg)}）` : 'スキル枠はMAXです'}</p>`;
     }
     return `<div class="pc-card${embed ? ' pc-embed' : ''}"><img class="pc-emb" src="${emblemURL(save.team.name, 80)}" alt="">
