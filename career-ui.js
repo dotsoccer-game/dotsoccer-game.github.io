@@ -1447,7 +1447,9 @@
   // 版694：総合評価（E〜S）。平均の値に合わせた目安：地域2部＝E、地域1部＝D、D3＝C、D2＝B、D1＝A、D1の上位＝S
   const OVR = [['E', 0], ['D', 60], ['C', 150], ['B', 300], ['A', 480], ['S', 720]];
   const ovrG = (q) => { const v = resPow(q); let g = 'E'; for (const [k, t] of OVR) if (v >= t) g = k; return g; };
-  const ovrTag = (q, cls) => { const g = ovrG(q); return `<i class="ovr g-${g}${cls ? ' ' + cls : ''}" title="総合評価">${g}</i>`; };
+  // 版858：顔の横の小さな総合評価は、能力の平均（総合力）のランク（選手カード・試合の一覧と同じ）。数字は長押し・カーソルで
+  const statOvr = (q) => Math.round(D.PARAMS.reduce((a, x) => a + (+q[x.k] || 0), 0) / D.PARAMS.length);
+  const ovrTag = (q, cls) => { const v = statOvr(q), g = D.grade(v); return `<i class="ovr g-${g}${cls ? ' ' + cls : ''}" title="総合力 ${v}">${g}<small>${v}</small></i>`; };
   // 顔の白い背景を抜く（ふちから続く白だけ透明に）。小さく描いてもにじまないよう、ほどよい大きさで作っておく
   const cutCache = new Map();
   function cutFace(img) {
@@ -1490,11 +1492,10 @@
   }
   addEventListener('stagefit', () => { const L = $('#clubLayer'); if (L && L.querySelector('.sq2') && !$('#cv-club').hidden && !sqDrag && !document.querySelector('.s2drag')) renderLineup2(); });   // 版531：ドラッグ中は組み直さない
   // 版516：名前の札の中身を、表示の切りかえ（名前・調子／タイプ／星）で変える。長いタイプ名は横に縮めて1行に
-  const SQ_SHOW = ['cond', 'ovr', 'type', 'star'], SQ_SHOW_NAME = { cond: '名前・調子', ovr: '総合力', type: 'タイプ', star: 'レア度（星）' };   // 版857：総合力（12能力の平均）を追加
+  const SQ_SHOW = ['cond', 'type', 'star'], SQ_SHOW_NAME = { cond: '名前・調子', type: 'タイプ', star: 'レア度（星）' };
   function sqTag(q) {
     if (sqShow === 'type') { const t = q.type || 'バランス', k = Math.min(1, 6 / Math.max(1, t.length)); return `<b class="s2n s2n-ty tbadge ${TYPE_CLS[t] || 'ty-bal'}" style="--sx:${k.toFixed(2)}">${esc(t)}</b>`; }
     if (sqShow === 'star') return `<b class="s2n s2n-st">${starHTML(C.ensureStar(q), q.totsu)}</b>`;
-    if (sqShow === 'ovr') { const v = Math.round(D.PARAMS.reduce((a, x) => a + (+q[x.k] || 0), 0) / D.PARAMS.length), g = D.grade(v); return `<b class="s2n s2n-ov"><i class="rk rk-${g}">${g}</i>${v}</b>`; }
     return `<b class="s2n ${POSC[q.position]}">${esc(q.name)}</b>`;
   }
   function renderLineup2() {
@@ -1531,7 +1532,7 @@
       if (sqShow !== 'cond') return `<i class="s2b cdot ${condDot(q)}"></i>`;
       return `<i class="s2b cdot ${condDot(q)}"></i><span class="s2ca">${condArrow(q, 22)}</span>`;
     };
-    const chip = (q, i, x, y, cls) => `<div class="s2p ${cls || ''}${i === pick ? ' sel' : ''}${q.injury > 0 ? ' inj' : ''}" data-i="${i}" style="left:${x}px;top:${y}px">${sqTag(q)}<span class="s2tags">${tagsOf(q)}</span>${facePic(q, 's2f', i >= 11)}${badge(q)}${sqShow === 'ovr' ? '' : ovrTag(q, 's2ov')}${i > 0 && i < 11 && q.position !== roles[i] && q.position !== 'GK' ? '<em class="s2mis" title="本来のポジションとちがう">!</em>' : ''}</div>`;
+    const chip = (q, i, x, y, cls) => `<div class="s2p ${cls || ''}${i === pick ? ' sel' : ''}${q.injury > 0 ? ' inj' : ''}" data-i="${i}" style="left:${x}px;top:${y}px">${sqTag(q)}<span class="s2tags">${tagsOf(q)}</span>${facePic(q, 's2f', i >= 11)}${badge(q)}${ovrTag(q, 's2ov')}${i > 0 && i < 11 && q.position !== roles[i] && q.position !== 'GK' ? '<em class="s2mis" title="本来のポジションとちがう">!</em>' : ''}</div>`;
     let dots = chip(ps[0], 0, PX0 + PW / 2, PY0 + R * CH + CH * 1.05, 'gk');
     for (let i = 1; i < 11; i++) { const c = cells[i]; if (c) dots += chip(ps[i], i, cx(c.c), cy(c.r)); }
     // 控え：1列目（ベンチ入り）・2列目（灰色）
@@ -1554,7 +1555,7 @@
       pop = `<div class="s2pop s2rpop" style="left:${PX0 + 4}px;top:9999px"><div class="s2ph"><i class="pos ${POSC[q.position]}">${q.position}</i><span>${esc(q.name)}</span>${starHTML(C.ensureStar(q), q.totsu)}<small class="s2rp-tag">リザーブ</small></div>
         <div class="s2pr">${PK.map((k, j) => `<span title="${esc(D.PARAMS[j].name)}">${ico(k)}<i class="rk2 g-${rk[j]}">${rk[j]}</i></span>`).join('')}</div>
         <div class="s2pt"><span class="tbadge ${TYPE_CLS[q.type] || 'ty-bal'}">${esc(q.type || '')}</span>${condGauge(q, 'sm')}<small>疲労 ${Math.round(q.fatigue || 0)}%</small><span class="s2ft">利き足${footSVG(q.foot)}<b>${q.foot === 'L' ? '左' : '右'}</b></span></div></div>`; }
-    if (sqResOpen && (save.reserve || []).length > 1) save.reserve.sort((a, b) => resPow(b) - resPow(a));   // 版692：能力の高い順
+    if (sqResOpen && (save.reserve || []).length > 1) save.reserve.sort((a, b) => statOvr(b) - statOvr(a));   // 版692：能力の高い順（版858：総合力）
     $('#clubLayer').innerHTML = `<div class="sq2${PHN ? ' ph' : ''}${sqResOpen && (save.reserve || []).length ? ' resopen' : ''}"><div class="s2board"${boardCss}>
         <div class="s2head"><img src="${emblemURL(save.team.name, 40)}" alt=""><b>${esc(save.team.name)}</b><em>［${esc(label)}］</em></div>
         <div class="s2pitch" style="left:${PX0}px;top:${PY0}px;width:${PW}px;height:${PH}px"><i class="s2gk" style="top:${R * CH}px;height:${CH * 2}px"></i><i class="s2box" style="left:${PW * 0.22}px;width:${PW * 0.56}px;top:${R * CH - CH * 0.15}px;height:${CH * 2.15}px"></i><i class="s2box2" style="left:${PW * 0.34}px;width:${PW * 0.32}px;top:${R * CH + CH * 0.85}px;height:${CH * 1.15}px"></i></div>
