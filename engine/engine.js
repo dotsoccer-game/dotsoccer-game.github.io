@@ -5693,7 +5693,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
     const whistleNow0 = (el) => {
       if (el < HALF + overMin()) return false;
       { const b0 = S.ball, fly = b0.owner < 0 && (b0.kind === 'cross' || b0.kind === 'shot' || (b0.kind === 'pass' && b0.style === 'cross') || ((b0.kind === 'pass') && (b0.z || 0) > 0.4 && (b0.x < 32 || b0.x > L - 32 || (b0.landX != null && (b0.landX < 32 || b0.landX > L - 32)))));
-        if (fly && el < HALF + 28) return false; }   // 版845：クロス・シュートが飛んでいる間は、待ち時間の上限でも笛を吹かない（落ちて次のプレーが決まってから）
+        const loose = b0.owner < 0 && lastPlay && lastPlay.team != null && fx(lastPlay.team, b0.x) > L - 30;   // 版849：ゴール前のこぼれ球（はじいた・ブロック）も、クリアされるまで待つ
+        if ((fly || loose) && el < HALF + 30) return false; }   // 版845：クロス・シュートが飛んでいる間は、待ち時間の上限でも笛を吹かない（落ちて次のプレーが決まってから）
       if (el >= HALF + 20 + (lastPlay && lastPlay.ck ? 9 : 0)) return true;   // ラストプレーは最大20秒まで待つ（CKまでやるときは、そのぶん長く）
       if (!lastPlay) { if (!hot()) return true; const rt = S.restart ? S.restart.type : null; lastPlay = { team: S.restart ? S.restart.team : S.poss, restart: rt, shot: false, ck: rt === 'corner' }; return false; }
       // ラストプレーの続き：終わったら笛
@@ -5710,9 +5711,10 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       }
       lastPlay.restart = null;
       if (own && own.gk) return true;
+      if (own && own.team !== lastPlay.team && !own.gk && fx(own.team, own.x) < 30 && el < HALF + 30) { if (!S.mustClear || S.mustClear.i !== own.idx) S.mustClear = { i: own.idx, t: S.t }; return false; }   // 版849：自陣ゴール前で守る側が拾ったら、大きくクリアしてから笛
       if (own && own.team !== lastPlay.team) return true;
       if (lastPlay.shot && own && own.team !== lastPlay.team) return true;
-      if (lastPlay.team != null && b.lastTeam != null && b.lastTeam !== lastPlay.team && b.kind !== 'shot' && !(b.owner < 0 && b.lastTeam === lastPlay.team)) { const fly = b.owner < 0 && (b.z || 0) > 0.4 && b.lastTeam === lastPlay.team; if (!fly) return true; }   // 版846：守る側が触った（クリア・カット）＝攻撃の流れが切れたら笛
+      if (lastPlay.team != null && b.lastTeam != null && b.lastTeam !== lastPlay.team && b.kind !== 'shot' && b.owner < 0) { const bx2 = fx(lastPlay.team, b.x), lx2 = b.landX != null ? fx(lastPlay.team, b.landX) : bx2; if (bx2 < L - 30 && lx2 < L - 30) return true; }   // 版849：守る側が触ったボールが、ゴール前（30m）の外へ出たら（クリアされたら）笛。GKがはじいた・ブロックしたこぼれ球がゴール前にある間は待つ（守る側が持ったら、上の決まりで笛）
       if (lastPlay.shot && own && own.team === lastPlay.team && fx(own.team, own.x) < L - 32) return true;   // 打った後、味方が拾っても下げて組み立て直すなら終わり
       // 攻めている側のボール（こぼれ球を含む）が相手陣内にある間は、攻撃が終わるまで待つ（こぼれ球を詰める前に笛を吹かない）
       const atk = lastPlay.team != null ? lastPlay.team : S.poss; if (atk != null && atk >= 0 && fx(atk, b.x) > L / 2 && (!own || own.team === atk)) return false;
