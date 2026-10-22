@@ -860,7 +860,7 @@
     };
   }
   function updateCamera(bx, by, snap) {
-    const tx = Math.max(4, Math.min(101, bx)), ty = Math.max(6, Math.min(camMaxY, by));
+    const tx = bx < 4 ? Math.max(-4, bx) : bx > 101 ? Math.min(109, bx) : bx, ty = by < 6 ? Math.max(-1, by) : by > camMaxY ? Math.min(camMaxY + 8, by) : by;   // 版868：ボールがピッチの外（ゴールの裏・タッチラインの外）に出ても、カメラはなめらかについていく（ピッチの中に引き戻す力と、ボールを画面に入れる力がぶつかって、画面が小刻みに揺れていた）
     const k = Math.max(-1, Math.min(1, (bx - 52.5) / 38));
     const tyaw = replayYaw != null ? replayYaw : Math.sign(k) * Math.pow(Math.abs(k), 1.4) * 0.46;
     if (snap || !cam.init) { cam.x = tx; cam.y = ty; cam.yaw = tyaw; cam.init = true; }
