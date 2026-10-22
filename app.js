@@ -1934,7 +1934,7 @@
       if (simT - (highStart[gi] ?? -9) > jT + 0.3 || simT < (highStart[gi] ?? -9)) highStart[gi] = simT;
       const u = Math.min(1, (simT - highStart[gi]) / jT), h = Math.sin(Math.PI * u) * (0.55 + jp * 0.0085), lifted = P3(p.x, p.y, h), px = Math.max(1.4, 2.5 * q.s);
       ctx.fillStyle = 'rgba(0,30,0,0.3)'; ctx.beginPath(); ctx.ellipse(q.x, q.y - px * 0.2, (5.2 - h * 1.6) * px, (1.7 - h * 0.5) * px, 0, 0, Math.PI * 2); ctx.fill();
-      return sprite(lifted.x, lifted.y, q.s, info, team, facing, 1, false, true, true);
+      { const bq0 = proj(st.ball.x, st.ball.y); dmFacing = Math.atan2((bq0.y - q.y) / 0.45, bq0.x - q.x); } const r7 = sprite(lifted.x, lifted.y, q.s, info, team, facing, 1, false, true, true, null, 0, 'front'); dmFacing = null; return r7;   // 版865：ボールに正対して跳ぶ
     }
     if (code === 6) {
       // パンチング：飛び上がって両手を突き上げる
@@ -1954,8 +1954,8 @@
       return { top: lifted.y - H * 0.7, px: (r8 && r8.px) || px };
     }
     if (code === 9 || code === 10) {   // 足を伸ばして止める（スライディングのように片足を投げ出す）
-      dmFacing = Math.atan2(code === 9 ? 1 : -1, 0);   // 版864：踏み込んで、ボールの来た方へ片足を大きく伸ばす（スライディングではなく、立ったまま足を出す）
-      const r9 = sprite(q.x, q.y, q.s, info, team, facing, 0, false, false, false, 'lunge', 0, 'side'); dmFacing = null; return r9;
+      { const bq0 = proj(st.ball.x, st.ball.y); dmFacing = Math.atan2((bq0.y - q.y) / 0.45, bq0.x - q.x); }   // 版865：ボールに正対して、片足を伸ばす（背中を向けない）  版864：踏み込んで、ボールの来た方へ片足を大きく伸ばす（スライディングではなく、立ったまま足を出す）
+      const r9 = sprite(q.x, q.y, q.s, info, team, facing, 0, false, false, false, 'lunge', 0, 'front'); dmFacing = null; return r9;
     }
     if (code === 11) {   // 1対1：両手両足を大きく広げて、体ごと壁になる
       // 版864：至近距離の浮き球：小さく跳んで両手を大きく上げ、体を大きくして当てる
@@ -2927,10 +2927,10 @@
         gloom(q.x, r.top - 2 * px, px, i);
       }
       else if (info.gk && gkCode) r = drawKeeper(q, p, info, team, facing, f4, gkCode, team);
-      else if (info.gk && !kp && p.sp < 2.6 && st.owner >= 0 && (st.owner < 11 ? 0 : 1) !== team && (() => { const o = st.players[st.owner], gx = team === 0 ? 0 : 105; return o && Math.hypot(o.x - gx, o.y - 34) < 32; })()) {
+      else if (info.gk && !kp && p.sp < 2.6 && !(st.owner >= 0 && (st.owner < 11 ? 0 : 1) === team) && (() => { const gx = p.x < 52.5 ? 0 : 105; return Math.hypot(st.ball.x - gx, st.ball.y - 34) < 32; })()) {   // 版865：後半はゴールが入れかわるので、GKのいる側のゴールで測る。こぼれ球（だれも持っていない）の時も構える
         // 版864：相手がシュートを打てる所でボールを持っている：腰を落とし、両手を広げて構える（棒立ちにしない）
-        const bq = proj(st.ball.x, st.ball.y); dmFacing = Math.atan2(st.ball.y - p.y, st.ball.x - p.x);
-        r = sprite(q.x, q.y, q.s, info, team, facing, 0, false, false, false, 'crouch', 0, 'side'); dmFacing = null; void bq;
+        const bq = proj(st.ball.x, st.ball.y); dmFacing = Math.atan2((bq.y - q.y) / 0.45, bq.x - q.x);
+        r = sprite(q.x, q.y, q.s, info, team, facing, 0, false, false, false, 'crouch', 0, 'front'); dmFacing = null;
       }
       else if (ac && ac.a === 'lose' && ac.u < 0.9) {
         // 球際で負けた・抜かれた：押された向きへよろける（手で描いた絵・8方向）。①体が流れて片足で踏ん張る → ②両腕を広げてバランスを取る
@@ -3705,8 +3705,8 @@
     if (hiBall) { ballOwned = hiBall[3]; ballDraw(hiBall[0], hiBall[1], hiBall[2]); }
     { // 版864：GKがボールに触った瞬間（はじく・パンチング・指先・足・体）：ボールの所に白い衝撃の光を出す（手に当たったと見て分かるように）
       const HIT = { parry: 1, diveparry: 1, punch: 1, tipover: 1, footsave: 1, block: 1, tip: 1 };
-      const he = match && match.events && match.events.find((e) => (e.type === 'save' || e.type === 'gk') && HIT[e.act] && simT - e.t >= -0.02 && simT - e.t < 0.3);
-      if (he) { const u = Math.max(0, simT - he.t) / 0.3, bq = P3(st.ball.x, st.ball.y, st.ball.z || 0), s0 = proj(st.ball.x, st.ball.y).s, R0 = (6 + u * 16) * Math.max(0.8, s0);
+      const he = match && match.events && match.events.find((e) => (e.type === 'save' || e.type === 'gk') && HIT[e.act] && simT - (e.tt ?? e.t) >= -0.02 && simT - (e.tt ?? e.t) < 0.3);
+      if (he) { const hx = he.hx ?? st.ball.x, hy = he.hy ?? st.ball.y, u = Math.max(0, simT - (he.tt ?? he.t)) / 0.3, bq = P3(hx, hy, he.hz ?? (st.ball.z || 0)), s0 = proj(hx, hy).s, R0 = (6 + u * 16) * Math.max(0.8, s0);
         ctx.save(); ctx.globalAlpha = 1 - u; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = Math.max(1.5, 2.4 * s0); ctx.beginPath();
         for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4 + 0.2, r1 = R0 * 0.45, r2 = R0; ctx.moveTo(bq.x + Math.cos(a) * r1, bq.y + Math.sin(a) * r1 * 0.8); ctx.lineTo(bq.x + Math.cos(a) * r2, bq.y + Math.sin(a) * r2 * 0.8); }
         ctx.stroke(); ctx.globalAlpha = (1 - u) * 0.5; ctx.fillStyle = '#fff8c0'; ctx.beginPath(); ctx.arc(bq.x, bq.y, R0 * 0.38, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }

@@ -4,9 +4,9 @@
   window.__noShow = true;
   const SC = window.__SAVE_SCENES || {};
   const KINDS = [
-    ['tipover', '指先でバーの上へ', -1.4, 1.8, 'ゴールに近い高い球を、跳び上がって指先でバーの上へ。ゴールの外へ出てコーナーキック'],
-    ['footsave', '足を伸ばして止める', -1.4, 1.6, '近くからの低い球が体の横に来た時、飛ばずに片足を投げ出して止める'],
-    ['block', '1対1で体を広げて止める', -1.4, 1.6, '至近距離の1対1で、両手両足を大きく広げて体ごと壁になる'],
+    ['tipover', '指先でバーの上へ・柱の外へ', -1.4, 2.6, 'ゴールに近い高い球を、跳び上がって指先で外へ。バーの上（ゴールの裏へ落ちて転がる）と、柱の外（横）の2通り。どちらもコーナーキック'],
+    ['ready', 'シュート前の構え', -2.6, -0.1, '相手がシュートを打てる所でボールを持っている間、GKは腰を落として、ボールに向いて構える（シュートの直前まで）'],
+    ['footsave', '足を伸ばして止める', -1.4, 1.6, '至近距離のグラウンダーに、ボールに正対したまま片足を伸ばして止める'],
 
     ['diveparry', '横っ跳びではじく', -1.4, 1.8, 'キャッチの届かない所にも、指先・手のひらなら届く。相手のいない外へ逃がす'],
     ['divecatch', '横っ跳びでキャッチ', -1.4, 1.6, '届く所に飛んで、しっかり抱える'],
@@ -32,7 +32,7 @@
   function go() {
     const L = SC[kind] || []; if (!L.length) return;
     idx = (idx + L.length) % L.length; cur = L[idx];
-    loadSeed(cur.seed); D.select(cur.team === 1 ? 11 : 0);
+    loadSeed(cur.seed); 
     const [a] = win(); D.seek(Math.max(0.2, a)); D.setSpeed(sp); if (!paused) D.play(); info();
     const c0 = cur; setTimeout(() => { if (cur === c0) { D.seek(Math.max(0.2, a)); D.setSpeed(sp); } }, 200);
   }
