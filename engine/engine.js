@@ -2569,7 +2569,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       Object.assign(b, {
         owner: -1, kind, selfPass: false, gkPen: 0, uSafe: 0, uDelay: 0, guren: 0, tsukiP: false, trapP: false, tact: false, hari: false, hariS: 0, byP: false, aoP: false, brk: false, csPlace, csType, csGkNear, shotSkill: '', ot: 0, conv: false, pkStop: false, shotT: S.t, sx0: p.x, sy0: p.y, vx: Math.cos(ang) * speed, vy: Math.sin(ang) * speed,
         z: Math.max(b.z, 0.1), vz, spin, bs, knuckle, wob: 0, wobW: null, curveAll, curlP: kind === 'pass' && !loft && !!spin && opt.spinSign != null, aimY: ty, drive: driveG, driveUp, driveOn,
-        lastTeam: p.team, lastPlayer: p.idx, kicker: p.idx, kickKind: kind, style: kind === 'shot' ? 'shot' : loft ? (typeof loft === 'string' ? loft : 'drive') : 'ground',
+        lastTeam: p.team, lastPlayer: p.idx, kicker: p.idx, kickKind: kind, ftBy: p.idx, style: kind === 'shot' ? 'shot' : loft ? (typeof loft === 'string' ? loft : 'drive') : 'ground',
       });
       if (kind === 'pass' && loft && !S.restart && !(S.gkCk && S.t < S.gkCk.until)) gkHighCall(p, b);   // 版834：浮き球のクロス・放り込みに、GKが出るか決める
       p.touchCd = 0.6; p.hold = false; p.dO = 0.5; p.dV = 0; p.settle = false;
@@ -4121,7 +4121,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             // 受け手の足元（少し前）に落ちる高さで投げる（ロングスローは頭の高さ）
             const v = clamp(4 + d * 0.62, 7, tk.sk.has('longThrow') ? 13 + tk.physical * 0.12 : 15), tf = d / v;
             const vz = clamp((hz - 2.0 + 4.9 * tf * tf) / tf, -1.5, 9);
-            Object.assign(S.ball, { owner: -1, kind: 'pass', style: 'ground', z: 2.0, y: clamp(r.y, 0.3, W - 0.3), vx: ((tq.x - tk.x) / d) * v, vy: ((tq.y - tk.y) / d) * v, vz, lastTeam: tk.team, lastPlayer: tk.idx, kicker: tk.idx, intended: tq.idx, offside: false });
+            Object.assign(S.ball, { owner: -1, kind: 'pass', style: 'ground', z: 2.0, y: clamp(r.y, 0.3, W - 0.3), vx: ((tq.x - tk.x) / d) * v, vy: ((tq.y - tk.y) / d) * v, vz, lastTeam: tk.team, lastPlayer: tk.idx, kicker: tk.idx, ftBy: tk.idx, kickKind: 'throw', intended: tq.idx, offside: false });
             tk.touchCd = 0.5; stats[tk.team].passes++;
             S.lastPass[tk.team] = { from: tk.idx, t: S.t };
           }
@@ -4387,6 +4387,9 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         if (al > 0.5 && al < Math.min(dl, 30) && lat < 4 + al * 0.3) return false; }
       return true;
     }
+    // 版861：バックパスの反則（競技規則12条）：味方が足で意図して蹴った球、または味方のスローインを、GKが直接手で扱ってはいけない。
+    //   頭・胸などで戻した球、蹴った後に誰か（相手・味方）に当たって変わった球は手で扱ってよい
+    function bpFoot(p, b) { const k = b.kicker; return k >= 0 && k !== p.idx && k === b.lastPlayer && b.ftBy === k && b.kickKind !== 'head' && P[k] && P[k].team === p.team; }
     function gainBall(p, how) {
       if (globalThis.__mdG && p.uniq === 'midori') globalThis.__mdG.push([+fx(p.team, p.x).toFixed(0), how, S.restart ? 1 : 0, S.setPiece ? 1 : 0]);
       for (const q of P) q.aoKeepFast = false;   // 蒼の王座の「抜け出す足」は、打つか離すまで
@@ -4432,7 +4435,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       }
       S.charge = null;
       S.forceShot = null;
-      const prevTeam = b.lastTeam, prevKind = b.kind, prevPlayer = b.lastPlayer, inAir0 = (b.z || 0) > 0.3, bSpd0 = hyp(b.vx || 0, b.vy || 0);
+      const bp0 = p.gk && bpFoot(p, b), prevTeam = b.lastTeam, prevKind = b.kind, prevPlayer = b.lastPlayer, inAir0 = (b.z || 0) > 0.3, bSpd0 = hyp(b.vx || 0, b.vy || 0);
       // 版843：攻撃のスイッチ：何本かつないだ後、相手の中盤の間・前へ縦パスが入った瞬間に、チーム全体がテンポを上げる（6秒）
       if (prevKind === 'pass' && prevTeam === p.team && P[prevPlayer] && prevPlayer !== p.idx && !S.setPiece && (S.passStreak[p.team] || 0) >= 2 && fx(p.team, p.x) > L / 2 - 12 && fx(p.team, p.x) - fx(p.team, P[prevPlayer].x) > 7) { T[p.team].accelT = S.t + 6; T[p.team].ovlNext = 0; if (globalThis.__scnLog) globalThis.__scnLog.push(['acc', +S.t.toFixed(1), p.team]); if (globalThis.__ovDbg) globalThis.__ovDbg.acc++; }
       // 版843：奪い返し：失ってから3秒以内に、相手陣で奪い返した
@@ -4480,13 +4483,13 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         if (T[p.team].urg && fx(p.team, p.x) > L / 2) stats[p.team].high_wins++;
       }
       const inOwnBox = fx(p.team, b.x) < 16.5 && Math.abs(b.y - GOAL_Y) < 20.2;
-      p.hold = p.gk && inOwnBox && !(prevTeam === p.team && prevPlayer >= 0 && prevPlayer !== p.idx);   // 版860：味方から来た球は、どんな形でも手で持たない（足で処理）
+      p.hold = p.gk && inOwnBox && !bp0;   // 版861：バックパス（味方が足で蹴った球・スローイン）は手で持たない（足で処理）
       p.gkOutT = p.gk && !inOwnBox ? S.t : 0;   // エリアの外で触ったGKは、すぐ処理する
       // 自陣ゴール前で相手FWに寄せられながらこぼれ球を拾ったDF：迷わずクリア
       const pingPong = prevTeam != null && prevTeam !== p.team && S.t - (S.lastFlipT ?? -9) < 1.6;   // 版848：直前にも奪い合いで行き来したボール（当てて跳ね返り合い）
       if (prevTeam != null && prevTeam !== p.team) S.lastFlipT = S.t;
       if (!p.gk && prevKind !== 'pass' && !(pingPong && !(fx(p.team, p.x) < 11 && Math.abs(p.y - GOAL_Y) < 12)) && fx(p.team, p.x) < 26 && Math.abs(p.y - GOAL_Y) < 22 && nearestOpp(p, p.x, p.y).d < 4) S.mustClear = { i: p.idx, t: S.t };   // 跳ね返り合いの後は、ゴール目の前以外はまず収める
-      if (globalThis.__bpLog && p.gk && inOwnBox) globalThis.__bpLog.push([prevTeam === p.team && prevPlayer >= 0 && prevPlayer !== p.idx ? 'mate' : 'other', p.hold ? 1 : 0, prevKind]);
+      if (globalThis.__bpLog && p.gk && inOwnBox) globalThis.__bpLog.push([prevTeam === p.team && prevPlayer >= 0 && prevPlayer !== p.idx ? (bp0 ? 'mate足' : 'mate他') : 'other', p.hold ? 1 : 0, prevKind]);
       if (p.hold) p.holdT = S.t;
       p.sdShown = false;
       Object.assign(b, { owner: p.idx, kind: 'owned', selfPass: false, vz: 0, bs: 0, drive: 0, lastTeam: p.team, lastPlayer: p.idx, intended: -1, offside: false, spin: 0, knuckle: false });
@@ -4874,7 +4877,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       if (b.owner >= 0 || b.hlift == null || S.restart || hyp(b.x - q.x, b.y - q.y) > 2.2 || b.z > 2.9) return;
       act(q, 'head', 0.6);
       const o = P[h.o], ax = o ? o.x - q.x : -sgn(q.team), ay = o ? o.y - q.y : 0, al = hyp(ax, ay) || 1, a = Math.atan2(ay, ax) + R.range(-0.9, 0.9), v = R.range(3.5, 6);
-      Object.assign(b, { owner: -1, kind: 'pass', selfPass: false, x: q.x, y: q.y, z: 1.9, vx: Math.cos(a) * v, vy: Math.sin(a) * v, vz: R.range(1, 3), spin: 0, bs: 0, knuckle: false, lastTeam: q.team, lastPlayer: q.idx, kicker: q.idx, intended: -1, offside: false, style: 'head', hlift: null });
+      Object.assign(b, { owner: -1, kind: 'pass', selfPass: false, x: q.x, y: q.y, z: 1.9, vx: Math.cos(a) * v, vy: Math.sin(a) * v, vz: R.range(1, 3), spin: 0, bs: 0, knuckle: false, lastTeam: q.team, lastPlayer: q.idx, kicker: q.idx, kickKind: 'head', ftBy: -1, intended: -1, offside: false, style: 'head', hlift: null });
       if (o) o.touchCd = Math.max(o.touchCd || 0, 0.25);
       stats[q.team].tackles_won++; stats[1 - q.team].tackles_lost++; ev('tackle', { team: q.team, player: q.name });
     }
@@ -4949,7 +4952,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       }
       act(p, 'head', 0.6);
       p.touchCd = 0.5;
-      const base = { owner: -1, spin: 0, bs: 0, knuckle: false, lastTeam: p.team, lastPlayer: p.idx, kicker: p.idx, kickKind: 'head', offside: false, intended: -1 };
+      const base = { owner: -1, spin: 0, bs: 0, knuckle: false, lastTeam: p.team, lastPlayer: p.idx, kicker: p.idx, kickKind: 'head', ftBy: -1, offside: false, intended: -1 };
       if (xf > L - 17 && Math.abs(p.y - GOAL_Y) < 13) {
         const nf = skZ(p, 'nearRun') || skZ(p, 'farWait');   // ニア・ファーで合わせるのが得意
         const gr = uFire(p, 'guren'), lv2 = gr && p.uniqLv >= 2;   // 紅蓮の牙：ヘディングシュートでも出る
@@ -5415,7 +5418,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         if (b.trapP && b.kind === 'pass' && p.team !== b.lastTeam && !p.gk) continue;   // 桜島の号令：一斉に押し上げたDFはボールを追わない（パスはラインの裏へ抜ける＝オフサイド）
         const inBox = fx(p.team, b.x) < 16.5 && Math.abs(b.y - GOAL_Y) < 20.2;
         // バックパスは手で取れない
-        const gkHands = p.gk && inBox && !(b.lastTeam === p.team && b.lastPlayer >= 0 && b.lastPlayer !== p.idx);   // 版860：味方が最後に触った球（パス・クリア・こぼれ球・はね返り、全部）は手で取れない
+        const gkHands = p.gk && inBox && !bpFoot(p, b);   // 版861：バックパス（味方が足で蹴った球・スローインを直接）は手で取れない。ヘディング・胸、相手や味方に当たったはね返りは手で取れる
         const reach = gkHands ? (uOn(p, 'ikari') ? 0.35 * gP(p) : 0) + (p.diveT > 0 ? 1.4 + (p.jump * 0.7 + p.technique * 0.3) * 0.012 + Math.max(0, p.jump * 0.7 + p.technique * 0.3 - 70) * 0.02 : b.kind === 'shot' ? 1.15 + p.technique * 0.005 + p.jump * 0.004 + Math.max(0, p.jump * 0.7 + p.technique * 0.3 - 70) * 0.012 : 1.3 + p.jump * 0.004) : b.kind === 'shot' && p.team !== b.lastTeam ? 0.55 - (b.guren ? 0.45 * Math.min(1, b.grF ?? 1) : 0) + p.technique * 0.002 + (skZ(p, 'shotBlock') ? 0.4 : 0) + (uOn(p, 'miyabi') ? 0.9 * uP(p) : 0) + (uOn(p, 'matsuri') ? 0.6 * uP(p) * mtF(p) : 0) + (uOn(p, 'kagenui') && b.kicker === p.kgT ? 0.6 : 0) + ((p.b5 || -9) > S.t - 0.5 && fx(p.team, b.x) < 25 ? 0.15 : 0) + (fx(p.team, b.x) < 7 && Math.abs(b.y - GOAL_Y) < POST + 2 ? 0.9 : 0) : (p.team !== b.lastTeam && b.kind === 'pass' && skZ(p, 'intercept') ? 0.4 : 0) - (p.team !== b.lastTeam && b.kind === 'pass' ? (b.uSafe || 0) * 0.5 : 0) + (uOn(p, 'tetsurou') && p.team !== b.lastTeam ? 0.5 : 0) + ((p.sw5 || -9) > S.t - 0.5 && p.team !== b.lastTeam && b.kind === 'pass' ? 0.7 : 0) + (uOn(p, 'kagenui') && p.team !== b.lastTeam && b.kind === 'pass' ? (b.intended === p.kgT ? 1.3 : 0.35) : 0) + (uOn(p, 'miyabi') && b.kind === 'loose' ? 0.5 : 0) + (uOn(p, 'sutemi') && !gkHands ? 0.6 : 0) + (b.kind === 'loose' || hyp(b.vx, b.vy) < 5 ? 0.8 : b.kind === 'pass' && b.intended === p.idx ? 1.25 : 0.75) + (p.team === b.lastTeam ? p.technique : p.defense) * 0.003 + (p.team !== b.lastTeam ? DOM[p.team] * 0.45 : 0);   // ダイレクトのワンツーは読まれにくい
         if (b.z > (gkHands ? gkReachZ(p) : 1.9)) continue;
         if (!passOk(p, b)) continue;
