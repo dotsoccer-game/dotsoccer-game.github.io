@@ -1890,6 +1890,7 @@
     dmFacing = Math.PI / 2; const r = sprite(q.x, q.y, q.s, info, team, 1, 0, false, false, true, 'lie', 0, 'front'); dmFacing = null;
     return r;
   }
+  let kpBall = { x: 52.5, y: 34 };   // 版866：GKの絵をボールに向けるための、いまのボールの位置（drawKeeper の中からは st が見えない）
   function drawKeeper(q, p, info, team, facing, frame, code, gi) {
     if (code === 1 || code === 3 || code === 2 || code === 4) {
       const dir = code <= 2 ? 1 : -1;               // 世界のyで跳んだ向き
@@ -1934,7 +1935,7 @@
       if (simT - (highStart[gi] ?? -9) > jT + 0.3 || simT < (highStart[gi] ?? -9)) highStart[gi] = simT;
       const u = Math.min(1, (simT - highStart[gi]) / jT), h = Math.sin(Math.PI * u) * (0.55 + jp * 0.0085), lifted = P3(p.x, p.y, h), px = Math.max(1.4, 2.5 * q.s);
       ctx.fillStyle = 'rgba(0,30,0,0.3)'; ctx.beginPath(); ctx.ellipse(q.x, q.y - px * 0.2, (5.2 - h * 1.6) * px, (1.7 - h * 0.5) * px, 0, 0, Math.PI * 2); ctx.fill();
-      { const bq0 = proj(st.ball.x, st.ball.y); dmFacing = Math.atan2((bq0.y - q.y) / 0.45, bq0.x - q.x); } const r7 = sprite(lifted.x, lifted.y, q.s, info, team, facing, 1, false, true, true, null, 0, 'front'); dmFacing = null; return r7;   // 版865：ボールに正対して跳ぶ
+      { const bq0 = proj(kpBall.x, kpBall.y); dmFacing = Math.atan2((bq0.y - q.y) / 0.45, bq0.x - q.x); } const r7 = sprite(lifted.x, lifted.y, q.s, info, team, facing, 1, false, true, true, null, 0, 'front'); dmFacing = null; return r7;   // 版865：ボールに正対して跳ぶ
     }
     if (code === 6) {
       // パンチング：飛び上がって両手を突き上げる
@@ -1954,7 +1955,7 @@
       return { top: lifted.y - H * 0.7, px: (r8 && r8.px) || px };
     }
     if (code === 9 || code === 10) {   // 足を伸ばして止める（スライディングのように片足を投げ出す）
-      { const bq0 = proj(st.ball.x, st.ball.y); dmFacing = Math.atan2((bq0.y - q.y) / 0.45, bq0.x - q.x); }   // 版865：ボールに正対して、片足を伸ばす（背中を向けない）  版864：踏み込んで、ボールの来た方へ片足を大きく伸ばす（スライディングではなく、立ったまま足を出す）
+      { const bq0 = proj(kpBall.x, kpBall.y); dmFacing = Math.atan2((bq0.y - q.y) / 0.45, bq0.x - q.x); }   // 版865：ボールに正対して、片足を伸ばす（背中を向けない）  版864：踏み込んで、ボールの来た方へ片足を大きく伸ばす（スライディングではなく、立ったまま足を出す）
       const r9 = sprite(q.x, q.y, q.s, info, team, facing, 0, false, false, false, 'lunge', 0, 'front'); dmFacing = null; return r9;
     }
     if (code === 11) {   // 1対1：両手両足を大きく広げて、体ごと壁になる
@@ -2926,7 +2927,7 @@
         ctx.restore(); r = { top: q.y - 17 * px, px: r.px };
         gloom(q.x, r.top - 2 * px, px, i);
       }
-      else if (info.gk && gkCode) r = drawKeeper(q, p, info, team, facing, f4, gkCode, team);
+      else if (info.gk && gkCode) { kpBall = st.ball; r = drawKeeper(q, p, info, team, facing, f4, gkCode, team); }
       else if (info.gk && !kp && p.sp < 2.6 && !(st.owner >= 0 && (st.owner < 11 ? 0 : 1) === team) && (() => { const gx = p.x < 52.5 ? 0 : 105; return Math.hypot(st.ball.x - gx, st.ball.y - 34) < 32; })()) {   // 版865：後半はゴールが入れかわるので、GKのいる側のゴールで測る。こぼれ球（だれも持っていない）の時も構える
         // 版864：相手がシュートを打てる所でボールを持っている：腰を落とし、両手を広げて構える（棒立ちにしない）
         const bq = proj(st.ball.x, st.ball.y); dmFacing = Math.atan2((bq.y - q.y) / 0.45, bq.x - q.x);

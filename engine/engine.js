@@ -5492,7 +5492,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           if (Math.abs(cx0 - gl0) < Math.abs(p.x - gl0) - 0.5) continue;
         }
         const ttX = uOn(p, 'tetsurou') && b.kind === 'pass' && p.team !== b.lastTeam && b.z < 1.2 ? (p.uniqLv >= 2 ? 1.1 : 0.9) : 0;   // 鉄狼の関所：そばを通るパスに足が届く
-        if (d <= reach * (gkShot ? 1.28 : 1) + rcvX + ttX) cand.push({ p, d, gkHands, reach });
+        if (d <= (gkShot ? Math.min(reach * 1.28, p.diveT > 0 ? 2.0 : 1.3) : reach) + rcvX + ttX) cand.push({ p, d, gkHands, reach });   // 版866：シュートに触れるのは、絵の手が届く所まで（横っ跳び2.0m・立って1.3m）。離れた所ではじけて見えないように
       }
       cand.sort((a, c) => a.d - c.d);   // こぼれ球は、ボールに近い方が先に触る（守る側・攻める側の差はない）
       for (const { p, gkHands, reach, d: dGk } of cand) {
@@ -5524,8 +5524,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             // GKの体の正面（手が届くど真ん中）に来た球は、止められなくても必ずどこかに当たる（「今の止めてたでしょ」をなくす）
             const bodyHit = (off < (shotD < 12 ? 0.28 : 0.42) || (pre && off < 0.85)) && !b.knuckle && !b.csPlace;   // 置きに行くコントロールショットは、GKの手がぎりぎり届かない隅へ置く   // 至近距離は体の正面でも反応が間に合わないことがある   // 届くと決まった横っ跳びも、必ず触る
             if (gkRoll < prob || bodyHit) {
-              { const hr = p.diveT > 0 ? 0.9 : 0.7, hy = p.y + clamp(yAt - p.y, -hr, hr);   // 版864：触った瞬間、ボールはGKの手（体）の所にある：手に当たっていないのに向きが変わって見えないように
-                if (Math.abs(fx(p.team, b.x) - fx(p.team, p.x)) < 2.5) { b.x = p.x + sgn(p.team) * 0.25; b.y = hy; } }   // 版865：離れた所ではじけて見えないように、必ず手の所で
+              { const hr = p.diveT > 0 ? 1.1 : 0.8, dy0 = yAt - p.y;   // 版866：触った瞬間、ボールはGKの手の先（体からhrの所まで）にそろえる
+                b.x = p.x + sgn(p.team) * 0.3; b.y = p.y + clamp(dy0, -hr, hr); b.bs = 0; b.drive = 0; b.driveOn = false; b.driveUp = 0; b.curveAll = false; b.wobW = null; }   // 版866：GKが触ったら、シュートの回転（ドライブの落ちる力など）は消える
               const high = b.z > 1.7, diving = p.diveT > 0;
               // 無回転シュート：ブレるので、どんなGKでもキャッチできない。触っても必ずファンブルする
               //  そのままゴールへこぼれ込む／前にこぼす／うまいGKなら、コースを変えてゴールの外へ逃がす（CK）のが精一杯
@@ -5583,9 +5583,13 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
                 // 版862：指先でバーの上へ（ゴールの外へ出してCK）
                 ev('save', { team: p.team, player: p.name, act: 'tipover' });
                 p.saveT = 0.7; p.saveK = 8; if (globalThis.__scnLog) globalThis.__scnLog.push(['sv' + p.saveK, +S.t.toFixed(1), p.team]); p.touchCd = 1.0;
-                const side = Math.sign(b.y - GOAL_Y) || (R.next() < 0.5 ? -1 : 1), overBar = Math.abs(b.y - GOAL_Y) < POST - 0.8 || R.next() < 0.5;   // 版865：バーの上へ（真ん中寄りの球・半分）と、柱の外へ（横）の2通り
-                const vx = -sgn(p.team) * (overBar ? (dLine + R.range(5, 7)) / 1.45 : Math.max(2, (dLine + R.range(1.5, 2.5)) / 1.3));   // バーの上：高く上げてバーのはっきり上を越え、ネットの後ろ（ゴールの裏）に落ちて転がる
-                Object.assign(b, { vx, vy: overBar ? R.gauss() * 0.8 : side * R.range(6.5, 8), vz: overBar ? R.range(7, 7.6) : R.range(6, 7), z: Math.max(b.z, 2.1), kind: 'loose', lastTeam: p.team, lastPlayer: p.idx, spin: 0, knuckle: false, intended: -1, curveAll: false, wobW: null });
+                const side = Math.sign(b.y - GOAL_Y) || (R.next() < 0.5 ? -1 : 1); let overBar = Math.abs(b.y - GOAL_Y) < POST - 0.8 || R.next() < 0.5;   // 版865：バーの上へ（真ん中寄りの球・半分）と、柱の外へ（横）の2通り
+                // 版866：放つ前に通り道を確かめる：ゴールラインを越える時、バー（3.1m）より0.7m以上上か、柱より0.8m以上外。足りなければ強く・外へ直す（ゴールに入ることはない）
+                const z0 = Math.max(b.z, 2.1), atLine = (vx, vy, vz) => { const t = dLine / Math.max(0.5, Math.abs(vx)); return { z: z0 + vz * t - 4.9 * t * t * 1.08, y: b.y + vy * t }; };
+                let vx = 0, vy = 0, vz = 0;
+                if (overBar) { vz = R.range(7.6, 8.4); vx = -sgn(p.team) * Math.max(2.5, dLine / 0.7); vy = R.gauss() * 0.6; if (atLine(vx, vy, vz).z < BAR + 0.7) overBar = false; }   // ほぼいちばん高い所でラインを越え、ゴールの裏へ落ちる
+                if (!overBar) { vz = R.range(6, 7); vx = -sgn(p.team) * Math.max(2, (dLine + R.range(1.5, 2.5)) / 1.3); vy = side * R.range(6.5, 8); for (let k = 0; k < 6 && Math.abs(atLine(vx, vy, vz).y - GOAL_Y) < POST + 0.8; k++) vy += side * 2; }
+                Object.assign(b, { vx, vy, vz, z: Math.max(b.z, 2.1), kind: 'loose', lastTeam: p.team, lastPlayer: p.idx, spin: 0, knuckle: false, intended: -1, curveAll: false, wobW: null });
               } else if (high) {
                 // パンチング（上へ・外へ）
                 p.punchT = 0.5;
