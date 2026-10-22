@@ -3944,10 +3944,11 @@
     const st = stateAt(simT), name = team ? match.awayShort : match.homeShort;
     const emb = team ? mctx && mctx.opts.embA : mctx && mctx.opts.embH;
     const order = [...Array(11).keys()].sort((a, b) => ['GK', 'DF', 'MF', 'FW'].indexOf(rinfo(team, a).position) - ['GK', 'DF', 'MF', 'FW'].indexOf(rinfo(team, b).position) || a - b);
-    const icons = detail ? `<span class="pv-ico">${D.PARAMS.map((q) => `<img src="icons/${q.k}.png" alt="" title="${q.name}">`).join('')}</span>` : '';
+    const icons = detail ? `<span class="pv-ico"><em class="pv-oh">総合</em>${D.PARAMS.map((q) => `<img src="icons/${q.k}.png" alt="" title="${q.name}">`).join('')}</span>` : '';
     const rows = order.map((k) => {
       const i = team * 11 + k, info = rinfo(team, k), p = st.players[i];
-      const gr = detail ? `<span class="pv-gr">${D.PARAMS.map((q) => { const pv = info.params || info, g = mctx && mctx.opts.grade ? mctx.opts.grade(info, q.k, team) : D.grade(pv[q.k]); return `<b class="g-${g}">${g}</b>`; }).join('')}</span><span class="pv-ty"><em class="tbadge ${PLV_TYPE[info.type] || 'ty-bal'}${String(info.type || '').length >= 8 ? ' tlong' : ''}">${plvEsc(info.type)}</em></span>` : '';
+      const pv0 = info.params || info, ovr = Math.round(D.PARAMS.reduce((a, q) => a + (+pv0[q.k] || 0), 0) / D.PARAMS.length), ovG = D.grade(ovr);   // 版856：総合力（12能力の平均）
+      const gr = detail ? `<span class="pv-ov g-${ovG}" title="総合力 ${ovr}"><small>${ovG}</small>${ovr}</span><span class="pv-gr">${D.PARAMS.map((q) => { const pv = info.params || info, g = mctx && mctx.opts.grade ? mctx.opts.grade(info, q.k, team) : D.grade(pv[q.k]); return `<b class="g-${g}">${g}</b>`; }).join('')}</span><span class="pv-ty"><em class="tbadge ${PLV_TYPE[info.type] || 'ty-bal'}${String(info.type || '').length >= 8 ? ' tlong' : ''}">${plvEsc(info.type)}</em></span>` : '';
       const cs = (cardsOf[i] || []).filter((c) => c.t <= simT && c.number === info.number), red = cs.some((c) => c.color === 'red'), yel = cs.filter((c) => c.color !== 'red').length;
       const cm = red ? '<i class="pv-card red" title="退場"></i>' : yel ? '<i class="pv-card yel" title="警告"></i>' : '';   // 退場（レッド）・警告（イエロー）
       return `<div class="pv-row${selected === i ? ' on' : ''}${red ? ' sent' : ''}" data-i="${i}"><i class="pv-pos ${PLV_POS[info.position] || ''}">${info.position}</i>${info.uniq ? TOP_MARK : '<i class="pv-topsp"></i>'}<b class="pv-no">${info.number}</b><span class="pv-nm">${plvEsc(info.name)}${cm}</span>${plvBat(p ? p.st : 100)}${gr}</div>`;

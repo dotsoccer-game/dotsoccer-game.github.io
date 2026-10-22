@@ -3974,3 +3974,12 @@ img:not([src]),img[src=""]{visibility:hidden}
 /* 版853：選手カードのページ（習得スキルなど）が入りきらない時は、中をスクロールできる */
 .pc-right{min-height:0}.pc-page{overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y}.pc-embed .pc-page{overflow-y:auto}
 .pc-page::-webkit-scrollbar{width:5px}.pc-page::-webkit-scrollbar-thumb{background:rgba(120,100,40,.45);border-radius:3px}
+
+/* 版856：試合中の選手データ（詳しい表示）に総合力の列 */
+.pv-oh{width:calc(46px*var(--k));margin-right:calc(6px*var(--k));font:900 calc(14px*var(--k))/1 sans-serif;color:#ffe9a8;text-align:center;align-self:center;font-style:normal}
+.pv-ov{width:calc(46px*var(--k));margin-left:calc(14px*var(--k));text-align:center;font:italic 900 calc(22px*var(--k))/1 "Arial Black","Helvetica Neue",sans-serif;-webkit-text-stroke:calc(1.2px*var(--k)) #2a1600;paint-order:stroke fill;white-space:nowrap}.pv-ov small{font-size:.6em;margin-right:1px}
+.pv-ov+.pv-gr{margin-left:calc(6px*var(--k))}
+.pv-ov.g-S{color:#ff9a1a}.pv-ov.g-A{color:#ff2c2c}.pv-ov.g-B{color:#2ab8ff}.pv-ov.g-C{color:#ffe02a}.pv-ov.g-D{color:#ffffff}.pv-ov.g-E{color:#b9a7d8}
+
+/* 版856：選手カードの見出しに総合力 */
+.pc-head .pc-ovr{display:inline-flex;align-items:center;gap:4px;margin-left:10px;padding:1px 8px 1px 6px;background:rgba(0,0,0,.28);border-radius:12px;font-style:normal;font-weight:900;font-size:13px;color:#fff;flex:none}.pc-head .pc-ovr .rk{font-size:18px;line-height:1}.pc-head .pc-ovr i{font-style:normal;font-size:16px}
