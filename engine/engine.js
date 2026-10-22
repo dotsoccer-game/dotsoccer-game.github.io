@@ -486,7 +486,7 @@
       return {
         tac, roles, situ: t.situ || null, sitAct: 'keep',
         autoSubs: !!t.autoSubs, subsLeft: 3, lastSubT: -999, bench: t.players.slice(11).filter((q) => !(q.injury > 0)).map((q) => ({ ...q })),
-        ti, name: t.name, short: t.short || t.name, color: t.color || (ti ? 'red' : 'blue'),
+        ti, name: t.name, short: t.short || t.name, color: t.color || (ti ? 'red' : 'blue'), lgId: t.lgId || null,
         line_height: t.line_height || 3, attitude: t.attitude || 'balanced',
         policies: (t.policies || []).slice(0, 5), activePolicy: -1, mods, urg: 0,
         players: starters.map((p, i) => { const q = mkPlayer(p, ti, i, slots[i] || slots[slots.length - 1], P.length); q.slotIdx = i; P.push(q); return q; }),
@@ -630,7 +630,10 @@
     const uOn = (p, k) => !!p && p.uniq === k && p.uOn > S.t;
     // 版850：固有スキルは「国内屈指級の選手」の特権。本人の総合力（12能力の平均）が低いうちは、発動しにくく・効き目も弱い（総合50で約半分、80で満点）
     const uOvrC = new WeakMap(), uOvr = (p) => { let v = uOvrC.get(p); if (v == null) { v = PARAM_KEYS.reduce((a, k) => a + (p[k] || 0), 0) / PARAM_KEYS.length; uOvrC.set(p, v); } return v; };
-    const uEF = (p) => clamp((uOvr(p) - 50) / 30, 0.15, 1), uEK = (p) => 0.4 + 0.6 * uEF(p);
+    // 版851：所属リーグでも変わる（下のリーグほど弱い）。リーグ戦・カップ戦など、両チームのリーグが分かる試合だけ（対人戦などは満点）
+    const LG_UF = { regE2: 0.6, regW2: 0.6, regE1: 0.6, regW1: 0.6, d3: 0.75, d2: 0.9, d1: 1 };
+    const uLgF = (p) => { const a = T[p.team] && T[p.team].lgId, b = T[1 - p.team] && T[1 - p.team].lgId; return a && b ? LG_UF[a] ?? 1 : 1; };
+    const uEF = (p) => clamp((uOvr(p) - 50) / 30, 0.15, 1), uEK = (p) => (0.4 + 0.6 * uEF(p)) * uLgF(p);
     const uP = (p) => (p.uniqLv >= 2 ? 1.3 : 1) * uEK(p);   // 凸で強化：効果が1.3倍
     const grF = (p) => uEK(p) * clamp(((p.kick || 0) * 0.5 + (p.technique || 0) * 0.3 + (p.mental || 0) * 0.2 - 45) / 45, 0.25, 1.15);   // 版665：紅蓮の牙の強さは、本人のシュート力（キック・テクニック・メンタル）に連動。スカウト直後（60台）は4割ほど、国内屈指（90前後）で満額
     // GKの固有スキル（白亜の城壁・捨て身の守護神）の止める力の上乗せは、本人のセービング力に連動（CPUの国内屈指＝満額、手に入れた直後のE〜D＝2〜3割、99まで育てると満額を超える）
@@ -650,7 +653,7 @@
       if (k === 'sakurajima') { const o = ownerP(); if (o && o.team !== p.team && !o.gk) { const xs = T[p.team].players.filter((m) => !m.off).map((m) => fx(o.team, m.x)).sort((a, c) => c - a); if (fx(o.team, o.x) > xs[1] - 1.5) return false; } }   // 桜島の号令：ボールを持った相手がもう最終ラインを越えている（GKと1対1）なら、号令をかけても意味がない
       if (k === 'miyabi') { const r = miyabiTarget(p), own0 = ownerP(); if ((own0 && own0.team === p.team) || !r) return false; const dr = hyp(r.x - p.x, r.y - p.y); if (dr > 25) return false; if (dr > 14 && T[p.team].players.filter((m) => m !== p && !m.gk && !m.off && hyp(r.x - m.x, r.y - m.y) < dr).length >= 3) return false; }   // 雅の後始末：守備の時だけ。奪いに行ける距離・近い順で2番目までの時だけ（持ち場を捨てて遠くへは行かない）   // 雅の後始末：守備の時だけ。遠すぎる所へは行かない（近くの味方に任せる）
       const u = UNIQ[k], lv2 = p.uniqLv >= 2;
-      if (R.next() > Math.min(1, u.ch * (chMul ?? 1) * (lv2 ? 1.25 : 1) * (0.5 + 0.5 * uEF(p)))) {   /* 版850：総合力が低いほど発動しにくい */ p.uCd = S.t + 1.5; return false; }
+      if (R.next() > Math.min(1, u.ch * (chMul ?? 1) * (lv2 ? 1.25 : 1) * (0.5 + 0.5 * uEF(p)) * Math.sqrt(uLgF(p)))) {   /* 版850：総合力が低いほど発動しにくい（版851：下のリーグほど） */ p.uCd = S.t + 1.5; return false; }
       p.uOn = S.t + u.dur * (lv2 ? 1.25 : 1); p.uCd = p.uOn + (lv2 && u.cd2 != null ? u.cd2 : u.cd * (lv2 ? 0.8 : 1));
       if (k === 'midori' && (T[p.team].mdStack || 0) < 3) p.uCd = p.uOn + 4;   /* 版468：積み重ねが4回になるまでは、間隔を短く */
       if (!(k === 'kinshachi' && p.ksShownT && S.t - p.ksShownT < 60)) { p.ksShownT = k === 'kinshachi' ? S.t : p.ksShownT; act(p, 'uniq', 2.2, { k, lv: p.uniqLv || 1 }); } /* 金鯱の心臓は何度も出るので、吹き出しは1分に1回だけ */ ev('uniq', { team: p.team, player: p.name, number: p.number, k, name: u.name, lv: p.uniqLv || 1, face: u.face, gk: p.gk ? 1 : 0 });

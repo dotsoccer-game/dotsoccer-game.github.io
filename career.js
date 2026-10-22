@@ -438,6 +438,7 @@
   const PRO_BOOST = { d3: 6, d2: 5, d1: 4 };
   function opponentTeam(save, op) {
     const t = opponentTeam0(save, op);
+    try { const tm0 = op && !GUESTS[op.name] ? (op.preset ? op : findTeam(save, op.name)) : null; if (tm0 && tm0.lg) t.lgId = tm0.lg; } catch (e) {}   // 版851：固有スキルの強さ（リーグ）に使う
     try { if (op && !GUESTS[op.name]) { const tm = op.preset ? op : findTeam(save, op.name); const b = tm ? PRO_BOOST[tm.lg] || 0 : 0;
       if (b) for (const p of t.players) for (const k of KEYS) if (typeof p[k] === 'number') p[k] = clamp(Math.round(p[k] + b), 25, 99); } } catch (e) {}
     return t;
@@ -1235,6 +1236,7 @@
     applyTactics(t, tac);
     t.roles = {};
     for (const k of ['captain', 'pk', 'fk', 'ck']) { const n = tac.roles[k]; const i = n ? ps.slice(0, 11).findIndex((q) => q.name === n) : -1; if (i >= 0) t.roles[k] = i; }
+    t.lgId = myLgId(save);   // 版851：固有スキルの強さ（リーグ）に使う
     t.players = ps.slice(0, 11 + BENCH_N);   // ベンチ入り（控え7人）まで。ベンチ外の選手は試合に出られない
     return { team: t, played: ps.slice(0, 11).map((p) => save.team.players.findIndex((q) => q.name === p.name)) };
   }
