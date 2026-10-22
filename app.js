@@ -3750,7 +3750,8 @@
       if (e.type === 'card' && speed < 16) SND().play('card');
       if (e.type === 'gk' && e.act === 'tip' && speed < 16) SND().play('parry');   /* 指先に当たった「パンッ」 */
       if (e.type === 'half') { SND().play('whistle2'); koWhistleT = e.t + 0.6; }
-      if (e.type === 'pkgo' && speed < 16) SND().play('pkgo');   /* 版742：PKは全員がエリアの外に出てから、笛を吹いて蹴る */
+      if (e.type === 'pkgo' && speed < 16) SND().play('pkgo');
+      if (e.type === 'fkgo' && speed < 16) SND().play('whistle');   // 版846：FKの笛   /* 版742：PKは全員がエリアの外に出てから、笛を吹いて蹴る */
       if ((e.type === 'offside' || e.type === 'foul') && !show && speed < 4) startJudge(e);
       if (e.type === 'card') { const i = idxOf(e.team, e.number); if (i >= 0) cardPanel = { t: e.t + 1.3, idx: i, color: e.color, second: e.second }; }
       // ゴールの演出（喜び・観客・リプレイ）の最中に起きた交代は、演出が全部終わってキックオフの前に見せる
