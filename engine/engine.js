@@ -4712,13 +4712,13 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
 
     // パンチング（スキル）：スペースか味方を狙ってはじく。持っていなければ前・外へ大きく
     // 版862：はじく方向を選ぶ（うまいGKほど、相手のいない所へ逃がす）。候補：ゴールラインの外（CK）・左右のタッチライン寄り。落ちる所のまわりの相手が少ない方
-    function parryAway(p, b, skill) {
+    function parryAway(p, b, skill, pref) {   // 版867：pref＝ボールが流れていく側（はじいた球は、その向きのまま外へ）
       const good = R.next() < clamp(0.3 + (skill - 50) * 0.015, 0.25, 0.93);
       if (!good) return false;
-      const s0 = sgn(p.team), gl = fx(p.team, 0), side0 = Math.sign(b.y - GOAL_Y) || (R.next() < 0.5 ? -1 : 1), cands = [];
+      const s0 = sgn(p.team), gl = fx(p.team, 0), side0 = pref || Math.sign(b.y - GOAL_Y) || (R.next() < 0.5 ? -1 : 1), cands = [];
       { const vx = -s0 * R.range(2.5, 4.5), vy = side0 * R.range(6, 9), t = Math.abs((b.x - gl) / vx), yc = b.y + vy * t;   // ゴールの横へ逃がす（CK）
         if (t < 1.4 && Math.abs(yc - GOAL_Y) > POST + 0.8) cands.push({ vx, vy, sc: 9 }); }
-      for (const sd of [side0, -side0]) { const vx = s0 * R.range(1.5, 3.5), vy = sd * R.range(8, 12), lx = b.x + vx * 1.1, ly = clamp(b.y + vy * 1.1, 1, W - 1);   // タッチライン寄りへ大きく
+      for (const sd of pref ? [side0] : [side0, -side0]) { const vx = s0 * R.range(1.5, 3.5), vy = sd * R.range(8, 12), lx = b.x + vx * 1.1, ly = clamp(b.y + vy * 1.1, 1, W - 1);   // タッチライン寄りへ大きく
         const od = Math.min(...opps(p).filter((q) => !q.off).map((q) => hyp(q.x - lx, q.y - ly))); cands.push({ vx, vy, sc: Math.min(od, 12) + (sd === side0 ? 1 : 0) }); }
       const c = cands.sort((a, c2) => c2.sc - a.sc)[0];
       Object.assign(b, { vx: c.vx, vy: c.vy, vz: R.range(1.2, 3), z: Math.max(b.z, 0.4), kind: 'loose', lastTeam: p.team, lastPlayer: p.idx, spin: 0, knuckle: false, intended: -1 });
@@ -5482,6 +5482,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         const reach = gkHands ? (p.svPrep && p.svPrep.t === b.shotT && b.kind === 'shot' ? (p.svPrep.k === 'footsave' ? 0.7 : 0.45) : 0) + (uOn(p, 'ikari') ? 0.35 * gP(p) : 0) + (p.diveT > 0 ? 1.4 + (p.jump * 0.7 + p.technique * 0.3) * 0.012 + Math.max(0, p.jump * 0.7 + p.technique * 0.3 - 70) * 0.02 : b.kind === 'shot' ? 1.15 + p.technique * 0.005 + p.jump * 0.004 + Math.max(0, p.jump * 0.7 + p.technique * 0.3 - 70) * 0.012 : 1.3 + p.jump * 0.004) : b.kind === 'shot' && p.team !== b.lastTeam ? 0.55 - (b.guren ? 0.45 * Math.min(1, b.grF ?? 1) : 0) + p.technique * 0.002 + (skZ(p, 'shotBlock') ? 0.4 : 0) + (uOn(p, 'miyabi') ? 0.9 * uP(p) : 0) + (uOn(p, 'matsuri') ? 0.6 * uP(p) * mtF(p) : 0) + (uOn(p, 'kagenui') && b.kicker === p.kgT ? 0.6 : 0) + ((p.b5 || -9) > S.t - 0.5 && fx(p.team, b.x) < 25 ? 0.15 : 0) + (fx(p.team, b.x) < 7 && Math.abs(b.y - GOAL_Y) < POST + 2 ? 0.9 : 0) : (p.team !== b.lastTeam && b.kind === 'pass' && skZ(p, 'intercept') ? 0.4 : 0) - (p.team !== b.lastTeam && b.kind === 'pass' ? (b.uSafe || 0) * 0.5 : 0) + (uOn(p, 'tetsurou') && p.team !== b.lastTeam ? 0.5 : 0) + ((p.sw5 || -9) > S.t - 0.5 && p.team !== b.lastTeam && b.kind === 'pass' ? 0.7 : 0) + (uOn(p, 'kagenui') && p.team !== b.lastTeam && b.kind === 'pass' ? (b.intended === p.kgT ? 1.3 : 0.35) : 0) + (uOn(p, 'miyabi') && b.kind === 'loose' ? 0.5 : 0) + (uOn(p, 'sutemi') && !gkHands ? 0.6 : 0) + (b.kind === 'loose' || hyp(b.vx, b.vy) < 5 ? 0.8 : b.kind === 'pass' && b.intended === p.idx ? 1.25 : 0.75) + (p.team === b.lastTeam ? p.technique : p.defense) * 0.003 + (p.team !== b.lastTeam ? DOM[p.team] * 0.45 : 0);   // ダイレクトのワンツーは読まれにくい
         const gkShot = gkHands && b.kind === 'shot' && b.lastTeam !== p.team;   // 版863：シュートには、キャッチできる範囲より少し遠く・高くまで、指先・こぶしで触れる（はじく・かき出す・パンチングだけ）
         if (b.z > (gkHands ? gkReachZ(p) + (gkShot ? 0.3 : 0) : 1.9)) continue;
+        if (gkHands && p.downT > 0 && !(p.diveT > 0) && b.z > 0.8) continue;   // 版867：倒れているGKは、高い球に手が届かない
         if (!passOk(p, b)) continue;
         const rcvX = !gkHands && b.kind === 'pass' && b.intended === p.idx && p.team === b.lastTeam && b.z < 0.8 && p.technique >= 55 ? 0.45 : 0;   // 味方からのパスの受け手：足を伸ばして止める（横を通されて置き去りにしない）   // 味方へのパスは、ほかの味方はまたいで通す。月影の抜け出しのスルーパスは、触れる相手が限られる
         // GKはシュートの通り道（このコマで動いた線分）全体に手が届くかで判定
@@ -5586,9 +5587,9 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
                 const side = Math.sign(b.y - GOAL_Y) || (R.next() < 0.5 ? -1 : 1); let overBar = Math.abs(b.y - GOAL_Y) < POST - 0.8 || R.next() < 0.5;   // 版865：バーの上へ（真ん中寄りの球・半分）と、柱の外へ（横）の2通り
                 // 版866：放つ前に通り道を確かめる：ゴールラインを越える時、バー（3.1m）より0.7m以上上か、柱より0.8m以上外。足りなければ強く・外へ直す（ゴールに入ることはない）
                 const z0 = Math.max(b.z, 2.1), atLine = (vx, vy, vz) => { const t = dLine / Math.max(0.5, Math.abs(vx)); return { z: z0 + vz * t - 4.9 * t * t * 1.08, y: b.y + vy * t }; };
-                let vx = 0, vy = 0, vz = 0;
-                if (overBar) { vz = R.range(7.6, 8.4); vx = -sgn(p.team) * Math.max(2.5, dLine / 0.7); vy = R.gauss() * 0.6; if (atLine(vx, vy, vz).z < BAR + 0.7) overBar = false; }   // ほぼいちばん高い所でラインを越え、ゴールの裏へ落ちる
-                if (!overBar) { vz = R.range(6, 7); vx = -sgn(p.team) * Math.max(2, (dLine + R.range(1.5, 2.5)) / 1.3); vy = side * R.range(6.5, 8); for (let k = 0; k < 6 && Math.abs(atLine(vx, vy, vz).y - GOAL_Y) < POST + 0.8; k++) vy += side * 2; }
+                let vx = 0, vy = 0, vz = 0; const dX = -sgn(p.team), hsp = Math.max(8, Math.abs(b.vx));   // 版867：指先で触れても、シュートの勢いはそのまま。向きを少し上（外）へ変えるだけ（いったん止まって打ち上がる、2段の動きにしない）
+                if (overBar) { vx = dX * hsp * R.range(0.55, 0.7); vy = b.vy * 0.5; const t = dLine / Math.abs(vx); vz = clamp((BAR + 0.9 - z0 + 4.9 * t * t * 1.08) / Math.max(0.08, t), 1.5, 9); if (atLine(vx, vy, vz).z < BAR + 0.7) overBar = false; }
+                if (!overBar) { vz = R.range(2, 3.5); vx = dX * hsp * R.range(0.45, 0.6); vy = b.vy * 0.5 + side * R.range(4, 6); for (let k = 0; k < 8 && Math.abs(atLine(vx, vy, vz).y - GOAL_Y) < POST + 0.8; k++) vy += side * 2; }
                 Object.assign(b, { vx, vy, vz, z: Math.max(b.z, 2.1), kind: 'loose', lastTeam: p.team, lastPlayer: p.idx, spin: 0, knuckle: false, intended: -1, curveAll: false, wobW: null });
               } else if (high) {
                 // パンチング（上へ・外へ）
@@ -5598,11 +5599,12 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
               } else {
                 // 横へはじく
                 ev('save', { team: p.team, player: p.name, act: diving ? 'diveparry' : 'parry' });
-                if (!diving) p.punchT = 0.4;   // 版864：立ったままはじく：手を伸ばして払う姿勢を見せる
-                const side = diving ? p.diveDir : (Math.sign(yAt - p.y) || (R.next() < 0.5 ? -1 : 1));
+                const side0 = diving ? p.diveDir : (Math.sign(yAt - p.y) || (R.next() < 0.5 ? -1 : 1)), side = Math.abs(b.vy) > 1.5 ? Math.sign(b.vy) : side0;   // 版867：はじいた球は、シュートが流れていた向き（ファー側）のまま外へ。逆（ニア）へは戻らない
+                if (!diving && shotD > 11 && !p.downT) startDive(p, Math.sign(yAt - p.y) || side, Math.max(0.7, Math.abs(yAt - p.y)), 0.1);   // 版867：ある程度遠いシュート：体を横に倒しながらはじく
+                else if (!diving) p.punchT = 0.4;   // 版864：至近距離：立ったまま手を伸ばして払う
                 // 下手なGKは正面にこぼしてしまう（詰められる）
                 const spill = R.next() < (1 - skill / 100) * 0.7;
-                if (parryAway(p, b, skill)) { /* 版862：相手のいない所へ逃がした */ }
+                if (parryAway(p, b, skill, side)) { /* 版862：相手のいない所へ逃がした */ }
                 else if (spill) Object.assign(b, { vx: sgn(p.team) * R.range(2, 5), vy: side * R.range(0.5, 2.5), vz: R.range(0.3, 1.5), z: Math.max(b.z, 0.3), kind: 'loose', lastTeam: p.team, lastPlayer: p.idx, spin: 0, knuckle: false });
                 else { const out = R.next() < 0.4;   // 横へはじく：ゴールの外（ゴールライン）へ逃がすとCK
                   Object.assign(b, { vx: sgn(p.team) * (out ? -R.range(2, 5) : R.range(1, 4)), vy: side * R.range(5, 10), vz: R.range(1, 3), z: Math.max(b.z, 0.4), kind: 'loose', lastTeam: p.team, lastPlayer: p.idx, spin: 0, knuckle: false }); }
