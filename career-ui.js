@@ -1490,10 +1490,11 @@
   }
   addEventListener('stagefit', () => { const L = $('#clubLayer'); if (L && L.querySelector('.sq2') && !$('#cv-club').hidden && !sqDrag && !document.querySelector('.s2drag')) renderLineup2(); });   // 版531：ドラッグ中は組み直さない
   // 版516：名前の札の中身を、表示の切りかえ（名前・調子／タイプ／星）で変える。長いタイプ名は横に縮めて1行に
-  const SQ_SHOW = ['cond', 'type', 'star'], SQ_SHOW_NAME = { cond: '名前・調子', type: 'タイプ', star: 'レア度（星）' };
+  const SQ_SHOW = ['cond', 'ovr', 'type', 'star'], SQ_SHOW_NAME = { cond: '名前・調子', ovr: '総合力', type: 'タイプ', star: 'レア度（星）' };   // 版857：総合力（12能力の平均）を追加
   function sqTag(q) {
     if (sqShow === 'type') { const t = q.type || 'バランス', k = Math.min(1, 6 / Math.max(1, t.length)); return `<b class="s2n s2n-ty tbadge ${TYPE_CLS[t] || 'ty-bal'}" style="--sx:${k.toFixed(2)}">${esc(t)}</b>`; }
     if (sqShow === 'star') return `<b class="s2n s2n-st">${starHTML(C.ensureStar(q), q.totsu)}</b>`;
+    if (sqShow === 'ovr') { const v = Math.round(D.PARAMS.reduce((a, x) => a + (+q[x.k] || 0), 0) / D.PARAMS.length), g = D.grade(v); return `<b class="s2n s2n-ov"><i class="rk rk-${g}">${g}</i>${v}</b>`; }
     return `<b class="s2n ${POSC[q.position]}">${esc(q.name)}</b>`;
   }
   function renderLineup2() {
@@ -1530,7 +1531,7 @@
       if (sqShow !== 'cond') return `<i class="s2b cdot ${condDot(q)}"></i>`;
       return `<i class="s2b cdot ${condDot(q)}"></i><span class="s2ca">${condArrow(q, 22)}</span>`;
     };
-    const chip = (q, i, x, y, cls) => `<div class="s2p ${cls || ''}${i === pick ? ' sel' : ''}${q.injury > 0 ? ' inj' : ''}" data-i="${i}" style="left:${x}px;top:${y}px">${sqTag(q)}<span class="s2tags">${tagsOf(q)}</span>${facePic(q, 's2f', i >= 11)}${badge(q)}${ovrTag(q, 's2ov')}${i > 0 && i < 11 && q.position !== roles[i] && q.position !== 'GK' ? '<em class="s2mis" title="本来のポジションとちがう">!</em>' : ''}</div>`;
+    const chip = (q, i, x, y, cls) => `<div class="s2p ${cls || ''}${i === pick ? ' sel' : ''}${q.injury > 0 ? ' inj' : ''}" data-i="${i}" style="left:${x}px;top:${y}px">${sqTag(q)}<span class="s2tags">${tagsOf(q)}</span>${facePic(q, 's2f', i >= 11)}${badge(q)}${sqShow === 'ovr' ? '' : ovrTag(q, 's2ov')}${i > 0 && i < 11 && q.position !== roles[i] && q.position !== 'GK' ? '<em class="s2mis" title="本来のポジションとちがう">!</em>' : ''}</div>`;
     let dots = chip(ps[0], 0, PX0 + PW / 2, PY0 + R * CH + CH * 1.05, 'gk');
     for (let i = 1; i < 11; i++) { const c = cells[i]; if (c) dots += chip(ps[i], i, cx(c.c), cy(c.r)); }
     // 控え：1列目（ベンチ入り）・2列目（灰色）

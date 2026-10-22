@@ -3983,3 +3983,6 @@ img:not([src]),img[src=""]{visibility:hidden}
 
 /* 版856：選手カードの見出しに総合力 */
 .pc-head .pc-ovr{display:inline-flex;align-items:center;gap:4px;margin-left:10px;padding:1px 8px 1px 6px;background:rgba(0,0,0,.28);border-radius:12px;font-style:normal;font-weight:900;font-size:13px;color:#fff;flex:none}.pc-head .pc-ovr .rk{font-size:18px;line-height:1}.pc-head .pc-ovr i{font-style:normal;font-size:16px}
+
+/* 版857：スタメンの札に総合力 */
+.s2n.s2n-ov{display:flex;align-items:center;justify-content:center;gap:3px;background:#1d2a44;color:#fff;font-weight:900}.s2n-ov .rk{font-style:italic;font-weight:900;-webkit-text-stroke:1px #2a1600;paint-order:stroke fill}
