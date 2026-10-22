@@ -4480,12 +4480,13 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         if (T[p.team].urg && fx(p.team, p.x) > L / 2) stats[p.team].high_wins++;
       }
       const inOwnBox = fx(p.team, b.x) < 16.5 && Math.abs(b.y - GOAL_Y) < 20.2;
-      p.hold = p.gk && inOwnBox && !(b.kind === 'pass' && prevTeam === p.team && b.lastTeam === p.team);
+      p.hold = p.gk && inOwnBox && !(prevTeam === p.team && prevPlayer >= 0 && prevPlayer !== p.idx);   // 版860：味方から来た球は、どんな形でも手で持たない（足で処理）
       p.gkOutT = p.gk && !inOwnBox ? S.t : 0;   // エリアの外で触ったGKは、すぐ処理する
       // 自陣ゴール前で相手FWに寄せられながらこぼれ球を拾ったDF：迷わずクリア
       const pingPong = prevTeam != null && prevTeam !== p.team && S.t - (S.lastFlipT ?? -9) < 1.6;   // 版848：直前にも奪い合いで行き来したボール（当てて跳ね返り合い）
       if (prevTeam != null && prevTeam !== p.team) S.lastFlipT = S.t;
       if (!p.gk && prevKind !== 'pass' && !(pingPong && !(fx(p.team, p.x) < 11 && Math.abs(p.y - GOAL_Y) < 12)) && fx(p.team, p.x) < 26 && Math.abs(p.y - GOAL_Y) < 22 && nearestOpp(p, p.x, p.y).d < 4) S.mustClear = { i: p.idx, t: S.t };   // 跳ね返り合いの後は、ゴール目の前以外はまず収める
+      if (globalThis.__bpLog && p.gk && inOwnBox) globalThis.__bpLog.push([prevTeam === p.team && prevPlayer >= 0 && prevPlayer !== p.idx ? 'mate' : 'other', p.hold ? 1 : 0, prevKind]);
       if (p.hold) p.holdT = S.t;
       p.sdShown = false;
       Object.assign(b, { owner: p.idx, kind: 'owned', selfPass: false, vz: 0, bs: 0, drive: 0, lastTeam: p.team, lastPlayer: p.idx, intended: -1, offside: false, spin: 0, knuckle: false });
@@ -5414,7 +5415,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         if (b.trapP && b.kind === 'pass' && p.team !== b.lastTeam && !p.gk) continue;   // 桜島の号令：一斉に押し上げたDFはボールを追わない（パスはラインの裏へ抜ける＝オフサイド）
         const inBox = fx(p.team, b.x) < 16.5 && Math.abs(b.y - GOAL_Y) < 20.2;
         // バックパスは手で取れない
-        const gkHands = p.gk && inBox && !(b.lastTeam === p.team && b.kind === 'pass');
+        const gkHands = p.gk && inBox && !(b.lastTeam === p.team && b.lastPlayer >= 0 && b.lastPlayer !== p.idx);   // 版860：味方が最後に触った球（パス・クリア・こぼれ球・はね返り、全部）は手で取れない
         const reach = gkHands ? (uOn(p, 'ikari') ? 0.35 * gP(p) : 0) + (p.diveT > 0 ? 1.4 + (p.jump * 0.7 + p.technique * 0.3) * 0.012 + Math.max(0, p.jump * 0.7 + p.technique * 0.3 - 70) * 0.02 : b.kind === 'shot' ? 1.15 + p.technique * 0.005 + p.jump * 0.004 + Math.max(0, p.jump * 0.7 + p.technique * 0.3 - 70) * 0.012 : 1.3 + p.jump * 0.004) : b.kind === 'shot' && p.team !== b.lastTeam ? 0.55 - (b.guren ? 0.45 * Math.min(1, b.grF ?? 1) : 0) + p.technique * 0.002 + (skZ(p, 'shotBlock') ? 0.4 : 0) + (uOn(p, 'miyabi') ? 0.9 * uP(p) : 0) + (uOn(p, 'matsuri') ? 0.6 * uP(p) * mtF(p) : 0) + (uOn(p, 'kagenui') && b.kicker === p.kgT ? 0.6 : 0) + ((p.b5 || -9) > S.t - 0.5 && fx(p.team, b.x) < 25 ? 0.15 : 0) + (fx(p.team, b.x) < 7 && Math.abs(b.y - GOAL_Y) < POST + 2 ? 0.9 : 0) : (p.team !== b.lastTeam && b.kind === 'pass' && skZ(p, 'intercept') ? 0.4 : 0) - (p.team !== b.lastTeam && b.kind === 'pass' ? (b.uSafe || 0) * 0.5 : 0) + (uOn(p, 'tetsurou') && p.team !== b.lastTeam ? 0.5 : 0) + ((p.sw5 || -9) > S.t - 0.5 && p.team !== b.lastTeam && b.kind === 'pass' ? 0.7 : 0) + (uOn(p, 'kagenui') && p.team !== b.lastTeam && b.kind === 'pass' ? (b.intended === p.kgT ? 1.3 : 0.35) : 0) + (uOn(p, 'miyabi') && b.kind === 'loose' ? 0.5 : 0) + (uOn(p, 'sutemi') && !gkHands ? 0.6 : 0) + (b.kind === 'loose' || hyp(b.vx, b.vy) < 5 ? 0.8 : b.kind === 'pass' && b.intended === p.idx ? 1.25 : 0.75) + (p.team === b.lastTeam ? p.technique : p.defense) * 0.003 + (p.team !== b.lastTeam ? DOM[p.team] * 0.45 : 0);   // ダイレクトのワンツーは読まれにくい
         if (b.z > (gkHands ? gkReachZ(p) : 1.9)) continue;
         if (!passOk(p, b)) continue;
