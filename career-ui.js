@@ -3164,7 +3164,7 @@
   // ---- CPUチームの選手カード（チームのページで選手をタップ）：顔・能力・スキルを全部見せる。◀▶で同じチームの前後の選手 ----
   const cpuFaceP = new Map();
   function cpuList(tid) {
-    const ro = C.rosterOfTeam(tid, save.season); if (!ro) return [];
+    const ro = C.rosterOfTeam(tid, save.season, save); if (!ro) return [];
     const KS = D.PARAM_KEYS, ovr = (q) => KS.reduce((a, k) => a + q[k], 0) / KS.length, order = { GK: 0, DF: 1, MF: 2, FW: 3 };
     return ro.players.slice().sort((a, b) => (b.starter - a.starter) || order[a.pos] - order[b.pos] || ovr(b) - ovr(a));
   }
@@ -3199,7 +3199,7 @@
   let ccPage = 0;
   // 見た目は自分の選手のカード（playerCardHTML）と同じ。ページは「選手情報」「習得スキル」の2つ
   function cpuCardHTML(tid, pi) {
-    const list = cpuList(tid), q = list[pi], ro = C.rosterOfTeam(tid, save.season), tm = C.TEAM_BY_ID[tid] || {}, t = C.findTeam(save, tm.name) || {};
+    const list = cpuList(tid), q = list[pi], ro = C.rosterOfTeam(tid, save.season, save), tm = C.TEAM_BY_ID[tid] || {}, t = C.findTeam(save, tm.name) || {};
     const tt = C.titleOf(save, tid, q.name), G = (v) => D.grade(v), foot = cpuFoot(tid, q);
     const grades = D.PARAMS.map((pp) => `<div><b class="rk rk-${G(q[pp.k])}">${G(q[pp.k])}</b></div>`).join('');
     const icons = D.PARAMS.map((pp) => ico(pp.k)).join('');
@@ -3255,7 +3255,7 @@
     view = view || 'info';
     const tabs = `<div class="cg-tabs tm-tabs">${[['info', 'チーム'], ['list', '選手データ'], ['xi', 'スタメン']].map(([k, l]) => `<button data-tmv="${k}" class="${view === k ? 'on' : ''}">${l}</button>`).join('')}</div>`;
     if (view !== 'list') { const h = teamViewHTML(name, view); if (h) return h.replace('<!--tabs-->', tabs); }
-    const t = C.findTeam(save, name), ro = t && C.rosterOfTeam(t.id, save.season);
+    const t = C.findTeam(save, name), ro = t && C.rosterOfTeam(t.id, save.season, save);
     if (!ro) return `<div class="std-body"><div class="std-h"><span>${esc(name)}</span></div><p class="std-soon">選手の情報がありません</p></div>`;
     const KS = D.PARAM_KEYS, ovr = (q) => Math.round(KS.reduce((a, k) => a + q[k], 0) / KS.length), G = (v) => D.grade(v);
     const order = { GK: 0, DF: 1, MF: 2, FW: 3 };
@@ -3273,7 +3273,7 @@
   const STYLE_SL = { balance: [0.5, 0.5, 0.5], possession: [0.65, 0.2, 0.45], counter: [0.3, 0.85, 0.3], highpress: [0.8, 0.5, 0.95], wing: [0.7, 0.6, 0.55] };
   const cpuForm = (id, ro) => { const lu = window.DOT_LINEUPS && window.DOT_LINEUPS[id]; return lu && Array.isArray(lu.cells) && lu.cells.length >= 11 ? C.formationLabel(lu.cells) : ro.formation; };   // 版787：手で決めた並びは、マスの人数から
   function teamViewHTML(name, view) {
-    const t = C.findTeam(save, name), ro = t && C.rosterOfTeam(t.id, save.season); if (!ro) return null;
+    const t = C.findTeam(save, name), ro = t && C.rosterOfTeam(t.id, save.season, save); if (!ro) return null;
     const lgN = (C.LG[t.lg] || {}).name || '', shirt = (ro.kit || {}).shirt || '#e2453a';
     const head = `<div class="std-h"><span><img class="tv-emb" src="${emblemURL(name, 40)}" alt="">${esc(name)}</span><!--tabs--><em>${lgBadge(t.lg)} ${esc(lgN)}</em></div>`;
     if (view === 'xi') {

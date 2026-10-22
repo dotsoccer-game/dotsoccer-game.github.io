@@ -433,7 +433,14 @@
     }
     return out;
   }
-  function rosterOfTeam(id, season) { return rosterAt(id, season); }
+  // 版854：画面に出すCPUの名簿も、試合と同じ「プロの上乗せ」（D3 +6・D2 +5・D1 +4）をのせる（save を渡した時）
+  function rosterOfTeam(id, season, save) {
+    const ro = rosterAt(id, season); if (!save || !ro) return ro;
+    let b = 0; try { const tm = TEAM_BY_ID[id], t = tm && findTeam(save, tm.name); b = t ? PRO_BOOST[t.lg] || 0 : 0; } catch (e) {}
+    if (!b) return ro;
+    const r2 = { ...ro, players: ro.players.map((q) => { const p = { ...q }; for (const k of KEYS) if (typeof p[k] === 'number') p[k] = clamp(Math.round(p[k] + b), 25, 99); return p; }) };
+    return r2;
+  }
   // 版850：D3から上はプロ。CPUのチームは、名簿の能力より少し上の力で試合をする（D3 +6・D2 +5・D1 +4）
   const PRO_BOOST = { d3: 6, d2: 5, d1: 4 };
   function opponentTeam(save, op) {
