@@ -2611,6 +2611,26 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       S.aoSTc = { k: ck, t: S.t, v: best };
       return best;
     }
+    // 版848：クリアの向き：目の前（4m以内・蹴る向き±30°）に相手がいたら、当てないように空いている側へ角度を変える（当てて跳ね返り合うのを防ぐ）
+    function clearAim(p, tx, ty) {
+      const dx = tx - p.x, dy = ty - p.y, d = hyp(dx, dy) || 1;
+      const blk = (ax, ay) => opps(p).some((o) => { if (o.off) return false; const ox = o.x - p.x, oy = o.y - p.y, od = hyp(ox, oy); return od < 4.5 && (ox * ax + oy * ay) / (od || 1) > 0.85; });
+      const ux = dx / d, uy = dy / d; if (!blk(ux, uy)) return [tx, ty];
+      for (const a of [0.6, -0.6, 0.95, -0.95]) { const c = Math.cos(a), sn = Math.sin(a), vx = ux * c - uy * sn, vy = ux * sn + uy * c, nx = p.x + vx * d, ny = p.y + vy * d; if (!blk(vx, vy) && ny > -6 && ny < W + 6 && nx > 1 && nx < L - 1) return [nx, ny]; }
+      return [tx, ty];
+    }
+    // 版848：奪った時、ボールは瞬間移動させずに、相手の足もとから自分の足もとへ転がして収める（どうやって取ったかが見えるように）
+    function stealRoll(q, own) {
+      const b = S.ball, tx = q.x + sgn(q.team) * 0.5, ty = q.y, bx = tx - b.x, by = ty - b.y, bl = hyp(bx, by) || 1;
+      if (globalThis.__scnLog) globalThis.__scnLog.push(['tk', +S.t.toFixed(1), q.team]);
+      if (bl < 0.6) { gainBall(q, 'tackle'); return; }
+      const v = clamp(bl / 0.3, 3, 7);
+      act(q, 'poke', 0.35, { dx: (b.x - q.x) / (hyp(b.x - q.x, b.y - q.y) || 1), dy: (b.y - q.y) / (hyp(b.x - q.x, b.y - q.y) || 1) });
+      Object.assign(b, { owner: -1, kind: 'loose', vx: bx / bl * v, vy: by / bl * v, vz: 0, z: 0, lastTeam: own ? own.team : 1 - q.team, lastPlayer: own ? own.idx : -1, intended: -1 });   // 拾った瞬間に「奪った」扱いになるよう、最後に触ったのは奪われた側
+      if (own) own.touchCd = Math.max(own.touchCd || 0, 0.7);
+      for (const o of opps(q)) if (o !== own && hyp(o.x - b.x, o.y - b.y) < 3) o.touchCd = Math.max(o.touchCd || 0, 0.3);
+      q.touchCd = Math.min(0.2, bl / v * 0.7); S.dribbleDir = null; if (own) own.settle = false;
+    }
     // 版842：カウンターの走り出し：奪った選手より前・近くの選手が、一斉に相手ゴールへ走る（足が速い・スタミナがある選手ほど長く速く）
     function ctLaunch(p) {
       if (!p || S.setPiece || S.restart) return;
@@ -3111,7 +3131,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       if (!p.gk && !S.setPiece && emptyGoal(p)) { shoot(p, null, null); return; }   // ゴールが空いていたら、必ず打つ
       if (S.mustClear && S.mustClear.i === p.idx && S.t - S.mustClear.t < 1.5 && !S.setPiece) {   // こぼれ球のクリア：外へ・前へ大きく
         S.mustClear = null; act(p, 'gkplay', 1.2, { k: 'dfClear' });
-        kick(p, clamp(p.x + sgn(p.team) * R.range(20, 34), 2, L - 2), p.y < GOAL_Y ? R.range(-4, 10) : W - R.range(-4, 10), 'pass', 'clear', { landFrac: R.range(0.8, 1.0) });
+        { const [ax, ay] = clearAim(p, clamp(p.x + sgn(p.team) * R.range(20, 34), 2, L - 2), p.y < GOAL_Y ? R.range(-4, 10) : W - R.range(-4, 10)); kick(p, ax, ay, 'pass', 'clear', { landFrac: R.range(0.8, 1.0) }); }
         b.intended = -1; b.offside = false; b.kind = 'loose'; return; }
       // 版795：アタッカー：サイドで受けたら、中へ切り込んで打つ
       if (p.type === 'アタッカー' && p.position === 'FW' && !S.setPiece && !S.restart && !p.gk) {
@@ -3728,14 +3748,14 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       else if (pick.kind === 'pass') { S.hrWant = !!pick.needle; S.byWant = !!pick.byLong; S.uzWant = !!pick.uzLong || !!pick.aoLong || !!pick.aoSafe; S.mdWant = !!pick.mdPass; startPass(p, pick.q, pick.through, pick.chip, pick.skill); S.mdWant = false; S.hrWant = false; S.byWant = false; b.predD = pick.danger ?? -1; b.predLen = pick.d ?? -1; }
       else if (pick.kind === 'clear' && !p.gk && Math.abs(p.y - GOAL_Y) > 16 && R.next() < OUT_CLEAR) {
         // タッチライン際で囲まれたら、外へ蹴り出してプレーを切る
-        kick(p, clamp(p.x + sgn(p.team) * R.range(8, 22), 2, L - 2), p.y < GOAL_Y ? -5 : W + 5, 'pass', 'clear', { landFrac: R.range(0.8, 1.0) });
+        { const [ax, ay] = clearAim(p, clamp(p.x + sgn(p.team) * R.range(8, 22), 2, L - 2), p.y < GOAL_Y ? -5 : W + 5); kick(p, ax, ay, 'pass', 'clear', { landFrac: R.range(0.8, 1.0) }); }
         b.intended = -1; b.offside = false; b.kind = 'loose';
       }
       else if (pick.kind === 'clear') {
         const fw = mates(p).filter((m) => m.slot.last || m.slot.line === 1);
         const tgt = fw[R.int(fw.length)] || mates(p)[9];
         const tx = clamp(tgt.x + sgn(p.team) * 4, 1, L - 1);
-        kick(p, tx, tgt.y + R.gauss() * 4, 'pass', p.gk ? 'high' : 'clear', { landFrac: p.gk ? 0.95 : R.range(0.75, 1.0) });
+        { const [ax, ay] = p.gk ? [tx, tgt.y + R.gauss() * 4] : clearAim(p, tx, tgt.y + R.gauss() * 4); kick(p, ax, ay, 'pass', p.gk ? 'high' : 'clear', { landFrac: p.gk ? 0.95 : R.range(0.75, 1.0) }); }
         b.intended = tgt.idx; b.offside = false;
         stats[p.team].passes++;
         S.lastPass[p.team] = { from: p.idx, t: S.t };
@@ -4451,7 +4471,9 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       p.hold = p.gk && inOwnBox && !(b.kind === 'pass' && prevTeam === p.team && b.lastTeam === p.team);
       p.gkOutT = p.gk && !inOwnBox ? S.t : 0;   // エリアの外で触ったGKは、すぐ処理する
       // 自陣ゴール前で相手FWに寄せられながらこぼれ球を拾ったDF：迷わずクリア
-      if (!p.gk && prevKind !== 'pass' && fx(p.team, p.x) < 26 && Math.abs(p.y - GOAL_Y) < 22 && nearestOpp(p, p.x, p.y).d < 4) S.mustClear = { i: p.idx, t: S.t };
+      const pingPong = prevTeam != null && prevTeam !== p.team && S.t - (S.lastFlipT ?? -9) < 1.6;   // 版848：直前にも奪い合いで行き来したボール（当てて跳ね返り合い）
+      if (prevTeam != null && prevTeam !== p.team) S.lastFlipT = S.t;
+      if (!p.gk && prevKind !== 'pass' && !(pingPong && !(fx(p.team, p.x) < 11 && Math.abs(p.y - GOAL_Y) < 12)) && fx(p.team, p.x) < 26 && Math.abs(p.y - GOAL_Y) < 22 && nearestOpp(p, p.x, p.y).d < 4) S.mustClear = { i: p.idx, t: S.t };   // 跳ね返り合いの後は、ゴール目の前以外はまず収める
       if (p.hold) p.holdT = S.t;
       p.sdShown = false;
       Object.assign(b, { owner: p.idx, kind: 'owned', selfPass: false, vz: 0, bs: 0, drive: 0, lastTeam: p.team, lastPlayer: p.idx, intended: -1, offside: false, spin: 0, knuckle: false });
@@ -5047,7 +5069,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         act(own, 'dmove', 0.45, { k, dx: -ux / ul, dy: -uy / ul, fail: 1 });
         act(q, 'legsClose', 0.55, { dx: ux / ul, dy: uy / ul });
         stats[q.team].tackles_won++; stats[own.team].tackles_lost++;
-        gainBall(q, 'tackle');
+        stealRoll(q, own);
         act(own, 'lose', 0.8, { o: q.idx }); own.stun = 0.7;
         ev('tackle', { team: q.team, player: q.name });
         return true;
@@ -5061,8 +5083,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         // 読まれた：足を出されて奪われる
         act(own, 'dmove', 0.45, { k, dx: lx, dy: ly, fail: 1 });
         stats[q.team].tackles_won++; stats[own.team].tackles_lost++;
-        act(q, 'poke', 0.35, { dx: (b.x - q.x) / (hyp(b.x - q.x, b.y - q.y) || 1), dy: (b.y - q.y) / (hyp(b.x - q.x, b.y - q.y) || 1) });
-        gainBall(q, 'tackle');
+        stealRoll(q, own);
         act(own, 'lose', 0.8, { o: q.idx }); own.stun = 0.7;
         ev('tackle', { team: q.team, player: q.name });
         return true;
@@ -5247,7 +5268,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
               for (const o of opps(q)) if (hyp(o.x - b.x, o.y - b.y) < 6) o.touchCd = Math.max(o.touchCd, 0.8);
               q.touchCd = Math.min(0.25, bl / v * 0.8); S.dribbleDir = null; own.settle = false;
               if (q.uniqLv >= 2) { q.mtCounter = S.t + 1.4; S.decision = 0; }
-            } else if (took) { gainBall(q, 'tackle'); if (uOn(q, 'matsuri') && q.uniqLv >= 2) { q.mtCounter = S.t + 0.8; S.decision = 0; } }   // 凸：奪ったら、すぐ前の味方へ蹴り出してカウンター
+            } else if (took) { stealRoll(q, own); if (uOn(q, 'matsuri') && q.uniqLv >= 2) { q.mtCounter = S.t + 0.8; S.decision = 0; } }   // 凸：奪ったら、すぐ前の味方へ蹴り出してカウンター
             else {
               // 足を出してつつき出す：ボールは「足→ボール」の向きから少しそれて転がる（どっちに出たか分かるように）
               const ux = b.x - q.x, uy = b.y - q.y, ud = hyp(ux, uy) || 1;
