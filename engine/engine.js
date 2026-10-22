@@ -3504,6 +3504,12 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           else if (o.kind === 'dribble' && space < 5) o.w *= 0.55; }
         if (c && !p.gk && dGoal > 21) for (const o of opts) if (o.kind === 'shot') o.w *= 0.03;   // 指揮の間は、遠くから打たずにゴール前まで運ぶ
         if (condLv(p.team) && !p.gk && !uOn(p, 'shiden') && dGoal > 22 && opts.some((o) => o.kind === 'pass' && (o.danger ?? 1) < 0.9)) for (const o of opts) if (o.kind === 'dribble') o.w *= 0.005; }   // 指揮の間はドリブルしない：持たずにはたく   // ダイレクトで受けたら、持たずにそのままはたく
+      // 版847：ゴール前（約35m）で相手に囲まれたら（5m以内に2人以上）、1人で抜きにいかず、近くの味方と速くつなぐ（ワンツー・落とし）。ドリブルの名手・固有スキルの間は別
+      if (!p.gk && !S.setPiece && xf > L - 35 && !(p.uniq && p.uOn > S.t)) {
+        const nOpp = opps(p).filter((q) => !q.off && !q.gk && hyp(q.x - p.x, q.y - p.y) < 5).length;
+        const shortOK = opts.some((o) => o.kind === 'pass' && o.q && (o.d ?? 99) < 16 && (o.danger ?? 1) < 1.2);
+        if (nOpp >= 2 && shortOK) { const k = p.dribble >= 85 || p.type === 'ファンタジスタ' ? 0.55 : 0.22; for (const o of opts) { if (o.kind === 'dribble') o.w *= k; else if (o.kind === 'pass' && o.q && (o.d ?? 99) < 16 && (o.danger ?? 1) < 1.2) o.w *= 1.6; } if (globalThis.__qk) globalThis.__qk.crowd++; }
+      }
       for (const o of opts) o.w *= Math.exp(R.gauss() * (1 - p.vision / 100) * 0.9);   /* v740 判断：低いと、パス・ドリブル・シュートのどれが良いかを見誤る */
       for (const o of opts) o.ww = Math.pow(Math.max(o.w, 1e-6), sharp);
       // 港の指揮者：指揮の間は「前へ運ぶ」。①前へ通るショートパス（ダイレクト）②前が空いていれば、パスコースを作るための運ぶドリブル ③どちらも無い時だけ、横・後ろへつないでやり直す
@@ -4508,6 +4514,10 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       if (uOn(p, 'aonoouza')) { S.decision = Math.min(S.decision, 0.08); p.protect = Math.max(p.protect || 0, S.t + 1.0); }   // 蒼の王座：受けたら、食いついてきたCBをいなして、すぐに穴へ   // 金鯱の心臓：受けたらすぐ次へ（判断が速い）   // 港の指揮者：受けたらすぐ次へ（テンポよく回す）
       // ワンツーの壁役：トラップせずにダイレクトで返す
       S.oneTouch = false; p.otPass = false;
+      if (!p.gk && how !== 'tackle' && !S.setPiece && fx(p.team, p.x) > L - 38 && prevTeam === p.team && prevKind === 'pass' && mates(p).some((m) => m !== p && !m.gk && !m.off && hyp(m.x - p.x, m.y - p.y) < 14) && opps(p).some((q) => !q.off && !q.gk && hyp(q.x - p.x, q.y - p.y) < 6)) {   // 版847：ゴール前で寄せられて受けたら、持たずに1〜2タッチではたく（うまい選手ほどダイレクト）
+        S.decision = Math.min(S.decision, 0.12 + Math.max(0, 75 - p.vision) * 0.003);
+        if (!S.oneTouch && R.next() < (p.pass + p.technique) / 330) { S.oneTouch = true; p.otPass = true; }
+        if (globalThis.__qk) globalThis.__qk.quick++; }
       if (!p.gk && (T[p.team].accelT || 0) > S.t && how !== 'tackle') S.decision = Math.min(S.decision, 0.16 + Math.max(0, 70 - p.vision) * 0.003);   // 版843：スイッチが入ったら、持たずにテンポよく
       if (!p.gk && p.tmFor && p.tmFor.t === S.t && how !== 'tackle' && R.next() < 0.2 + (p.pass + p.vision) / 260) S.decision = Math.min(S.decision, 0.14);   // 版842：3人目が走り出したら、うまい選手ほど持たずにすぐ出す
       // ワンタッチパス（覚えている選手）：中盤より前で、受けた瞬間にダイレクトではたく
