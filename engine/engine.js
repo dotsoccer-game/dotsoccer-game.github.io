@@ -3357,7 +3357,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         if ((q.f9Run || 0) > S.t && p.type === '偽9番') v += 1.6 + (through ? 0.4 : 0);   // 版795：偽9番が下りて引きつけ、走り込んだ味方へ
         else if (q.position === 'FW' && mates(q).some((m) => m !== q && m.dcUntil > S.t)) v += 0.9;   // 版794：囮が引きつけている間は、空いた相棒のFWへ   // 版794：囮の走りをしているFWには出さない（引きつけた分、ほかへ）
         if (skZ(q, 'behindRun') && through) v += 1.3 + (q.run > 0 ? 0.6 : 0);   // 版789：裏へ抜け出した選手へ、スルーパスを出しやすい
-        if (tm.ovl && tm.ovl.until > S.t && xf > L - 44 && d < 16 && danger < 1.0 && !qOff && (tm.ovl.ids.includes(q.idx) || tm.ovl.ids.includes(p.idx))) v += 0.6 + Math.max(0, p.technique - 50) / 100;   // 版843：崩しの局面：寄ってきた味方と短くつなぐ
+        if (tm.ovl && tm.ovl.until > S.t && xf > L - 44 && !(xf > L - 22 && Math.abs(p.y - GOAL_Y) < 14) && d < 16 && danger < 1.0 && !qOff && (tm.ovl.ids.includes(q.idx) || tm.ovl.ids.includes(p.idx))) v += 0.6 + Math.max(0, p.technique - 50) / 100;   // 版843：崩しの局面：寄ってきた味方と短くつなぐ
         let b842 = 0; if ((q.pgRun || 0) > S.t && q.run > 0 && pxf > xf + 2 && !qOff) { const tmB = p.tmFor && p.tmFor.i === q.idx && S.t - p.tmFor.t < 3 && danger < 0.8 ? 0.8 + Math.max(0, p.vision - 50) / 50 : 0; v += 1.5 + (through ? 0.5 : 0) + tmB; b842 = tmB + ((q.ctRun || 0) > S.t ? 1.5 : 0); }   // 版842：3人目：自分が受けた時に走り出した味方へ（判断が高いほど見逃さない）   // パス＆ゴー・3人目の動き：走り直した味方へ
         if (through) v += 0.9 + (tm.mods.through + tm.tac.through) / 50 + Math.max(0, p.vision - 55) / 30;   // 版840：スルーパスの上乗せを下げた（1.6→0.9）
         if (isPasser && through) v += 0.7 + (pxf > L - 32 ? 0.35 : 0);   // パサー：決定的なパスを狙う
@@ -3624,6 +3624,11 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         if (sh.length) { const gx = fx(p.team, L), gxa = Math.max(0.3, L - xf), ang = Math.abs(Math.atan2(GOAL_Y + POST - p.y, gxa) - Math.atan2(GOAL_Y - POST - p.y, gxa)) * 57.3;
           const lane = !opps(p).some((o) => !o.gk && !o.off && !(o.downT > 0) && segDist(o.x, o.y, p.x, p.y, gx, GOAL_Y).d < 1.1 && segDist(o.x, o.y, p.x, p.y, gx, GOAL_Y).u > 0.03);
           if (lane && ang >= 20) { const best = sh.reduce((a2, o) => (o.ww > a2.ww ? o : a2)), mx = Math.max(...opts.map((o) => o.ww)); best.ww = Math.max(best.ww, mx * 4); for (const o of opts) if (o !== best) o.ww = Math.min(o.ww, best.ww * 0.02); best.mustShoot = true; } } }
+      // 版845：ゴール前（約20m以内）でフリー（3.5m以内に相手がいない・シュートコースが空いている）なら、横パスより自分で打つ（崩しのパスにこだわらない）
+      if (!p.gk && !S.setPiece && dGoal < 20 && dGoal >= 13.5 && !opps(p).some((q) => !q.gk && !q.off && hyp(q.x - p.x, q.y - p.y) < 3.5) && !opts.some((o) => o.aoCut || o.byLong || o.kmPass || o.mustShoot)) { const sh = opts.filter((o) => o.kind === 'shot');
+        if (sh.length) { const gx = fx(p.team, L), gxa = Math.max(0.3, L - xf), ang = Math.abs(Math.atan2(GOAL_Y + POST - p.y, gxa) - Math.atan2(GOAL_Y - POST - p.y, gxa)) * 57.3;
+          const lane = !opps(p).some((o) => !o.gk && !o.off && !(o.downT > 0) && segDist(o.x, o.y, p.x, p.y, gx, GOAL_Y).d < 1.3 && segDist(o.x, o.y, p.x, p.y, gx, GOAL_Y).u > 0.03);
+          if (lane && ang >= 16) { const best = sh.reduce((a2, o) => (o.ww > a2.ww ? o : a2)), mx = Math.max(...opts.map((o) => o.ww)); best.ww = Math.max(best.ww, mx * 2.5); for (const o of opts) if (o !== best && !(o.kind === 'pass' && o.q && hyp(L - fx(p.team, o.q.x), GOAL_Y - o.q.y) < dGoal - 7 && nearestOpp(o.q, o.q.x, o.q.y).d > 3)) o.ww = Math.min(o.ww, best.ww * 0.12); if (globalThis.__fsh) globalThis.__fsh.n++; } } }
       // 影の一刺しを受けたFW：自分で打てない（遠い・コースがない）時は、ゴール前へ走り込んできたかめいへ返す
       if (p.kmBack != null && P[p.kmBack] && (P[p.kmBack].kmBackT || 0) > S.t && !p.gk && !S.setPiece) { const k = P[p.kmBack];
         const blockers = opps(p).filter((o) => !o.gk && !o.off && segDist(o.x, o.y, p.x, p.y, fx(p.team, L), GOAL_Y).d < 1.2 && segDist(o.x, o.y, p.x, p.y, fx(p.team, L), GOAL_Y).u > 0.05).length, canShoot = dGoal < 21 && blockers === 0;
@@ -4911,8 +4916,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         stats[p.team].shots++; if (b.shotOnTarget) stats[p.team].shots_on_target++; else stats[p.team].off_target++;
         
         ev('shot', { team: p.team, player: p.name, number: p.number, d: +b.shotFrom.toFixed(1), on: b.shotOnTarget, header: true, power: Math.round(v * 3.6) });
-      } else if (xf < 40) {
-        const a = Math.atan2(0, sgn(p.team)) + R.gauss() * 0.55, v = 11 + p.physical * 0.06;
+      } else if (xf < 40 && (b.lastTeam !== p.team || opps(p).some((q) => !q.off && hyp(q.x - p.x, q.y - p.y) < 3.5) || (xf < 22 && Math.abs(p.y - GOAL_Y) < 20))) {   // 版845：クリアするのは、相手のボール・すぐ近くに相手がいる・自陣ゴール前の時だけ
+        const a = Math.atan2((GOAL_Y - p.y) * 0.012, sgn(p.team)) + R.gauss() * 0.4, v = 11 + p.physical * 0.06;   // 版845：外へ出さないよう、少し内側（前）へ
         Object.assign(b, base, { kind: 'loose', vx: Math.cos(a) * v, vy: Math.sin(a) * v, vz: R.range(4.5, 7), style: 'head' });
       } else {
         const mates2 = mates(p).filter((m) => m !== p && !m.gk).map((m) => ({ m, d: hyp(m.x - p.x, m.y - p.y), o: nearestOpp(m, m.x, m.y).d })).filter((o) => o.d > 5 && o.d < 20).sort((a, c) => c.o - a.o);
@@ -4924,8 +4929,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           stats[p.team].passes++; S.lastPass[p.team] = { from: p.idx, t: S.t };
           if (R.next() < 0.75) pgGo(p, tg.m);   // 頭で落としたFW：落とした後、もう一度裏へ／開いて受け直す
         } else {
-          const a = Math.atan2(0, sgn(p.team)) + R.gauss() * 0.7, v = 9;
-          Object.assign(b, base, { kind: 'loose', vx: Math.cos(a) * v, vy: Math.sin(a) * v, vz: 3, style: 'head' });
+          const a = Math.atan2((GOAL_Y - p.y) * 0.01, sgn(p.team)) + R.gauss() * 0.4, v = xf < 50 ? 3 : 9;   // 版845：自陣で出す先がない時は、自分の前へ小さく落とす（外へ出さない）
+          Object.assign(b, base, { kind: 'loose', vx: Math.cos(a) * v, vy: Math.sin(a) * v, vz: xf < 50 ? 1.2 : 3, style: 'head' });
         }
       }
       S.poss = p.team;
@@ -5345,7 +5350,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           const contested = new Set(hc.map((p) => p.team)).size > 1;
           // 競る相手がいなければ、受け手は胸で落としてトラップ（うまい選手ほど確実）
           const rcv = b.kind === 'pass' && b.intended >= 0 ? hc.find((p) => p.idx === b.intended) : null;
-          if (rcv && !contested && b.z < 2.1 && !opps(rcv).some((q) => hyp(q.x - rcv.x, q.y - rcv.y) < 2.2) && R.next() < 0.62 + rcv.technique * 0.0045 + Math.max(0, rcv.technique - 70) * 0.005) {
+          const rFree = rcv && !opps(rcv).some((q) => !q.off && hyp(q.x - rcv.x, q.y - rcv.y) < 4.5);   // 版845：まわりに相手がいない（ドフリー）
+          if (rcv && !contested && b.z < (rFree ? 2.7 : 2.1) && !opps(rcv).some((q) => hyp(q.x - rcv.x, q.y - rcv.y) < 2.2) && R.next() < (rFree ? 0.85 + rcv.technique * 0.002 : 0.62 + rcv.technique * 0.0045 + Math.max(0, rcv.technique - 70) * 0.005)) {
             act(rcv, 'chest', 0.4); gainBall(rcv, 'control'); return;
           }
           if (hc.length && (b.z > 1.35 || contested) && !(b.style === 'head' && !contested)) {
@@ -5640,7 +5646,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       if (S.celebrate > 0) return S.celebrate >= S.cel0 - 4.5;
       if (S.restart) { const r = S.restart; return r.type === 'penalty' || ((r.type === 'corner' || r.type === 'free') && fx(r.team, r.x) > L - 32); }
       const b = S.ball;
-      if (b.kind === 'shot') return true;
+      if (b.kind === 'shot' || b.kind === 'cross') return true;
+      if (b.owner < 0 && b.kind === 'pass' && (b.style === 'cross' || (b.landX != null && (b.landX < 32 || b.landX > L - 32)))) return true;   // 版845：ゴール前へ向かって飛んでいるボール（クロス・浮き球）の途中では笛を吹かない
       const own = ownerP();
       if (own && own.gk) return false;
       // ゴール前（両端32m）にボールがある、またはそこへ向かうパス・クロスが出ている
@@ -5652,6 +5659,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
     const overMin = () => 1.6 + ((S.score[0] * 3 + S.score[1] * 5 + curHalf * 7 + events.length) % 5) * 0.4;   // 1.6〜3.2秒（時計で20〜40秒）
     const whistleNow0 = (el) => {
       if (el < HALF + overMin()) return false;
+      { const b0 = S.ball, fly = b0.owner < 0 && (b0.kind === 'cross' || b0.kind === 'shot' || (b0.kind === 'pass' && b0.style === 'cross') || ((b0.kind === 'pass') && (b0.z || 0) > 0.4 && (b0.x < 32 || b0.x > L - 32 || (b0.landX != null && (b0.landX < 32 || b0.landX > L - 32)))));
+        if (fly && el < HALF + 28) return false; }   // 版845：クロス・シュートが飛んでいる間は、待ち時間の上限でも笛を吹かない（落ちて次のプレーが決まってから）
       if (el >= HALF + 20 + (lastPlay && lastPlay.ck ? 9 : 0)) return true;   // ラストプレーは最大20秒まで待つ（CKまでやるときは、そのぶん長く）
       if (!lastPlay) { if (!hot()) return true; const rt = S.restart ? S.restart.type : null; lastPlay = { team: S.restart ? S.restart.team : S.poss, restart: rt, shot: false, ck: rt === 'corner' }; return false; }
       // ラストプレーの続き：終わったら笛
