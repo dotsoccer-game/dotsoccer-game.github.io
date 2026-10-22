@@ -434,7 +434,15 @@
     return out;
   }
   function rosterOfTeam(id, season) { return rosterAt(id, season); }
+  // 版850：D3から上はプロ。CPUのチームは、名簿の能力より少し上の力で試合をする（D3 +6・D2 +5・D1 +4）
+  const PRO_BOOST = { d3: 6, d2: 5, d1: 4 };
   function opponentTeam(save, op) {
+    const t = opponentTeam0(save, op);
+    try { if (op && !GUESTS[op.name]) { const tm = op.preset ? op : findTeam(save, op.name); const b = tm ? PRO_BOOST[tm.lg] || 0 : 0;
+      if (b) for (const p of t.players) for (const k of KEYS) if (typeof p[k] === 'number') p[k] = clamp(Math.round(p[k] + b), 25, 99); } } catch (e) {}
+    return t;
+  }
+  function opponentTeam0(save, op) {
     if (op && GUESTS[op.name]) return JSON.parse(JSON.stringify(GUESTS[op.name].team));   // 版610：対戦の相手は、もらったチームそのまま
     const tm = op.preset ? op : findTeam(save, op.name);
     if (tm && ROSTERS[tm.id]) return rosterTeam(save, tm, rosterAt(tm.id, save.season));
