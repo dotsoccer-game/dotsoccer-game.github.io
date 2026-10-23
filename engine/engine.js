@@ -1637,6 +1637,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
               let yG = b.y + b.vy * tG;
               // 巻いてくるシュートは、曲がった先（ファー）を読んで飛ぶ
               if (b.curveAll && b.aimY != null) { yc = b.aimY; yG = b.aimY; }
+              else { const sdN = segDist(p.x, p.y, b.x, b.y, gx, yc); yG = b.y + (yc - b.y) * sdN.u; }
+              if (Math.sign(yG - p.y) !== Math.sign(yc - p.y) && Math.abs(yc - p.y) > 0.5 && Math.abs(yc - GOAL_Y) < POST + 0.6) yG = yc;   // 版873：体の前と後ろで通る側が入れかわる球（ななめのシュート）は、ゴールに入る側へ飛ぶ   // 版873：ななめに通るシュートは、GKの体にいちばん近づく所へ飛ぶ（自分の深さを通る所ではなく。そこへ飛ぶと、ボールが背中側からゴールラインを割り、逆に飛んだように見えていた）
               ty = clamp(tG < 0.7 ? yG : yc, GOAL_Y - POST - 0.8, GOAL_Y + POST + 0.8);
               tx = tG < 0.7 ? fx(tm.ti, p.x) : 0.8; u = true;      // 迫ってきたら下がらずにその場で構える
               const gap = yG - p.y;
@@ -4079,18 +4081,20 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       const crowd = P.filter((q) => !q.off && !q.gk && hyp(q.x - lx, q.y - ly) < 3).length;   // 落下点のまわりの人の数
       const comeP = clamp(zone * (0.7 + g.vision * 0.004 + g.jump * 0.003) * (g.gkAtk ? 1.2 : 1) * (g.type === 'スイーパーキーパー' ? 1.15 : 1) - crowd * 0.05, 0, 0.97);
       if (R.next() > comeP) return;   // 出ない（DFに任せて、ゴールを守る）
-      const hbSk = g.vision * 0.5 + g.jump * 0.3 + g.technique * 0.2, miss = clamp(0.11 - (hbSk - 50) * 0.0035, 0.008, 0.16) * (1 + crowd * 0.15);   // 版862：目測を誤ってかぶる確率。判断力・ジャンプ力・テクニックの高いGK（A・S級）は、混戦でもほとんどかぶらない（1〜2%）。低いGKは混戦ほど誤る
+      const hbSk = g.vision * 0.5 + g.jump * 0.3 + g.technique * 0.2, miss = hbMiss(g) * (1 + crowd * 0.15);   // 版862：目測を誤ってかぶる確率。判断力・ジャンプ力・テクニックの高いGK（A・S級）は、混戦でもほとんどかぶらない（1〜2%）。低いGKは混戦ほど誤る
       const catchP = clamp(0.55 + g.technique * 0.004 - crowd * 0.08 - (g.sk.has('punching') ? 0.15 : 0), 0.15, 0.92);
       const v = R.next();
       S.gkCk = { g: g.idx, mode: v < miss ? 'miss' : v < miss + (1 - miss) * catchP ? 'claim' : 'punch', until: S.t + lt + 1.2, hb: 1 };
       if (globalThis.__hbLog) globalThis.__hbLog.push({ t: S.t, mode: S.gkCk.mode, dx: +dx.toFixed(1), crowd });
     }
+    // 版873：ハイボールの目測ミス（かぶる）：判断力・ジャンプ力・テクニックが B（65）以上のGKは、まったくしない。C で約4%、D で約8%、E で約12%
+    function hbMiss(g) { const sk = g.vision * 0.5 + g.jump * 0.3 + g.technique * 0.2; return clamp((65 - sk) * 0.0055, 0, 0.16); }
     function gkCornerCall(tk, ck) {
       const g = T[1 - tk.team].players.find((p) => p.gk && !p.off);
       if (!g) return;
       const comeP = { near: 0.22, far: 0.6, mid: 0.42 }[ck] * (0.75 + g.vision * 0.004 + g.jump * 0.002) * (g.gkAtk ? 1.25 : 1);
       if (R.next() > comeP) { S.gkCk = { g: g.idx, mode: 'stay', until: S.t + 3 }; return; }
-      const miss = clamp(0.3 - g.vision * 0.0022 - g.jump * 0.0012, 0.05, 0.28);
+      const miss = hbMiss(g) * 1.2;   // 版873：CKも同じ基準（混戦なので少しだけ多め）
       const catchP = clamp(0.3 + g.technique * 0.005 - (ck === 'near' ? 0.25 : 0) - (g.sk.has('punching') ? 0.15 : 0), 0.1, 0.85);
       const v = R.next();
       S.gkCk = { g: g.idx, mode: v < miss ? 'miss' : v < miss + (1 - miss) * catchP ? 'claim' : 'punch', until: S.t + 3 };
