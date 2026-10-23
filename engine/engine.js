@@ -4088,7 +4088,11 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       if (globalThis.__hbLog) globalThis.__hbLog.push({ t: S.t, mode: S.gkCk.mode, dx: +dx.toFixed(1), crowd });
     }
     // 版873：ハイボールの目測ミス（かぶる）：判断力・ジャンプ力・テクニックが B（65）以上のGKは、まったくしない。C で約4%、D で約8%、E で約12%
-    function hbMiss(g) { const sk = g.vision * 0.5 + g.jump * 0.3 + g.technique * 0.2; return clamp((65 - sk) * 0.0055, 0, 0.16); }
+    // 版874：ハイボールのかぶりはリーグの水準で決める：D1 かぶらない／D2 まれ／D3 もう少し／地域 まぁ見る（地域のGKは飛び出す回数が少ないので、1回あたりの率は高め）。同じリーグでも上手いGKほど少ない
+    const HB_LG = { d1: [0, 92], d2: [0.018, 86], d3: [0.07, 82], regE1: [0.25, 65], regW1: [0.25, 65], regE2: [0.32, 50], regW2: [0.32, 50] };
+    function hbMiss(g) { const sk = g.vision * 0.5 + g.jump * 0.3 + g.technique * 0.2, lg = T[g.team] && T[g.team].lgId;
+      const L = HB_LG[lg] || (sk >= 90 ? HB_LG.d1 : sk >= 84 ? HB_LG.d2 : sk >= 74 ? HB_LG.d3 : sk >= 58 ? HB_LG.regE1 : HB_LG.regE2);   // リーグが分からない試合は、GKの力で近いリーグに当てはめる
+      return L[0] * clamp(1 + (L[1] - sk) * 0.04, 0.4, 1.8); }
     function gkCornerCall(tk, ck) {
       const g = T[1 - tk.team].players.find((p) => p.gk && !p.off);
       if (!g) return;
