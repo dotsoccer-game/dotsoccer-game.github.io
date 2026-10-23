@@ -2055,7 +2055,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       p.lateDive = { at: S.t + Math.max(0.04, tHit - (Math.abs(gap) > 2.4 ? R.range(0.1, 0.16) : R.range(0.0, 0.05))),   /* 版791：抜けた後ではなく、ボールが横を通るほんの少し前に飛び始める（遅すぎて見えた）。手が伸びきる前に球が通り過ぎる */ dir: Math.sign(gap) || 1, dist: Math.abs(gap) * (roll ? R.range(0.4, 0.55) : R.range(0.6, 0.75)), until: S.t + tHit + 2 };
       p.vx *= 0.2; p.vy *= 0.2;
     }
-    function startDive(p, dir, dist, tHit, src) {
+    function startDive(p, dir, dist, tHit, src, zKnown) {
+      { const bb = S.ball, zAt = zKnown != null ? zKnown : (bb.z || 0) + (bb.vz || 0) * tHit - 4.9 * tHit * tHit; p.hiDiveT = zAt > 1.8 ? S.t + 1.0 : 0; }   // 版871：高い球へ飛ぶ時は、高く飛ぶ横っ跳び（絵は13・14）
       p.diveT = 0.7; p.diveDir = dir;
       dist = Math.min(dist, gkDiveMax(p));
       const v = clamp(dist / Math.max(tHit, 0.18), 3, 5.2 + p.speed * 0.015 + p.jump * 0.025);
@@ -5588,7 +5589,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
               if (high && b.z > 1.95 && dLine < 4.5 && R.next() < clamp(0.35 + (skill - 50) * 0.012, 0.25, 0.85)) {
                 // 版862：指先でバーの上へ（ゴールの外へ出してCK）
                 ev('save', { team: p.team, player: p.name, act: 'tipover' });
-                p.saveT = 0.7; p.saveK = 8; p.diveT = 0;   /* 版870：指先で外へ：横に倒れず、ボールへ跳び上がって片手を伸ばす */ if (globalThis.__scnLog) globalThis.__scnLog.push(['sv' + p.saveK, +S.t.toFixed(1), p.team]); p.touchCd = 1.0;
+                p.touchCd = 1.0; if (!p.diveT && !p.downT) startDive(p, Math.sign(yAt - p.y) || 1, Math.max(0.6, Math.abs(yAt - p.y)), 0.1, null, b.z);   /* 版871：指先で外へも、横っ跳び（高い所へ飛ぶ）の絵で */ if (globalThis.__scnLog) globalThis.__scnLog.push(['sv' + p.saveK, +S.t.toFixed(1), p.team]); p.touchCd = 1.0;
                 const side = Math.sign(b.y - GOAL_Y) || (R.next() < 0.5 ? -1 : 1); let overBar = Math.abs(b.y - GOAL_Y) < POST - 0.8 || R.next() < 0.5;   // 版865：バーの上へ（真ん中寄りの球・半分）と、柱の外へ（横）の2通り
                 // 版866：放つ前に通り道を確かめる：ゴールラインを越える時、バー（3.1m）より0.7m以上上か、柱より0.8m以上外。足りなければ強く・外へ直す（ゴールに入ることはない）
                 const z0 = b.z, atLine = (vx, vy, vz) => { const t = dLine / Math.max(0.5, Math.abs(vx)); return { z: z0 + vz * t - 4.9 * t * t * 1.08, y: b.y + vy * t }; };
@@ -5601,15 +5602,16 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
                   vx = dX * Math.max(dLine, 0.3) / t; vy = dy / t; vz = Math.min(Math.max(vz0, -1), 2.5); }
                 Object.assign(b, { vx, vy, vz, z: b.z, kind: 'loose', lastTeam: p.team, lastPlayer: p.idx, spin: 0, knuckle: false, intended: -1, curveAll: false, wobW: null });
               } else if (high) {
-                // パンチング（上へ・外へ）
-                p.punchT = 0.5;
+                // パンチング（上へ・外へ）：版871：シュートには両手を上げる絵は使わない。横っ跳びで、こぶし・手のひらで外へ
+                if (!p.diveT && !p.downT) startDive(p, Math.sign(yAt - p.y) || 1, Math.max(0.6, Math.abs(yAt - p.y)), 0.1, null, b.z);
                 ev('save', { team: p.team, player: p.name, act: 'punch' });
                 punchTo(p, b, false);
               } else {
                 // 横へはじく
                 ev('save', { team: p.team, player: p.name, act: diving ? 'diveparry' : 'parry' });
                 const side0 = diving ? p.diveDir : (Math.sign(yAt - p.y) || (R.next() < 0.5 ? -1 : 1)), side = side0;   // 版869：はじいた球は、GKが飛んだ側（ボールが体の横を通る側）へ。ニアへ飛べばニアへ、ファーへ飛べばファーへ（シュートの横の動きでは決めない：サイドからニアへ打った球も、横の動きは中央向きのため）
-                if (!diving) p.punchT = 0.4;   // 版864：至近距離：立ったまま手を伸ばして払う
+                if (!diving && b.z <= 0.9) { p.saveT = 0.7; p.saveK = (yAt - p.y) > 0 ? 9 : 10; b.z = Math.min(b.z, 0.35); }   // 版871：横へはじく（立ったまま）：足を伸ばしてはじく姿勢。ボールは足の高さで
+                else if (!p.diveT && !p.downT) startDive(p, Math.sign(yAt - p.y) || 1, Math.max(0.6, Math.abs(yAt - p.y)), 0.1, null, b.z);   // 腰より高い球は、横っ跳びではじく（両手を上げる絵は使わない）
                 // 下手なGKは正面にこぼしてしまう（詰められる）
                 const spill = R.next() < (1 - skill / 100) * 0.7;
                 if (parryAway(p, b, skill, side)) { /* 版862：相手のいない所へ逃がした */ }
@@ -5750,7 +5752,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       for (const p of P) f.push(+p.x.toFixed(2), +p.y.toFixed(2), Math.round(p.cur));
       f.push(r ? (r.offside ? 8 : RESTART_CODE[r.type]) : S.celebrate > 0 ? 6 : 0, held, S.ball.drive && S.ball.kind === 'shot' && S.ball.z > 0.1 ? 4 : S.ball.knuckle && S.ball.z > 0.1 ? 1 : Math.abs(S.ball.spin || 0) > 0.3 && S.ball.z > 0.1 ? (S.ball.spin > 0 ? 2 : 3) : 0);
       // 審判・副審・カード・GKの姿勢・退場者
-      const gkCode = (g) => (g.saveT > 0 && g.saveK === 8 ? 8 : g.diveT > 0 ? (g.diveDir > 0 ? 1 : 3) : g.downT > 0 ? (g.diveDir > 0 ? 2 : 4) : g.saveT > 0 && g.saveK ? g.saveK : g.highT > 0 ? 7 : g.punchT > 0 ? 6 : g.hold && S.ball.owner === g.idx ? 5 : 0);   // 版834   // 版862：8＝指先でバーの上へ 9・10＝足で止める（右・左） 11＝体を広げて止める 12＝腰を落として抱える：7＝ハイボールに跳んでいる
+      const gkCode = (g) => (g.saveT > 0 && (g.saveK === 9 || g.saveK === 10) && !(g.diveT > 0) ? g.saveK : g.diveT > 0 ? ((g.hiDiveT || 0) > S.t ? (g.diveDir > 0 ? 13 : 14) : g.diveDir > 0 ? 1 : 3) : g.downT > 0 ? (g.diveDir > 0 ? 2 : 4) : g.saveT > 0 && g.saveK ? g.saveK : g.highT > 0 ? 7 : g.punchT > 0 ? 6 : g.hold && S.ball.owner === g.idx ? 5 : 0);   // 版834   // 版862：8＝指先でバーの上へ 9・10＝足で止める（右・左） 11＝体を広げて止める 12＝腰を落として抱える：7＝ハイボールに跳んでいる
       let gone = 0;
       for (const p of P) if (p.off && p.y > W + 2.5) gone += 2 ** p.idx;
       f.push(+ref.x.toFixed(2), +ref.y.toFixed(2), +ar[0].toFixed(2), +ar[1].toFixed(2), S.refCard && S.refCard.show ? S.refCard.code : 0, gkCode(P[0]), gkCode(P[11]), gone, side[0], r ? r.team : -1, r ? +r.x.toFixed(1) : -1, r ? +r.y.toFixed(1) : -1, +(S.ball.bs || 0).toFixed(2), S.kickRec, S.ball.owner < 0 && (S.ball.kind === 'pass') ? (S.ball.intended ?? -1) : -1);

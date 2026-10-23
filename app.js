@@ -1891,7 +1891,9 @@
     return r;
   }
   let kpBall = { x: 52.5, y: 34 };   // 版866：GKの絵をボールに向けるための、いまのボールの位置（drawKeeper の中からは st が見えない）
+  let hiDv = false;
   function drawKeeper(q, p, info, team, facing, frame, code, gi) {
+    if (code === 13 || code === 14) code = code === 13 ? 1 : 3, hiDv = true; else hiDv = false;   // 版871：高い所へ飛ぶ横っ跳び
     if (code === 1 || code === 3 || code === 2 || code === 4) {
       const dir = code <= 2 ? 1 : -1;               // 世界のyで跳んだ向き
       if (code === 1 || code === 3) { if (simT - diveStart[gi] > 1.6 || simT < diveStart[gi]) diveStart[gi] = simT; }
@@ -1901,7 +1903,7 @@
       const sxv = proj(p.x, p.y + dir).x - q.x;
       const head = Math.abs(sxv) > 0.05 ? Math.sign(sxv) : (dir > 0 ? -1 : 1);
       const px = Math.max(1.4, 2.5 * q.s);
-      const lift = flying ? Math.sin(Math.PI * Math.min(1, u * 1.1)) * 0.75 : 0.05;
+      const lift = flying ? Math.sin(Math.PI * Math.min(1, u * 1.1)) * (hiDv ? 1.55 : 0.75) : 0.05;
       // 跳ぶ向き（画面上）に頭と両手を伸ばす。体はボール（ピッチ側）を向いたまま
       const dv = proj(p.x, p.y + dir), dsx = dv.x - q.x, dsy = dv.y - q.y;
       const th = Math.atan2(dsy, dsx) + Math.PI / 2;
@@ -1909,7 +1911,7 @@
       const full = Math.max(-1.75, Math.min(1.75, thN));
       // 体は横向き（真横）に伸ばして飛ぶ。頭は跳んだ方へ、顔は上（空）を向かず下も向かず、横から見た姿
       const hd = Math.abs(dsx) > 0.5 ? Math.sign(dsx) : head;
-      const ang = hd * (flying ? 0.6 + u * 0.95 : 1.5) + Math.max(-0.25, Math.min(0.25, dsy * 0.02));
+      const ang = hd * (flying ? (hiDv ? 0.55 + u * 0.45 : 0.6 + u * 0.95) : 1.5) + Math.max(-0.25, Math.min(0.25, dsy * 0.02));   // 高い横っ跳び：体をななめ上へ伸ばして飛ぶ
       const fieldSide = -hd;
       const lifted = P3(p.x, p.y, lift);
       // 影は地面に横長
@@ -2853,7 +2855,7 @@
         if (kp) { const m = proj(p.x + kp.dx, p.y + kp.dy); ang = Math.atan2((m.y - q.y) / 0.45, m.x - q.x); }
         else if (h && Math.hypot(h.sx, h.sy) > 0.05) ang = Math.atan2((h.sy / 1.6) / 0.45, h.sx);
         // GK：体勢を崩していない時は、いつもボールにおへそを向ける（横に動く時もボールを見たままサイドステップ）
-        if (info.gk && !kp && p.sp < 5.2 && !(gkCode >= 1 && gkCode <= 4)) { const bq = proj(st.ball.x, st.ball.y); if (Math.hypot(bq.x - q.x, bq.y - q.y) > 2) ang = Math.atan2((bq.y - q.y) / 0.45, bq.x - q.x); }
+        if (info.gk && !kp && p.sp < 5.2 && !((gkCode >= 1 && gkCode <= 4) || gkCode === 13 || gkCode === 14)) { const bq = proj(st.ball.x, st.ball.y); if (Math.hypot(bq.x - q.x, bq.y - q.y) > 2) ang = Math.atan2((bq.y - q.y) / 0.45, bq.x - q.x); }
         // 蒼の王座：縦パスを受けに落ちてくる・キープしている間は、おへそと体を自分のゴールの方へ向ける（相手ゴールに背を向けて受ける）
         { const LP = actsOf[i]; if (LP) for (let k = LP.length - 1; k >= 0; k--) { const a = LP[k]; if (a.t > simT) continue; if (simT - a.t > 5) break; if (a.a === 'aopostend') break; if (a.a === 'aopost') { if (simT - a.t < a.d && (st.owner === i || st.passTo === i)) { const oq = proj(105 - attackX, 34); ang = Math.atan2((oq.y - q.y) / 0.45, oq.x - q.x); } break; } } }
         if (ang == null) dmFacing = (h && h.d16 != null) ? h.d16 * Math.PI / 8 : Math.PI / 2;
@@ -2903,7 +2905,7 @@
       }
       // 失点したGK：決められた瞬間はまだ見送り、間をおいて順に崩れていく（本家の動画）
       //  ボールを見送る → ゴールの方へ手を伸ばす → 膝が崩れる → 尻もち → 立ち上がってゴールを見つめる
-      if (info.gk && celebInfo && team !== celebInfo.team && !(gkCode >= 1 && gkCode <= 4)) {
+      if (info.gk && celebInfo && team !== celebInfo.team && !((gkCode >= 1 && gkCode <= 4) || gkCode === 13 || gkCode === 14)) {
         const age = simT - celebInfo.t;
         if (age >= 0.2 && age < 6.6) {
           const dived = (stateAt(celebInfo.t).gk || [0, 0])[team] || 0, skip = dived >= 1 && dived <= 4;   // 跳んで倒れていたら、起き上がってすぐ尻もちから
