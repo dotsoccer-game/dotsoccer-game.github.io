@@ -5496,6 +5496,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           if (Math.abs(cx0 - gl0) < Math.abs(p.x - gl0) - 0.5) continue;
         }
         const ttX = uOn(p, 'tetsurou') && b.kind === 'pass' && p.team !== b.lastTeam && b.z < 1.2 ? (p.uniqLv >= 2 ? 1.1 : 0.9) : 0;   // 鉄狼の関所：そばを通るパスに足が届く
+        if (gkShot && b.z >= 1.95 && (b.z > gkReachZ(p) || d > (p.diveT > 0 ? 1.3 : 0.9))) continue;   // 版870：頭より高い球は、手が本当に届く所（高さ・距離）でしか触れない（離れた所ではじけて見えないように）
         if (d <= (gkShot ? Math.min(reach * 1.28, p.diveT > 0 ? 2.0 : 1.3) : reach) + rcvX + ttX) cand.push({ p, d, gkHands, reach });   // 版866：シュートに触れるのは、絵の手が届く所まで（横っ跳び2.0m・立って1.3m）。離れた所ではじけて見えないように
       }
       cand.sort((a, c) => a.d - c.d);   // こぼれ球は、ボールに近い方が先に触る（守る側・攻める側の差はない）
@@ -5529,7 +5530,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             const bodyHit = (off < (shotD < 12 ? 0.28 : 0.42) || (pre && off < 0.85)) && !b.knuckle && !b.csPlace;   // 置きに行くコントロールショットは、GKの手がぎりぎり届かない隅へ置く   // 至近距離は体の正面でも反応が間に合わないことがある   // 届くと決まった横っ跳びも、必ず触る
             if (gkRoll < prob || bodyHit) {
               { const hr = p.diveT > 0 ? 1.1 : 0.8, dy0 = yAt - p.y;   // 版866：触った瞬間、ボールはGKの手の先（体からhrの所まで）にそろえる
-                if (b.z < 1.95) { b.x = p.x + sgn(p.team) * 0.3; b.y = p.y + clamp(dy0, -hr, hr); } /* 版869：頭より高い球（指先で外へ出す時）は位置を動かさない（横へ瞬間移動して見えないように） */ b.bs = 0; b.drive = 0; b.driveOn = false; b.driveUp = 0; b.curveAll = false; b.wobW = null; }   // 版866：GKが触ったら、シュートの回転（ドライブの落ちる力など）は消える
+                if (b.z < 1.95) { b.x = p.x + sgn(p.team) * 0.3; b.y = p.y + clamp(dy0, -hr, hr); } else if (b.px != null) { const u0 = segDist(p.x, p.y, b.px, b.py, b.x, b.y).u; b.x = b.px + (b.x - b.px) * u0; b.y = b.py + (b.y - b.py) * u0; if (b.pz != null) b.z = b.pz + (b.z - b.pz) * u0; } /* 版869・870：頭より高い球は手の位置へ動かさず、このコマで通った線の上の、手にいちばん近い所（本当に触れた所）にそろえる */ b.bs = 0; b.drive = 0; b.driveOn = false; b.driveUp = 0; b.curveAll = false; b.wobW = null; }   // 版866：GKが触ったら、シュートの回転（ドライブの落ちる力など）は消える
               const high = b.z > 1.7, diving = p.diveT > 0;
               // 無回転シュート：ブレるので、どんなGKでもキャッチできない。触っても必ずファンブルする
               //  そのままゴールへこぼれ込む／前にこぼす／うまいGKなら、コースを変えてゴールの外へ逃がす（CK）のが精一杯
@@ -5587,7 +5588,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
               if (high && b.z > 1.95 && dLine < 4.5 && R.next() < clamp(0.35 + (skill - 50) * 0.012, 0.25, 0.85)) {
                 // 版862：指先でバーの上へ（ゴールの外へ出してCK）
                 ev('save', { team: p.team, player: p.name, act: 'tipover' });
-                p.saveT = 0.7; p.saveK = 8; if (globalThis.__scnLog) globalThis.__scnLog.push(['sv' + p.saveK, +S.t.toFixed(1), p.team]); p.touchCd = 1.0;
+                p.saveT = 0.7; p.saveK = 8; p.diveT = 0;   /* 版870：指先で外へ：横に倒れず、ボールへ跳び上がって片手を伸ばす */ if (globalThis.__scnLog) globalThis.__scnLog.push(['sv' + p.saveK, +S.t.toFixed(1), p.team]); p.touchCd = 1.0;
                 const side = Math.sign(b.y - GOAL_Y) || (R.next() < 0.5 ? -1 : 1); let overBar = Math.abs(b.y - GOAL_Y) < POST - 0.8 || R.next() < 0.5;   // 版865：バーの上へ（真ん中寄りの球・半分）と、柱の外へ（横）の2通り
                 // 版866：放つ前に通り道を確かめる：ゴールラインを越える時、バー（3.1m）より0.7m以上上か、柱より0.8m以上外。足りなければ強く・外へ直す（ゴールに入ることはない）
                 const z0 = b.z, atLine = (vx, vy, vz) => { const t = dLine / Math.max(0.5, Math.abs(vx)); return { z: z0 + vz * t - 4.9 * t * t * 1.08, y: b.y + vy * t }; };
@@ -5749,7 +5750,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       for (const p of P) f.push(+p.x.toFixed(2), +p.y.toFixed(2), Math.round(p.cur));
       f.push(r ? (r.offside ? 8 : RESTART_CODE[r.type]) : S.celebrate > 0 ? 6 : 0, held, S.ball.drive && S.ball.kind === 'shot' && S.ball.z > 0.1 ? 4 : S.ball.knuckle && S.ball.z > 0.1 ? 1 : Math.abs(S.ball.spin || 0) > 0.3 && S.ball.z > 0.1 ? (S.ball.spin > 0 ? 2 : 3) : 0);
       // 審判・副審・カード・GKの姿勢・退場者
-      const gkCode = (g) => (g.diveT > 0 ? (g.diveDir > 0 ? 1 : 3) : g.downT > 0 ? (g.diveDir > 0 ? 2 : 4) : g.saveT > 0 && g.saveK ? g.saveK : g.highT > 0 ? 7 : g.punchT > 0 ? 6 : g.hold && S.ball.owner === g.idx ? 5 : 0);   // 版834   // 版862：8＝指先でバーの上へ 9・10＝足で止める（右・左） 11＝体を広げて止める 12＝腰を落として抱える：7＝ハイボールに跳んでいる
+      const gkCode = (g) => (g.saveT > 0 && g.saveK === 8 ? 8 : g.diveT > 0 ? (g.diveDir > 0 ? 1 : 3) : g.downT > 0 ? (g.diveDir > 0 ? 2 : 4) : g.saveT > 0 && g.saveK ? g.saveK : g.highT > 0 ? 7 : g.punchT > 0 ? 6 : g.hold && S.ball.owner === g.idx ? 5 : 0);   // 版834   // 版862：8＝指先でバーの上へ 9・10＝足で止める（右・左） 11＝体を広げて止める 12＝腰を落として抱える：7＝ハイボールに跳んでいる
       let gone = 0;
       for (const p of P) if (p.off && p.y > W + 2.5) gone += 2 ** p.idx;
       f.push(+ref.x.toFixed(2), +ref.y.toFixed(2), +ar[0].toFixed(2), +ar[1].toFixed(2), S.refCard && S.refCard.show ? S.refCard.code : 0, gkCode(P[0]), gkCode(P[11]), gone, side[0], r ? r.team : -1, r ? +r.x.toFixed(1) : -1, r ? +r.y.toFixed(1) : -1, +(S.ball.bs || 0).toFixed(2), S.kickRec, S.ball.owner < 0 && (S.ball.kind === 'pass') ? (S.ball.intended ?? -1) : -1);

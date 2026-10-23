@@ -1950,8 +1950,9 @@
       if (simT - (highStart[gi] ?? -9) > 0.9 || simT < (highStart[gi] ?? -9)) highStart[gi] = simT;
       const u = Math.min(1, (simT - highStart[gi]) / 0.6), h = Math.sin(Math.PI * u) * 1.1, lifted = P3(p.x, p.y, h), px = Math.max(1.4, 2.5 * q.s), H = 18 * px;
       ctx.fillStyle = 'rgba(0,30,0,0.3)'; ctx.beginPath(); ctx.ellipse(q.x, q.y - px * 0.2, (5.2 - h * 1.6) * px, (1.7 - h * 0.5) * px, 0, 0, Math.PI * 2); ctx.fill();
-      const gx = proj(team === 0 ? 0 : 105, p.y).x - q.x, lean = (Math.sign(gx) || 1) * 0.35 * Math.min(1, u * 2);
-      ctx.save(); ctx.translate(lifted.x, lifted.y); ctx.rotate(lean); const r8 = sprite(0, 0, q.s, info, team, facing, 1, false, true, true); ctx.restore();
+      const gx = proj(kpBall.x, kpBall.y).x - q.x, lean = (Math.sign(gx) || 1) * 0.3 * Math.min(1, u * 2);   // 版870：ボールの方へ体を伸ばす
+      { const bq0 = proj(kpBall.x, kpBall.y); dmFacing = Math.atan2((bq0.y - q.y) / 0.45, bq0.x - q.x); }   // 版870：横向きにしない：ボールに正対して、両手を上へ伸ばす
+      ctx.save(); ctx.translate(lifted.x, lifted.y); ctx.rotate(lean * 0.5); const r8 = sprite(0, 0, q.s, info, team, facing, 1, false, true, true, null, 0, 'front'); ctx.restore(); dmFacing = null;
       return { top: lifted.y - H * 0.7, px: (r8 && r8.px) || px };
     }
     if (code === 9 || code === 10) {   // 足を伸ばして止める（スライディングのように片足を投げ出す）
