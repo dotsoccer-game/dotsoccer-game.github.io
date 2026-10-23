@@ -2093,7 +2093,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         // 版834：ハイボール：出ると決めたGKは、ボールが来る少し前に踏み切って、いちばん高い所で両手を伸ばして取る（パンチング）
         if (p.gk && !(p.highT > 0) && S.gkCk && S.gkCk.g === p.idx && S.gkCk.mode !== 'stay' && S.t < S.gkCk.until && S.ball.owner < 0 && S.ball.z > 1.3 && S.ball.vz < 2) {
           const bb = S.ball, dd = hyp(bb.x - p.x, bb.y - p.y), cs = Math.max(4, hyp(bb.vx, bb.vy));
-          const jT = 0.56 + p.jump * 0.0045; if (dd < cs * jT * 0.55 + 0.6) { p.highT = jT; p.highZ = bb.z; act(p, 'jump', jT); }   // 版864：少し早めに踏み切って、空中でキャッチ。ジャンプ力が高いほど長く・高く跳ぶ
+          const jT = 0.56 + p.jump * 0.0045; if (dd < cs * jT * 0.55 + 0.6) { p.highT = jT; p.highZ = bb.z; p.hiPunch = S.gkCk.mode === 'punch';   /* 版872：パンチングと決めて跳ぶ時は、片手の絵 */ act(p, 'jump', jT); }   // 版864：少し早めに踏み切って、空中でキャッチ。ジャンプ力が高いほど長く・高く跳ぶ
         }
         if (p.slideT > 0) {
           p.slideT -= DT;
@@ -5752,7 +5752,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       for (const p of P) f.push(+p.x.toFixed(2), +p.y.toFixed(2), Math.round(p.cur));
       f.push(r ? (r.offside ? 8 : RESTART_CODE[r.type]) : S.celebrate > 0 ? 6 : 0, held, S.ball.drive && S.ball.kind === 'shot' && S.ball.z > 0.1 ? 4 : S.ball.knuckle && S.ball.z > 0.1 ? 1 : Math.abs(S.ball.spin || 0) > 0.3 && S.ball.z > 0.1 ? (S.ball.spin > 0 ? 2 : 3) : 0);
       // 審判・副審・カード・GKの姿勢・退場者
-      const gkCode = (g) => (g.saveT > 0 && (g.saveK === 9 || g.saveK === 10) && !(g.diveT > 0) ? g.saveK : g.diveT > 0 ? ((g.hiDiveT || 0) > S.t ? (g.diveDir > 0 ? 13 : 14) : g.diveDir > 0 ? 1 : 3) : g.downT > 0 ? (g.diveDir > 0 ? 2 : 4) : g.saveT > 0 && g.saveK ? g.saveK : g.highT > 0 ? 7 : g.punchT > 0 ? 6 : g.hold && S.ball.owner === g.idx ? 5 : 0);   // 版834   // 版862：8＝指先でバーの上へ 9・10＝足で止める（右・左） 11＝体を広げて止める 12＝腰を落として抱える：7＝ハイボールに跳んでいる
+      const gkCode = (g) => (g.saveT > 0 && (g.saveK === 9 || g.saveK === 10) && !(g.diveT > 0) ? g.saveK : g.diveT > 0 ? ((g.hiDiveT || 0) > S.t ? (g.diveDir > 0 ? 13 : 14) : g.diveDir > 0 ? 1 : 3) : g.downT > 0 ? (g.diveDir > 0 ? 2 : 4) : g.saveT > 0 && g.saveK ? g.saveK : g.highT > 0 ? (g.hiPunch ? 6 : 7) : g.punchT > 0 ? 6 : g.hold && S.ball.owner === g.idx ? 5 : 0);   // 版834   // 版862：8＝指先でバーの上へ 9・10＝足で止める（右・左） 11＝体を広げて止める 12＝腰を落として抱える：7＝ハイボールに跳んでいる
       let gone = 0;
       for (const p of P) if (p.off && p.y > W + 2.5) gone += 2 ** p.idx;
       f.push(+ref.x.toFixed(2), +ref.y.toFixed(2), +ar[0].toFixed(2), +ar[1].toFixed(2), S.refCard && S.refCard.show ? S.refCard.code : 0, gkCode(P[0]), gkCode(P[11]), gone, side[0], r ? r.team : -1, r ? +r.x.toFixed(1) : -1, r ? +r.y.toFixed(1) : -1, +(S.ball.bs || 0).toFixed(2), S.kickRec, S.ball.owner < 0 && (S.ball.kind === 'pass') ? (S.ball.intended ?? -1) : -1);

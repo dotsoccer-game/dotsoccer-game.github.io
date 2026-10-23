@@ -1940,12 +1940,24 @@
       { const bq0 = proj(kpBall.x, kpBall.y); dmFacing = Math.atan2((bq0.y - q.y) / 0.45, bq0.x - q.x); } const r7 = sprite(lifted.x, lifted.y, q.s, info, team, facing, 1, false, true, true, null, 0, 'front'); dmFacing = null; return r7;   // 版865：ボールに正対して跳ぶ
     }
     if (code === 6) {
-      // パンチング：飛び上がって両手を突き上げる
-      const lifted = P3(p.x, p.y, 0.45);
+      // パンチング：飛び上がって片手のこぶしで突き上げる
+      const jp = (info.params && info.params.jump) || 65, jT = 0.56 + jp * 0.0045;   // 版872：ハイボールと同じ跳び方（ジャンプ力で高さ・時間）
+      if (simT - (highStart[gi] ?? -9) > jT + 0.3 || simT < (highStart[gi] ?? -9)) highStart[gi] = simT;
+      const uu = Math.min(1, (simT - highStart[gi]) / jT), hh = Math.max(0.3, Math.sin(Math.PI * uu) * (0.55 + jp * 0.0085)), lifted = P3(p.x, p.y, hh);
       ctx.fillStyle = 'rgba(0,30,0,0.3)';
       const px = Math.max(1.4, 2.5 * q.s);
       ctx.beginPath(); ctx.ellipse(q.x, q.y - px * 0.2, 5.2 * px, 1.7 * px, 0, 0, Math.PI * 2); ctx.fill();
-      return sprite(lifted.x, lifted.y, q.s, info, team, facing, 1, false, true, true);   // パンチング：両手を突き上げる（向きはいまの体の向き）
+      // 版872：パンチングは片手：ボールに正対して跳び、ボールのある側の腕だけを、こぶしで突き上げる（もう片方の腕は下ろしたまま）
+      const sd = (proj(kpBall.x, kpBall.y).x - q.x) >= 0 ? 1 : -1, d = Math.max(1.4, 2.6 * q.s) * 24 / 27;
+      const colX = (c) => Math.round(lifted.x + (c - 11.5) * d), rowY = (r) => Math.round(lifted.y + (r - 28) * d);
+      const box = (c0, r0, c1, r1, col) => { ctx.fillStyle = col; ctx.fillRect(colX(c0), rowY(r0), colX(c1) - colX(c0), rowY(r1) - rowY(r0)); };
+      const a0 = sd > 0 ? 18.5 : 0, a1 = sd > 0 ? 24 : 5;   // 下ろしている腕の場所（描かない）
+      ctx.save(); ctx.beginPath(); ctx.rect(-10, -10, CW + 20, CH + 20); ctx.rect(colX(a0), rowY(11), colX(a1) - colX(a0), rowY(21) - rowY(11)); ctx.clip('evenodd');
+      dmFacing = Math.PI / 2; const r6 = sprite(lifted.x, lifted.y, q.s, info, team, 1, 0, false, false, true); dmFacing = null; ctx.restore();
+      const gc = (info.gk ? GKC[team] : TEAM[team]), c0 = sd > 0 ? 16.5 : 3.5, c1 = c0 + 4;
+      box(c0, 0, c1, 14, '#000'); box(c0 + 1, 0, c1 - 1, 14, gc.W);   // 突き上げた腕（袖）
+      box(c0 - 0.5, -4, c1 + 0.5, 1, '#000'); box(c0 + 0.5, -3, c1 - 0.5, 0, '#f4f4f0');   // こぶし（グローブ）
+      return r6 || { top: lifted.y - 18 * px * 0.7, px };
     }
     // 版862：セーブの型ごとの姿勢
     if (code === 8) {   // 指先でバーの上へ：高く跳んで、体を後ろへ反らしながら片手を伸ばす
