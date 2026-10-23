@@ -1019,10 +1019,16 @@
     // ---------- 配置 ----------
     function lineX(team, attacking) {
       const lh = clamp(team.line_height + team.mods.line + (team.urg ? 1.5 : 0) + (teamU(team.ti, 'sakurajima') ? 1.3 : 0) + (team.pas && team.pas.has('backCover') ? 0.35 * Math.max(...team.players.map((m) => (m.pasK === 'backCover' ? (m.passive >= 2 ? 1.6 : 1) : 0))) : 0), 1, 5);   // 桜島の号令：ラインが一斉に上がる／背後の安心：少し高く保てる
-      const base = [0, 13, 19, 25, 31, 37][Math.floor(lh)] + (lh % 1) * 6;
+      const base = [0, 16, 21, 25, 31, 37][Math.floor(lh)] + (lh % 1) * (lh < 3 ? 4.5 : 6);   // 版875：低いラインの設定でも、もう少し高く
       const bx = fx(team.ti, S.ball.x);
       if (attacking) return clamp(base + 8 + (bx - 40) * 0.5, 14, 60);
-      return clamp(Math.min(base + (bx - 52) * 0.45, bx - 4), 6, 48);
+      let x = Math.min(base + (bx - 52) * 0.45, bx - 4);
+      if (bx > 38 && lh >= 1.5) x = Math.max(x, Math.min(20.5, bx - 12));   // 版875：ボールがハーフウェー付近にある間は、ペナルティアーク（ゴールから約20m）より下げない
+      { const own = ownerP();   // 版875：押し上げてオフサイドを取る：出し手が遠く（18m以上）、寄せられていて前を向いて蹴れない時は、相手FWより前までラインを上げる
+        if (own && own.team !== team.ti && !own.gk) { const hF = fx(team.ti, own.x), pressed = opps(own).some((q) => !q.off && hyp(q.x - own.x, q.y - own.y) < 3.2);
+          if (pressed && hF - x > 18) { const fws = mates(own).filter((q) => q !== own && !q.gk && !q.off).map((q) => fx(team.ti, q.x)).filter((v) => v < x + 7 && v > x - 6).sort((a, c) => a - c);
+            if (fws.length) x = Math.max(x, Math.min(fws[0] + 1.5, x + 6, hF - 14)); } } }
+      return clamp(x, 6, 48);
     }
 
     // キックオフ：蹴る2人以外は、センターサークル（半径9.15m）の外で待つ
@@ -5716,6 +5722,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         const heavy = p.team === b.lastTeam && b.intended === p.idx;
         if (globalThis.__trapLog && heavy) globalThis.__trapLog.miss++;
         // 当たった所から跳ね返る：体（足）からボールへの向きに押し出され、勢いは落ちる（誰に当たってどっちへ転がったか分かるように）
+        if (dGk > 0.5) { const k0 = 0.5 / dGk; b.x = p.x + (b.x - p.x) * k0; b.y = p.y + (b.y - p.y) * k0; }   // 版875：当たった瞬間、ボールは足の所（体から0.5m）にある（何もない所で向きが変わって見えないように）
         const [vx, vy] = rebound(p, b, heavy ? 0.3 : 0.45);
         { const ux = b.x - p.x, uy = b.y - p.y, ud = hyp(ux, uy) || 1; act(p, 'poke', 0.35, { dx: ux / ud, dy: uy / ud }); }
         Object.assign(b, { vx, vy, vz: Math.min(b.vz, 0), kind: 'loose', lastTeam: p.team, lastPlayer: p.idx, intended: -1 });
