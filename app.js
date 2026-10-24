@@ -1891,9 +1891,16 @@
     return r;
   }
   let kpBall = { x: 52.5, y: 34 };   // 版866：GKの絵をボールに向けるための、いまのボールの位置（drawKeeper の中からは st が見えない）
-  let hiDv = false;
+  let hiDv = false; const hiCache = [];
   function drawKeeper(q, p, info, team, facing, frame, code, gi) {
-    if (code === 13 || code === 14) code = code === 13 ? 1 : 3, hiDv = true; else hiDv = false;   // 版871：高い所へ飛ぶ横っ跳び
+    if (code === 13 || code === 14) code = code === 13 ? 1 : 3;   // 版871：高い所へ飛ぶ横っ跳び
+    hiDv = false;
+    if (code === 1 || code === 3) {   // 版876：高く飛ぶかどうかは、記録の先を見て、ボールがGKのそばを通る時の本当の高さで決める（低い球に高く飛ばない）
+      const k = gi + ':' + Math.round((diveStart[gi] ?? simT) * 10);
+      if (hiCache[gi] && hiCache[gi].k === k) hiDv = hiCache[gi].v;
+      else { const F = match.frames, fd = match.frameDt || 0.1, i0 = Math.max(0, Math.floor(simT / fd) - 1); let best = 1e9, bz = 0;
+        for (let i = i0; i < Math.min(F.length, i0 + Math.ceil(0.9 / fd)); i++) { const f = F[i], d = Math.hypot(f[1] - p.x, f[2] - p.y); if (d < best) { best = d; bz = f[3]; } }
+        hiDv = best < 3.2 && bz > 1.7; hiCache[gi] = { k, v: hiDv }; } }
     if (code === 1 || code === 3 || code === 2 || code === 4) {
       const dir = code <= 2 ? 1 : -1;               // 世界のyで跳んだ向き
       if (code === 1 || code === 3) { if (simT - diveStart[gi] > 1.6 || simT < diveStart[gi]) diveStart[gi] = simT; }

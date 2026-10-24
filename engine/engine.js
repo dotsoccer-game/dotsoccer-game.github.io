@@ -1652,12 +1652,12 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
               const onFrame = Math.abs(yc - GOAL_Y) < POST + 0.6;
               const gInBox = fx(tm.ti, p.x) < 16.8 && Math.abs(p.y - GOAL_Y) < 20.5;   // 版862：ペナルティエリアの外では手が使えない：横っ跳びはしない（足・体で止めに行く）
               // 版862：近い所からの低い球が体の近くに来る：飛ばずに足を伸ばして止める。1対1の至近距離：体を大きく広げて当てる
-              const kD = b.sx0 != null ? hyp(b.sx0 - p.x, b.sy0 - p.y) : 99;
+              const kD = b.sx0 != null ? hyp(b.sx0 - p.x, b.sy0 - p.y) : 99, passedGk = fx(tm.ti, b.x) < fx(tm.ti, p.x) + 0.3 || tG < 0.06;   // 版876：ボールがもうGKの横・後ろを通り過ぎた：今から飛んでも間に合わない（ボールの今の位置へ遅れて飛ぶと、逆に飛んだように見える）
               if (gInBox && !p.diveT && !p.downT && !p.svPrep && tG < 0.5 && Math.abs(gap) > 0.5 && Math.abs(gap) < 2.2 && b.z < 0.35 && Math.abs(b.vz || 0) < 1.5 && kD < 11 && R.next() < 0.75) p.svPrep = { t: b.shotT, k: 'footsave', dir: Math.sign(gap) };   // 版864：至近距離のグラウンダーだけ
               /* 版865：体を広げて止めるは取りやめ（至近距離は足を伸ばして止めるに集約） */   // 版864：至近距離の浮き球：体を大きくして、体のどこかに当ててはじく
               if (p.svPrep && p.svPrep.t !== b.shotT) p.svPrep = null;
-              if (gInBox && !p.svPrep && !p.diveT && !p.downT && !p.lateDive && tG < 0.32 && Math.abs(gap) > 0.35 && Math.abs(gap) <= 0.8 && kD > 11 && onFrame) startDive(p, Math.sign(gap), Math.max(0.7, Math.abs(gap)), Math.max(0.12, tG));   // 版868：PKの位置より遠いシュートが体の少し横に来る：ボールが来る前に、体を横に倒しはじめる（はじいた後に倒れない）
-              else if (gInBox && !p.svPrep && !p.diveT && !p.downT && !p.lateDive && tG < 0.5 && Math.abs(gap) > 0.8 && (Math.abs(gap) < gkDiveMax(p) + 1 || onFrame)) {   /* 版460：飛び方は版457に戻した */
+              if (gInBox && !passedGk && !p.svPrep && !p.diveT && !p.downT && !p.lateDive && tG < 0.32 && Math.abs(gap) > 0.35 && Math.abs(gap) <= 0.8 && kD > 11 && onFrame) startDive(p, Math.sign(gap), Math.max(0.7, Math.abs(gap)), Math.max(0.12, tG));   // 版868：PKの位置より遠いシュートが体の少し横に来る：ボールが来る前に、体を横に倒しはじめる（はじいた後に倒れない）
+              else if (gInBox && !passedGk && !p.svPrep && !p.diveT && !p.downT && !p.lateDive && tG < 0.5 && Math.abs(gap) > 0.8 && (Math.abs(gap) < gkDiveMax(p) + 1 || onFrame)) {   /* 版460：飛び方は版457に戻した */
                 // 飛ぶ瞬間に「届くかどうか」を決めておく：届かない時は手前で落ち、届く時はしっかり触る（見た目と結果をそろえる）
                 const r0 = R.next(), g0 = gkSaveProb(p, b, 0.1, yG, Math.max(5, hyp(b.vx, b.vy) - 4)), est = g0.prob + 0.04 + 0.5 * clamp((g0.skill - 45) / 40, 0, 1), miss = r0 >= est;   // 版790：上手なGK（D2・D1級）ほど、飛ぶ向きと間合いを外さない   // 届く頃の球の速さで見積もる
                 p.preSave = { t: b.shotT, r: r0, miss, est, sp: hyp(b.vx, b.vy), d: hyp(P[b.kicker].x - p.x, P[b.kicker].y - p.y) };
@@ -2064,7 +2064,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       p.vx *= 0.2; p.vy *= 0.2;
     }
     function startDive(p, dir, dist, tHit, src, zKnown) {
-      { const bb = S.ball, zAt = zKnown != null ? zKnown : (bb.z || 0) + (bb.vz || 0) * tHit - 4.9 * tHit * tHit; p.hiDiveT = zAt > 1.8 ? S.t + 1.0 : 0; }   // 版871：高い球へ飛ぶ時は、高く飛ぶ横っ跳び（絵は13・14）
+      { const bb = S.ball; let zAt = zKnown; if (zAt == null) { let z = bb.z || 0, vz = bb.vz || 0, vx = bb.vx || 0, vy = bb.vy || 0; const bs = bb.bs || 0; for (let tt = 0; tt < tHit; tt += 0.02) { const h = hyp(vx, vy), v = Math.hypot(h, vz); vx -= AIR * v * vx * 0.02; vy -= AIR * v * vy * 0.02; vz -= (9.8 + AIR * v * vz - LIFT * bs * h) * 0.02; z += vz * 0.02; if (z < 0) { z = 0; vz = Math.abs(vz) * 0.4; } } zAt = z; }   // 版876：届く頃の高さは、空気・回転（ドライブで落ちる）も入れて見積もる
+        p.hiDiveT = zAt > 1.8 && (bb.z || 0) > 0.9 ? S.t + 1.0 : 0; }   // 版871：高い球へ飛ぶ時は、高く飛ぶ横っ跳び（絵は13・14）
       p.diveT = 0.7; p.diveDir = dir;
       dist = Math.min(dist, gkDiveMax(p));
       const v = clamp(dist / Math.max(tHit, 0.18), 3, 5.2 + p.speed * 0.015 + p.jump * 0.025);
