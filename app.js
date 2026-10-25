@@ -2950,7 +2950,7 @@
         gloom(q.x, r.top - 2 * px, px, i);
       }
       else if (info.gk && gkCode) { kpBall = st.ball; r = drawKeeper(q, p, info, team, facing, f4, gkCode, team); }
-      else if (info.gk && !kp && p.sp < 2.6 && !(st.owner >= 0 && (st.owner < 11 ? 0 : 1) === team) && (() => { const gx = p.x < 52.5 ? 0 : 105; return Math.hypot(st.ball.x - gx, st.ball.y - 34) < 32; })()) {   // 版865：後半はゴールが入れかわるので、GKのいる側のゴールで測る。こぼれ球（だれも持っていない）の時も構える
+      else if (info.gk && !kp && p.sp < 2.6 && st.owner >= 0 && (st.owner < 11 ? 0 : 1) !== team && (() => { const gx = p.x < 52.5 ? 0 : 105;   /* 版877：構えるのは相手がボールを持っている間だけ（シュートが飛んでいる間に構えたまま見送らない） */ return Math.hypot(st.ball.x - gx, st.ball.y - 34) < 32; })()) {   // 版865：後半はゴールが入れかわるので、GKのいる側のゴールで測る。こぼれ球（だれも持っていない）の時も構える
         // 版864：相手がシュートを打てる所でボールを持っている：腰を落とし、両手を広げて構える（棒立ちにしない）
         const bq = proj(st.ball.x, st.ball.y); dmFacing = Math.atan2((bq.y - q.y) / 0.45, bq.x - q.x);
         r = sprite(q.x, q.y, q.s, info, team, facing, 0, false, false, false, 'crouch', 0, 'front'); dmFacing = null;
