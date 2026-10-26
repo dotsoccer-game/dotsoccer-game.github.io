@@ -1324,9 +1324,43 @@
         targets[p.idx] = pt; urgent[p.idx] = hyp(pt[0] - p.x, pt[1] - p.y) > 16;
       }
     }
+    function nmPress(t, anc, bxf, pi) {
+      const tm = T[t];
+      const pl = tm.players.filter((q) => !q.off && !q.gk && q.slot && !nmEngaged(q, anc));
+      const free = pl.filter((q) => !(urgent[q.idx] && targets[q.idx] && hyp(targets[q.idx][0] - anc.x, targets[q.idx][1] - anc.y) < 8));   // 1人目の寄せは今まで通り
+      const foes = T[1 - t].players.filter((q) => !q.off && !q.gk && q !== anc);
+      const line = clamp(Math.max(lineX(tm, false), bxf - 42 + pi * 6), 18, 54);
+      const used = new Set();
+      // 前の選手から順に、近い相手をつかまえる（DFは最終ラインに残る）
+      const order = free.filter((q) => q.slot.line >= 1).sort((a0, c0) => (c0.slot.rel || 0) - (a0.slot.rel || 0));
+      for (const p of order) {
+        let best = null, bd = 22 + pi * 6;
+        for (const f of foes) { if (used.has(f.idx)) continue; const fxf = fx(t, f.x); if (fxf < line + 4) continue; const d0 = hyp(f.x - p.x, f.y - p.y); if (d0 < bd) { bd = d0; best = f; } }
+        if (!best) continue; used.add(best.idx);
+        const front = p.slot.last || p.position === 'FW';
+        const k = front ? 0.3 : 0.12;   // FWはパスコースに、MFは相手のすぐ横（ゴール側）に
+        let x = best.x + (anc.x - best.x) * k, y = best.y + (anc.y - best.y) * k;
+        if (!front) { const gx = fx(t, 0), gl = hyp(gx - best.x, GOAL_Y - best.y) || 1; x += (gx - best.x) / gl * 1.6; y += (GOAL_Y - best.y) / gl * 1.6; }
+        targets[p.idx] = [clamp(x, 1, L - 1), clamp(y, 1, W - 1)];
+        urgent[p.idx] = hyp(targets[p.idx][0] - p.x, targets[p.idx][1] - p.y) > 5;
+      }
+      // 残り（DF・つかまえる相手のいない選手）は、押し上げたラインでコンパクトに
+      const cy = GOAL_Y + (anc.y - GOAL_Y) * 0.45, maxW = Math.max(14, ...tm.players.filter((q) => q.slot).map((q) => Math.abs(q.slot.y - GOAL_Y))), wMul = 20 / maxW;
+      for (const p of free) {
+        if (p.slot.line >= 1 && order.includes(p) && targets[p.idx] && urgent[p.idx] !== undefined && p.pressTag === S.t) continue;
+        if (p.slot.line >= 1 && [...used].length && order.indexOf(p) >= 0 && targets[p.idx] && hyp(targets[p.idx][0] - p.x, targets[p.idx][1] - p.y) >= 0 && foes.some((f) => used.has(f.idx) && hyp(targets[p.idx][0] - f.x, targets[p.idx][1] - f.y) < 12)) continue;
+        const xf = p.slot.line === 0 ? line : line + 10;
+        targets[p.idx] = [fx(t, xf), clamp(cy + (p.slot.y - GOAL_Y) * wMul, 2, W - 2)];
+        urgent[p.idx] = fx(t, p.x) > bxf + 2 && hyp(targets[p.idx][0] - p.x, targets[p.idx][1] - p.y) > 9;
+      }
+    }
     function nmDefend(t, anc) {
       const tm = T[t], bx = anc.x, by = anc.y, bxf = fx(t, bx);
       if (bxf < 27) return;   // ゴール前の守り（マーク・クロス対応）は、今までの動き
+      // 版883：前からのプレス：相手が自陣（こちらから見て60m以上先）で持っている時、前線・中盤は相手の受け手を1人ずつつかまえる。
+      //  FWは相手のDFへのパスコースに立って（出し手と受け手の間）、MFは近くの相手にぴったり寄る。最終ラインも押し上げる。プレスを弱めに設定したチームは控えめ
+      const pi = 0.5 + (tm.tac.press || 0) / 50 + (tm.attitude === 'attacking' ? 0.15 : tm.attitude === 'defensive' ? -0.25 : 0) + (tm.urg ? 0.2 : 0);
+      if (bxf > (globalThis.__Kpx ?? 66) - pi * 8 && pi > 0.2) { nmPress(t, anc, bxf, pi); return; }
       const pl = tm.players.filter((q) => !q.off && !q.gk && q.slot);
       const dl = lineX(tm, false), maxRel = Math.max(1, ...pl.map((q) => q.slot.rel || 0));
       const top = Math.min(dl + 22, bxf - 2), cy = GOAL_Y + (by - GOAL_Y) * 0.6;
@@ -3667,6 +3701,12 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         const kz = xf < L - 35 ? (globalThis.__K2 ?? 1) : 1;   // 版881：自陣・中盤では危ないパスをより嫌う（失わない）
         let v = 0.6 + (pxf - xf) * (1 - 0.45 * PAT) * (0.06 + Math.max(0, p.vision - 50) * 0.0009 + (S.counter > 0 ? 0.04 : 0) + DOM[p.team] * 0.06 + vert) + Math.min(recvOpp, 9) * 0.13 * careS - danger * kz * 2.4 * care * (1 + 0.5 * PAT) * (1 - DOM[p.team] * 0.6) * (isPasser ? 0.85 : 1) - (d > 30 ? 0.5 : 0);
         if (pxf > L - 18 && Math.abs(py - GOAL_Y) < 20) v += 0.5;
+        if (S.nm && !p.gk && !S.setPiece) {   // 版883：前へ運ぶ意識：相手の選手を何人も越えるパス（ライン間・裏）は価値が高い。寄せられていないのに後ろで横・後ろへ回し続けない
+          if (p._nmFree == null || p._nmFreeT !== S.t) { p._nmFree = nearestOpp(p, p.x, p.y).d; p._nmFreeT = S.t; }
+          const free = p._nmFree, adv = pxf - xf;
+          if (adv > 4 && danger < 1.1 && !qOff) { let cut = 0; for (const o of opps(p)) { if (o.gk || o.off) continue; const ox = fx(p.team, o.x); if (ox > xf + 1 && ox < pxf - 1) cut++; } v += Math.min(4, cut) * (globalThis.__Klb ?? 0.32); }
+          if (xf < 50 && adv < 4 && free > 6) v -= (globalThis.__Klat ?? 0.3) + ((S.passStreak && S.passStreak[p.team]) >= 4 ? 0.35 : 0);
+        }
         if (S.dribbleMode === 'carry' && p.carryFW === q.idx && danger < 0.5) v += 0.45;   // 運びながら意識していた前のFWへ、コースが空いた瞬間に縦パス
         if (tm.tac.side) v += Math.abs(py - GOAL_Y) > 14 ? tm.tac.side * 0.3 : -tm.tac.side * 0.15;
         // サイドの深い位置からはゴール前へクロス
@@ -4034,6 +4074,11 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         if (so) for (const o of opts) if (o.kind === 'pass' && o.q && !(o.mdPass || o.kmPass || o.aoCut || o.kmRet)) {
           const q = o.q, dq = hyp(L - fx(p.team, q.x), GOAL_Y - q.y), qFree = !opps(p).some((r) => !r.gk && hyp(r.x - q.x, r.y - q.y) < 2.5);
           if (!(qFree && dq < dGoal - 6)) o.ww = Math.min(o.ww, so.ww * 0.3); } }
+      // 版883：前が空いていて寄せられていなければ、自分で運んで前進する（DFも。相手が出てきたら離す）
+      if (S.nm && !p.gk && !S.setPiece && xf < 64 && !(S.counter > 0)) {
+        const nf = nearestOpp(p, p.x, p.y).d, ahead = opps(p).some((o) => !o.off && !o.gk && fx(p.team, o.x) > xf && fx(p.team, o.x) < xf + 12 && Math.abs(o.y - p.y) < 7);
+        if (nf > 7 && !ahead) { const mxw = Math.max(...opts.map((o) => o.ww || 0)); opts.push({ kind: 'dribble', mode: 'carry', w: mxw * (globalThis.__Kcarry ?? 0.6), ww: mxw * (globalThis.__Kcarry ?? 0.6), dir: [sgn(p.team) * 0.95, (GOAL_Y - p.y) * 0.01] }); }
+      }
       // 版878：遊びのパス：上がってくる味方（オーバーラップ）が、まだ自分を追い越していない時は、すぐ出さない（相手もついてくる・前にスペースがない）
       for (const o of opts) if (o.kind === 'pass' && o.q && (o.q.ovUntil || 0) > S.t && fx(p.team, o.q.x) < xf + 1) o.ww *= 0.35;
       // 版878：サイドの「待つドリブル」：サイドで1対1、同じサイドの後ろからSBが来られる時は、急いで仕掛けず、ゆっくり運んで2対1をつくる
