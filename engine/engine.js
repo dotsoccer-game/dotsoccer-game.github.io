@@ -605,7 +605,7 @@
     const skZ = (p, k) => (p.sk.has(k) || (p.uniq === 'shiden' && SHIDEN_SK.has(k))) && zr(p, k) > 0;   // 紫電の遊戯（かまた）：フェイント系の技はいつでも全部使える   // スキルを覚えていて、しかも今のエリアで使ってよい（紫電の遊戯の間は、ドリブル技をぜんぶ出せる）
     const zw = (p, k) => [0, 1, 2.2][zr(p, k)];        // 選ぶ時の重み（積極的なエリアは2.2倍）
     const S = {
-      t: 0, half: 1, score: [0, 0], poss: 0,
+      t: 0, half: 1, score: [0, 0], poss: 0, nm: opts.newMove ?? !!globalThis.__newMove,   // 版882：新しい動きの土台を使うか
       ball: { x: L / 2, y: W / 2, z: 0, vx: 0, vy: 0, vz: 0, owner: -1, kind: 'dead', lastTeam: 0, lastPlayer: -1, kicker: -1, intended: -1, offside: false, shotOnTarget: false },
       restart: null, decision: 0, dribbleDir: null, celebrate: 0, scorer: -1, kickRec: -1,
       lastPass: [null, null], passStreak: [0, 0],
@@ -1244,6 +1244,111 @@
         { let ddx = (tg[0] - p.sTg[0]) * a, ddy = (tg[1] - p.sTg[1]) * a; const vc = globalThis.__Kslew ?? 3.2; if (vc) { const gap = hyp(tg[0] - p.sTg[0], tg[1] - p.sTg[1]), cap = (vc + Math.max(0, gap - 12) * 0.25) * DT, m0 = hyp(ddx, ddy); if (m0 > cap) { ddx *= cap / m0; ddy *= cap / m0; } }
           p.sTg[0] += ddx; p.sTg[1] += ddy; }   // 版881：目標が動く速さに上限（ボールが動くたびに、陣形ごと全力で動いていた）
         targets[p.idx] = [p.sTg[0], p.sTg[1]];
+      }
+    }
+    // ===== 版882：新しい動きの土台（ボールを持っていない選手の立ち位置） =====
+    //  攻撃：DF・MF・FWの3本の高さをボールの位置とオフサイドラインから決め、左右いっぱいに幅を取る。
+    //        各選手は自分の持ち場のまわりで「相手から離れていて、ボールからパスが通る所」を探して立つ（すき間で受ける）。
+    //        近くの3人は、斜め前・横・後ろの角度に分かれてサポート。
+    //  守備：最終ライン・中盤・前線をコンパクト（縦約20m）にそろえ、ボール側へ寄せる。持ち場に入ってきた相手には、ゴール側に立って寄る。
+    //  ボールに関わっている選手（持っている人・受ける人・寄せ・こぼれ球・裏への走り・オーバーラップ・セットプレー）は、今までの動きのまま。
+    const NM_TYPE = {   // タイプごとの持ち場のずらし（ライン方向 dx・中央からの幅 w。null は変えない）
+      '偽9番': { dx: -9, w: 0 }, 'アンカー': { dx: -6, w: 0 }, 'レジスタ': { dx: -4, w: 2 }, 'シャドー': { dx: 4, w: 6 }, 'ダイナモ': { dx: 3 },
+      'アタッカー': { w: 12 }, 'パサー': { w: 11 }, 'ファンタジスタ': { w: 9 }, 'ストライカー': { w: 3 },
+    };
+    function nmOn() { return !!(S.nm); }
+    function newMovePost() {
+      if (!nmOn() || S.restart || S.celebrate > 0 || S.setPiece) return;
+      const b = S.ball, own = ownerP();
+      let at = own ? own.team : (b.kind === 'pass' && b.intended >= 0 && P[b.intended] ? P[b.intended].team : -1);
+      if (at < 0) return;   // こぼれ球・シュート中は、今までの動き（取りに行く・戻る）
+      const anc = own || P[b.intended];
+      for (const t of [0, 1]) (t === at ? nmAttack : nmDefend)(t, anc);
+    }
+    function nmEngaged(p, anc) {
+      const b = S.ball;
+      return p.off || p.gk || p === anc || S.ball.owner === p.idx || b.intended === p.idx || chasing[p.idx] || (p.run > 0) || (p.ovUntil || 0) > S.t || p.ckRun || (p.fGo && p.fShot === b.shotT) || (p.pbT === S.t) || (p.recUntil || 0) > S.t;
+    }
+    function nmSpace(p, t, bx, by, x0, y0, offL) {   // 持ち場(x0,y0：絶対座標)のまわりで、いちばん受けやすい所
+      const opp = T[1 - t].players.filter((q) => !q.off), mt = T[t].players.filter((q) => !q.off && q !== p && !q.gk);
+      let best = null, bs = -1e9;
+      for (const [dx, dy] of [[0, 0], [4, 0], [-4, 0], [0, 5], [0, -5], [4, 5], [4, -5], [-4, 5], [-4, -5], [7, 0], [0, 8], [0, -8]]) {
+        const x = clamp(x0 + sgn(t) * dx, 2, L - 2), y = clamp(y0 + dy, 2, W - 2), xf = fx(t, x);
+        let od = 99; for (const q of opp) od = Math.min(od, hyp(q.x - x, q.y - y));
+        let lane = 6; const dl = hyp(x - bx, y - by); if (dl > 3) for (const q of opp) { if (q.gk) continue; const sd = segDist(q.x, q.y, bx, by, x, y); if (sd.u > 0.05 && sd.u < 0.95) lane = Math.min(lane, sd.d); }
+        let md = 99; for (const q of mt) { const tg = targets[q.idx] || [q.x, q.y]; md = Math.min(md, hyp(tg[0] - x, tg[1] - y)); }
+        let v = Math.min(od, 9) * 0.9 + Math.min(lane, 5) * 0.8 - hyp(dx, dy) * 0.22 - (md < 7 ? (7 - md) * 0.6 : 0) - (dl > 38 ? (dl - 38) * 0.3 : 0);
+        if (xf > offL - 0.6) v -= 8;
+        if (v > bs) { bs = v; best = [x, y]; }
+      }
+      // 見直しは少し間をあけて（毎コマ迷って揺れない）。大きく良くなった時だけすぐ変える
+      const pv = p.nmPt;
+      if (pv && S.t - pv.t < 0.9 && hyp(pv.x0 - x0, pv.y0 - y0) < 4 && bs < pv.v + 1.2) return [pv.x, pv.y];
+      p.nmPt = { x: best[0], y: best[1], v: bs, t: S.t, x0, y0 };
+      return best;
+    }
+    function nmAttack(t, anc) {
+      const tm = T[t], bx = anc.x, by = anc.y, bxf = fx(t, bx), offL = offsideLine(t);
+      const pl = tm.players.filter((q) => !q.off && !q.gk && q.slot);
+      const maxRel = Math.max(1, ...pl.map((q) => q.slot.rel || 0));
+      const defL = clamp(Math.min(lineX(tm, true), bxf - (bxf < 35 ? 4 : 14)), 9, 58);
+      const fwX = clamp(Math.min(offL - 1.2, bxf + 34), defL + 18, L - 9);
+      const maxW = Math.max(14, ...pl.map((q) => Math.abs(q.slot.y - GOAL_Y)));
+      const wMul = 28.5 / maxW, shift = (by - GOAL_Y) * 0.12;
+      // サポート役（近い3人）
+      const near = pl.filter((q) => q !== anc && !nmEngaged(q, anc)).map((q) => ({ q, d: hyp(q.x - bx, q.y - by) })).sort((a0, c0) => a0.d - c0.d).slice(0, 3).map((r0) => r0.q);
+      const byF = near.slice().sort((a0, c0) => fx(t, c0.x) - fx(t, a0.x)), role = {};
+      if (byF[0]) role[byF[0].idx] = 'ahead'; if (byF[1]) role[byF[1].idx] = 'side'; if (byF[2]) role[byF[2].idx] = 'back';
+      // 左右の幅：内へ入るタイプのウイングしかいない側は、SBが外を取る
+      const inner = (q) => ['アタッカー', 'パサー', 'ファンタジスタ', 'シャドー'].includes(q.type);
+      const sbWide = {}; for (const sd of [-1, 1]) { const wing = pl.filter((q) => q.slot.line >= 1 && Math.sign(q.slot.y - GOAL_Y) === sd && Math.abs(q.slot.y - GOAL_Y) > 14); sbWide[sd] = !wing.length || wing.every(inner); }
+      for (const p of pl) {
+        if (p === anc || nmEngaged(p, anc)) continue;
+        const tg0 = targets[p.idx]; if (!tg0) continue;
+        // 第3の動き（裏・クロスに飛び込む）など、ゴール前の決まった動きはそのまま
+        if (bxf > L - 34 && fx(t, tg0[0]) > L - 17 && Math.abs(tg0[1] - GOAL_Y) < 20 && urgent[p.idx]) continue;
+        const s = p.slot, sd = Math.sign(s.y - GOAL_Y) || 1, wide = Math.abs(s.y - GOAL_Y) > 14;
+        let xf = s.line === 0 ? defL + (wide ? 3 : 0) : s.last ? fwX : defL + (fwX - defL) * clamp((s.rel || 0) / maxRel, 0.3, 0.95);
+        let y = GOAL_Y + (s.y - GOAL_Y) * wMul + shift;
+        if (s.line === 0 && !wide) y = GOAL_Y + sd * (bxf < 32 ? 14 : 9) + shift;   // CB：自陣の組み立てでは左右に開く
+        if (s.line === 0 && wide) { y = GOAL_Y + sd * (sbWide[sd] ? 29 : 25); if (sbWide[sd] && bxf > 35) xf = Math.max(xf, Math.min(bxf - 3, offL - 3)); }
+        const ty0 = NM_TYPE[p.type], ty = ty0 && wide && !inner(p) ? { dx: ty0.dx } : ty0; if (ty && s.line >= 1) { if (ty.dx) xf += ty.dx; if (ty.w != null) y = GOAL_Y + sd * ty.w + shift * 2; }   // サイドの持ち場の選手は、内へ入るタイプ以外は幅を保つ
+        if (s.line >= 1 && wide && !(ty && ty.w != null)) y = GOAL_Y + sd * 28.5;   // ウイング：タッチライン際
+        const r = role[p.idx];
+        if (r === 'ahead') { xf = Math.min(bxf + 11, offL - 1.5); y = wide && !inner(p) && Math.sign(by - GOAL_Y) === sd ? GOAL_Y + sd * 28 : by + (Math.abs(by - GOAL_Y) > 12 ? Math.sign(GOAL_Y - by) * 9 : (Math.sign(p.y - by) || 1) * 9); }   // サイドの選手は、同じサイドにボールがあれば縦（タッチライン際）で受ける
+        else if (r === 'side') { xf = bxf + 1; y = by + (Math.sign(p.y - by) || -Math.sign(by - GOAL_Y) || 1) * 13; }
+        else if (r === 'back') { xf = bxf - 9; y = by + (Math.sign(p.y - by) || 1) * 7; }
+        xf = clamp(Math.min(xf, offL - 1), 4, L - 6); y = clamp(y, 2.5, W - 2.5);
+        const pt = nmSpace(p, t, bx, by, fx(t, xf), y, offL);
+        if (globalThis.__nmDbg) globalThis.__nmDbg(p, r, y, pt);
+        targets[p.idx] = pt; urgent[p.idx] = hyp(pt[0] - p.x, pt[1] - p.y) > 16;
+      }
+    }
+    function nmDefend(t, anc) {
+      const tm = T[t], bx = anc.x, by = anc.y, bxf = fx(t, bx);
+      if (bxf < 27) return;   // ゴール前の守り（マーク・クロス対応）は、今までの動き
+      const pl = tm.players.filter((q) => !q.off && !q.gk && q.slot);
+      const dl = lineX(tm, false), maxRel = Math.max(1, ...pl.map((q) => q.slot.rel || 0));
+      const top = Math.min(dl + 22, bxf - 2), cy = GOAL_Y + (by - GOAL_Y) * 0.6;
+      const maxW = Math.max(14, ...pl.map((q) => Math.abs(q.slot.y - GOAL_Y))), wMul = 19 / maxW;
+      const opp = T[1 - t].players.filter((q) => !q.off && !q.gk);
+      for (const p of pl) {
+        if (nmEngaged(p, anc)) continue;
+        const tg0 = targets[p.idx]; if (!tg0) continue;
+        if (urgent[p.idx] && hyp(tg0[0] - bx, tg0[1] - by) < 8) continue;   // 寄せ・挟み
+        const s = p.slot;
+        let xf = s.line === 0 ? dl : s.last ? top + 2 : dl + (top - dl) * clamp((s.rel || 0) / maxRel, 0.35, 0.9);
+        let y = cy + (s.y - GOAL_Y) * wMul;
+        if (s.line === 0) y = cy + (s.y - GOAL_Y) * wMul * 1.08;
+        // 持ち場に入ってきた相手には、ゴール側に立って寄る（ゾーンで守る）
+        let foe = null, fd = 8; const x0 = fx(t, xf);
+        for (const q of opp) { const d0 = hyp(q.x - x0, q.y - y); if (d0 < fd) { fd = d0; foe = q; } }
+        if (foe) { const gx = fx(t, 0), gl = hyp(gx - foe.x, GOAL_Y - foe.y) || 1, mx = foe.x + (gx - foe.x) / gl * 2.2, my = foe.y + (GOAL_Y - foe.y) / gl * 2.2, k = s.line === 0 ? 0.35 : 0.5;
+          xf = xf + (fx(t, mx) - xf) * k; y = y + (my - y) * k; }
+        xf = clamp(Math.min(xf, bxf - 1.5), 4, L - 4); y = clamp(y, 2, W - 2);
+        targets[p.idx] = [fx(t, xf), y];
+        const behindBall = fx(t, p.x) > bxf + 2;   // ボールより前に残っている：急いで戻る
+        urgent[p.idx] = behindBall && hyp(targets[p.idx][0] - p.x, targets[p.idx][1] - p.y) > 9;
       }
     }
     function mdPost() {   /* 版448 翠の起点：食いついた相手は前から寄せ、相手のDFライン・中盤は前のめりに押し上げる */
@@ -6091,8 +6196,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       computeTargets();
       mdPost();
       shapePost();
-      widthPost();
-      blockPost();
+      if (!S.nm) { widthPost(); blockPost(); } else newMovePost();
       urgentPost();
       smoothPost();
       if (globalThis.__tgHook) globalThis.__tgHook(S, P, targets, urgent, fx, offsideLine, ownerP);
