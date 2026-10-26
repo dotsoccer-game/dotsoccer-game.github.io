@@ -4,6 +4,10 @@
   window.__noShow = true;
   const SC = window.__TAC_SCENES || {};
   const KINDS = [
+    ['mvShow', '動いて受ける：横へふくらんで足元', -2.2, 2.2, '印の選手に注目。DFの背中へ走り、DFが付いてきたら横へふくらんで、足元で受ける（DFは向きを変える分だけ遅れる）'],
+    ['mvBehind', '動いて受ける：付いてこなければ裏へ', -2.0, 2.6, '印の選手に注目。DFの背中へ走り、DFが付いてこなければ、そのまま裏へ抜ける'],
+    ['mvDrop', '動いて受ける：両方消されたら下がる', -3.0, 2.0, '印の選手に注目。裏も横も消されたら、下がって受け直す'],
+    ['mvFill', '空いた所へ入る（モビリティ）', -1.0, 2.6, '印の選手に注目。前の選手が下がって受けに行った後の空いた場所へ、後ろから入る'],
     ['pressback', 'プレスバック', -2.0, 3.0, '印の選手に注目。中盤で相手がボールを受けた瞬間、ボールより前にいた印の選手が全速で戻って、相手を後ろから挟む'],
     ['stepup', 'クリア後のライン押し上げ', -1.0, 3.5, '印のDFに注目。クリアした直後、相手が自由に持てていなければ、DFラインが一気に前へ上がる'],
     ['follow', 'シュート後の詰め', -1.2, 2.6, '印の選手に注目。味方がシュートを打った瞬間、GKがはじきそうな所（ゴールの斜め前）へ走り込む'],
@@ -20,7 +24,7 @@
     if (loaded === seed) return;
     document.querySelector('#level').value = 's'; const op = document.querySelector('#opponent'); if (op) op.value = 'バランス型';
     document.getElementById('seed').value = String(seed);
-    D.start(); D.stop(); loaded = seed; window.__noShow = true;
+    globalThis.__newMove = true; D.start(); D.stop(); loaded = seed; window.__noShow = true;
   }
   const win = () => { const k = K(kind); return [cur.t + k[2], cur.t + k[3]]; };
   function go() {

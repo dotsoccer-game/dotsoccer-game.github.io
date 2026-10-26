@@ -1287,6 +1287,45 @@
       p.nmPt = { x: best[0], y: best[1], v: bs, t: S.t, x0, y0 };
       return best;
     }
+    // 版884：動いて受ける（#35）：近くにDFがいて受けられない時は、まずDFの背中へ走る。
+    //  DFが付いてこない → そのまま裏へ抜ける（スルーパスを呼ぶ）／付いてきた → 横へふくらんで足元で受ける（速いパス）／両方消された → 下がって受け直す。
+    //  モビリティ：下がって受けに行った選手の空いた場所へ、後ろの味方が入る（#30・#38）
+    function nmMove(p, t, anc, offL, pt, x0, y0) {
+      const xf = fx(t, p.x), bxf = fx(t, anc.x);
+      if (p.mvFill && p.mvFill.until > S.t) return [p.mvFill.x, p.mvFill.y];
+      const mv = p.mv;
+      const markOf = () => { let m = null, md = 99; for (const q of T[1 - t].players) { if (q.off || q.gk) continue; const d0 = hyp(q.x - p.x, q.y - p.y); if (d0 < md) { md = d0; m = q; } } return [m, md]; };
+      if (mv && mv.until > S.t) {
+        const df = P[mv.df];
+        if (mv.ph === 'decoy' && S.t - mv.t0 > mv.len) {   // 背中へ走った：DFの反応を見て、3つから選ぶ
+          const myGain = fx(t, p.x) - fx(t, df.x), follow = hyp(df.x - p.x, df.y - p.y) < 2.6 && myGain < 1.2;
+          if (!follow && fx(t, p.x) < offL + 0.2 && L - offL > 6) { p.run = R.range(1.6, 2.4); p.runCd = 0; p.brT = S.t; p.brTimed = true; p.mv = null; if (S.ball.owner === anc.idx && !anc.gk) S.decision = Math.min(S.decision, R.range(0.2, 0.45)); p.mvCd = S.t + 4; if (globalThis.__tacLog) globalThis.__tacLog.push(['mvBehind', +S.t.toFixed(1), t, p.idx]); return null; }
+          const sd = Math.sign(p.y - df.y) || (Math.sign(GOAL_Y - p.y) || 1);
+          mv.ph = 'show'; mv.t0 = S.t; mv.until = S.t + 1.3; mv.x = p.x - sgn(t) * 1.6; mv.y = clamp(p.y + sd * 4.5, 2, W - 2);
+          p.mvOpen = S.t + 1.4; if (S.ball.owner === anc.idx && !anc.gk) S.decision = Math.min(S.decision, R.range(0.15, 0.4) * (1.6 - (anc.vision || 50) / 100));   /* 出し手は、外した瞬間を見て出す（判断の高い選手ほど早い） */ if (globalThis.__tacLog) globalThis.__tacLog.push(['mvShow', +S.t.toFixed(1), t, p.idx]);
+        } else if (mv.ph === 'show' && S.t - mv.t0 > 0.8 && hyp(df.x - p.x, df.y - p.y) < 1.8) {   // ふくらんでも消されている：下がって受け直す
+          const dx = anc.x - p.x, dy = anc.y - p.y, dl = hyp(dx, dy) || 1, k = Math.min(7, dl * 0.4);
+          mv.ph = 'drop'; mv.t0 = S.t; mv.until = S.t + 1.4; mv.x = p.x + dx / dl * k; mv.y = p.y + dy / dl * k; p.mvOpen = S.t + 1.5; nmFill(p, t, anc, x0, y0);
+          if (globalThis.__tacLog) globalThis.__tacLog.push(['mvDrop', +S.t.toFixed(1), t, p.idx]);
+        }
+        if (mv.ph === 'decoy') { const gx = Math.min(fx(t, df.x) + 2.5, offL - 0.5); return [fx(t, gx), df.y + (p.y - df.y) * 0.3]; }
+        return [mv.x, mv.y];
+      }
+      if (mv) { p.mv = null; p.mvCd = S.t + R.range(2.5, 4.5); }
+      // 始める条件：ボールより前（または横）にいて、DFがすぐ近く（2.8m以内）、持っている味方から30m以内、前へ出せそう
+      if ((p.mvCd || 0) > S.t || p.slot.line === 0 || xf < bxf - 4 || xf > offL - 0.3 || hyp(anc.x - p.x, anc.y - p.y) > 30) return null;
+      if (anc === S.ball && false) return null;
+      const [m, md] = markOf(); if (!m || md > 2.8 || fx(t, m.x) < xf - 1) return null;   // DFがパスの道（自分のゴール側）にいる
+      if (T[1 - t].players.some((q) => q !== m && !q.off && !q.gk && hyp(q.x - p.x, q.y - p.y) < 6.5)) return null;   // 2人目の相手が近いと、外しても受けられない（1対1の時だけ）
+      const pr = opps(anc).some((q) => !q.off && hyp(q.x - anc.x, q.y - anc.y) < 1.6); if (pr) return null;   // 出し手が囲まれていたら、ゆっくり動いても出てこない
+      p.mv = { ph: 'decoy', t0: S.t, len: R.range(0.6, 0.95) * (1.15 - (p.vision || 50) / 300), until: S.t + 3.5, df: m.idx };
+      if (globalThis.__tacLog) globalThis.__tacLog.push(['mvGo', +S.t.toFixed(1), t, p.idx]);
+      return [fx(t, Math.min(fx(t, m.x) + 2.5, offL - 0.5)), m.y + (p.y - m.y) * 0.3];
+    }
+    function nmFill(p, t, anc, x0, y0) {   // 下がった選手の持ち場へ、後ろの近い味方が入る
+      const c = T[t].players.filter((q) => !q.off && !q.gk && q !== p && q !== anc && q.slot && q.slot.line >= 1 && !(q.run > 0) && !(q.mv && q.mv.until > S.t) && fx(t, q.x) < fx(t, x0) - 2 && hyp(q.x - x0, q.y - y0) < 20).sort((a0, c0) => hyp(a0.x - x0, a0.y - y0) - hyp(c0.x - x0, c0.y - y0))[0];
+      if (!c) return; c.mvFill = { x: x0, y: y0, until: S.t + 2.2 }; if (globalThis.__tacLog) globalThis.__tacLog.push(['mvFill', +S.t.toFixed(1), t, c.idx]);
+    }
     function nmAttack(t, anc) {
       const tm = T[t], bx = anc.x, by = anc.y, bxf = fx(t, bx), offL = offsideLine(t);
       const pl = tm.players.filter((q) => !q.off && !q.gk && q.slot);
@@ -1319,9 +1358,10 @@
         else if (r === 'side') { xf = bxf + 1; y = by + (Math.sign(p.y - by) || -Math.sign(by - GOAL_Y) || 1) * 13; }
         else if (r === 'back') { xf = bxf - 9; y = by + (Math.sign(p.y - by) || 1) * 7; }
         xf = clamp(Math.min(xf, offL - 1), 4, L - 6); y = clamp(y, 2.5, W - 2.5);
-        const pt = nmSpace(p, t, bx, by, fx(t, xf), y, offL);
+        let pt = nmSpace(p, t, bx, by, fx(t, xf), y, offL);
+        const mvPt = nmMove(p, t, anc, offL, pt, fx(t, xf), y); if (mvPt) pt = mvPt;
         if (globalThis.__nmDbg) globalThis.__nmDbg(p, r, y, pt);
-        targets[p.idx] = pt; urgent[p.idx] = hyp(pt[0] - p.x, pt[1] - p.y) > 16;
+        targets[p.idx] = pt; urgent[p.idx] = (p.mv && p.mv.until > S.t) || (p.mvFill && p.mvFill.until > S.t) || hyp(pt[0] - p.x, pt[1] - p.y) > 16;
       }
     }
     function nmPress(t, anc, bxf, pi) {
@@ -3673,7 +3713,9 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         const d = hyp(px - p.x, py - p.y);
         if (d < 5 || d > (p.uniq === 'byakuya' ? 80 : 48)) continue;
         let danger = 0;
+        const mvSkip = S.nm && (q.mvOpen || 0) > S.t && q.mv ? q.mv.df : -1;   // 版884：外して受ける味方：背中側に外したDFはパスに届かない
         for (const o of opps(p)) {
+          if (o.idx === mvSkip) continue;
           const sd = segDist(o.x, o.y, p.x, p.y, px, py);
           // 相手がパスコースに届くか（ボールの速さ・相手の足を考慮。うまい選手ほど正確に読む）
           const pv = passAvgV(p, d), tAt = (d * sd.u) / pv;
@@ -3684,7 +3726,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           // 走っている相手は、その勢いのままコースに入ってくる（寄せてくる相手の進む先も見る）
           if (hyp(o.vx, o.vy) > 2) { const t2 = Math.min(1.2, tAt + 0.1), sd2 = segDist(o.x + o.vx * t2, o.y + o.vy * t2, p.x, p.y, px, py); if (sd2.d < 1.1 && sd2.d < sd.d) danger += 0.7 * (1.1 - sd2.d) / 1.1; }
         }
-        if (otR && S.t - S.oneTwo.t < 2.2) danger *= 0.45;   // ワンツーのリターン：ダイレクトで裏へはたくので、相手の足は間に合いにくい
+        if (otR && S.t - S.oneTwo.t < 2.2) danger *= 0.45;
+        if (S.nm && (q.mvOpen || 0) > S.t) { const mk = P[q.mv && q.mv.df != null ? q.mv.df : -1]; if (!mk || hyp(mk.x - p.x, mk.y - p.y) > hyp(q.x - p.x, q.y - p.y) - 0.5) danger *= globalThis.__Kmvd ?? 0.85; }   // 版884：DFを背中側に外した味方：DFは後ろなので、足元へのパスはカットされにくい   // ワンツーのリターン：ダイレクトで裏へはたくので、相手の足は間に合いにくい
         const recvOpp = nearestOpp(q, px, py).d;
         const pxf = fx(p.team, px);
         const qOff = fx(p.team, q.x) > offL + 0.3 && fx(p.team, q.x) > xf && fx(p.team, q.x) > L / 2;
@@ -3701,6 +3744,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         const kz = xf < L - 35 ? (globalThis.__K2 ?? 1) : 1;   // 版881：自陣・中盤では危ないパスをより嫌う（失わない）
         let v = 0.6 + (pxf - xf) * (1 - 0.45 * PAT) * (0.06 + Math.max(0, p.vision - 50) * 0.0009 + (S.counter > 0 ? 0.04 : 0) + DOM[p.team] * 0.06 + vert) + Math.min(recvOpp, 9) * 0.13 * careS - danger * kz * 2.4 * care * (1 + 0.5 * PAT) * (1 - DOM[p.team] * 0.6) * (isPasser ? 0.85 : 1) - (d > 30 ? 0.5 : 0);
         if (pxf > L - 18 && Math.abs(py - GOAL_Y) < 20) v += 0.5;
+        if (S.nm && (q.mvOpen || 0) > S.t && !through && danger < 1.3) v += globalThis.__Kmv ?? 2.2;   // 版884：DFを外して足元で受けようとしている味方へ
         if (S.nm && !p.gk && !S.setPiece) {   // 版883：前へ運ぶ意識：相手の選手を何人も越えるパス（ライン間・裏）は価値が高い。寄せられていないのに後ろで横・後ろへ回し続けない
           if (p._nmFree == null || p._nmFreeT !== S.t) { p._nmFree = nearestOpp(p, p.x, p.y).d; p._nmFreeT = S.t; }
           const free = p._nmFree, adv = pxf - xf;
@@ -3789,6 +3833,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         // うまい選手は「通らない」と読めるパスはそもそも出さない
         if (danger > (otR ? 0.45 : p.vision >= 80 ? 0.22 : 0.35) && R.next() < (p.vision - 40) / (p.vision >= 80 ? 45 : 60)) w *= p.vision >= 80 ? 0.01 : 0.03;   // Sクラスは「通らない」パスをまず出さない
         opts.push({ kind: 'pass', q, through, w, danger, d, dv: v, qOff, otR, needle });
+        if (globalThis.__mvDbg && (q.mvOpen || 0) > S.t) globalThis.__mvDbg.push({ v, danger, d, ph: q.mv && q.mv.ph });
         { const ps = passSkill(q, pxf, py, d, danger);
           if (ps) { const th = ps.through ?? through, dv = 0; opts.push({ kind: 'pass', q, through: th, chip: ps.chip, skill: ps.k, needle, danger, d, w: Math.exp((v + ps.bonus + dv) * 1.5) * (qOff ? (th ? 0.3 : 0.04) : 1) }); } }
         // 相手の頭越しに、ふわっと浮かせるパス
@@ -4096,6 +4141,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             if (globalThis.__scnLog && (p.waitLog || 0) < S.t) { p.waitLog = S.t + 3; globalThis.__scnLog.push(['wait', +S.t.toFixed(1), p.team]); } }
           else for (const o of opts) if (o.kind === 'pass' && o.q === sb) o.ww *= 3.2;   // 追い越したら、外の味方へ（2対1）
         } }
+      if (globalThis.__mvDbg2 && opts.some((o) => o.kind === 'pass' && o.q && (o.q.mvOpen || 0) > S.t)) { const tot = opts.reduce((a0, o) => a0 + (o.ww || 0), 0), mo = opts.filter((o) => o.kind === 'pass' && o.q && (o.q.mvOpen || 0) > S.t).reduce((a0, o) => a0 + (o.ww || 0), 0); const top = opts.slice().sort((a0, c0) => c0.ww - a0.ww)[0]; globalThis.__mvDbg2.push({ share: mo / tot, top: top.kind + (top.mode ? ':' + top.mode : '') }); }
       for (const o of opts) sum += o.ww;
       let r = R.next() * sum, pick = opts[opts.length - 1];
       for (const o of opts) { r -= o.ww; if (r <= 0) { pick = o; break; } }
