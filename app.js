@@ -1,3 +1,5 @@
+/* 版892：設定「新しい動き（試作）」を読み込む（確認画面は自分で切り替えるので触らない） */
+try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname)) globalThis.__newMove = localStorage.getItem('dotNewMove') === '1'; } catch (_) {}
 // ドットサッカー 画面
 // engine/engine.js が作った試合の記録（ボールと22人の位置）をそのまま再生する。
 (() => {
