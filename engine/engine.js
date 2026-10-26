@@ -3121,7 +3121,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       const b = S.ball, tx = q.x + sgn(q.team) * 0.5, ty = q.y, bx = tx - b.x, by = ty - b.y, bl = hyp(bx, by) || 1;
       if (globalThis.__scnLog) globalThis.__scnLog.push(['tk', +S.t.toFixed(1), q.team]);
       if (bl < 0.6) { gainBall(q, 'tackle'); return; }
-      const v = clamp(bl / 0.3, 3, 7);
+      const v = clamp(bl / 0.5, 2.2, 4.5);   // 版889：奪ったボールは、相手の足もとから自分の足もとへ目に見える速さで転がる（一瞬で移らない）
       act(q, 'poke', 0.35, { dx: (b.x - q.x) / (hyp(b.x - q.x, b.y - q.y) || 1), dy: (b.y - q.y) / (hyp(b.x - q.x, b.y - q.y) || 1) });
       Object.assign(b, { owner: -1, kind: 'loose', vx: bx / bl * v, vy: by / bl * v, vz: 0, z: 0, lastTeam: own ? own.team : 1 - q.team, lastPlayer: own ? own.idx : -1, intended: -1 });   // 拾った瞬間に「奪った」扱いになるよう、最後に触ったのは奪われた側
       if (own) own.touchCd = Math.max(own.touchCd || 0, 0.7);
@@ -4810,9 +4810,15 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       if (own) {
         const dir = S.dribbleDir || own.bdir || [own.facing, 0];
         if (own.gk && own.hold) { b.x += (own.x + sgn(own.team) * 0.25 - b.x) * 0.6; b.y += (own.y - b.y) * 0.6; b.z += ((own.downT > 0 ? 0.3 : 1.0) - b.z) * 0.45; b.vx = b.vy = b.vz = 0; return; }
+        // 版889：ドリブルで足から離れたボールに、相手が先に足を届かせた（相手の方がボールに近く、0.55m以内）：つつかれてこぼれる（見た目は相手のボールなのに、こちらのボールのままにしない）
+        if (!own.settle && !((own.protect || 0) > S.t) && !own.gk && b.z < 0.8) { const dO = hyp(b.x - own.x, b.y - own.y); if (dO > 0.45) { for (const q of opps(own)) { if (q.off || q.gk || q.downT > 0 || (q.touchCd || 0) > 0 || (q.stun || 0) > 0 || (q.lagT || 0) > S.t) continue; const dd = hyp(b.x - q.x, b.y - q.y);
+          if (dd < 0.55 && dd < dO - 0.3) { const ux = b.x - q.x, uy = b.y - q.y, ul = hyp(ux, uy) || 1, an = Math.atan2(uy, ux) + R.range(-0.6, 0.6), v = R.range(2, 4); Object.assign(b, { owner: -1, kind: 'loose', vx: Math.cos(an) * v, vy: Math.sin(an) * v, vz: 0, lastTeam: q.team, lastPlayer: q.idx, intended: -1 }); act(q, 'poke', 0.35, { dx: ux / ul, dy: uy / ul }); own.touchCd = Math.max(own.touchCd || 0, 0.3); S.dribbleDir = null; own.settle = false; if (globalThis.__ownFix) globalThis.__ownFix.p++; return; } } } }
         // 浮いた球はトラップして足元へ落とす（瞬間的に落ちないように）
         // ドリブル：ボールを少し前へ押し出し、ボールが遅れて追いつく（なめらかに、瞬間移動なし）
         if (own.settle) {
+          // 版889：まだ足もとに収めていないボールに、相手の方が近くにいて足が届くなら、まだだれのボールでもない（こぼれ球として奪い合う）。見た目と持ち主を一致させる
+          { const dO = hyp(b.x - own.x, b.y - own.y); let near = null, dn = 9; for (const q of opps(own)) { if (q.off || (q.gk && !(fx(q.team, b.x) < 16.5 && Math.abs(b.y - GOAL_Y) < 20)) || q.downT > 0 || (q.touchCd || 0) > 0 || (q.stun || 0) > 0) continue; const dd = hyp(b.x - q.x, b.y - q.y); if (dd < dn) { dn = dd; near = q; } }
+            if (near && dn < 0.8 && dn < dO - 0.3 && b.z < 1.0) { Object.assign(b, { owner: -1, kind: 'loose', lastTeam: own.team, lastPlayer: own.idx, intended: -1 }); own.settle = false; S.dribbleDir = null; if (globalThis.__ownFix) globalThis.__ownFix.n++; return; } }
           // 触って勢いを殺したボールは、その場で止まりかけている。選手が寄ってきて足元に収める
           own.settleT = (own.settleT || 0) + DT;
           b.x += b.vx * DT; b.y += b.vy * DT;
@@ -4835,6 +4841,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           const carry = S.dribbleMode === 'carry', sd = (own.sdOn || 0) > S.t;   // 運ぶ：ボールは足元（0.3〜0.55m）／突破：大きく押し出す（速いほど遠く、最大1.3m）／高速ドリブル：大きく蹴り出す（最大2.4m）
           if (own.dO <= (carry ? 0.3 : 0.4)) { own.dO = carry ? 0.3 : 0.4; own.dV = carry ? 0.55 + spd * 0.05 : sd ? 1.9 + spd * 0.2 : 1.1 + spd * 0.14; act(own, 'touch', 0.25); }
           own.dO = Math.min(own.dO, carry ? 0.55 : sd ? 2.4 : 1.3);
+          { let nd = 9; for (const q of opps(own)) { if (q.off || q.gk) continue; const dd = hyp(q.x - own.x, q.y - own.y); if (dd < nd && ((q.x - own.x) * dir[0] + (q.y - own.y) * dir[1]) > -0.5) nd = dd; }   // 版889：相手が近い（3m以内）時は、ボールを大きく出さず足もとに置く（うまい選手ほど近くに置ける）
+            if (nd < 3 && !(sd && nd > 2)) { const cap = 0.42 + (1 - clamp(((own.dribble || 50) + (own.technique || 50)) / 200, 0, 1)) * 0.3; if (own.dO > cap) { own.dO = cap; own.dV = Math.min(own.dV, 0.4); } } }
         } else { own.dO += (0.5 - own.dO) * 0.3; own.dV = 0; }
         const fxp = own.x + dir[0] * own.dO, fyp = own.y + dir[1] * own.dO;
         if (b.z > 0.02) { b.x += (fxp - b.x) * 0.55; b.y += (fyp - b.y) * 0.55; b.z = Math.max(0, b.z - Math.max(2.2, b.z * 3.2) * DT); }
