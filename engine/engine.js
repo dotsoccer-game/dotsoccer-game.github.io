@@ -3837,20 +3837,22 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       // 版878：サイドの「待つドリブル」：サイドで1対1、同じサイドの後ろからSBが来られる時は、急いで仕掛けず、ゆっくり運んで2対1をつくる
       if (!p.gk && p.slot && p.slot.line > 0 && !S.setPiece && !(S.counter > 0) && Math.abs(p.y - GOAL_Y) > 13 && xf > L / 2 - 10 && xf < L - 18) {
         const fr = opps(p).filter((q) => !q.off && !q.gk && hyp(q.x - p.x, q.y - p.y) < 7 && fx(p.team, q.x) > xf - 1);
-        const sd = Math.sign(p.y - GOAL_Y), sb = fr.length === 1 ? mates(p).find((m) => !m.off && m !== p && m.slot && m.slot.line === 0 && Math.sign(m.y - GOAL_Y) === sd && Math.abs(m.y - GOAL_Y) > 8 && fx(p.team, m.x) < xf - 1 && fx(p.team, m.x) > xf - 24 && m.cur > 35) : null;
-        if (sb && !(p.waitSb && p.waitSb.until < S.t && p.waitSb.sb === sb.idx)) {
-          if (!p.waitSb || p.waitSb.sb !== sb.idx || p.waitSb.until < S.t) p.waitSb = { sb: sb.idx, until: S.t + 3.5 };
-          if (!((sb.ovUntil || 0) > S.t)) { sb.ovUntil = S.t + R.range(3, 4); sb.ovNext = sb.ovUntil + 5; sb.ovSide = sd; act(sb, 'ovrun', sb.ovUntil - S.t); }
+        const sd = Math.sign(p.y - GOAL_Y), sb = fr.length === 1 ? mates(p).find((m) => !m.off && m !== p && m.slot && m.slot.line === 0 && Math.sign(m.y - GOAL_Y) === sd && Math.abs(m.y - GOAL_Y) > 8 && fx(p.team, m.x) < xf - 1 && fx(p.team, m.x) > xf - 16 && m.cur > 35 && !(m.stun > 0)) : null;   // 版880：SBが近く（16m以内）にいる時だけ。遠いと追い越すまでに間に合わない
+        const sbW = p.waitSb && p.waitSb.until + 1.5 > S.t ? P[p.waitSb.sb] : null;   // 版880：待っていたSBが追い越したら（もう後ろにはいない）、外のSBへ出して2対1
+        if (sbW && !sbW.off && fx(p.team, sbW.x) > xf - 0.5) { for (const o of opts) if (o.kind === 'pass' && o.q === sbW) o.ww *= 3.2; p.waitPass = sbW.idx; }
+        else if (sb && !(p.waitSb && p.waitSb.until < S.t && p.waitSb.sb === sb.idx)) {
+          if (!p.waitSb || p.waitSb.sb !== sb.idx || p.waitSb.until < S.t) { const gap = xf - fx(p.team, sb.x); p.waitSb = { sb: sb.idx, until: S.t + clamp((gap + 3) / 4.2 + 0.6, 1.8, 4.8) }; }   // 版880：SBが追い越すまでにかかる時間だけ待つ
+          if (!((sb.ovUntil || 0) > p.waitSb.until + 1)) { sb.ovUntil = p.waitSb.until + 1.8; sb.ovNext = sb.ovUntil + 5; sb.ovSide = sd; if (!(sb.ovAct > S.t)) { sb.ovAct = sb.ovUntil; act(sb, 'ovrun', sb.ovUntil - S.t); } }
           const passed = fx(p.team, sb.x) > xf - 0.5, mxw = Math.max(...opts.map((o) => o.ww));
           if (!passed) { for (const o of opts) if (o.kind === 'dribble' && o.mode === 'break') o.ww *= 0.25;
-            opts.push({ kind: 'dribble', mode: 'carry', w: mxw * 1.3, ww: mxw * 1.3, dir: [sgn(p.team) * 0.85, -sd * 0.5], wait: true });
+            opts.push({ kind: 'dribble', mode: 'carry', w: mxw * 1.3, ww: mxw * 1.3, dir: [sgn(p.team) * 0.3, -sd * 0.95], wait: true });   // 版880：前へは急がず、少し内へ運んで相手を引きつけ、外の道をSBのために空ける
             if (globalThis.__scnLog && (p.waitLog || 0) < S.t) { p.waitLog = S.t + 3; globalThis.__scnLog.push(['wait', +S.t.toFixed(1), p.team]); } }
-          else for (const o of opts) if (o.kind === 'pass' && o.q === sb) o.ww *= 2.2;   // 追い越したら、外の味方へ（2対1）
+          else for (const o of opts) if (o.kind === 'pass' && o.q === sb) o.ww *= 3.2;   // 追い越したら、外の味方へ（2対1）
         } }
       for (const o of opts) sum += o.ww;
       let r = R.next() * sum, pick = opts[opts.length - 1];
       for (const o of opts) { r -= o.ww; if (r <= 0) { pick = o; break; } }
-      if (globalThis.__tacLog && p.waitSb && p.waitSb.until > S.t) { if (pick.wait && S.t - (p.wtLog ?? -9) > 3) { p.wtLog = S.t; globalThis.__tacLog.push(['wait', +S.t.toFixed(1), p.team, p.idx]); } else if (pick.kind === 'pass' && pick.q && pick.q.idx === p.waitSb.sb) globalThis.__tacLog.push(['waitgo', +S.t.toFixed(1), p.team, p.idx]); }
+      if (globalThis.__tacLog && p.waitSb && p.waitSb.until + 1.5 > S.t) { if (pick.wait && S.t - (p.wtLog ?? -9) > 3) { p.wtLog = S.t; globalThis.__tacLog.push(['wait', +S.t.toFixed(1), p.team, p.idx, p.waitSb.sb]); } else if (pick.kind === 'pass' && pick.q && pick.q.idx === p.waitSb.sb) globalThis.__tacLog.push(['waitgo', +S.t.toFixed(1), p.team, p.idx]); }
       { const bl = opts.find((o) => o.byLong || o.uzLong || o.aoLong); if (bl && pick !== bl && pick.kind !== 'shot') pick = bl; }
       { const ms = opts.find((o) => o.mustShoot); if (ms) pick = ms; }
       if (globalThis.__mdRk && (p.mdRecv || 0) > S.t) globalThis.__mdRk.push([+S.t.toFixed(1), p.name, +xf.toFixed(0), +dGoal.toFixed(0), pick.kind + (pick.mode ? ':' + pick.mode : '') + (pick.q ? '>' + pick.q.name + '@' + fx(p.team, pick.q.x).toFixed(0) : ''), +space.toFixed(1), (p.finT || 0) > S.t ? 'fin' : '']);
@@ -3898,7 +3900,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         S.decision = pick.mode === 'carry' ? R.range(0.35, 0.7) : space >= 6 && xf > L / 2 - 10 ? R.range(1.0, 1.5) : space >= 4.5 ? R.range(0.7, 1.1) : R.range(0.45, 0.9);   // 運ぶドリブルはこまめに向きを変える
         // 目の前に相手がいれば、自分から技を仕掛ける
         const front = opps(p).filter((o) => !o.gk && hyp(o.x - p.x, o.y - p.y) < 3.0 && ((o.x - p.x) * S.dribbleDir[0] + (o.y - p.y) * S.dribbleDir[1]) > 0).sort((a, c) => hyp(a.x - p.x, a.y - p.y) - hyp(c.x - p.x, c.y - p.y))[0];
-        if (front && R.next() < 0.5) skillMove(p, front);
+        if (front && R.next() < 0.5 && !pick.wait) skillMove(p, front);   // 版880：待つドリブルの間は、技で仕掛けない
       }
     }
 
