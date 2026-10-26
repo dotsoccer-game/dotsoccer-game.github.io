@@ -3,7 +3,7 @@
   const D = window.__demo; if (!D) return;
   window.__noShow = true;
   let seed = 1, mode = 1, sp = 1, paused = false, lv = 's';
-  function load(keepT) {
+  let load = function (keepT) {
     const t = keepT ? D.time() : 30;
     globalThis.__newMove = mode === 1;
     document.querySelector('#level').value = lv; const op = document.querySelector('#opponent'); if (op) op.value = 'バランス型';
@@ -12,18 +12,18 @@
     D.seek(Math.max(0.2, t)); D.setSpeed(paused ? 0.0001 : sp); D.play(); info();
   }
   const css = document.createElement('style');
-  css.textContent = `#clubScreen,.std-wrap{display:none!important}#nm{position:fixed;left:8px;top:58px;z-index:50;background:rgba(10,24,16,.92);color:#e8f2ea;border:1px solid #3d6b4a;border-radius:10px;font:11px/1.35 system-ui,sans-serif;max-width:min(420px,calc(100vw - 110px));padding:5px 7px;box-sizing:border-box}
+  css.textContent = `#clubScreen,.std-wrap{display:none!important}#nm{position:fixed;left:8px;bottom:6px;z-index:50;background:rgba(10,24,16,.92);color:#e8f2ea;border:1px solid #3d6b4a;border-radius:10px;font:11px/1.35 system-ui,sans-serif;max-width:min(420px,calc(100vw - 110px));padding:5px 7px;box-sizing:border-box}
   #nm b{color:#ffe05a}#nm button{font:11px system-ui,sans-serif;background:#23392b;color:#e8f2ea;border:1px solid #4d7a5a;border-radius:6px;padding:3px 6px;margin:1px}#nm button.on{background:#3d7a4f;border-color:#9fe0b0}
-  #nm .row{display:flex;flex-wrap:wrap;align-items:center;gap:2px 5px}#nm .msg{color:#bcd3c2;font-size:10px;margin-top:1px}#nm.mini>:not(:first-child){display:none}#nm .big{font-size:12px;padding:4px 9px}`;
+  #nm .row{display:flex;flex-wrap:wrap;align-items:center;gap:2px 5px}#nm .msg{color:#bcd3c2;font-size:10px;margin-top:1px}#nm.mini>:not(:first-child){display:none}#nm button.on{background:#3d7a4f;border-color:#9fe0b0}#nm .big{font-size:12px;padding:4px 9px}`;
   document.head.appendChild(css);
   const box = document.createElement('div'); box.id = 'nm';
-  box.innerHTML = `<div class="row"><b id="nmT" style="cursor:pointer">動きの比べ ▾</b><button class="big" data-m="0">今の動き</button><button class="big on" data-m="1">新しい動き</button></div>
+  box.innerHTML = `<div class="row"><b id="nmT" style="cursor:pointer">動きの比べ ▾</b><button data-m="0">今の動き</button><button class="on" data-m="1">新しい動き</button><button id="nmO">持ち主を表示</button> 奪われた場面<button id="nmLP">◀</button><span id="nmLS">-</span><button id="nmLN">▶</button></div>
     <div class="row">試合 <button id="nmP">◀</button><span id="nmS">1</span><button id="nmN">▶</button>
       <button data-l="s" class="on">オールS</button><button data-l="low">育成序盤</button></div>
     <div class="row">時間 <button data-t="30">はじめ</button><button data-t="120">前半なかば</button><button data-t="300">後半</button><button data-t="400">終盤</button></div>
-    <div class="row"><button data-s="1" class="on">1倍</button><button data-s="0.5">1/2</button><button data-s="4">4倍</button><button id="nmStop">停止</button><button data-z="near">近い</button><button data-z="normal">ふつう</button><button data-z="far">遠い</button></div>
+    <div class="row"><button data-s="1" class="on">1倍</button><button data-s="0.5">1/2</button><button data-s="0.25">1/4</button><button data-s="4">4倍</button><button id="nmStop">停止</button><button data-z="near">近い</button><button data-z="normal">ふつう</button><button data-z="far">遠い</button></div>
     <div class="msg" id="nmM"></div>`;
-  document.body.appendChild(box);
+  document.body.appendChild(box); box.style.top = 'auto'; box.style.height = 'auto';
   function info() {
     document.getElementById('nmS').textContent = seed;
     box.querySelectorAll('[data-m]').forEach((b) => b.classList.toggle('on', +b.dataset.m === mode));
@@ -39,5 +39,17 @@
   document.getElementById('nmP').onclick = () => { seed = Math.max(1, seed - 1); load(false); };
   document.getElementById('nmN').onclick = () => { seed++; load(false); };
   document.getElementById('nmT').onclick = () => { box.classList.toggle('mini'); document.getElementById('nmT').textContent = '動きの比べ ' + (box.classList.contains('mini') ? '▸' : '▾'); };
+  // 版890：奪われた場面（ボールの持ち主のチームが変わった所）を一覧にして、少し前から1/4の速さで見る
+  let losses = [], li = -1;
+  function findLosses() {
+    losses = []; const F = D.match && D.match.frames; if (!F) return; let pt = -1, lastT = -99;
+    for (const f of F) { const ow = f[4]; if (ow < 0) continue; const t = ow < 11 ? 0 : 1; if (pt >= 0 && t !== pt && f[0] - lastT > 2) { losses.push(f[0]); lastT = f[0]; } pt = t; }
+    li = -1; document.getElementById('nmLS').textContent = `0 / ${losses.length}`;
+  }
+  function goLoss(d) { if (!losses.length) return; li = (li + d + losses.length) % losses.length; const t = losses[li]; sp = 0.25; box.querySelectorAll('[data-s]').forEach((x) => x.classList.toggle('on', x.dataset.s === '0.25')); paused = false; D.seek(Math.max(0.2, t - 2)); D.setSpeed(sp); D.play(); if (!box.classList.contains('mini')) { box.classList.add('mini'); document.getElementById('nmT').textContent = '動きの比べ ▸'; } { const z = document.querySelector('[data-zoom="normal"]'); if (z) z.click(); } document.getElementById('nmLS').textContent = `${li + 1} / ${losses.length}`; }
+  document.getElementById('nmLP').onclick = () => goLoss(-1);
+  document.getElementById('nmLN').onclick = () => goLoss(1);
+  document.getElementById('nmO').onclick = (e) => { window.__showOwner = !window.__showOwner; e.target.classList.toggle('on', window.__showOwner); };
+  const load0 = load; load = function (k) { load0(k); findLosses(); };
   setTimeout(() => load(false), 300);
 })();

@@ -3330,6 +3330,10 @@
             const pts = [], t1 = Math.min(simT, a.t + a.d); for (let k = 0; k <= 18; k++) { const tt = a.t + (t1 - a.t) * k / 18, s2 = k === 18 ? st : stateAt(tt); if (k > 2 && s2.owner >= 0 && s2.owner !== i) { if (pts.length) { const bq = P3(s2.ball.x, s2.ball.y, (s2.ball.z || 0) + 0.11); pts.push([bq.x, bq.y]); } break; } const bq = P3(s2.ball.x, s2.ball.y, (s2.ball.z || 0) + 0.11); pts.push([bq.x, bq.y]); }
             tactFx.push(['hrthread', pts, simT - a.t, a.d, r.px || q.s * 2.6, a.lv || 1]); }
           if (!gHb && a.a === 'hrbuf' && simT - a.t < a.d && (st.owner === i || simT - a.t < 0.6)) { gHb = true; tactFx.push(['hraura', q.x, q.y, r.px || q.s * 2.6, a.lv || 1, simT - a.t, a.d]); } } }
+      if (window.__showOwner && st.owner === i) {   // 版890：確認用：ボールの持ち主（エンジンの判定）の足もとに、チームの色の太い輪
+        ctx.strokeStyle = team === 0 ? '#3fa0ff' : '#ff4d4d'; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.ellipse(q.x, q.y, 7.5 * r.px, 2.6 * r.px, 0, 0, Math.PI * 2); ctx.stroke();
+      }
       if (i === selected) {
         ctx.strokeStyle = '#fff35a'; ctx.lineWidth = 3;
         ctx.beginPath(); ctx.ellipse(q.x, q.y, 6.5 * r.px, 2.2 * r.px, 0, 0, Math.PI * 2); ctx.stroke();
