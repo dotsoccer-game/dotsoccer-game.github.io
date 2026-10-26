@@ -1316,10 +1316,12 @@
           const myGain = fx(t, p.x) - fx(t, df.x), follow = hyp(df.x - p.x, df.y - p.y) < 2.6 && myGain < 1.2;
           if (!follow && fx(t, p.x) < offL + 0.2 && L - offL > 6) { p.run = R.range(1.6, 2.4); p.runCd = 0; p.brT = S.t; p.brTimed = true; p.mv = null; if (S.ball.owner === anc.idx && !anc.gk) S.decision = Math.min(S.decision, R.range(0.2, 0.45)); p.mvCd = S.t + 4; if (globalThis.__tacLog) globalThis.__tacLog.push(['mvBehind', +S.t.toFixed(1), t, p.idx]); return null; }
           const sd = Math.sign(p.y - df.y) || (Math.sign(GOAL_Y - p.y) || 1);
+          if (globalThis.__Klag ?? 1) df.lagT = Math.max(df.lagT || 0, S.t + clamp(0.32 + ((p.dash || 50) + (p.technique || 50)) * 0.002 - (df.defense || 50) * 0.003 - (df.vision || 50) * 0.0015, 0.1, 0.5));   // 版886：背中へ走ったあと急に切り返すと、付いてきたDFは向きを変える分だけ遅れる（#35）
           mv.ph = 'show'; mv.t0 = S.t; mv.until = S.t + 1.3; { const sp0 = nmSpace(p, t, anc.x, anc.y, p.x - sgn(t) * 1.2, clamp(p.y + sd * 2.5, 2, W - 2), offL, { R: 4.5, minD: 7, maxD: 30, skip: df.idx, fresh: true }); mv.x = sp0[0]; mv.y = sp0[1]; }   // 版885：出し手から見えて、パスの道が空く側へふくらむ
           p.mvOpen = S.t + 1.4; if (S.ball.owner === anc.idx && !anc.gk) S.decision = Math.min(S.decision, R.range(0.15, 0.4) * (1.6 - (anc.vision || 50) / 100));   /* 出し手は、外した瞬間を見て出す（判断の高い選手ほど早い） */ if (globalThis.__tacLog) globalThis.__tacLog.push(['mvShow', +S.t.toFixed(1), t, p.idx]);
         } else if (mv.ph === 'show' && S.t - mv.t0 > 0.8 && hyp(df.x - p.x, df.y - p.y) < 1.8) {   // ふくらんでも消されている：下がって受け直す
           const dx = anc.x - p.x, dy = anc.y - p.y, dl = hyp(dx, dy) || 1, k = Math.min(7, dl * 0.4);
+          if (globalThis.__Klag ?? 1) df.lagT = Math.max(df.lagT || 0, S.t + clamp(0.25 + ((p.dash || 50) + (p.technique || 50)) * 0.002 - (df.defense || 50) * 0.003 - (df.vision || 50) * 0.0015, 0.08, 0.4));
           mv.ph = 'drop'; mv.t0 = S.t; mv.until = S.t + 1.4; { const sp0 = nmSpace(p, t, anc.x, anc.y, p.x + dx / dl * k, p.y + dy / dl * k, offL, { R: 6, minD: 7, maxD: 30, fresh: true }); mv.x = sp0[0]; mv.y = sp0[1]; }   // 版885：まっすぐ下がらず、相手の陰から外れる角度へ（顔を出す）
           p.mvOpen = S.t + 1.5;
           if (globalThis.__tacLog) globalThis.__tacLog.push(['mvDrop', +S.t.toFixed(1), t, p.idx]);
@@ -1382,7 +1384,9 @@
         if (s.line === 0 && wide) { y = GOAL_Y + sd * (sbWide[sd] ? 29 : 25); if (sbWide[sd] && bxf > 35) xf = Math.max(xf, Math.min(bxf - 3, offL - 3)); }
         const ty0 = NM_TYPE[p.type], ty = ty0 && wide && !inner(p) ? { dx: ty0.dx } : ty0; if (ty && s.line >= 1) { if (ty.dx) xf += ty.dx; if (ty.w != null) y = GOAL_Y + sd * ty.w + shift * 2; }   // サイドの持ち場の選手は、内へ入るタイプ以外は幅を保つ
         if (s.line >= 1 && wide && !(ty && ty.w != null)) y = GOAL_Y + sd * 28.5;   // ウイング：タッチライン際
-        const r = role[p.idx];
+        let r = role[p.idx];
+        if ((globalThis.__Knr ?? 1) && r && r !== 'back') r = null;   // 版886：先読み型：斜め前・横の役を決めて走らせない。近くの選手は自分の持ち場の近くで、道が空く所に立つ（持つ人が変わっても大きく動き直さない）
+        const nearB = !r && hyp(p.x - bx, p.y - by) < 26 && (globalThis.__Knr ?? 1);
         if (r) {   // 版885：サポートは、今いる所から近い「出し手から10〜18m」の輪の上へ（遠くの決まった場所へ走らない）。斜め前役は少し前、後ろ役は少し後ろへ寄せる
           const pxf = fx(t, p.x), dx0 = pxf - bxf, dy0 = p.y - by, dd0 = hyp(dx0, dy0) || 1, rr = clamp(dd0, 10, r === 'back' ? 15 : 18);
           let ax = bxf + dx0 / dd0 * rr, ay = by + dy0 / dd0 * rr;
@@ -1390,12 +1394,17 @@
           if (r === 'ahead' && wide && !inner(p) && Math.sign(by - GOAL_Y) === sd) ay = GOAL_Y + sd * 28;   // サイドの選手は、同じサイドにボールがあれば縦（タッチライン際）で受ける
           xf = Math.min(ax, offL - 1.5); y = ay;
         }
+        if (nearB) {   // 持ち場と今いる所の間を基準に（ボールが動くたびに持ち場ごと大きく動かない）
+          const cx = fx(t, p.x); xf = xf * 0.55 + cx * 0.45; y = y * 0.55 + p.y * 0.45;
+          const dx0 = xf - bxf, dy0 = y - by, dd0 = hyp(dx0, dy0) || 1; if (dd0 < 9) { xf = bxf + dx0 / dd0 * 9; y = by + dy0 / dd0 * 9; }
+        }
         xf = clamp(Math.min(xf, offL - 1), 4, L - 6); y = clamp(y, 2.5, W - 2.5);
-        let pt = nmSpace(p, t, bx, by, fx(t, xf), y, offL, r ? { R: 6, minD: 7, maxD: r === 'back' ? 20 : 24 } : (wide && Math.abs(y - GOAL_Y) > 26 ? { R: 6, minD: 10, maxD: 45 } : { R: 7, minD: 9, maxD: 40 }));
+        let pt = nmSpace(p, t, bx, by, fx(t, xf), y, offL, r ? { R: 6, minD: 7, maxD: r === 'back' ? 20 : 24 } : nearB ? { R: 7, minD: 8, maxD: 26 } : (wide && Math.abs(y - GOAL_Y) > 26 ? { R: 6, minD: 10, maxD: 45 } : { R: 7, minD: 9, maxD: 40 }));
         const mvPt = nmMove(p, t, anc, offL, pt, fx(t, xf), y); if (mvPt) pt = mvPt;
         p.nmRole = r || (wide && Math.abs(y - GOAL_Y) > 26 ? 'width' : 'shape'); p.nmRoleT = S.t;
         if (globalThis.__nmDbg) globalThis.__nmDbg(p, r, y, pt);
-        targets[p.idx] = pt; urgent[p.idx] = (p.mv && p.mv.until > S.t) || (p.mvFill && p.mvFill.until > S.t) || hyp(pt[0] - p.x, pt[1] - p.y) > (r ? (globalThis.__Kru ?? 3) : (globalThis.__Kfu ?? 8));   // 版885：サポート役はすぐ顔を出す（ゆっくり動くと、着く前にボールが動いてしまう）
+        targets[p.idx] = pt; urgent[p.idx] = (p.mv && p.mv.until > S.t) || (p.mvFill && p.mvFill.until > S.t) || hyp(pt[0] - p.x, pt[1] - p.y) > (r ? (globalThis.__Kru ?? 3) : (globalThis.__Kfu ?? 8));
+        if (!urgent[p.idx] && (globalThis.__Kgo ?? 1) && hyp(p.x - bx, p.y - by) < 32 && hyp(pt[0] - p.x, pt[1] - p.y) > 1.2 && laneMargin(t, bx, by, p.x, p.y, -1) < 0 && laneMargin(t, bx, by, pt[0], pt[1], -1) > 0.2) { urgent[p.idx] = true; p.nmGo = S.t; }   // 版886：今いる所が相手の陰なら、空いている所へ素早く動いて顔を出す   // 版885：サポート役はすぐ顔を出す（ゆっくり動くと、着く前にボールが動いてしまう）
       }
     }
     // 版885：守備の共通の立ち位置選び：持ち場(x0,y0)のまわり（半径R）で、出し手から近い相手の受け手へのパスコースを消せる所。ゴール側・ラインから離れすぎない
