@@ -1980,6 +1980,32 @@
           if (c && c.v > 3.5 && R.next() < 0.45 + (ref.vision || 50) / 200) { const q = c.q; q.bRun = { x: fx(t, c.tx), y: c.ty, until: S.t + 2.6 }; q.run = 2.6; q.runCd = 0; q.brT = S.t; q.brTimed = true; tm.bTrCd = S.t + 3.5; S.decision = clamp(S.decision, R.range(0.45, 0.75), 0.9); /* 出し手は、走り出した味方が加速するまで一瞬待つ */ if (globalThis.__tacLog) globalThis.__tacLog.push(['trRun', +S.t.toFixed(1), t, q.idx]); }
         }
       }
+      // ===== 中盤を崩す原則（モビリティ・ユニット・3人目）=====
+      const runOK = (q) => q && q.idx !== ref.idx && brainFree(q) && !(q.bRun && q.bRun.until > S.t) && q.slot.line >= 1;
+      const goRun = (q, wx, y, dur, tag) => { q.bRun = { x: wx, y: clamp(y, 4, W - 4), until: S.t + dur }; q.run = dur; q.runCd = 0; q.brT = S.t; q.brTimed = true; if (globalThis.__tacLog) globalThis.__tacLog.push([tag, +S.t.toFixed(1), t, q.idx]); };
+      const goShow = (q, wx, y, dur, tag) => { q.bShow = { x: wx, y: clamp(y, 4, W - 4), until: S.t + dur }; if (globalThis.__tacLog) globalThis.__tacLog.push([tag, +S.t.toFixed(1), t, q.idx]); };
+      if (held && S.ball.owner === ref.idx && (globalThis.__Kunit ?? 1)) {
+        const recv = S.t - (ref.recvT ?? -9), back2 = (ref.vx || 0) * sgn(t) < 0.5 && T[1 - t].players.some((o) => !o.off && !o.gk && hyp(o.x - ref.x, o.y - ref.y) < 2.8 && fx(t, o.x) > bxf);
+        // ユニット②・3人目：背負って受けた（くさび・下りて受けた）→ その背後のスペースへ、近くの味方が飛び出す（落としを受けた選手がそこへ出す）
+        if (back2 && recv > 0.05 && recv < 0.6 && tm._u2 !== ref.idx + ':' + ref.recvT && bxf > 30 && bxf < L - 22) {
+          tm._u2 = ref.idx + ':' + ref.recvT;
+          const tx = Math.min(offL + 8, L - 8), c = pl.filter((q) => runOK(q) && hyp(q.x - bx, q.y - by) < 24 && hyp(q.x - bx, q.y - by) > 5 && fx(t, q.x) < offL + 0.2).sort((a0, c0) => hyp(a0.x - bx, a0.y - by) - hyp(c0.x - bx, c0.y - by))[0];
+          if (c && L - offL > 7 && R.next() < (globalThis.__Ku2 ?? 0.75)) goRun(c, fx(t, tx), by + (Math.sign(c.y - by) || 1) * 5, 2.8, 'unit2');
+        }
+        // ポケット：寄せるためにラインから出てきた相手DFの背後へ（相手の守備ラインは、深さで見る）
+        if (!(tm.pkCd > S.t) && bxf > 35 && bxf < L - 20) {
+          const dl0 = T[1 - t].players.filter((o) => !o.off && !o.gk && o.slot && o.slot.line === 0);
+          const out0 = dl0.filter((o) => fx(t, o.x) < offL - 5 && hyp(o.x - bx, o.y - by) < 14 && (globalThis.__Kpkt2 ?? 1));
+          if (out0.length) { const o = out0[0], hx = Math.min(offL + 4, L - 9), hy = o.y + (GOAL_Y - o.y) * 0.15;
+            const c = pl.filter((q) => runOK(q) && fx(t, q.x) < offL + 0.2 && hyp(q.x - fx(t, hx), q.y - hy) < 22 && q !== ref).sort((a0, c0) => hyp(a0.x - fx(t, hx), a0.y - hy) - hyp(c0.x - fx(t, hx), c0.y - hy))[0];
+            if (c && L - offL > 6) { goRun(c, fx(t, hx), hy, 2.4, 'pocket'); tm.pkCd = S.t + 4; } }
+        }
+      }
+      // ユニット①：1人が裏へ走ったら、その人がいた辺り（ライン間・足もと）へ、もう1人が下りてくる
+      for (const q of pl) if (q.bRun && q.brT === S.t && !q.uDone) { q.uDone = true;
+        const ox = q.x, oy = q.y, c = pl.filter((m) => m !== q && runOK(m) && m.idx !== ref.idx && hyp(m.x - ox, m.y - oy) < 18 && !(m.bShow && m.bShow.until > S.t)).sort((a0, c0) => hyp(a0.x - ox, a0.y - oy) - hyp(c0.x - ox, c0.y - oy))[0];
+        if (c) goShow(c, fx(t, Math.min(fx(t, ox) - 5, offL - 3)), oy + (GOAL_Y - oy) * 0.2, 2.0, 'unit1'); }
+      for (const q of pl) if (q.bRun && q.bRun.until <= S.t) q.uDone = false;
       // それぞれの目標
       const LN = [13.85, 24.85, 43.15, 54.15], lane = (y) => (y < LN[0] ? 0 : y < LN[1] ? 1 : y < LN[2] ? 2 : y < LN[3] ? 3 : 4);
       const out = [];
@@ -1988,6 +2014,7 @@
         let pt, urg = false, role;
         if (p.bRun && p.bRun.until > S.t) { pt = [p.bRun.x, p.bRun.y]; urg = true; role = 'run'; }
         else if (p.pm && p.pm.until > S.t && (globalThis.__Kpm ?? 1)) { pt = nmSpace(p, t, bx, by, p.pm.x, p.pm.y, offL, { R: 4, minD: 6, maxD: 30 }); urg = true; role = 'pm'; }
+        else if (p.bShow && p.bShow.until > S.t) { pt = nmSpace(p, t, bx, by, p.bShow.x, p.bShow.y, offL, { R: 4, minD: 6, maxD: 30 }); urg = true; role = 'show'; }
         else if (dia.has(p.idx)) { const d0 = dia.get(p.idx); pt = nmSpace(p, t, bx, by, fx(t, Math.min(d0[0], offL - 1.2)), d0[1], offL, { R: 4.5, minD: pr === 2 ? 6 : 8, maxD: 22 }); urg = hyp(pt[0] - p.x, pt[1] - p.y) > (pr === 2 ? 1.5 : 2.5); role = d0[2]; }
         else { const tp = tpl.get(p.idx); if (!tp) continue; const k = tp[2], anc0 = k !== 'M';
           const xw = fx(t, clamp(Math.min(tp[0], offL - 0.8), 4, L - 6)), yw = clamp(tp[1], 2.5, W - 2.5);
@@ -2102,8 +2129,20 @@
         const behindBall = fx(t, p.x) > bxf + 2;
         urgent[p.idx] = (behindBall && hyp(c0[0] - p.x, c0[1] - p.y) > 6) || hyp(c0[0] - p.x, c0[1] - p.y) > 12 || (ph === 'switch' && !!foe && hyp(c0[0] - p.x, c0[1] - p.y) > 2);
       }
+      // 予測（インテリジェンス）：出す方向へそのまま運んでいる出し手は、狙いを読まれる（受け手のそばの守備者が、通り道へ先に動く）。判断の高い出し手は読まれない
+      const own = S.ball.owner === ref.idx ? ref : null;
+      if (own && (globalThis.__Kread ?? 1) && hyp(own.vx, own.vy) > 2 && (own.vision || 50) < 75) {
+        const a0 = Math.atan2(own.vy, own.vx); let tq = null, td = 99;
+        for (const q of opp) { if (q.idx === own.idx) continue; const dx = q.x - own.x, dy = q.y - own.y, dd = hyp(dx, dy); if (dd < 8 || dd > 30) continue; let da = Math.abs(Math.atan2(dy, dx) - a0); if (da > Math.PI) da = 2 * Math.PI - da; if (da < 0.35 && dd < td) { td = dd; tq = q; } }
+        if (tq) { let d = null, dd0 = 6; for (const o of free) { if (firsts.has(o.idx)) continue; const d0 = hyp(o.x - tq.x, o.y - tq.y); if (d0 < dd0) { dd0 = d0; d = o; } }
+          if (d && targets[d.idx] && (d.vision || 50) > 45) { const k = clamp(((d.vision || 50) - 45) / 80, 0.1, 0.45), lx = own.x + (tq.x - own.x) * 0.7, ly = own.y + (tq.y - own.y) * 0.7, tg = targets[d.idx]; targets[d.idx] = [tg[0] + (lx - tg[0]) * k, tg[1] + (ly - tg[1]) * k]; d.readT = S.t; } }
+      }
     }
     // ---------- ボールを持った選手の判断（設計一覧 3章）----------
+    function bDefT(o, t, sx, sy) {   // 守備者がその場所に着くまでの時間：自分のゴール側（背中側）へは、向きを変える分だけ遅れる
+      const back = fx(t, sx) > fx(t, o.x) + 1 && !o.gk ? (globalThis.__Kturn ?? 0.35) : 0;
+      return hyp(sx - o.x, sy - o.y) / maxSpeed(o) + (o.gk ? 0.05 : 0.2) + back + Math.max(0, (o.lagT || 0) - S.t);
+    }
     function brainSpacePass(p, foes) {   // スペースへのパス：味方が相手より先に着ける前のスペース
       const t = p.team, xf = fx(t, p.x), offL = offsideLine(t), res = [];
       for (const q of mates(p)) {
@@ -2114,7 +2153,7 @@
           const sxf = fx(t, sx); if (sy < 3 || sy > W - 3 || sxf > L - 7 || sxf < 3 || sxf - xf < 6) continue;
           const dS = hyp(sx - p.x, sy - p.y); if (dS < 8 || dS > 38) continue;
           const tb = 0.15 + dS / passAvgV(p, dS), tq = hyp(sx - q.x, sy - q.y) / vq + 0.25; if (tq > tb + 0.5) continue;
-          let to = 99; for (const o of foes) to = Math.min(to, hyp(sx - o.x, sy - o.y) / maxSpeed(o) + (o.gk ? 0.1 : 0.2));
+          let to = 99; for (const o of foes) to = Math.min(to, bDefT(o, t, sx, sy));
           if (to < Math.max(tb, tq) + 0.3) continue;
           const lm = laneMargin(t, p.x, p.y, sx, sy, -1); if (lm < 0.8) continue;
           let by = 0; for (const o of foes) if (!o.gk) { const ox = fx(t, o.x); if (ox > xf + 0.5 && ox < sxf - 0.5) by++; }
@@ -2140,6 +2179,7 @@
       }
       // パス
       const hist = (S.passHist || []).filter((h) => S.t - h.t < 4);
+      const omx = foes.filter((o) => !o.gk && o.slot && o.slot.line >= 1 && !o.slot.last).map((o) => fx(t, o.x)), oppMidX = omx.length ? omx.reduce((a0, c0) => a0 + c0, 0) / omx.length : 60;
       const fwOpen = mates(p).some((q) => !q.off && !q.gk && fx(t, q.x) - xf > 6 && fx(t, q.x) < offL + 0.2 && laneMargin(t, p.x, p.y, q.x, q.y, -1) > 0.8 && nearestOpp(q, q.x, q.y).d > 3);   // 前に、通る道があって空いている味方がいる
       let bestSafe = -9;
       for (const q of mates(p)) {
@@ -2152,8 +2192,8 @@
         let px = q.x + q.vx * 0.35, py = q.y + q.vy * 0.35, thrSpot = null;
         if (through) {   // 走る先の線上で、味方が相手より先に着ける一番良い所へ
           const rdx = q.bRun.x - q.x, rdy = q.bRun.y - q.y, rl = hyp(rdx, rdy) || 1; let bm = -9;
-          for (const s0 of [3, 6, 9, 12, 15]) { const sx = q.x + rdx / rl * s0, sy = q.y + rdy / rl * s0; if (fx(t, sx) > L - 5) continue; const dS = hyp(sx - p.x, sy - p.y), tb = 0.15 + dS / passAvgV(p, dS), tq = s0 / maxSpeed(q) + 0.15; let to = 99;
-            for (const o of foes) { const lag = Math.max(0, (o.lagT || 0) - S.t); to = Math.min(to, hyp(sx - o.x, sy - o.y) / maxSpeed(o) + (o.gk ? 0.05 : 0.2) + lag); }
+          for (const s0 of [3, 6, 9, 12, 15]) { const sx = q.x + rdx / rl * s0, sy = q.y + rdy / rl * s0; if (fx(t, sx) > L - 5) continue; const dS = hyp(sx - p.x, sy - p.y), tb = 0.15 + dS / passAvgV(p, dS), tq = s0 / maxSpeed(q) + 0.15 - clamp(((q.vx || 0) * rdx + (q.vy || 0) * rdy) / rl / maxSpeed(q), 0, 1) * 0.2; let to = 99;
+            for (const o of foes) to = Math.min(to, bDefT(o, t, sx, sy));
             const m0 = to - Math.max(tb, tq) - Math.abs(tb - tq) * 0.3; if (m0 > bm) { bm = m0; thrSpot = [sx, sy]; } }
           if (thrSpot) { px = thrSpot[0]; py = thrSpot[1]; } }
         if (fx(t, px) > L - 5) px = fx(t, L - 5);
@@ -2161,7 +2201,7 @@
         let danger = 0;
         if (through) {   // スルーパス：走っている味方が、相手より先にボールに着けるか（前半の通り道は、足が届くかで見る）
           const tb = 0.15 + d / passAvgV(p, d), tq = hyp(px - q.x, py - q.y) / maxSpeed(q) + 0.15; let to = 99;
-          for (const o of foes) { const lag = Math.max(0, (o.lagT || 0) - S.t); to = Math.min(to, hyp(px - o.x, py - o.y) / maxSpeed(o) + (o.gk ? 0.05 : 0.2) + lag); }
+          for (const o of foes) to = Math.min(to, bDefT(o, t, px, py));
           danger += clamp(0.5 - (to - Math.max(tb, tq)), 0, 2);
         }
         for (const o of foes) {
@@ -2190,9 +2230,11 @@
         if (d > 30 && !(ph === 'gas' && through) && pxf < L - 25) v -= p.slot && p.slot.line === 0 ? 1.4 : 0.7;   // 長いボールは控える（中盤でつなぐ）
         if (Math.abs(p.y - GOAL_Y) > 16 && Math.abs(py - GOAL_Y) < 10 && danger < 0.6 && recvOpp > 3.5) v += 0.25;
         if (through) v += 0.7;   // 合図で走り出した味方へ
+        if (q.bShow && q.bShow.until > S.t && !through && danger < 0.8) v += globalThis.__Kshv ?? 0.6;
+        if (!through && pxf > oppMidX + 2 && pxf < offL - 2 && adv > 3 && danger < 0.7 && recvOpp > 2.5) v += globalThis.__Kbtw ?? 0.5;   // 相手のMFとDFのライン間へ入れる（イン）   // 裏へ走った味方が空けた足もとへ下りてきた味方へ（ユニット①）
         if (held > 2.0) v += 0.4;   // 持ちすぎない
         if (S.t - (p.protT ?? -9) < 1.6 && P[p.protFrom] && danger < 0.8) { const pf = P[p.protFrom]; if ((q.x - p.x) * (pf.x - p.x) + (q.y - p.y) * (pf.y - p.y) < 0) v += 0.6; }   // プロテクトの後は逆側へ
-        if (held > 0.8 && hyp(p.vx, p.vy) > 1.5 && near.d < 5 && recvOpp > 5 && danger < 0.6) v += 0.7;   // 引きつけたら離す
+        if (held > 0.5 && hyp(p.vx, p.vy) > 1.5 && near.d < 5.5 && recvOpp > 4.5 && danger < 0.7) v += 0.9;   // 引きつけたら離す（ドライブで相手を引きつけて、空いた味方へ＝2対1）
         if (hist.some((h) => h.a === q.idx && h.b === p.idx) && adv < 2) v -= 0.6;   // すぐ戻すだけの往復はしない
         if (danger < 0.4) bestSafe = Math.max(bestSafe, v);
         opts.push({ kind: 'pass', q, through, v, danger, d, space: thrSpot });
@@ -2210,7 +2252,7 @@
           let bq = null, tq = 99; for (const q of mates(p)) { if (q === p || q.off || q.gk) continue; const t0 = hyp(sx - q.x, sy - q.y) / maxSpeed(q) + 0.2; if (t0 < tq) { tq = t0; bq = q; } }
           if (!bq) continue;
           if (globalThis.__crDbg) globalThis.__crDbg.c++;
-          let to = 99; for (const o of foes) to = Math.min(to, hyp(sx - o.x, sy - o.y) / maxSpeed(o) + (o.gk ? 0.05 : 0.15));
+          let to = 99; for (const o of foes) to = Math.min(to, bDefT(o, t, sx, sy) - 0.05);
           const margin = to - Math.max(tb, tq);
           if (globalThis.__crDbg) globalThis.__crDbg.m.push([k, +margin.toFixed(2), +(tq - tb).toFixed(2)]);
           if (margin < (chip ? -0.7 : -0.2) || tq > tb + 0.8) continue;   // 浮き球のクロスは、競り合いになっても良い（先に触れなくても、ほぼ同時なら）
@@ -2231,6 +2273,8 @@
         const sk = ((p.dribble || 50) + (p.technique || 50)) / 2 - (oneDef.defense || 50);
         opts.push({ kind: 'dribble', mode: 'break', dir: [fwd[0], dy0 + (p.y > oneDef.y ? 0.4 : -0.4)], beat: true, v: 0.2 + sk / 50 + (xf > L - 38 ? (globalThis.__Bbeat ?? 1.2) : 0) + (dribT ? 0.4 : 0) });
       }
+      { const gk = foes.find((o) => o.gk); if (gk && xf > L - 22 && hyp(gk.x - p.x, gk.y - p.y) < 7 && !foes.some((o) => !o.gk && hyp(o.x - p.x, o.y - p.y) < 4)) {   // シュートの意図：GKをかわして打つ（GKが出てきた1対1）
+          const sd = Math.sign(p.y - gk.y) || (Math.sign(GOAL_Y - p.y) || 1); opts.push({ kind: 'dribble', mode: 'break', dir: [sgn(t) * 0.5, sd * 0.85], beat: true, v: 1.2 + ((p.dribble || 50) - 50) / 50 }); } }
       if (xf > L - 42 && xf < L - 16 && Math.abs(p.y - GOAL_Y) > 9 && pr <= 1) {   // サイドから中へ運ぶ（シュートの角度を作る）
         const gx0 = fx(t, L - 17), gy0 = GOAL_Y + Math.sign(p.y - GOAL_Y) * 4, ddx = gx0 - p.x, ddy = gy0 - p.y, dl0 = hyp(ddx, ddy) || 1;
         let sp2 = 9; for (const o of foes) { if (o.gk) continue; const rx = o.x - p.x, ry = o.y - p.y, d2 = hyp(rx, ry); if (d2 < 9 && (rx * ddx + ry * ddy) / (d2 * dl0 || 1) > 0.5) sp2 = Math.min(sp2, d2); }
@@ -2265,7 +2309,7 @@
       if (S.dribbleMode !== pick.mode) { p.pace = null; p.carrySide = 0; act(p, 'dmode', 0.3, { m: pick.mode }); }
       S.dribbleMode = pick.mode;
       if (pick.protect != null) { p.protect = Math.max(p.protect || 0, S.t + 0.7); p.protT = S.t; p.protFrom = pick.protect; }
-      S.decision = pick.protect != null ? R.range(0.4, 0.6) : pick.beat ? R.range(0.5, 0.9) : space >= 7 ? R.range(0.6, 1.0) : R.range(0.35, 0.6);
+      S.decision = pick.protect != null ? R.range(0.4, 0.6) : pick.beat ? R.range(0.5, 0.8) : space >= 9 ? R.range(0.45, 0.7) : R.range(0.25, 0.45);   // 運んでいる間はこまめに見直す（相手が寄ってきたら離す）
       if (pick.beat && oneDef && hyp(oneDef.x - p.x, oneDef.y - p.y) < 3 && R.next() < 0.6) skillMove(p, oneDef);
     }
     function mdPost() {   /* 版448 翠の起点：食いついた相手は前から寄せ、相手のDFライン・中盤は前のめりに押し上げる */
