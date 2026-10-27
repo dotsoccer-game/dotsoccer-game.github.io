@@ -3169,6 +3169,13 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
     }
     function isOTReturn(p, q) { return S.oneTwo && S.oneTwo.b === p.idx && S.oneTwo.a === q.idx && q.otRun && S.t < q.otRun.until; }
     function startPass(p, q, through, chip, skill) {
+      if (S.nm && p.layoff && p.layoff.until > S.t && q && q.team === p.team && fx(p.team, q.x) < fx(p.team, p.x)) {   // 版894：落としたら、すぐ裏へ（背負っていた相手の背中を回って）
+        const offL0 = offsideLine(p.team), sd = Math.sign(GOAL_Y - p.y) || 1, mk = P[p.layoff.mk];
+        p.run = R.range(2.4, 3.0); p.runCd = 0; p.brT = S.t; p.brTimed = true; p.otRun = { x: fx(p.team, Math.min(offL0 + 8, L - 9)), y: clamp(p.y + sd * 3, 6, W - 6), until: S.t + 3.2 }; p.spinT = S.t + 3.2;
+        q.spinFor = { i: p.idx, until: S.t + 3.2 }; p.layoff = null;
+        if (mk) mk.lagT = Math.max(mk.lagT || 0, S.t + 0.25);   // 落とした瞬間に背中を回られると、背負っていたDFは一瞬遅れる
+        if (globalThis.__tacLog) globalThis.__tacLog.push(['layoff', +S.t.toFixed(1), p.team, p.idx]);
+      }
       if (globalThis.__spSrc) { const ln = (new Error().stack.split('\n')[2] || '').match(/engine\.js:(\d+)/); globalThis.__spSrc.cur = ln ? +ln[1] : 0; }
       if (globalThis.__tyDbg && (p.type === 'パサー' || p.type === 'ゲームメイカー')) { const G = globalThis.__tyDbg, k = p.type === 'パサー' ? 'PA' : 'GM'; G[k + 'pass'] = (G[k + 'pass'] || 0) + 1; if (through) G[k + 'thr'] = (G[k + 'thr'] || 0) + 1; if (fx(p.team, q.x) > fx(p.team, p.x) + 5) G[k + 'fwd'] = (G[k + 'fwd'] || 0) + 1; }
       if (globalThis.__tyDbg) { const G = globalThis.__tyDbg; if ((q.stDg || 0) > S.t) G.dgP++; if ((q.f9Run || 0) > S.t && p.type === '偽9番') G.f9P++; }
@@ -3735,6 +3742,15 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           return tD > tR + 0.15; })();
         if (rn && running && laneOK && spotSafe && !rn.off && fx(p.team, rn.x) < offL2 + 0.2 && hyp(spot[0] - p.x, spot[1] - p.y) < 24 && R.next() < 0.45 + (p.pass + p.vision) / 300 + DOM[p.team] * 0.3) { if (skZ(p, 'throughPass') || skZ(p, 'wallPass')) S.oneTouchBoost = true; if (skZ(p, 'wallPass') && !((p.skLock || 0) > S.t)) act(p, 'skill', 1.2, { k: 'wallPass' }); startPass(p, rn, false); S.oneTouchBoost = false; return; }
       }
+      // 版894：背負って受けたFW（くさび）：明らかなシュートでなければ、前を向いた後ろの味方へ落とす（落としたら裏へ）
+      if (S.nm && p.layoff && p.layoff.until > S.t && !S.setPiece && !canShootHere && (globalThis.__Klf ?? 1)) {
+        let bq = null, bv = -1e9;
+        for (const q of mates(p)) { if (q.off || q.gk) continue; const d = hyp(q.x - p.x, q.y - p.y), back = fx(p.team, p.x) - fx(p.team, q.x);
+          if (d < 4 || d > 18 || back < 1) continue; const lm = laneMargin(p.team, p.x, p.y, q.x, q.y, -1), op = nearestOpp(q, q.x, q.y).d; if (lm < 0.5 || op < 2.8) continue;
+          const v = lm * 0.6 + Math.min(op, 8) * 0.5 - Math.abs(d - 9) * 0.15 + (q.position === 'MF' ? 1 : 0); if (v > bv) { bv = v; bq = q; } }
+        if (bq) { if (globalThis.__tacLog) globalThis.__tacLog.push(['lfForce', +S.t.toFixed(1), p.team, p.idx]); startPass(p, bq, false, false, null); return; }
+        if (S.t - (p.recvT || -9) < 0.9) { p.protect = Math.max(p.protect || 0, S.t + 0.5); S.dribbleMode = 'carry'; S.dribbleDir = [-sgn(p.team) * 0.6, 0]; S.decision = 0.2; return; }   // 落とし先が出るまで、背中で隠して少し待つ
+      }
       const xf = fx(p.team, p.x);
       // GKや自陣ゴール前の守備者が足元で持ち、目の前に相手がいる → 迷わず大きくクリア（セオリー）
       {
@@ -3872,6 +3888,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         const mvSkip = S.nm && (q.mvOpen || 0) > S.t && q.mv ? q.mv.df : -1;   // 版884：外して受ける味方：背中側に外したDFはパスに届かない
         for (const o of opps(p)) {
           if (o.idx === mvSkip) continue;
+          if (S.nm && !through && (globalThis.__Kbm ?? 1) && hyp(o.x - q.x, o.y - q.y) < 2.4 && fx(p.team, o.x) > fx(p.team, q.x) + 0.3) continue;   // 版894：受け手の背中（ゴール側）にいる相手は、足もとへのパスには届かない（受けた後に寄せてくるだけ）
           const sd = segDist(o.x, o.y, p.x, p.y, px, py);
           // 相手がパスコースに届くか（ボールの速さ・相手の足を考慮。うまい選手ほど正確に読む）
           const pv = passAvgV(p, d), tAt = (d * sd.u) / pv;
@@ -3902,6 +3919,10 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         if (pxf > L - 18 && Math.abs(py - GOAL_Y) < 20) v += 0.5;
         if (S.nm && (q.mvOpen || 0) > S.t && !through && danger < 1.3) v += globalThis.__Kmv ?? 2.2;
         if (S.nm && (q.holeT || 0) > S.t && danger < 1.4 && !qOff) v += globalThis.__Khole ?? 2.0;
+        if (S.nm && p.layoff && p.layoff.until > S.t && !through && fx(p.team, q.x) < xf - 1 && d < 16 && danger < 1.0) v += globalThis.__Klay ?? 2.6;   // 版894：落とし（前を向ける後ろの味方へ）
+        if (S.nm && p.spinFor && p.spinFor.until > S.t && p.spinFor.i === q.idx && (through || (q.run || 0) > 0) && !qOff && danger < 1.6) v += globalThis.__Kspin ?? 2.6;   // 版894：落としたFWが裏へ抜けた：そこへスルーパス
+        if (S.nm && p.slot && p.slot.line >= 1 && !p.slot.last && xf > 30 && xf < L - 30 && q.slot && (q.slot.last || q.position === 'FW') && pxf - xf > 7 && pxf - xf < 32 && !through && danger < 0.9 && !qOff) v += globalThis.__Kwedge ?? 0.9;   // 版894：中盤からFWの足もとへのくさび
+        if (S.nm && p.slot && p.slot.line === 0 && q.slot && (q.slot.last || q.position === 'FW') && d > (globalThis.__Klongd ?? 16) && xf < 45 && !(S.counter > 0)) v -= globalThis.__Klong ?? 2.5;   // 版894：DFからFWへのロングボールは控える（中盤を使う）
         if (S.nm && ((q.diagT || 0) > S.t || (q.pocketT || 0) > S.t) && danger < 1.4 && !qOff) v += globalThis.__Kfin ?? 1.8;
         if (S.nm && xf < L - 35 && pxf >= L - 35 && danger < 0.9 && !qOff) v += globalThis.__Kf3 ?? 0.8;   // 版888：中盤から相手陣（ゴールまで35m）へ入れるパス   // 版888：斜めの走り・ポケットへの走り込みへ
         if (S.nm && xf > L - 18 && Math.abs(p.y - GOAL_Y) > 7 && pxf < xf - 1 && pxf > L - 17 && Math.abs(py - GOAL_Y) < 10 && danger < 1.0 && !qOff) v += globalThis.__Kcut ?? 1.2;   // 版888：深い所からのマイナスの折り返し
@@ -5050,6 +5071,12 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       S.charge = null;
       S.forceShot = null;
       const bp0 = p.gk && bpFoot(p, b), prevTeam = b.lastTeam, prevKind = b.kind, prevPlayer = b.lastPlayer, inAir0 = (b.z || 0) > 0.3, bSpd0 = hyp(b.vx || 0, b.vy || 0);
+      // 版894：くさび→落とし：FW（最前線）が背中に相手を背負って縦パスを受けたら、持たずに、前を向いている後ろの味方へ落とす（その間に自分は裏へ）
+      p.layoff = null;
+      if (S.nm && !S.setPiece && prevKind === 'pass' && prevTeam === p.team && P[prevPlayer] && prevPlayer !== p.idx && !p.gk && p.slot && (p.slot.last || p.position === 'FW') && (globalThis.__Klay ?? 2.6)) {
+        const mk = opps(p).find((o) => !o.off && !o.gk && hyp(o.x - p.x, o.y - p.y) < 3.2 && fx(p.team, o.x) > fx(p.team, p.x) - 0.5);
+        if (mk && fx(p.team, p.x) < L - 16) { p.layoff = { until: S.t + 1.6, from: prevPlayer, mk: mk.idx }; S.decision = Math.min(S.decision, 0.1 + Math.max(0, 70 - p.vision) * 0.003); if (globalThis.__tacLog) globalThis.__tacLog.push(['wedge', +S.t.toFixed(1), p.team, p.idx]); }
+      }
       // 版843：攻撃のスイッチ：何本かつないだ後、相手の中盤の間・前へ縦パスが入った瞬間に、チーム全体がテンポを上げる（6秒）
       if (prevKind === 'pass' && prevTeam === p.team && P[prevPlayer] && prevPlayer !== p.idx && !S.setPiece && (S.passStreak[p.team] || 0) >= 2 && fx(p.team, p.x) > L / 2 - 12 && fx(p.team, p.x) - fx(p.team, P[prevPlayer].x) > 7) { T[p.team].accelT = S.t + 6; T[p.team].ovlNext = 0; if (globalThis.__scnLog) globalThis.__scnLog.push(['acc', +S.t.toFixed(1), p.team]); if (globalThis.__ovDbg) globalThis.__ovDbg.acc++; }
       // 版843：奪い返し：失ってから3秒以内に、相手陣で奪い返した
