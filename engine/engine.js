@@ -1536,6 +1536,21 @@
         for (const p of near.slice(mx0)) { const tg = targets[p.idx]; let dx = tg[0] - bx, dy = tg[1] - by, dl = hyp(dx, dy); if (dl < 1) { dx = 0; dy = (Math.sign(p.slot.y - GOAL_Y) || 1); dl = 1; }
           targets[p.idx] = [clamp(bx + dx / dl * 16, 3, L - 3), clamp(by + dy / dl * 16, 2.5, W - 2.5)]; }
       }
+      // 版900：サイドの選手が相手陣（ゴールまで約40m）で持った時の第1エリア：内側の斜め前（ポケット）と内側の横に動点、後ろ内側にSB、ゴール前にCF、逆サイドの幅は遠いポストへ。持った選手を孤立させない
+      if ((globalThis.__Kwb ?? 1) && anchPos && bxf > 62 && Math.abs(by - GOAL_Y) > 13 && !anc.gk) {
+        const sdB = Math.sign(by - GOAL_Y), setT = (q, x, y, u) => { if (!q || q === anc || nmEngaged(q, anc) || !targets[q.idx]) return; targets[q.idx] = [fx(t, clamp(x, 4, L - 6)), clamp(y, 3, W - 3)]; q.posFix = S.t; if (u || hyp(targets[q.idx][0] - q.x, targets[q.idx][1] - q.y) > 4) urgent[q.idx] = true; };
+        const byK = (k, sd) => pl.find((q) => { const a1 = anch.get(q.idx); return a1 && a1.k === k && (sd == null || a1.sd === sd); });
+        const sS = byK('S', sdB), wS = byK('W', sdB), wF = byK('W', -sdB), cf = byK('C'), pv = byK('P');
+        setT(sS, Math.min(bxf - 7, offL - 4), GOAL_Y + sdB * 21);
+        if (wS) setT(wS, Math.min(bxf + 6, offL - 1), GOAL_Y + sdB * 28);
+        if (cf) setT(cf, Math.min(offL - 1.5, L - 10), GOAL_Y + sdB * 3);
+        if (wF) setT(wF, bxf > 76 ? Math.min(offL - 1, L - 9) : Math.min(fwX - 4, offL - 2), bxf > 76 ? GOAL_Y - sdB * 6 : GOAL_Y - sdB * 26);
+        if (pv) setT(pv, bxf - 14, GOAL_Y + sdB * 6);
+        const ms = pl.filter((q) => q !== anc && !nmEngaged(q, anc) && (q.nmAnch === 'M') && targets[q.idx]).sort((a1, c1) => hyp(a1.x - bx, a1.y - by) - hyp(c1.x - bx, c1.y - by));
+        if (ms[0]) setT(ms[0], Math.min(bxf + 5, offL - 1), by - sdB * 10, true);   // サポート3：内側の斜め前（ライン間・ポケット）
+        if (ms[1]) setT(ms[1], bxf - 3, by - sdB * 15, true);                     // サポート1：内側の横（すぐ出せる）
+        if (ms[2]) setT(ms[2], Math.min(offL - 1, L - 13), GOAL_Y - sdB * 2);      // 3人目はゴール前へ
+      }
       // 版899：ポジショニングの原則（深さ・幅・レーン・基点）：①左右のサイドレーンに必ず1人ずつ（幅）②相手の最終ライン近くの中央（CFの位置）に必ず1人（前方の深さ）③同じレーンで縦に重ならない（重なったら隣のレーンへずらす）
       if (globalThis.__Kpos ?? 1) {
         const LN = [13.85, 24.85, 43.15, 54.15], lane = (y) => (y < LN[0] ? 0 : y < LN[1] ? 1 : y < LN[2] ? 2 : y < LN[3] ? 3 : 4);
