@@ -1269,6 +1269,14 @@
       if (at < 0) return;   // こぼれ球・シュート中は、今までの動き（取りに行く・戻る）
       const anc = own || P[b.intended];
       for (const t of [0, 1]) (t === at ? nmAttack : nmDefend)(t, anc);
+      // 版895：団子にしない（守備）：ボールの10m以内に寄せる守備者は「寄せる1人＋近くの相手につく人」まで（最大3人）。ほかはゴール側に下がって、ラインを保つ
+      if ((globalThis.__Kdcl ?? 1) && own) {
+        const dt = 1 - at, bx = b.x, by = b.y, in10 = (x, y) => hyp(x - bx, y - by) < 10;
+        const atkNear = T[at].players.filter((q) => !q.off && !q.gk && q !== own && in10(q.x, q.y)).length, cap = Math.min(globalThis.__Kdcm ?? 3, 1 + atkNear);
+        const ds = T[dt].players.filter((q) => !q.off && !q.gk && targets[q.idx] && in10(targets[q.idx][0], targets[q.idx][1]) && !chasing[q.idx]).sort((a0, c0) => hyp(a0.x - bx, a0.y - by) - hyp(c0.x - bx, c0.y - by));
+        for (const q of ds.slice(cap)) { const tg = targets[q.idx], gx = fx(dt, 0), dx = gx - bx, dy = GOAL_Y - by, dl = hyp(dx, dy) || 1; const ox = tg[0] - bx, oy = tg[1] - by, ol = hyp(ox, oy) || 1;
+          const ux = (ox / ol) * 0.4 + (dx / dl) * 0.6, uy = (oy / ol) * 0.4 + (dy / dl) * 0.6, ul = hyp(ux, uy) || 1; targets[q.idx] = [clamp(bx + ux / ul * 12, 1, L - 1), clamp(by + uy / ul * 12, 1, W - 1)]; }
+      }
     }
     function nmEngaged(p, anc) {
       const b = S.ball;
@@ -1478,6 +1486,17 @@
         if (p.nmPin === S.t && fx(t, pt[0]) - fx(t, p.x) > 7) urgent[p.idx] = true;
         if (p.sbUp === S.t && fx(t, pt[0]) - fx(t, p.x) > 3) urgent[p.idx] = true;   // 版895：駆け上がるSBは全力で   // 版888：前線に遅れている時は急いで上がる
         if (!urgent[p.idx] && (globalThis.__Kgo ?? 1) && hyp(p.x - bx, p.y - by) < 32 && hyp(pt[0] - p.x, pt[1] - p.y) > 1.2 && laneMargin(t, bx, by, p.x, p.y, -1) < 0 && laneMargin(t, bx, by, pt[0], pt[1], -1) > 0.2) { urgent[p.idx] = true; p.nmGo = S.t; }   // 版886：今いる所が相手の陰なら、空いている所へ素早く動いて顔を出す   // 版885：サポート役はすぐ顔を出す（ゆっくり動くと、着く前にボールが動いてしまう）
+      }
+      // 版895：団子にしない：逆サイドのウイング・SBは横幅いっぱいに残る。ボールの近く（15m以内）に寄る味方は3人まで（ほかは少し離れて、次のパスの受け手になる）
+      if (globalThis.__Kwid ?? 1) {
+        const sdB = Math.sign(by - GOAL_Y);
+        for (const p of pl) { if (p === anc || nmEngaged(p, anc) || !targets[p.idx] || p.run > 0 || role[p.idx]) continue; const s0 = p.slot, sd = Math.sign(s0.y - GOAL_Y) || 1;
+          if (Math.abs(s0.y - GOAL_Y) <= 14 || sd === sdB || Math.abs(by - GOAL_Y) < 5) continue;
+          const tg = targets[p.idx]; if ((tg[1] - GOAL_Y) * sd < (globalThis.__Kwy ?? 22)) targets[p.idx] = [tg[0], GOAL_Y + sd * (globalThis.__Kwy ?? 22)]; }
+        const mx0 = globalThis.__Kcl ?? 3, near = pl.filter((p) => p !== anc && !nmEngaged(p, anc) && targets[p.idx] && !(p.run > 0) && hyp(targets[p.idx][0] - bx, targets[p.idx][1] - by) < 15)
+          .sort((a0, c0) => (role[a0.idx] ? 0 : 1) - (role[c0.idx] ? 0 : 1) || hyp(a0.x - bx, a0.y - by) - hyp(c0.x - bx, c0.y - by));
+        for (const p of near.slice(mx0)) { const tg = targets[p.idx]; let dx = tg[0] - bx, dy = tg[1] - by, dl = hyp(dx, dy); if (dl < 1) { dx = 0; dy = (Math.sign(p.slot.y - GOAL_Y) || 1); dl = 1; }
+          targets[p.idx] = [clamp(bx + dx / dl * 16, 3, L - 3), clamp(by + dy / dl * 16, 2.5, W - 2.5)]; }
       }
     }
     // 版885：守備の共通の立ち位置選び：持ち場(x0,y0)のまわり（半径R）で、出し手から近い相手の受け手へのパスコースを消せる所。ゴール側・ラインから離れすぎない
@@ -3217,6 +3236,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       if ((q.aoFin || 0) > S.t && q.uniq === 'aonoouza' && !through && !chip) { [tx, ty] = q.aoCutSpot || [q.x + q.vx * 0.3, q.y + q.vy * 0.3]; q.aoCutSpot = null; q.otRun = null; q.run = 0; q.uChase = { until: S.t + 1.5, mode: 'ball' }; aoVEnd = 6; aoStyle = false; }   // 蒼の王座の折り返し：走り込んできたくもいの足元へ、強めのグラウンダーで
       const otRet = isOTReturn(p, q);
       if (otRet) { [tx, ty] = otSpot(p, q); q.run = Math.max(q.run, 1.5); }
+      if (S.nm && !S.setPiece && Math.abs(q.y - p.y) > 22 && fx(p.team, q.x) - fx(p.team, p.x) < 10) T[p.team]._lastSw = { t: S.t, s: Math.sign(q.y - p.y) };   // 版895：サイドチェンジの記録（すぐ戻さないため）
       if (skill === 'throughPass' || skill === 'loftedThrough') {
         // スルーパス：相手の最終ラインの裏のスペースへ。受け手が走り込む先に落とす
         const offLp = offsideLine(p.team), behind = Math.min(offLp + R.range(5, 9), L - 7);
@@ -3864,7 +3884,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         if (d > 26 && pxf > xf + 16) cand('longFeed', 2.3);
         if (pxf > L - 18 && Math.abs(py - GOAL_Y) < 12 && pxf > xf + 8) cand('earlyCross', 1.6, { cross: true });
         if (pxf > L - 18 && Math.abs(py - GOAL_Y) < 12 && Math.abs(p.y - GOAL_Y) > 12) cand('pinpointCross', 1.5, { cross: true });
-        if (Math.abs(q.y - p.y) > 26 && d > 24) cand('switchPlay', 1.4);
+        if (Math.abs(q.y - p.y) > 26 && d > 24 && !(S.nm && (globalThis.__Ksw ?? 1) && (opps(p).filter((o) => !o.off && !o.gk && hyp(o.x - q.x, o.y - q.y) < 12).length > 1 || (T[p.team]._lastSw && S.t - T[p.team]._lastSw.t < 10)))) cand('switchPlay', 1.4);   // 版895：新しい動きでは、逆サイドが空いている時だけ（続けて使わない）
         if (S.oneTouch && p.otPass) cand('oneTouchPass', 1.2 + (zAtk ? 0.6 : 0));
         return best;
       };
@@ -4019,6 +4039,14 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         // 同じ相手と2往復したら、もうその人には返さず逆サイドへ散らす
         if (pair >= 3) v -= 3;
         else if (recentPair >= 3 && Math.abs(q.y - p.y) > 18) v += 1.2;
+        // 版896：寄せられていない時の縦パス（12m以上前の味方へ・通る道がある）は、つなぐチームでも狙う（いつまでも横で回さない）
+        if (S.nm && (globalThis.__Kvt ?? 1) && !p.gk && xf < L - 30 && pxf - xf > 12 && danger < 0.5 && !qOff && !q.gk && nearestOpp(p, p.x, p.y).d > 4.5) v += (globalThis.__Kvt ?? 2) * (0.5 + PAT * 0.8);
+        // 版895：サイドチェンジは「逆サイドの方が空いている」時だけ。変えた直後に、すぐ元のサイドへ戻すのは（他にない時以外）しない
+        if (S.nm && (globalThis.__Ksw ?? 1) && Math.abs(py - p.y) > 22 && pxf - xf < 10 && !p.gk) {
+          const cnt = (x0, y0) => opps(p).filter((o) => !o.off && !o.gk && hyp(o.x - x0, o.y - y0) < 15).length, cP = cnt(p.x, p.y), cQ = cnt(px, py);
+          if (!(cQ <= cP - 2 || (cQ <= 1 && recvOpp > 7))) v -= globalThis.__Kswv ?? 1.6;
+          const ls = T[p.team]._lastSw; if (ls && S.t - ls.t < 10 && Math.sign(py - p.y) !== ls.s) v -= globalThis.__Kswb ?? 2.5;
+        }
         let w = Math.exp(v * 1.5);
         if (qOff) w *= through ? 0.3 : 0.04;
         // うまい選手は「通らない」と読めるパスはそもそも出さない
