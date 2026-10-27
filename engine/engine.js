@@ -4389,9 +4389,9 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       if (S.nm && !p.gk && !S.setPiece && (globalThis.__Kcf ?? 1) && xf < L - 18 && !(p.layoff && p.layoff.until > S.t)) {
         const nf = nearestOpp(p, p.x, p.y).d; let fx0 = sgn(p.team), fy0 = clamp((GOAL_Y - p.y) * 0.012, -0.25, 0.25); const fl = hyp(fx0, fy0); fx0 /= fl; fy0 /= fl;
         const clearAhead = !opps(p).some((o) => { if (o.off || o.gk) return false; const rx = o.x - p.x, ry = o.y - p.y, al = rx * fx0 + ry * fy0, lat = Math.abs(-rx * fy0 + ry * fx0); return al > -1 && al < 10 && lat < 4; });
-        if (nf > (globalThis.__Kcfd ?? 5) && clearAhead) { const mxw = Math.max(...opts.map((o) => o.ww || 0)), k0 = globalThis.__Kcf ?? 1.5;
+        if (nf > (globalThis.__Kcfd ?? 6.5) && clearAhead && S.t - (p.recvT ?? S.t) < (globalThis.__Kcft ?? 2.0)) { const mxw = Math.max(...opts.map((o) => o.ww || 0)), k0 = globalThis.__Kcf ?? 0.7;
           opts.push({ kind: 'dribble', mode: nf > 8 ? 'break' : 'carry', w: mxw * k0, ww: mxw * k0, dir: [fx0, fy0], freeCarry: true });
-          for (const o of opts) if (o.kind === 'pass' && o.q && !o.space && fx(p.team, o.q.x) < xf + 5) o.ww *= globalThis.__Kcfp ?? 0.5;
+          for (const o of opts) if (o.kind === 'pass' && o.q && !o.space && fx(p.team, o.q.x) < xf + 5) o.ww *= globalThis.__Kcfp ?? 1;
           if (globalThis.__tacLog) globalThis.__tacLog.push(['fcarry', +S.t.toFixed(1), p.team, p.idx]); }
       }
       // 版878：遊びのパス：上がってくる味方（オーバーラップ）が、まだ自分を追い越していない時は、すぐ出さない（相手もついてくる・前にスペースがない）
@@ -4422,7 +4422,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         const gX = fx(p.team, L), ux0 = (gX - p.x) / (dGoal || 1), uy0 = (GOAL_Y - p.y) / (dGoal || 1);
         const laneClear = (x0, y0, dg, skip) => { const ux = (gX - x0) / (dg || 1), uy = (GOAL_Y - y0) / (dg || 1); return !opps(p).some((o) => { if (o.off || o.gk || o.idx === skip) return false; const rx = o.x - x0, ry = o.y - y0, al = rx * ux + ry * uy, lat = Math.abs(-rx * uy + ry * ux); return al > -0.5 && al < Math.min(dg, 22) && lat < 2.2 + Math.max(0, al) * 0.35; }); };
         const nf = nearestOpp(p, p.x, p.y).d, gk0 = opps(p).find((o) => o.gk && !o.off), gkD = gk0 ? hyp(gk0.x - p.x, gk0.y - p.y) : 99;
-        const free = nf > 2.6 && laneClear(p.x, p.y, dGoal, -1);
+        const free = nf > (globalThis.__Kfrn ?? 3.5) && dGoal < (globalThis.__Kfrd ?? 32) && S.t - (p.recvT ?? S.t) < (globalThis.__Kfrt ?? 3.5) && laneClear(p.x, p.y, dGoal, -1);   // 版898：ゴールまで32m以内で、まわり3.5mに相手がいない時だけ（持ちすぎない）
         if (free && !(globalThis.__Kfree ?? 1) && globalThis.__tacLog) globalThis.__tacLog.push(['free', +S.t.toFixed(1), p.team, p.idx, +dGoal.toFixed(0)]);
         if (free && (globalThis.__Kfree ?? 1)) {
           p.freeRunT = S.t; let mxw = Math.max(...opts.map((o) => o.ww || 0));
@@ -4432,15 +4432,28 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             const gkBlock = gk0 && segDist(gk0.x, gk0.y, p.x, p.y, gX, GOAL_Y).d < 1.6;
             const two = gk0 && dGoal < 18 && gkD < 7.5 && gkBlock && qFree && dq < 13 && segDist(gk0.x, gk0.y, q.x, q.y, gX, GOAL_Y).d > 2 && fx(p.team, q.x) > xf - 4 && (o.danger ?? 1) < 0.8;   // GKが出てきて自分のコースをふさいだ：横の味方へ（無人のゴールに流し込む）
             if (two) { o.ww = Math.max(o.ww, mxw) * 3; o.twoOne = true; }
-            else if (!better) o.ww *= globalThis.__Kfp ?? 0.08;
+            else if (!better) o.ww *= globalThis.__Kfp ?? 0.35;
           }
           mxw = Math.max(...opts.map((o) => o.ww || 0));
-          if (dGoal > (globalThis.__Kfsh ?? 20) && !(gkD < 7.5)) { const gy = GOAL_Y + clamp(p.y - GOAL_Y, -3, 3) * 0.5, dx = gX - p.x, dy = gy - p.y, dl = hyp(dx, dy) || 1; opts.push({ kind: 'dribble', mode: 'break', w: mxw * 2, ww: mxw * 2, dir: [dx / dl, dy / dl], freeRun: true }); }   // ゴールへ向かって運ぶ
+          if (dGoal > (globalThis.__Kfsh ?? 20) && !(gkD < 7.5)) { const gy = GOAL_Y + clamp(p.y - GOAL_Y, -3, 3) * 0.5, dx = gX - p.x, dy = gy - p.y, dl = hyp(dx, dy) || 1; opts.push({ kind: 'dribble', mode: 'break', w: mxw * 1.3, ww: mxw * 1.3, dir: [dx / dl, dy / dl], freeRun: true }); }   // ゴールへ向かって運ぶ
           else { const so = opts.find((o) => o.kind === 'shot'); if (so && !opts.some((o) => o.twoOne)) so.ww = Math.max(so.ww, mxw * 2.5); }   // 打てる所まで来た：打つ
           if (globalThis.__tacLog) globalThis.__tacLog.push(['free', +S.t.toFixed(1), p.team, p.idx, +dGoal.toFixed(0)]);
         }
         // 版895：寄せられていない時に、相手のすぐ前の味方へスルーパスを出さない（運んで相手を引きつけてから）
         else if (!free && (globalThis.__Kfree ?? 1) && nf > 5 && xf < L - 16) for (const o of opts) if (o.kind === 'pass' && o.q && o.through) { const q = o.q, gq = opps(p).some((r) => !r.off && !r.gk && hyp(r.x - q.x, r.y - q.y) < 4 && fx(p.team, r.x) > fx(p.team, q.x) - 0.5); if (gq) o.ww *= globalThis.__Kfth ?? 0.3; }
+      }
+      // 版898：つなぐのが基本：通るパス（危険度が低い）がある時は、ドリブルの重みをそのパスより小さく抑える。前が大きく空いている時（持ってすぐ）や、ドリブルが持ち味の選手・ゴール前の1対1は少し多めに
+      if (S.nm && !p.gk && !S.setPiece && (globalThis.__Kpb ?? 1) && !(p.uniq && p.uOn > S.t)) {
+        const safe = opts.filter((o) => o.kind === 'pass' && o.q && !o.q.gk && (o.danger ?? 1) < (globalThis.__Kpbd ?? 0.45) && !o.qOff);
+        if (safe.length) { const bp = Math.max(...safe.map((o) => o.ww)), held = S.t - (p.recvT ?? S.t);
+          let k0 = globalThis.__Kpbk ?? 0.6; if (space >= 8 && held < 2) k0 *= 3; if (p.type === 'ファンタジスタ' || p.type === 'アタッカー' || zr(p, 'break') === 2) k0 *= 1.8; if (xf > L - 30) k0 *= globalThis.__Kpbf ?? 3;
+          for (const o of opts) if (o.kind === 'dribble' && !o.wait && !o.freeRun) o.ww = Math.min(o.ww, bp * k0); }
+      }
+      // 版898：持ちすぎない：受けてから2.5秒以上持っている、または相手2人以上に寄せられている時は、通るパスがあればドリブルを控えてつなぐ
+      if (S.nm && !p.gk && !S.setPiece && (globalThis.__Khold ?? 1)) {
+        const held = S.t - (p.recvT ?? S.t), crowd = opps(p).filter((o) => !o.off && !o.gk && hyp(o.x - p.x, o.y - p.y) < 4).length;
+        const okPass = opts.some((o) => o.kind === 'pass' && o.q && !o.q.gk && (o.danger ?? 1) < 0.6);
+        if (okPass && (held > (globalThis.__Kholdt ?? 2.5) || crowd >= 2)) for (const o of opts) if (o.kind === 'dribble' && !o.wait) o.ww *= crowd >= 2 ? (globalThis.__Kholdc ?? 0.3) : (globalThis.__Kholdk ?? 0.35);
       }
       for (const o of opts) sum += o.ww;
       let r = R.next() * sum, pick = opts[opts.length - 1];
@@ -4449,6 +4462,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       { const bl = opts.find((o) => o.byLong || o.uzLong || o.aoLong); if (bl && pick !== bl && pick.kind !== 'shot') pick = bl; }
       { const ms = opts.find((o) => o.mustShoot); if (ms) pick = ms; }
       if (globalThis.__pickLog) globalThis.__pickLog.push([fx(p.team, p.x), pick.kind + (pick.mode ? ':' + pick.mode : ''), opts.filter((o) => o.kind === 'pass' && (o.danger ?? 1) < 0.5 && o.d < 16).length]);
+      if (globalThis.__optDbg) { const ps = opts.filter((o) => o.kind === 'pass'), ds = opts.filter((o) => o.kind === 'dribble'); globalThis.__optDbg.push({ t: S.t, i: p.idx, nP: ps.length, minDg: ps.length ? Math.min(...ps.map((o) => o.danger ?? 9)) : 99, pW: ps.reduce((a, o) => a + o.ww, 0), dW: ds.reduce((a, o) => a + o.ww, 0), held: S.t - (p.recvT ?? S.t), nf: nearestOpp(p, p.x, p.y).d, xf: fx(p.team, p.x) }); }
       if (globalThis.__pkDbg && pick.kind === 'pass') globalThis.__pkDbg.last = { danger: pick.danger ?? -1, through: !!pick.through, d: pick.d ?? 0, chip: !!pick.chip, t: S.t, xf: +xf.toFixed(0), press: opps(p).some((o) => !o.off && hyp(o.x - p.x, o.y - p.y) < 2.5) };
       if (globalThis.__mdRk && (p.mdRecv || 0) > S.t) globalThis.__mdRk.push([+S.t.toFixed(1), p.name, +xf.toFixed(0), +dGoal.toFixed(0), pick.kind + (pick.mode ? ':' + pick.mode : '') + (pick.q ? '>' + pick.q.name + '@' + fx(p.team, pick.q.x).toFixed(0) : ''), +space.toFixed(1), (p.finT || 0) > S.t ? 'fin' : '']);
       if (globalThis.__mdPk && p.uniq === 'midori' && uOn(p, 'midori')) globalThis.__mdPk.push([+S.t.toFixed(1), p.mdT0 != null ? 1 : 0, pick.kind + (pick.mode ? ':' + pick.mode : ''), opts.filter((o) => o.kind === 'dribble').map((o) => o.mode).join(','), +S.decision.toFixed(2)]);
