@@ -2476,7 +2476,7 @@
             if (recvOpp < 6 || front >= 2) v -= 1.0;   // 受けた味方が前を向いて運べる時だけ（受けてすぐ囲まれる所へは振らない）
           }
         }
-        if ((globalThis.__Kswp ?? 1) && ph !== 'fin' && xf < 32 && pxf < 32 && Math.abs(p.y - GOAL_Y) > 7 && Math.abs(py - GOAL_Y) > 7 && Math.sign(p.y - GOAL_Y) !== Math.sign(py - GOAL_Y) && !p.gk) v -= 2.0;   // 版908：自陣ゴール前を横切るパスはしない（取られたら即失点）。GKか一度中央を経由する
+        if ((globalThis.__Kswp ?? 1) && ph !== 'fin' && xf < 32 && pxf < 32 && Math.abs(p.y - GOAL_Y) > 7 && Math.abs(py - GOAL_Y) > 7 && Math.sign(p.y - GOAL_Y) !== Math.sign(py - GOAL_Y) && !p.gk) v -= 6.0;   // 版908：自陣ゴール前を横切るパスはしない（取られたら即失点）。GKか一度中央を経由する
         if (d > 30 && !(ph === 'gas' && through) && pxf < L - 25) v -= p.slot && p.slot.line === 0 ? 1.4 : 0.7;   // 長いボールは控える（中盤でつなぐ）
         if (Math.abs(p.y - GOAL_Y) > 16 && Math.abs(py - GOAL_Y) < 10 && danger < 0.6 && recvOpp > 3.5) v += 0.25;
         if (through) v += 0.7;   // 合図で走り出した味方へ
@@ -2582,6 +2582,7 @@
         const bc = Math.max(...opts.filter((o) => o.cross).map((o) => o.v)), bo = Math.max(...opts.map((o) => o.v));
         if (bc > bo - 1.0 && bFinRuns(t, p)) { p.crWait = S.t; S.dribbleMode = 'carry'; S.dribbleDir = [sgn(t) * 0.6, (GOAL_Y - p.y) / Math.max(10, Math.abs(GOAL_Y - p.y)) * 0.4]; S.decision = R.range(0.35, 0.55); if (globalThis.__tacLog) globalThis.__tacLog.push(['crWait', +S.t.toFixed(1), t, p.idx]); return; }
       }
+      if ((globalThis.__Kswp ?? 1) && ph !== 'fin' && xf < 32 && !p.gk && Math.abs(p.y - GOAL_Y) > 7) for (const o of opts) { if (o.kind !== 'pass') continue; const tx0 = o.space ? o.space[0] : o.q.x, ty0 = o.space ? o.space[1] : o.q.y; if (fx(t, tx0) < 32 && Math.abs(ty0 - GOAL_Y) > 7 && Math.sign(ty0 - GOAL_Y) !== Math.sign(p.y - GOAL_Y)) o.v -= 6; }   // 版908b：自陣ゴール前を横切るパスは、どの出し方でもしない
       // 選ぶ：判断（視野）の高い選手ほど、一番良い選択にはっきり寄る
       const sharp = 0.9 + (p.vision || 50) / 45;
       let sum = 0; for (const o of opts) { o.w = Math.exp(clamp(o.v, -6, 8) * sharp); sum += o.w; }
@@ -3632,7 +3633,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         // 版834：ハイボール：出ると決めたGKは、ボールが来る少し前に踏み切って、いちばん高い所で両手を伸ばして取る（パンチング）
         if (p.gk && !(p.highT > 0) && S.gkCk && S.gkCk.g === p.idx && S.gkCk.mode !== 'stay' && S.t < S.gkCk.until && S.ball.owner < 0 && S.ball.z > 1.3 && S.ball.vz < 2) {
           const bb = S.ball, dd = hyp(bb.x - p.x, bb.y - p.y), cs = Math.max(4, hyp(bb.vx, bb.vy));
-          const jT = 0.56 + p.jump * 0.0045; if (dd < cs * jT * 0.55 + 0.6) { p.highT = jT; p.highZ = bb.z; p.hiPunch = S.gkCk.mode === 'punch';   /* 版872：パンチングと決めて跳ぶ時は、片手の絵 */ act(p, 'jump', jT); }   // 版864：少し早めに踏み切って、空中でキャッチ。ジャンプ力が高いほど長く・高く跳ぶ
+          const jT = 0.56 + p.jump * 0.0045, lat = (globalThis.__Kphy ?? 1) ? segDist(p.x, p.y, bb.x, bb.y, bb.x + bb.vx * 1.2, bb.y + bb.vy * 1.2).d : 0; const tA = dd / cs, zP = bb.z + bb.vz * tA - 4.9 * tA * tA; if (dd < cs * jT * 0.55 + 0.6 && lat < 0.9 && (!(globalThis.__Kphy ?? 1) || zP <= gkReachZ(p) + 0.15 || dd < 1.2)) {   /* 版908b：ボールの通り道の横にずれている間は跳ばずに、通り道へ寄ってから跳ぶ */ p.highT = jT; p.highZ = bb.z; p.hiPunch = S.gkCk.mode === 'punch';   /* 版872：パンチングと決めて跳ぶ時は、片手の絵 */ act(p, 'jump', jT); }   // 版864：少し早めに踏み切って、空中でキャッチ。ジャンプ力が高いほど長く・高く跳ぶ
         }
         if (p.slideT > 0) {
           p.slideT -= DT;
@@ -3710,7 +3711,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             const fr = opps(p).filter((q) => !q.gk && ((q.x - p.x) * S.dribbleDir[0] + (q.y - p.y) * S.dribbleDir[1]) > 0.5).map((q) => ({ q, d: hyp(q.x - p.x, q.y - p.y) })).filter((o) => o.d < 8).sort((x, y) => x.d - y.d)[0];
             if (p.pace) vmax = maxSpeed(p) * (0.96 + p.dribble * 0.001);
             else if (fr) {
-              vmax *= 0.6 + p.dribble * 0.0016;   // 巡航：ドリブルが上手いほど速いまま間合いを詰められる
+              vmax *= ((globalThis.__Kphy ?? 1) && fr.d > 5 ? 0.85 : 0.6) + p.dribble * 0.0016;   /* 版908b：間合いを測る減速は、相手が5m以内に来てから */   // 巡航：ドリブルが上手いほど速いまま間合いを詰められる
               if (fr.d < 5 && fr.d > 2.5 && zr(p, 'pace') > 0 && (p.paceCd || 0) < S.t && R.next() < 0.3 * (0.4 + p.dribble / 100) * (zr(p, 'pace') === 2 ? 1.6 : 1)) {
                 p.pace = { ph: 'burst', until: S.t + 0.8 }; p.paceCd = S.t + (zr(p, 'pace') === 2 ? 1.8 : 2.5); act(p, 'pace', 0.8, { k: 'burst' });
                 // 緩急についていけるかは瞬発力の差（ランクの差がはっきり出る）：遅い相手ほど反応が遅れる
@@ -3732,12 +3733,13 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           }
           tx = clamp(p.x + S.dribbleDir[0] * 7, 1.5, L - 1.5); ty = clamp(p.y + S.dribbleDir[1] * 7, 1.8, W - 1.8);   // 7m先を目標に（5m先だと秒速8mで頭打ちになっていた）
           let farB = false;
-          { const bb = S.ball, ex = bb.x - p.x, ey = bb.y - p.y, dB = hyp(ex, ey); if ((globalThis.__Kr2 ?? 1) && bb.z < 0.05 && dB > 0.9 && (ex * S.dribbleDir[0] + ey * S.dribbleDir[1]) / dB < 0.82) { const rv = bb.rv || [0, 0]; tx = bb.x + rv[0] * 0.35; ty = bb.y + rv[1] * 0.35; farB = true; vmax = Math.max(vmax, maxSpeed(p) * 0.8); } }   // 版895：向きを変える前に、まず転がっているボールに追いつく（触らないとボールの向きは変わらない）
+          { const bb = S.ball, ex = bb.x - p.x, ey = bb.y - p.y, dB = hyp(ex, ey); if ((globalThis.__Kr2 ?? 1) && bb.z < 0.05 && dB > 0.9 && (ex * S.dribbleDir[0] + ey * S.dribbleDir[1]) / dB < 0.82) { const rv = bb.rv || [0, 0]; tx = bb.x + rv[0] * 0.35; ty = bb.y + rv[1] * 0.35; farB = true; vmax = Math.max(vmax, maxSpeed(p) * 0.8); p._bCh = hyp(rv[0], rv[1]); } }   // 版895：向きを変える前に、まず転がっているボールに追いつく（触らないとボールの向きは変わらない）
           if (S.charge && S.charge.p === p.idx && !S.charge.dShot && !(farB || hyp(S.ball.x - p.x, S.ball.y - p.y) > 0.8)) vmax *= 0.15;
           if ((p.burstT || 0) > S.t) vmax = Math.max(vmax, maxSpeed(p));   // 技で抜いた直後は一気に加速   // 溜めている間はほぼ止まる
         } else if (own === p) {
           tx = p.x; ty = p.y; vmax *= 0.3;
-          { const bb = S.ball, dB = hyp(bb.x - p.x, bb.y - p.y); if ((globalThis.__Kr2 ?? 1) && bb.z < 0.05 && dB > 0.7) { const rv = bb.rv || [0, 0]; tx = bb.x + rv[0] * 0.3; ty = bb.y + rv[1] * 0.3; vmax = maxSpeed(p) * 0.75; } }   // 版895：止まって次を考える時も、足から離れたボールへは自分から寄る（ボールが寄ってくるのではない）
+          { const v0 = hyp(p.vx, p.vy); if ((globalThis.__Kmom ?? 1) && S.nm && !p.gk && !S.setPiece && v0 > 3 && S.t - (p.recvT ?? -9) < 1.0 && !opps(p).some((o) => !o.gk && !o.off && hyp(o.x - p.x, o.y - p.y) < 3 && ((o.x - p.x) * p.vx + (o.y - p.y) * p.vy) > 0)) { S.dribbleDir = [p.vx / v0, p.vy / v0]; S.dribbleMode = 'break'; tx = p.x + p.vx / v0 * 4; ty = clamp(p.y + p.vy / v0 * 4, 1.8, W - 1.8); vmax = Math.min(maxSpeed(p) * 0.85, v0); } }   // 版908b：走りながら受けたら、次を決めるまでの間も、走っていた向きへボールを押し出して運ぶ（急に止まらない）
+          { const bb = S.ball, dB = hyp(bb.x - p.x, bb.y - p.y); if ((globalThis.__Kr2 ?? 1) && bb.z < 0.05 && dB > 0.7) { const rv = bb.rv || [0, 0]; tx = bb.x + rv[0] * 0.3; ty = bb.y + rv[1] * 0.3; vmax = maxSpeed(p) * 0.75; p._bCh = hyp(rv[0], rv[1]); } }   // 版895：止まって次を考える時も、足から離れたボールへは自分から寄る（ボールが寄ってくるのではない）
         } else {
           [tx, ty] = targets[p.idx];
           if (!urgent[p.idx]) { vmax *= 0.78; const kj = globalThis.__Kjog ?? 0.45; if (kj) { const dd0 = hyp(tx - p.x, ty - p.y); vmax = Math.min(vmax, maxSpeed(p) * (kj + clamp((dd0 - 8) / 25, 0, 0.78 - kj))); } }   // 版881：急がない時は、離れている分だけ走る（近ければジョグ）
@@ -3746,7 +3748,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         }
         const dx = tx - p.x, dy = ty - p.y, d = hyp(dx, dy);
         // こぼれ球を追う選手は減速せずに最後まで詰める（お見合いしない）
-        const want = p.tsukiRun === S.t && own !== p && p.uMeet ? Math.min(vmax, d / Math.max(0.15, p.uMeet.at - S.t) + 1.0) : (chasing[p.idx] || (own === p && p.settle)) && d > 0.25 ? vmax : Math.min(vmax, d * 1.6);   // 月影の抜け出し：ボールと同時に着く速さで（先に着いて待たない・追い越さない）
+        const bCh = p._bCh; p._bCh = null;
+        const want = (globalThis.__Kmom ?? 1) && own === p && bCh != null ? Math.min(vmax, bCh + d * 2.4 + 0.3) : p.tsukiRun === S.t && own !== p && p.uMeet ? Math.min(vmax, d / Math.max(0.15, p.uMeet.at - S.t) + 1.0) : (globalThis.__Kphy ?? 1) && p.gk && chasing[p.idx] && S.gkCk && S.gkCk.g === p.idx && S.ball.z > 1.3 ? Math.min(vmax, d * 2.4 + 0.3) : (globalThis.__Kphy ?? 1) && chasing[p.idx] && own !== p && S.ball.owner < 0 && S.ball.kind === 'pass' && hyp(S.ball.x - p.x, S.ball.y - p.y) > 4.5 ? Math.min(vmax, Math.sqrt(2 * 7 * d) + 0.3) : (chasing[p.idx] || (own === p && p.settle)) && d > 0.25 ? vmax : Math.min(vmax, d * 1.6);   /* 版908b：パスの通り道で受ける・切る選手は、その点で止まれる速さで（走り過ぎて背中の後ろを通されない） */   /* 版908b：浮き球に出たGKは、落下点で止まれる速さで（走り過ぎてかぶらない） */   // 月影の抜け出し：ボールと同時に着く速さで（先に着いて待たない・追い越さない）
         let dvx = (d > 0.01 ? (dx / d) * want : 0) - p.vx, dvy = (d > 0.01 ? (dy / d) * want : 0) - p.vy;
         // 転がるボールに寄る時は、通り過ぎないよう最後はボールの速さに合わせて足元に収める
         if (chasing[p.idx] && own !== p && S.ball.owner < 0 && S.ball.z < 1.3) {
@@ -6400,7 +6403,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           }
         }
       }
-      S.decision = p.gk ? (p.hold ? R.range(1.0, 1.8) : p.gkOutT === S.t ? 0.08 : 0.3) : S.mustClear && S.mustClear.i === p.idx ? 0.08 : clamp(R.range(0.25, 0.7) - p.vision * 0.004, 0.1, 0.7);   // うまい選手ほど判断が早い（プレーが速い）
+      S.decision = p.gk ? (p.hold ? R.range(1.0, 1.8) : p.gkOutT === S.t ? 0.08 : 0.3) : S.mustClear && S.mustClear.i === p.idx ? 0.08 : clamp(R.range(0.25, 0.7) - p.vision * 0.004, 0.1, 0.7) * ((globalThis.__Kphy ?? 1) && S.nm && S.t - (p.scanT ?? -9) < 1.2 && hyp(p.vx, p.vy) > 3 ? 0.5 : 1);   // 版908b：首を振ってから走りながら受けた選手は、考える時間が半分   // うまい選手ほど判断が早い（プレーが速い）
       if (!p.gk && how !== 'tackle' && condLv(p.team)) S.decision = Math.min(S.decision, 0.28);
       if (uOn(p, 'kinshachi')) S.decision = Math.min(S.decision, p.uniqLv >= 2 ? 0.1 : 0.12);
       if (uOn(p, 'aonoouza')) { S.decision = Math.min(S.decision, 0.08); p.protect = Math.max(p.protect || 0, S.t + 1.0); }   // 蒼の王座：受けたら、食いついてきたCBをいなして、すぐに穴へ   // 金鯱の心臓：受けたらすぐ次へ（判断が速い）   // 港の指揮者：受けたらすぐ次へ（テンポよく回す）
@@ -6659,6 +6662,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       const fw = mates(p).filter((m) => !m.gk && fx(p.team, m.x) > xf + 5 && hyp(m.x - p.x, m.y - p.y) < 35 && nearestOpp(m, m.x, m.y).d > 3).sort((a, b) => fx(p.team, b.x) - fx(p.team, a.x))[0];
       const thr = opps(p).filter((q) => !q.gk).map((q) => ({ q, d: hyp(q.x - p.x, q.y - p.y) })).filter((o) => o.d < 9);
       const cur = S.dribbleMode === 'carry' && S.dribbleDir ? S.dribbleDir : null;
+      const pv = hyp(p.vx, p.vy);
       let best = null, bs = -1e9;
       for (let k = 0; k < 16; k++) {
         const a = k * Math.PI / 8, vx = Math.cos(a), vy = Math.sin(a);
@@ -6666,6 +6670,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         for (const o of thr) { const tq = ((o.q.x - p.x) * vx + (o.q.y - p.y) * vy) / o.d; if (tq > -0.2) sc -= (tq + 0.2) * 2.6 * clamp(4 / o.d, 0.45, 3); }   // 相手の方へは行かない
         if (fw) { const fd = hyp(fw.x - p.x, fw.y - p.y); sc += ((fw.x - p.x) * vx + (fw.y - p.y) * vy) / fd * 0.45; }   // 前で待つFWへ意識を向ける
         if (cur) sc += (vx * cur[0] + vy * cur[1]) * 0.45;   // 今の向きを保つ
+        if ((globalThis.__Kmom ?? 1) && S.nm && pv > 3 && S.t - (p.recvT ?? -9) < 1.2) sc += (vx * p.vx + vy * p.vy) / pv * 0.9;   // 版908b：走りながら受けた直後は、走ってきた勢いの向きへ（急に向きを変えると止まってしまう）
         if ((p.y < 4 && vy < -0.2) || (p.y > W - 4 && vy > 0.2)) sc -= 2;   // タッチラインの外へは行かない
         if (sc > bs) { bs = sc; best = [vx, vy]; }
       }
@@ -7142,7 +7147,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           }
           if ((globalThis.__Kphy ?? 1) && !mtG && !mtC && !uOn(q, 'miyabi') && !uOn(q, 'tetsurou')) {   // 版908：奪えるのはボールに足が届く時だけ（ボールまで約1m）。持っている選手の体の向こう側（背中側）からは、体を通り抜けて取れない（設計一覧14章）
             const dB = hyp(q.x - b.x, q.y - b.y), side = (b.x - own.x) * (q.x - own.x) + (b.y - own.y) * (q.y - own.y);
-            const ov = hyp(own.vx, own.vy), bk = ov > 1.5 && ((q.x - own.x) * own.vx + (q.y - own.y) * own.vy) / ov < -0.3; if (dB > 1.2 || ((side < 0 || bk) && dB > 0.55)) continue;   /* 版908：走っている選手の背中側からは、足がボールに届く所（0.55m）まで来ないと取れない */
+            const ov = hyp(own.vx, own.vy), bk = ov > 1.5 && ((q.x - own.x) * own.vx + (q.y - own.y) * own.vy) / ov < -0.3; if (dB > (globalThis.__Ktk ?? 1.2) || ((side < 0 || bk) && dB > 0.55)) continue;   /* 版908：走っている選手の背中側からは、足がボールに届く所（0.55m）まで来ないと取れない */
           }
           if (!uOn(q, 'miyabi') && !uOn(q, 'matsuri') && !uOn(q, 'tetsurou') && !(uOn(q, 'kagenui') && (own.kgPin || 0) > S.t) && !(q.uniq === 'kinshachi' && fx(q.team, own.x) < 34) && R.next() > (0.13 + pr * 0.0018) * 0.7 * (1 + DOM[q.team] * 1.5)) continue;   // 雅の後始末は、追いついたら必ず止めに行く
           if (!mtG) { act(q, 'duel', 0.5, { o: own.idx }); act(own, 'duel', 0.5, { o: q.idx }); }
@@ -7492,7 +7497,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         // 足の届くボールはしっかり触る（素通りさせない）。速い球や浮き球ほど止めにくい
         else prob = clamp(0.95 - Math.max(0, sp - 9) * 0.035 + p.defense * 0.002 - (b.z > 0.6 ? 0.25 : 0) + (b.kind === 'pass' && b.kicker >= 0 ? (p.defense - P[b.kicker].pass) * 0.004 : 0) + (b.kind === 'pass' && skZ(p, 'intercept') ? 0.26 : 0) + (uOn(p, 'tetsurou') || uOn(p, 'sutemi') ? 0.2 : 0) + 0.03 * aura(p, 'relief'), 0.15, 0.99) * (b.kind === 'pass' ? 1 - (b.uSafe || 0) : 1);   // うまいパスは足を出されても抜けていく（針の穴通しなどは、さらに触られにくい）
         if ((globalThis.__Kdefl ?? 1) && p.team !== b.lastTeam && b.kind !== 'shot' && sp > 15 && !gkHands) prob = Math.max(0.02, prob - (sp - 15) * 0.05);   // 版895：強く蹴った球（クリアなど）が体に当たっても、その場では止められない：弾かれる
-        if ((globalThis.__Kphy ?? 1) && p.team !== b.lastTeam && !gkHands && sp > 9 && b.kT != null && S.t - b.kT < 0.35 && hyp(p.x - b.kX, p.y - b.kY) < 4.5) prob = Math.min(prob, 0.1 + p.defense * 0.002 + (skZ(p, 'intercept') ? 0.1 : 0));   // 版908：すぐ近くから強く蹴られた球は、反応が間に合わず止められない（体に当たって弾ける）
+        if ((globalThis.__Kphy ?? 1) && p.team !== b.lastTeam && !gkHands && sp > 9 && b.kT != null && S.t - b.kT < 0.35 && hyp(p.x - b.kX, p.y - b.kY) < 4.5) prob = Math.min(prob, (globalThis.__Kric ?? 0.1) + p.defense * 0.002 + (skZ(p, 'intercept') ? 0.1 : 0));   // 版908：すぐ近くから強く蹴られた球は、反応が間に合わず止められない（体に当たって弾ける）
         if (sp < 4.5 && b.z < 0.5) prob = Math.max(prob, 0.97);   // ゆっくり転がるボールはしっかり収める
         if (p.team === b.lastTeam && b.intended === p.idx && p.technique >= 68 && sp < 24 + pvB && b.z < 1.0) prob = Math.max(prob, 0.995);
         else if (p.team === b.lastTeam && b.intended === p.idx && p.technique >= 55 && sp < 20 + pvB && b.z < 1.0) prob = Math.max(prob, 0.97);   // テクニックC以上：味方からの普通のパスは、まず止める   // D1・D2レベル（テクニック68以上）：味方からのパスを置き去りにするトラップミスは、ほぼしない
