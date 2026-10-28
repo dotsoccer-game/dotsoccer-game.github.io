@@ -1224,6 +1224,30 @@
     }
     // 版881：目標の位置をなめらかにする：ボールが動くたびに目標が大きく跳ねて、選手が全力で追い続けていた（形ができない・ずっと走り回る）。
     //  急ぐ場面（寄せ・こぼれ球・走り込みなど）は今まで通りすぐ反応し、それ以外は少しずつ動いて落ち着いて位置を取る
+    function crashPost() {   // 版910：こぼれ球への詰め（設計一覧16章）：シュート・クロスの後、前にいる味方がゴール前のこぼれそうな所へ詰める
+      if (!(globalThis.__Kcrash ?? 1) || S.restart || S.setPiece || S.celebrate > 0) return;
+      const b = S.ball; if (b.owner >= 0 || b.lastTeam == null || b.lastTeam < 0) return;
+      const shotC = b.kind === 'shot' && S.t - (b.shotT ?? -9) < 1.6;
+      if (!shotC && b.kind !== 'loose') return;
+      const at = shotC ? b.lastTeam : fx(0, b.x) > L - 32 ? 0 : fx(1, b.x) > L - 32 ? 1 : -1;   // 攻めている側（ボールが相手ゴールの近くにある側）
+      if (at < 0) return;
+      const ax = fx(at, b.x), sdS = Math.sign(b.y - GOAL_Y) || 1;
+      if (ax < L - 32) return;
+      const spots = shotC ? [[L - 6, GOAL_Y - sdS * 5], [L - 7, GOAL_Y + sdS * 4], ...((globalThis.__Kcr3 ?? 0) ? [[L - 14, GOAL_Y]] : [])] : (() => { let x = b.x, y = b.y, vx = b.vx, vy = b.vy; for (let k = 0; k < 12; k++) { x += vx * 0.1; y += vy * 0.1; vx *= 0.93; vy *= 0.93; } return [[fx(at, x) + 1.5, clamp(y, 3, W - 3)]]; })();
+      const used = new Set([b.lastPlayer]);
+      for (const p of P) if (chasing[p.idx]) used.add(p.idx);
+      for (const [sx, sy] of spots) {
+        let best = null, bd = 16;
+        for (const q of T[at].players) {
+          if (q.off || q.gk || used.has(q.idx) || !q.slot || q.slot.line === 0) continue;
+          const qx = fx(at, q.x); if (qx < L - 32) continue;
+          const d0 = hyp(qx - sx, q.y - sy); if (d0 < bd) { bd = d0; best = q; }
+        }
+        if (!best) continue; used.add(best.idx);
+        targets[best.idx] = [fx(at, sx), sy]; urgent[best.idx] = true;
+        if (globalThis.__crLog) globalThis.__crLog.push([+S.t.toFixed(1), at, best.idx, shotC ? 'shot' : 'loose']);
+      }
+    }
     function gkHoldPost() {   // 版908：GKが手で持ったら、相手は寄せない（ハエのように群がらない）。13m離れて、蹴る先（近くの味方へのコース）をふさぐ位置へ下がる
       if (!(globalThis.__Kgkh ?? 1) || S.restart || S.setPiece) return;
       const g = ownerP(); if (!g || !g.gk || !g.hold) return;
@@ -7741,7 +7765,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       computeTargets();
       mdPost();
       shapePost();
-      if (!S.nm) { widthPost(); blockPost(); } else if (brainOn()) { brainPost(); gkHoldPost(); } else newMovePost();
+      if (!S.nm) { widthPost(); blockPost(); } else if (brainOn()) { brainPost(); gkHoldPost(); crashPost(); } else newMovePost();
       urgentPost();
       smoothPost();
       if (globalThis.__tgHook) globalThis.__tgHook(S, P, targets, urgent, fx, offsideLine, ownerP);
