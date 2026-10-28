@@ -3895,7 +3895,9 @@
     const g = C.ensureGacha(save);
     if (!g.gift) { g.gift = 1; save.coins = (save.coins || 0) + 2000; store(); setTimeout(() => coachAsk('スカウトがオープンしました！<br>記念に <b>2,000コイン</b> をプレゼントします。<br>さっそく選手をスカウトしてみましょう！', [{ label: 'OK', value: true }], 'sec'), 300); }
     const draw = () => {
-      const bn = C.gachaBanner(), U = bn.uniq, q = C.rosterAt(bn.tid, 1).players.find((x) => x.no === bn.no), left = C.GACHA_PITY - (g.pity[bn.id] || 0);
+      const bn = C.gachaBanner(), left = C.GACHA_PITY - (g.pity[bn.id] || 0);
+      if (bn.all) { drawAll(bn, left); return; }   // 版910：国内屈指の全員集合
+      const U = bn.uniq, q = C.rosterAt(bn.tid, 1).players.find((x) => x.no === bn.no);
       const cc = U.chip || ['#c8141e', '#ffd23a', '#ffe45a'];
       const tp = U.type || q.type || '';
       // 版519：監督の作ったスカウト画面（夜のスタジアム・大きな選手・右に操作パネル）に合わせた
@@ -3920,11 +3922,32 @@
           <button class="gc2-btn gc3-btn one" data-n="1"><b>1回スカウト</b><span>${COIN}${C.GACHA_COST.one}</span></button>
           <button class="gc-rate gc3-sb s1">出る確率<em>›</em></button><button class="gc-rule gc3-sb s2">獲得ルール<em>›</em></button><button class="gc-auto gc3-sb s3${g.auto ? ' on' : ''}"><span>自動放出<small>${['しない', '★1', '★2以下'][g.auto || 0]}</small></span><i class="gc2-sw"></i></button>
         </div></div>`;
+      wire(U);
+    };
+    const drawAll = (bn, left) => {   // 版910：国内屈指の18人が全員入ったスカウト
+      const cc = ['#c8141e', '#ffd23a', '#ffe45a'];
+      box.innerHTML = `<div class="gc gc2 gc3 gc4" style="--c0:${cc[0]};--c1:${cc[1]};--c2:${cc[2]}">
+        <div class="gc2-bg"></div>
+        <img class="gc4-art" src="img/scout_all_43.jpg" alt="国内屈指の18人">
+        <div class="gc3-ttl"><b>スカウト</b></div>
+        <div class="gc3-pills"><span class="gc3-coin">${COIN}<b>${(save.coins || 0).toLocaleString()}</b></span>
+        <span class="gc3-kk"><img class="kk-ico" src="icons/kakera.png" alt="カケラ" draggable="false">覚醒のカケラ<b>${(save.kakera || 0).toLocaleString()}</b></span></div>
+        <button class="std-back gc-back gc3-back" title="もどる"><i class="bk-ico" aria-hidden="true"></i></button>
+        <div class="gc4-head"><i>★★★★★</i><b>国内屈指 全員集合</b><small>☆5は国内屈指の18人のだれか</small></div>
+        <div class="gc3-side">
+          <div class="gc3-pity"><span>☆5確定まで</span><b>あと<em>${left}</em>回</b><i><s style="width:${Math.max(4, Math.round((1 - left / C.GACHA_PITY) * 100))}%"></s></i></div>
+          <button class="gc2-btn gc3-btn ten" data-n="10"><b>10回スカウト</b><span>${COIN}${C.GACHA_COST.ten.toLocaleString()}</span><small>★3以上 1人確定</small></button>
+          <button class="gc2-btn gc3-btn one" data-n="1"><b>1回スカウト</b><span>${COIN}${C.GACHA_COST.one}</span></button>
+          <button class="gc-rate gc3-sb s1">出る確率<em>›</em></button><button class="gc-rule gc3-sb s2">獲得ルール<em>›</em></button><button class="gc-auto gc3-sb s3${g.auto ? ' on' : ''}"><span>自動放出<small>${['しない', '★1', '★2以下'][g.auto || 0]}</small></span><i class="gc2-sw"></i></button>
+        </div></div>`;
+      wire({ chip: cc, all: true });
+    };
+    const wire = (U) => {
       { const bgEl = box.querySelector('.gc2-bg'); gcBgFor(U.chip, (u) => { bgEl.style.backgroundImage = `url(${u})`; bgEl.classList.add('on'); }); }
       box.querySelector('.gc-rule').onclick = () => coachAsk('<b>獲得ルール</b><br><small>同じ選手が出たら凸（最大3凸）。完凸のあとは覚醒のカケラになります。<br>自動放出をオンにすると、はじめて出た選手のうち、その★以下はカケラになります（持っている選手は凸）。<br>チームが25人の時は、リザーブ（控え室）に入ります。</small>', [{ label: 'とじる', value: true }], 'sec');
       box.querySelector('.gc-back').onclick = () => { el.hidden = true; go('home'); };
       box.querySelector('.gc-auto').onclick = () => { g.auto = ((g.auto || 0) + 1) % 3; store(); draw(); };
-      box.querySelector('.gc-rate').onclick = () => coachAsk(`<b>出る確率</b><br>${C.GACHA_RATE.map(([st, pc]) => `☆${st}：${pc}%`).join('　')}<br><small>☆5は今月のピックアップの${esc(U.who)}だけ。<br>このスカウトで${C.GACHA_PITY}回引くと、${esc(U.who)}が確定（出たら数え直し）。<br>10回スカウトは、☆3以上が1人確定。</small>`, [{ label: 'とじる', value: true }], 'sec');
+      box.querySelector('.gc-rate').onclick = () => U.all ? coachAsk(`<b>出る確率</b><br>${C.GACHA_RATE.map(([st, pc]) => `☆${st}：${pc}%`).join('　')}<br><small>☆5は国内屈指の18人のだれか（1人あたり約${(C.GACHA_RATE[0][1] / 18).toFixed(3)}%）。<br>${C.GACHA_PITY}回引くまでに☆5が出なければ、${C.GACHA_PITY}回目で☆5が確定（☆5が出たら数え直し）。<br>10回スカウトは、☆3以上が1人確定。</small>`, [{ label: 'とじる', value: true }], 'sec') : coachAsk(`<b>出る確率</b><br>${C.GACHA_RATE.map(([st, pc]) => `☆${st}：${pc}%`).join('　')}<br><small>☆5は今月のピックアップの${esc(U.who)}だけ。<br>このスカウトで${C.GACHA_PITY}回引くと、${esc(U.who)}が確定（出たら数え直し）。<br>10回スカウトは、☆3以上が1人確定。</small>`, [{ label: 'とじる', value: true }], 'sec');
       box.querySelectorAll('.gc2-btn').forEach((b) => b.onclick = async () => {
         const n = +b.dataset.n, res = C.gachaPull(save, n);
         if (!res) { coachAsk('コインが足りません。<br>カップ戦で勝つと、コインがもらえますよ。', [{ label: 'OK', value: true }], 'sec'); return; }
@@ -4353,11 +4376,11 @@
       const head = `<span class="sh3-coin" data-go="coin" title="コインを買う"><em class="sh3-cn">${coins()}</em><small>コイン</small><img class="sh3-plus" src="icons/ui_plus.png" alt="コインを買う"></span><span class="sh3-coin sh3-dc" title="Dコイン（特訓カードが買える）"><img src="icons/dcoin.png" alt=""><em class="sh3-cn">${C.earnedOf(save).toLocaleString()}</em><small>コイン</small></span>${hit('', 34, 12, 72, 70, 'data-go="back"', 'もどる')}
         <div class="sh3-tabs">${[['rec', 'おすすめ'], ['cards', '特訓カード'], ['prem', 'プレミアムパス']].map(([k, l]) => `<button data-tab="${k}" class="${S.tab === k ? 'on' : ''}">${l}</button>`).join('')}</div>`;
       if (S.tab === 'rec') {
-        const bn = C.gachaBanner(), U = bn.uniq, q = C.rosterAt(bn.tid, 1).players.find((x) => x.no === bn.no), cc = U.chip || ['#c8141e', '#ffd23a', '#ffe45a'];
+        const bn = C.gachaBanner(), U = bn.uniq || {}, q = bn.all ? null : C.rosterAt(bn.tid, 1).players.find((x) => x.no === bn.no), cc = U.chip || ['#c8141e', '#ffd23a', '#ffe45a'];
         h = `<div class="sh3 sh3-rec"><img class="sh3-bgimg" src="img/shop_rec.jpg" alt="">${head}
-          <button class="sh3-ban" data-go="scout" style="--c0:${cc[0]}"><div class="sh3-ban-bg"></div>${SH_PICK_ART[bn.key] ? `<img class="sh3-ban-art" src="${SH_PICK_ART[bn.key]}" alt="">` : ''}<div class="sh3-ban-fc"${SH_PICK_ART[bn.key] ? ' hidden' : ''}><i class="sh3-ban-glow"></i>${(() => { const k = C.faceKeyOf(bn.tid, q), sh = ((C.ROSTERS[bn.tid] || {}).kit || {}).shirt || '#2f6fd6'; return k ? starPic(k, sh, q.pos === 'GK', 'sh3-ban-face') : ''; })()}</div>
+          ${bn.all ? `<button class="sh3-ban sh3-ban-all" data-go="scout"><img class="sh3-ban-wide" src="img/scout_all_wide.jpg" alt="国内屈指の18人"><i class="sh3-ban-rib">国内屈指 全員集合</i><span class="sh3-ban-go">スカウトを見る<span>›</span></span></button>` : `          <button class="sh3-ban" data-go="scout" style="--c0:${cc[0]}"><div class="sh3-ban-bg"></div>${SH_PICK_ART[bn.key] ? `<img class="sh3-ban-art" src="${SH_PICK_ART[bn.key]}" alt="">` : ''}<div class="sh3-ban-fc"${SH_PICK_ART[bn.key] ? ' hidden' : ''}><i class="sh3-ban-glow"></i>${(() => { const k = C.faceKeyOf(bn.tid, q), sh = ((C.ROSTERS[bn.tid] || {}).kit || {}).shirt || '#2f6fd6'; return k ? starPic(k, sh, q.pos === 'GK', 'sh3-ban-face') : ''; })()}</div>
             <i class="sh3-ban-rib">今月のピックアップ</i><b class="sh3-ban-nm" style="font-size:${Math.min(96, Math.round(360 / Math.max(3, U.who.length)))}px">${esc(U.who)}</b><em class="sh3-ban-sk">${esc(U.name)}</em>
-            <span class="sh3-ban-go">スカウトを見る<span>›</span></span></button>
+            <span class="sh3-ban-go">スカウトを見る<span>›</span></span></button>`}
           <span class="sh3-pmst">${C.premOn(save) ? `残り${premLeft()}日` : `月額 ¥${C.PREM.yen.toLocaleString()}`}</span>   <!-- 版752：絵の「準備中」の上に、パスの状態を出す -->
           ${hit('', 843, 142, 391, 270, 'data-tab="prem"', 'プレミアムパス')}
           ${hit('sh3-area', 46, 419, 586, 206, 'data-ask="5"', 'カードパック')}${hit('sh3-area', 640, 419, 594, 206, 'data-ask="10"', 'カードパック（大）')}
@@ -4406,7 +4429,7 @@
       box.querySelectorAll('.sh3-card').forEach((b) => b.onclick = () => { if (shopSt.sel !== b.dataset.c) shopSt.qty = 1; shopSt.sel = b.dataset.c; const g = box.querySelector('.sh3-grid'), st = g ? g.scrollTop : 0; draw(); const g2 = box.querySelector('.sh3-grid'); if (g2) g2.scrollTop = st; });
       box.querySelectorAll('[data-q]').forEach((b) => b.onclick = () => { shopSt.qty = Math.max(1, Math.min(99, shopSt.qty + +b.dataset.q)); const g = box.querySelector('.sh3-grid'), st = g ? g.scrollTop : 0; draw(); const g2 = box.querySelector('.sh3-grid'); if (g2) g2.scrollTop = st; });
       { const go = box.querySelector('.sh3-go'); if (go) go.onclick = () => { const c = shopSt.sel, had = (save.cards || {})[c] || 0, coin0 = save.coins || 0; let n = 0; for (let k = 0; k < shopSt.qty; k++) { if (C.buyCard(save, c)) n++; else break; } store(); const g = box.querySelector('.sh3-grid'), st = g ? g.scrollTop : 0; shopSt.qty = 1; draw(); const g2 = box.querySelector('.sh3-grid'); if (g2) g2.scrollTop = st; try { DotSound.play(n ? 'ok' : 'back'); } catch (_) {} toast(n ? `<img class="sh3-tc" src="cards/${c}.jpg" alt=""><span><b>${esc(C.CARDS[c].name)}</b> を ${n}枚 買いました！<br><small>所持 ${had}枚 → <em>${save.cards[c]}枚</em>　／　コイン ${coin0.toLocaleString()} → ${(save.coins || 0).toLocaleString()}</small></span>` : had >= C.CARD_MAX ? 'もう99枚持っているので買えません' : 'コインが足りません'); }; }   // 版562：買えたことが分かるように、枚数とコインの変化を見せる
-      { const bg = box.querySelector('.sh3-ban-bg'); if (bg) { const bn = C.gachaBanner(); gcBgFor(bn.uniq.chip, (u) => { bg.style.backgroundImage = `url(${u})`; }); } }
+      { const bg = box.querySelector('.sh3-ban-bg'); if (bg && !C.gachaBanner().all) { const bn = C.gachaBanner(); gcBgFor(bn.uniq.chip, (u) => { bg.style.backgroundImage = `url(${u})`; }); } }
     };
     el._redraw = () => draw();   // 版712：月額パスの状態が変わった時に描き直す
     draw(); el.hidden = false; el._fit();

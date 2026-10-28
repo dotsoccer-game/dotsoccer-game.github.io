@@ -1913,7 +1913,7 @@
   // 毎月1日に切りかわる。ピックアップは固有スキルを持つ☆5の18人を1か月に1人ずつ。天井：そのガチャで200回引くとピックアップ確定
   const GACHA_ORDER = ['guren', 'tsukikage', 'minato', 'byakuya', 'midori', 'kinshachi', 'aonoouza', 'harinoana', 'shiden', 'kagenui', 'matsuri', 'miyabi', 'sakurajima', 'ikari', 'uzushio', 'kage', 'tetsurou', 'sutemi'];
   const GACHA_START = [2026, 9];   // 2026年10月から（月は0から数える）
-  const GACHA_RATE = [[5, 1], [4, 4], [3, 15], [2, 30], [1, 50]];   // 版662：☆5は1%（☆1を50%に）   // ☆ と 確率（％）
+  const GACHA_RATE = [[5, 0.5], [4, 4], [3, 15], [2, 30], [1, 50.5]];   // 版910：☆5は0.5%（減らした0.5%は☆1へ）。☆5は国内屈指の18人のだれか（ピックアップなし）   // 版662：☆5は1%（☆1を50%に）   // ☆ と 確率（％）
   const GACHA_COST = { one: 100, ten: 900 }, GACHA_PITY = 200;   // 版572：10回まとめてだと1回ぶんお得（900）
   const KAKERA_OF = { 1: 1, 2: 2, 3: 5, 4: 15, 5: 50 };
   // 版642：覚醒のカケラで凸（覚醒）する。1回で凸が1つ上がる（最大3凸）。☆が高いほどたくさん必要
@@ -1927,23 +1927,32 @@
     for (const tid in ROSTERS) for (const q of rosterAt(tid, 1).players) { const st = starOf(tid, q); gachaPool[st].push({ tid, no: q.no }); }
     return gachaPool;
   }
+  // 版910：ピックアップをやめて、国内屈指の18人を全員入れる（☆5が出たら18人のだれか。1人あたり0.5%÷18）
+  const GACHA_ALL = true;
+  function gachaUniqList() { return GACHA_ORDER.map((key) => { const [tid, no] = D.UNIQ[key].face.split('_'); return { key, tid, no: +no }; }); }
   function gachaBanner(date) {
+    if (GACHA_ALL) return { id: 'all', key: 'all', all: true, list: gachaUniqList(), until: '' };
     const d = date || new Date(), m = (d.getFullYear() - GACHA_START[0]) * 12 + d.getMonth() - GACHA_START[1];
     const i = ((m % GACHA_ORDER.length) + GACHA_ORDER.length) % GACHA_ORDER.length, key = GACHA_ORDER[i], U = D.UNIQ[key];
     const [tid, no] = U.face.split('_'), end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
     return { id: (d.getFullYear() * 100 + d.getMonth() + 1) + ':' + key, key, uniq: U, tid, no: +no, until: `${end.getMonth() + 1}月${end.getDate()}日` };
   }
   function gachaQ(tid, no) { return rosterAt(tid, 1).players.find((q) => q.no === no); }
-  function ensureGacha(save) { if (!save.gacha) save.gacha = { pity: {}, total: 0 }; if (save.kakera == null) save.kakera = 0; gachaFixOld(save); return save.gacha; }
+  function ensureGacha(save) { if (!save.gacha) save.gacha = { pity: {}, total: 0 }; if (GACHA_ALL && save.gacha.pity && save.gacha.pity.all == null) { const d = new Date(), k = (d.getFullYear() * 100 + d.getMonth() + 1) + ':'; let c = 0; for (const id in save.gacha.pity) if (id.startsWith(k)) c = Math.max(c, save.gacha.pity[id] || 0); save.gacha.pity.all = c; }   /* 版910：今月のピックアップの天井の回数を、そのまま引き継ぐ */ if (save.kakera == null) save.kakera = 0; gachaFixOld(save); return save.gacha; }
   function gachaOne(save, bn, r, minStar) {
     const g = ensureGacha(save); g.pity[bn.id] = (g.pity[bn.id] || 0) + 1;
     let star; const u = r() * 100; let acc = 0; for (const [s, pct] of GACHA_RATE) { acc += pct; if (u < acc) { star = s; break; } } star = star || 1;
     if (minStar && star < minStar) star = minStar;
     let pick;
-    if (g.pity[bn.id] >= GACHA_PITY) { star = 5; pick = { tid: bn.tid, no: bn.no }; }
-    else if (star === 5) pick = { tid: bn.tid, no: bn.no };   // 版553：☆5は今月のピックアップの選手だけ
-    else { const L = gachaPoolAll()[star]; pick = L[Math.floor(r() * L.length)]; }
-    if (pick.tid === bn.tid && pick.no === bn.no) g.pity[bn.id] = 0;   // ピックアップが出たら天井の数え直し
+    if (g.pity[bn.id] >= GACHA_PITY) star = 5;   // 天井：200回で☆5確定
+    if (bn.all) {
+      if (star === 5) { const L = bn.list, u5 = L[Math.floor(r() * L.length)]; pick = { tid: u5.tid, no: u5.no }; g.pity[bn.id] = 0; }   // 版910：☆5は18人のだれか。☆5が出たら天井の数え直し
+      else { const L = gachaPoolAll()[star]; pick = L[Math.floor(r() * L.length)]; }
+    } else {
+      if (star === 5) pick = { tid: bn.tid, no: bn.no };   // 版553：☆5は今月のピックアップの選手だけ
+      else { const L = gachaPoolAll()[star]; pick = L[Math.floor(r() * L.length)]; }
+      if (pick.tid === bn.tid && pick.no === bn.no) g.pity[bn.id] = 0;   // ピックアップが出たら天井の数え直し
+    }
     return { ...pick, star };
   }
   // 引いた選手を自分のチームへ：はじめての選手は加入、同じ選手は凸、完凸のあとは覚醒のカケラ
