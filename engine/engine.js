@@ -465,6 +465,8 @@
     const P = [];
     // チーム戦術：プレス（-1 控えめ／0／1 前から）・パスの方針（-1 つなぐ／0／1 縦に速く）・攻める場所（-1 中央／0／1 サイド）
     const teamTac = (t) => ({ press: [-25, 0, 25][clamp((t.press ?? 0) + 1, 0, 2)], through: [-15, 0, 20][clamp((t.pass_style ?? 0) + 1, 0, 2)], vert: [-0.02, 0, 0.04][clamp((t.pass_style ?? 0) + 1, 0, 2)], side: clamp(t.attack_side ?? 0, -1, 1) });
+    // 版920：試合の動きは「置いた場所」（DF・MF・FWの列）で決める。登録ポジションは regPos に残す（設計一覧22章）
+    function slotPos(q) { if (!(globalThis.__Kpos ?? 1) || !q.slot || q.slot.gk || q.slot.line == null || q.position === 'GK') return; if (q.regPos == null) q.regPos = q.position; q.position = q.slot.line === 0 ? 'DF' : q.slot.last ? 'FW' : 'MF'; }
     function mkPlayer(p, ti, i, slot, idx) {
       const q = {
         ...fillParams({ ...p }, 0), team: ti, idx, slot,
@@ -473,6 +475,7 @@
         gk: i === 0, sk: new Set((p.skills || []).map((k) => (k === 'feint' ? 'bodyFeint' : k === 'dribbleShot' ? 'driveShot' : k))),   // 旧ドリブルシュートはドライブシュートに
       };
       // 攻撃的GK（飛び出しを持つ）：高い位置で裏へのボールをケア。守備的GK：ゴール前でどっしり、セービングが高め
+      if (!q.gk) slotPos(q);   // 版920：置いた場所で動きを決める
       q.gkAtk = q.gk && (q.sk.has('rushOut') || q.type === 'スイーパーキーパー');   // スイーパーキーパーは飛び出し型
       // 利き足（なければ名前から決める：右6割・左4割）
       if (q.foot !== 'L' && q.foot !== 'R') { let h = 7; for (const ch of String(q.name || '') + (q.number || '')) h = (h * 31 + ch.charCodeAt(0)) >>> 0; q.foot = ((h >>> 3) % 10) < 6 ? 'R' : 'L'; }
@@ -558,7 +561,7 @@
         if (c.situ) tm.situ = c.situ;
         if (c.compact || c.zone_width || c.cells) {
           const sl = buildSlots({ formation: c.formation || teamsIn[ch.team].formation, cells: c.cells || teamsIn[ch.team].cells, compact: c.compact || teamsIn[ch.team].compact, zone_width: c.zone_width || teamsIn[ch.team].zone_width });
-          tm.players.forEach((p, i) => { p.slot = sl[i] ? (side[ch.team] < 0 ? mirSlot(sl[i]) : sl[i]) : p.slot; p.slot0 = null; });
+          tm.players.forEach((p, i) => { p.slot = sl[i] ? (side[ch.team] < 0 ? mirSlot(sl[i]) : sl[i]) : p.slot; p.slot0 = null; if (!p.gk) slotPos(p); });
         }
       }
       for (const sb of ch.subs || []) {
