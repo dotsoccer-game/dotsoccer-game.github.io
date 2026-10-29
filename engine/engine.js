@@ -1237,6 +1237,16 @@
       const tx0 = fx(t, targets[g.idx][0]); if (tx0 > cap) { const k = cap / Math.max(tx0, 0.1), ty = GOAL_Y + (targets[g.idx][1] - GOAL_Y) * Math.max(k, 0.6); targets[g.idx] = [fx(t, cap), ty]; }
       if (fx(t, g.x) > cap + 1.2) urgent[g.idx] = true;
     }
+    function ppSupportPost() {   // 版924：デカラの受け手：相手を背負って受けた味方の、斜め後ろ（前を向いて受けられる所）へ1人寄る（設計一覧23章）
+      if (!(globalThis.__Kpp ?? 1) || S.restart || S.setPiece || S.celebrate > 0) return;
+      const b = S.ball; if (b.owner < 0) return; const own = P[b.owner]; if (own.gk) return;
+      const t = own.team, ox = fx(t, own.x); if (ox < 28 || ox > L - 16) return;
+      if (!opps(own).some((o) => !o.off && !o.gk && hyp(o.x - own.x, o.y - own.y) < 3 && fx(t, o.x) > ox - 0.5)) return;
+      let best = null, bd = 20; for (const q of mates(own)) { if (q === own || q.off || q.gk || !q.slot || chasing[q.idx] || (q.run > 0)) continue; const qx = fx(t, q.x); if (qx > ox + 1 || qx < ox - 22) continue; const dd = hyp(q.x - own.x, q.y - own.y); if (dd < bd) { bd = dd; best = q; } }
+      if (!best) return;
+      let bs = -1e9, bp = null; for (const sy0 of [-7, -4, 4, 7]) { const sx = ox - 7, sy = clamp(own.y + sy0, 4, W - 4), wx = fx(t, sx); let m = 9, lc = 9; for (const o of opps(own)) { if (o.off) continue; m = Math.min(m, hyp(o.x - wx, o.y - sy)); const sd = segDist(o.x, o.y, own.x, own.y, wx, sy); if (sd.u > 0.1 && sd.u < 0.9) lc = Math.min(lc, sd.d); } const v = Math.min(m, 6) + Math.min(lc, 2.5) - hyp(best.x - wx, best.y - sy) * 0.08; if (v > bs) { bs = v; bp = [wx, sy]; } }
+      if (bp) { targets[best.idx] = bp; urgent[best.idx] = true; }
+    }
     function crashPost() {   // 版910：こぼれ球への詰め（設計一覧16章）：シュート・クロスの後、前にいる味方がゴール前のこぼれそうな所へ詰める
       if (!(globalThis.__Kcrash ?? 1) || S.restart || S.setPiece || S.celebrate > 0) return;
       const b = S.ball; if (b.owner >= 0 || b.lastTeam == null || b.lastTeam < 0) return;
@@ -2459,6 +2469,11 @@
       const lookA = lp0 ? Math.atan2(lp0.y - p.y, lp0.x - p.x) : 0;
       const between = xf > oppMidX + 1 && xf < offL - 2;   // 相手のMFとDFのライン間で持っている
       const rl = S.readLane && S.readLane.team === t && S.t - S.readLane.t < 0.7 ? S.readLane : null;   // 守備者が、こちらの狙いを読んで動いた
+      // 版924：プレーパターン（設計一覧23章）。PP=0で前のまま
+      const PP = !!(globalThis.__Kpp ?? 1);
+      const backMk = PP && held < 1.6 && xf < L - 16 ? foes.find((o) => !o.gk && hyp(o.x - p.x, o.y - p.y) < 2.6 && fx(t, o.x) > xf - 0.5) : null;   // デカラ：相手を背負って受けた
+      let dcOk = false;
+      const brushQ = PP ? hist.filter((h) => h.b === p.idx && S.t - h.t < 2.6).map((h) => P[h.a]).find((m) => m && !m.off && (m.brushT || 0) > S.t) : null;   // ブラッシング：出して走った味方
       for (const q of mates(p)) {
         if (q === p || q.off) continue;
         if (q.gk && !(pr >= 1 && xf < 35)) continue;
@@ -2543,6 +2558,12 @@
         if (S.t - (p.protT ?? -9) < 1.6 && P[p.protFrom] && danger < 0.8) { const pf = P[p.protFrom]; if ((q.x - p.x) * (pf.x - p.x) + (q.y - p.y) * (pf.y - p.y) < 0) v += 0.6; }   // プロテクトの後は逆側へ
         if (held > 0.5 && hyp(p.vx, p.vy) > 1.5 && near.d < 5.5 && recvOpp > 4.5 && danger < 0.7) v += 0.9;   // 引きつけたら離す（ドライブで相手を引きつけて、空いた味方へ＝2対1）
         if (hist.some((h) => h.a === q.idx && h.b === p.idx) && adv < 2) v -= 0.6;   // すぐ戻すだけの往復はしない
+        if (PP) {
+          if (globalThis.__dcDbg2 && backMk && pxf < xf + 2 && d < 20) globalThis.__dcDbg2.push([+d.toFixed(1), +recvOpp.toFixed(1), +danger.toFixed(2), through ? 1 : 0]);
+          if (backMk && pxf < xf + 2 && d < 18 && d > 3 && recvOpp > 3 && danger < (globalThis.__Kpdg ?? 1.0) && !through) { v += globalThis.__Kpdc ?? 2.2; dcOk = true; }   // デカラ：前を向けないなら、前を向いている味方へ預ける（相手を引きつける）
+          if (brushQ && q === brushQ && adv > -1 && danger < 0.8) v += globalThis.__Kpbr ?? 2.4;   // ブラッシング：走り込んだ味方へ、溜めずに返す
+          if ((ph === 'cast' || ph === 'wave') && xf > 22 && xf < 70 && adv > 8 && pxf > 45 && pxf < 88 && Math.abs(py - GOAL_Y) < 14 && danger < 0.75 && !through && recvOpp > 1.8) v += globalThis.__Kpsh ?? 1.6;   // シャンク：真ん中のライン間・DFの前へ、くさびの縦パス
+        }
         if (globalThis.__Ku22 ?? 1) {   // 版922：固有スキルの選手へ預ける（新しい動きでも）。影の一刺し・蒼の王座（設計一覧22章）
           const KB = globalThis.__Ku22v ?? 1.6;
           if (q.uniq === 'kage' && !(q.uCd > S.t) && !q.off && pxf > L / 2 - 4 && pxf < L - 9 && adv > -6 && danger < 0.9 && mates(p).some((m) => m !== q && m !== p && !m.off && !m.gk && m.position === 'FW' && fx(t, m.x) > pxf + 2)) v += KB;
@@ -2631,10 +2652,12 @@
         if (bc > bo - 1.0 && bFinRuns(t, p)) { p.crWait = S.t; S.dribbleMode = 'carry'; S.dribbleDir = [sgn(t) * 0.6, (GOAL_Y - p.y) / Math.max(10, Math.abs(GOAL_Y - p.y)) * 0.4]; S.decision = R.range(0.35, 0.55); if (globalThis.__tacLog) globalThis.__tacLog.push(['crWait', +S.t.toFixed(1), t, p.idx]); return; }
       }
       if ((globalThis.__Kswp ?? 1) && ph !== 'fin' && xf < 32 && !p.gk && Math.abs(p.y - GOAL_Y) > 7) for (const o of opts) { if (o.kind !== 'pass') continue; const tx0 = o.space ? o.space[0] : o.q.x, ty0 = o.space ? o.space[1] : o.q.y; if (fx(t, tx0) < 32 && Math.abs(ty0 - GOAL_Y) > 7 && Math.sign(ty0 - GOAL_Y) !== Math.sign(p.y - GOAL_Y)) o.v -= 6; }   // 版908b：自陣ゴール前を横切るパスは、どの出し方でもしない
+      if (dcOk) for (const o of opts) if (o.kind === 'dribble') o.v -= globalThis.__Kpdd ?? 1.0;   // 版924：デカラ：背負ったまま無理に前を向かない（預けられる味方がいる時）
       // 選ぶ：判断（視野）の高い選手ほど、一番良い選択にはっきり寄る
       const sharp = 0.9 + (p.vision || 50) / 45;
       let sum = 0; for (const o of opts) { o.w = Math.exp(clamp(o.v, -6, 8) * sharp); sum += o.w; }
       let r0 = R.next() * sum, pick = opts[opts.length - 1]; for (const o of opts) { r0 -= o.w; if (r0 <= 0) { pick = o; break; } }
+      if (globalThis.__ppDbg) { const G = globalThis.__ppDbg; if (backMk) { G.back++; G['b_' + pick.kind + (pick.kind === 'pass' && fx(t, pick.q.x) < xf + 2 ? 'Back' : '')] = (G['b_' + pick.kind + (pick.kind === 'pass' && fx(t, pick.q.x) < xf + 2 ? 'Back' : '')] || 0) + 1; } if (brushQ) { G.br++; if (pick.kind === 'pass' && pick.q === brushQ) G.brRet++; else G['r_' + pick.kind] = (G['r_' + pick.kind] || 0) + 1; } }
       if (globalThis.__bDec) globalThis.__bDec.push({ minus: pick.minus ? 1 : 0, minusOpt: opts.filter((o) => o.minus).length, minusV: Math.max(-9, ...opts.filter((o) => o.minus).map((o) => o.v)), dG: dGoal, sv: (opts.find((o) => o.kind === 'shot') || {}).v, pv: pick.v, pd: pick.danger, pdist: pick.d, cross: pick.cross || '', chip: pick.chip ? 1 : 0, t: S.t, tm: t, i: p.idx, beat: pick.beat ? 1 : 0, prot: pick.protect != null ? 1 : 0, dm: oneDef && pick.beat ? (oneDef.nmDef || '') + ((S.t - (oneDef.jockeyT ?? -9) < 0.5) ? '|j' : '') : '', ph, pr, pick: pick.kind + (pick.mode ? ':' + pick.mode : '') + (pick.through ? ':thr' : '') + (pick.space ? ':spc' : ''), xf, v: pick.v, adv: pick.q ? fx(t, pick.space ? fx(t, pick.space[0]) === 0 ? 0 : pick.space[0] : pick.q.x) - xf : 0, n: opts.length, best: Math.max(...opts.map((o) => o.v)), fws: opts.filter((o) => o.kind === 'pass' && o.q && fx(t, o.q.x) - xf > 5 && (o.danger ?? 1) < 0.4).length, fwAll: opts.filter((o) => o.kind === 'pass' && o.q && fx(t, o.q.x) - xf > 5).length, ahead: mates(p).filter((m) => !m.off && !m.gk && fx(t, m.x) > xf + 5).length, near: near.d });
       // 実行
       if (pick.kind === 'shot') { shoot(p); return; }
@@ -2647,7 +2670,7 @@
         S.spaceSpot = pick.space ? { q: pick.q.idx, x: pick.space[0], y: pick.space[1] } : null;
         startPass(p, pick.q, pick.through, pick.chip, null); b.predD = pick.danger ?? -1; b.predLen = pick.d ?? -1;
         if (Math.abs(pick.q.y - p.y) > 22) T[t]._bSw = { t: S.t, s: Math.sign(pick.q.y - p.y) };
-        if ((globalThis.__Kpm ?? 1) && !p.gk && pick.q.team === t && !(p.slot.line === 0 && ph === 'cast') && !bTy(p, 'アンカー')) {   // パス＆ムーブ（版906：アンカーは上がらない）
+        if ((globalThis.__Kpm ?? 1) && !p.gk && pick.q.team === t && !(p.slot.line === 0 && ph === 'cast') && !bTy(p, 'アンカー') && !((p.brushT || 0) > S.t)) {   // 版924：ブラッシングで走り込む時は、そちらを優先   // パス＆ムーブ（版906：アンカーは上がらない）
           // 出した後は、受け手から12m以上離れた前の空いている所へ（受け手に寄っていかない：団子にしない）
           const q = pick.q, g = ph === 'gas' || ph === 'fin', qxf = fx(t, q.x), side = Math.sign(p.y - q.y) || (Math.sign(GOAL_Y - p.y) || 1);
           const ax = g ? Math.max(xf + 12, qxf + 6) : Math.max(xf + 6, qxf + 2), ay = clamp(q.y + side * Math.max(12, Math.abs(p.y - q.y)), 4, W - 4);
@@ -4301,6 +4324,16 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
     }
     function isOTReturn(p, q) { return S.oneTwo && S.oneTwo.b === p.idx && S.oneTwo.a === q.idx && q.otRun && S.t < q.otRun.until; }
     function startPass(p, q, through, chip, skill) {
+      if ((globalThis.__Kpp ?? 1) && S.nm && brainOn() && q && q.team === p.team && !p.gk && !S.setPiece && !S.restart) {   // 版924：ブラッシング・デカラ：出したら止まらずに前へ走り込む（設計一覧23章）
+        const xp = fx(p.team, p.x), xq = fx(p.team, q.x), dq = hyp(q.x - p.x, q.y - p.y), olR = offsideLine(p.team);
+        const crowd = opps(p).filter((o) => !o.off && !o.gk && (hyp(o.x - p.x, o.y - p.y) < 6 || hyp(o.x - q.x, o.y - q.y) < 6)).length;
+        const backed = S.t - (p.recvT ?? -9) < 1.7 && opps(p).some((o) => !o.off && !o.gk && hyp(o.x - p.x, o.y - p.y) < 2.6 && fx(p.team, o.x) > xp - 0.5) && xq < xp + 2;
+        if (!through && dq < 16 && xp > 30 && xp < L - 20 && ((crowd >= 2 && R.next() < (globalThis.__Kpbp ?? 0.45)) || backed)) {
+          const sd = Math.sign((q.y - p.y) || (GOAL_Y - p.y)) || 1, tx0 = Math.min(Math.max(xq, xp) + 7, olR - 0.8, L - 14), ty0 = clamp(p.y + sd * 4 + (GOAL_Y - p.y) * 0.15, 5, W - 5);
+          p.brushT = S.t + 2.6; p.run = Math.max(p.run || 0, 2.2); p.runCd = 0; p.otRun = { x: fx(p.team, tx0), y: ty0, until: S.t + 2.6 };
+          if (globalThis.__tacLog) globalThis.__tacLog.push([backed ? 'decara' : 'brush', +S.t.toFixed(1), p.team, p.idx]);
+        }
+      }
       if (U21() && through && !chip && q && q !== p && q.uniq === 'aonoouza' && q.team === p.team && !q.off && !S.setPiece && !(q.uOn > S.t) && !(q.uCd > S.t) && fx(q.team, q.x) > ((globalThis.__Ku22 ?? 1) ? 42 : 50) && fx(q.team, q.x) < offsideLine(q.team) - 1.5 && hyp(q.x - p.x, q.y - p.y) < 40) { through = false; skill = null; }   // 版921：蒼の王座：裏ではなく、くもいの足もとへ（下りて受けるのがくもいの仕事）
       if (S.nm && p.layoff && p.layoff.until > S.t && q && q.team === p.team && fx(p.team, q.x) < fx(p.team, p.x)) {   // 版894：落としたら、すぐ裏へ（背負っていた相手の背中を回って）
         const offL0 = offsideLine(p.team), sd = Math.sign(GOAL_Y - p.y) || 1, mk = P[p.layoff.mk];
@@ -6335,7 +6368,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       const bp0 = p.gk && bpFoot(p, b), prevTeam = b.lastTeam, prevKind = b.kind, prevPlayer = b.lastPlayer, inAir0 = (b.z || 0) > 0.3, bSpd0 = hyp(b.vx || 0, b.vy || 0);
       // 版894：くさび→落とし：FW（最前線）が背中に相手を背負って縦パスを受けたら、持たずに、前を向いている後ろの味方へ落とす（その間に自分は裏へ）
       p.layoff = null;
-      if (S.nm && !S.setPiece && prevKind === 'pass' && prevTeam === p.team && P[prevPlayer] && prevPlayer !== p.idx && !p.gk && p.slot && (p.slot.last || p.position === 'FW') && (globalThis.__Klay ?? 2.6)) {
+      if (S.nm && !S.setPiece && prevKind === 'pass' && prevTeam === p.team && P[prevPlayer] && prevPlayer !== p.idx && !p.gk && p.slot && (p.slot.last || p.position === 'FW' || ((globalThis.__Kpp ?? 1) && brainOn() && p.slot.line >= 1 && !p.uniq)) && (globalThis.__Klay ?? 2.6)) {   /* 版924：デカラは中盤の選手も */
         const mk = opps(p).find((o) => !o.off && !o.gk && hyp(o.x - p.x, o.y - p.y) < 3.2 && fx(p.team, o.x) > fx(p.team, p.x) - 0.5);
         if (mk && fx(p.team, p.x) < L - 16) { p.layoff = { until: S.t + 1.6, from: prevPlayer, mk: mk.idx }; S.decision = Math.min(S.decision, 0.1 + Math.max(0, 70 - p.vision) * 0.003); if (globalThis.__tacLog) globalThis.__tacLog.push(['wedge', +S.t.toFixed(1), p.team, p.idx]); }
       }
@@ -7798,7 +7831,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       computeTargets();
       mdPost();
       shapePost();
-      if (!S.nm) { widthPost(); blockPost(); } else if (brainOn()) { brainPost(); gkHoldPost(); crashPost(); gkDepthPost(); } else newMovePost();
+      if (!S.nm) { widthPost(); blockPost(); } else if (brainOn()) { brainPost(); gkHoldPost(); ppSupportPost(); crashPost(); gkDepthPost(); } else newMovePost();
       urgentPost();
       smoothPost();
       if (globalThis.__tgHook) globalThis.__tgHook(S, P, targets, urgent, fx, offsideLine, ownerP);
