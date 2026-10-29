@@ -665,7 +665,7 @@
       if (k === 'miyabi') { const r = miyabiTarget(p), own0 = ownerP(); if ((own0 && own0.team === p.team) || !r) return false; const dr = hyp(r.x - p.x, r.y - p.y); if (dr > 25) return false; if (dr > 14 && T[p.team].players.filter((m) => m !== p && !m.gk && !m.off && hyp(r.x - m.x, r.y - m.y) < dr).length >= 3) return false; }   // 雅の後始末：守備の時だけ。奪いに行ける距離・近い順で2番目までの時だけ（持ち場を捨てて遠くへは行かない）   // 雅の後始末：守備の時だけ。遠すぎる所へは行かない（近くの味方に任せる）
       const u = UNIQ[k], lv2 = p.uniqLv >= 2;
       if (R.next() > Math.min(1, u.ch * (chMul ?? 1) * (lv2 ? 1.25 : 1) * (0.5 + 0.5 * uEF(p)) * Math.sqrt(uLgF(p)))) {   /* 版850：総合力が低いほど発動しにくい（版851：下のリーグほど） */ p.uCd = S.t + 1.5; return false; }
-      p.uOn = S.t + u.dur * (lv2 ? 1.25 : 1); p.uCd = p.uOn + (lv2 && u.cd2 != null ? u.cd2 : u.cd * (lv2 ? 0.8 : 1));
+      p.uOn = S.t + u.dur * (lv2 ? 1.25 : 1); p.uCd = p.uOn + (lv2 && u.cd2 != null ? u.cd2 : u.cd * (lv2 ? 0.8 : 1)) * (k === 'kage' && (globalThis.__Ku22 ?? 1) ? 0.7 : 1);   /* 版922：影の一刺しは間隔を短く */
       if (k === 'midori' && (T[p.team].mdStack || 0) < 3) p.uCd = p.uOn + 4;   /* 版468：積み重ねが4回になるまでは、間隔を短く */
       if (!(k === 'kinshachi' && p.ksShownT && S.t - p.ksShownT < 60)) { p.ksShownT = k === 'kinshachi' ? S.t : p.ksShownT; act(p, 'uniq', 2.2, { k, lv: p.uniqLv || 1 }); } /* 金鯱の心臓は何度も出るので、吹き出しは1分に1回だけ */ ev('uniq', { team: p.team, player: p.name, number: p.number, k, name: u.name, lv: p.uniqLv || 1, face: u.face, gk: p.gk ? 1 : 0 });
       uniqLog.push({ t: +S.t.toFixed(2), i: p.idx, team: p.team, k });
@@ -2543,6 +2543,11 @@
         if (S.t - (p.protT ?? -9) < 1.6 && P[p.protFrom] && danger < 0.8) { const pf = P[p.protFrom]; if ((q.x - p.x) * (pf.x - p.x) + (q.y - p.y) * (pf.y - p.y) < 0) v += 0.6; }   // プロテクトの後は逆側へ
         if (held > 0.5 && hyp(p.vx, p.vy) > 1.5 && near.d < 5.5 && recvOpp > 4.5 && danger < 0.7) v += 0.9;   // 引きつけたら離す（ドライブで相手を引きつけて、空いた味方へ＝2対1）
         if (hist.some((h) => h.a === q.idx && h.b === p.idx) && adv < 2) v -= 0.6;   // すぐ戻すだけの往復はしない
+        if (globalThis.__Ku22 ?? 1) {   // 版922：固有スキルの選手へ預ける（新しい動きでも）。影の一刺し・蒼の王座（設計一覧22章）
+          const KB = globalThis.__Ku22v ?? 1.6;
+          if (q.uniq === 'kage' && !(q.uCd > S.t) && !q.off && pxf > L / 2 - 4 && pxf < L - 9 && adv > -6 && danger < 0.9 && mates(p).some((m) => m !== q && m !== p && !m.off && !m.gk && m.position === 'FW' && fx(t, m.x) > pxf + 2)) v += KB;
+          if (q.uniq === 'aonoouza' && !(q.uOn > S.t) && !(q.uCd > S.t) && !q.off && !through && pxf > 42 && pxf < 92 && adv > 1.5 && d < 40 && danger < 0.9) v += KB * 1.2;
+        }
         if (danger < 0.4) bestSafe = Math.max(bestSafe, v);
         opts.push({ kind: 'pass', q, through, v, danger, d, space: thrSpot, minus: isMinus });
         if (through && globalThis.__thDbg) globalThis.__thDbg.push([+danger.toFixed(2), +v.toFixed(2), byp, +d.toFixed(0)]);
@@ -4295,7 +4300,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
     }
     function isOTReturn(p, q) { return S.oneTwo && S.oneTwo.b === p.idx && S.oneTwo.a === q.idx && q.otRun && S.t < q.otRun.until; }
     function startPass(p, q, through, chip, skill) {
-      if (U21() && through && !chip && q && q !== p && q.uniq === 'aonoouza' && q.team === p.team && !q.off && !S.setPiece && !(q.uOn > S.t) && !(q.uCd > S.t) && fx(q.team, q.x) > 50 && fx(q.team, q.x) < offsideLine(q.team) - 1.5 && hyp(q.x - p.x, q.y - p.y) < 40) { through = false; skill = null; }   // 版921：蒼の王座：裏ではなく、くもいの足もとへ（下りて受けるのがくもいの仕事）
+      if (U21() && through && !chip && q && q !== p && q.uniq === 'aonoouza' && q.team === p.team && !q.off && !S.setPiece && !(q.uOn > S.t) && !(q.uCd > S.t) && fx(q.team, q.x) > ((globalThis.__Ku22 ?? 1) ? 42 : 50) && fx(q.team, q.x) < offsideLine(q.team) - 1.5 && hyp(q.x - p.x, q.y - p.y) < 40) { through = false; skill = null; }   // 版921：蒼の王座：裏ではなく、くもいの足もとへ（下りて受けるのがくもいの仕事）
       if (S.nm && p.layoff && p.layoff.until > S.t && q && q.team === p.team && fx(p.team, q.x) < fx(p.team, p.x)) {   // 版894：落としたら、すぐ裏へ（背負っていた相手の背中を回って）
         const offL0 = offsideLine(p.team), sd = Math.sign(GOAL_Y - p.y) || 1, mk = P[p.layoff.mk];
         p.run = R.range(2.4, 3.0); p.runCd = 0; p.brT = S.t; p.brTimed = true; p.otRun = { x: fx(p.team, Math.min(offL0 + 8, L - 9)), y: clamp(p.y + sd * 3, 6, W - 6), until: S.t + 3.2 }; p.spinT = S.t + 3.2;
@@ -4501,7 +4506,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       if (skill === 'pinpointCross') act(p, 'pppass', 1.9, { r: q.idx, lx: +tx.toFixed(1), ly: +ty.toFixed(1) });   // 版838：ピンポイントクロス：落ちる所に金の的、ボールに金の光の尾
       if ((tsukiPass || through) && fx(p.team, tx) > offL + 1.5 && fx(p.team, tx) > L - 40 && !off) for (const m of opps(p)) if (m.uniq === 'miyabi' && !m.off) uFire(m, 'miyabi');   // 裏を取られた：雅の後始末
       b.tact = p.cdFirst === S.t; b.tactLv = 1; b.tactDef = -1;   // 港の指揮者：合図の1本は、相手が触れない（勢いが落ちるまで）
-      if (q.uniq === 'aonoouza' && q !== p && !q.off && !S.setPiece && !through && fx(q.team, q.x) > (U21() ? 50 : 55) && fx(q.team, q.x) < 95 && fx(q.team, q.x) > fx(p.team, p.x) + 4 && hyp(q.x - p.x, q.y - p.y) < (U21() ? 40 : 34) && (!style || (U21() && style === 'drive')) && S.t > 4 && !(q.uOn > S.t) && !(q.uCd > S.t)) { S.aoPasser = p.idx; uFire(q, 'aonoouza'); S.aoPasser = null; q.aoHoldT = 0; if (q.uOn > S.t) { act(q, 'aopost', 4.5, { lv: q.uniqLv || 1 }); act(q, 'aoflash', 1.1, { lv: q.uniqLv || 1 }); b.aoP = true; b.aoIn = true; q.aoTurn = 0; b.uSafe = Math.max(b.uSafe || 0, 0.4); }   /* 縦パスは、落ちてきたくもいが体を入れて収める */ }   /* くもいへの縦パスは、落ちてきたくもいが体を入れて受ける（カットされにくい） */   // 蒼の王座：下りてきたくもいにパスが出た瞬間、CBが釣り出され、2列目が穴へ走り出す
+      if (q.uniq === 'aonoouza' && q !== p && !q.off && !S.setPiece && !through && fx(q.team, q.x) > (U21() ? ((globalThis.__Ku22 ?? 1) ? 42 : 50) : 55) && fx(q.team, q.x) < 95 && fx(q.team, q.x) > fx(p.team, p.x) + ((globalThis.__Ku22 ?? 1) ? 1.5 : 4) && hyp(q.x - p.x, q.y - p.y) < (U21() ? 40 : 34) && (!style || (U21() && style === 'drive')) && S.t > 4 && !(q.uOn > S.t) && !(q.uCd > S.t)) { S.aoPasser = p.idx; uFire(q, 'aonoouza'); S.aoPasser = null; q.aoHoldT = 0; if (q.uOn > S.t) { act(q, 'aopost', 4.5, { lv: q.uniqLv || 1 }); act(q, 'aoflash', 1.1, { lv: q.uniqLv || 1 }); b.aoP = true; b.aoIn = true; q.aoTurn = 0; b.uSafe = Math.max(b.uSafe || 0, 0.4); }   /* 縦パスは、落ちてきたくもいが体を入れて収める */ }   /* くもいへの縦パスは、落ちてきたくもいが体を入れて受ける（カットされにくい） */   // 蒼の王座：下りてきたくもいにパスが出た瞬間、CBが釣り出され、2列目が穴へ走り出す
       b.byP = byNow; b.byLv = p.uniqLv || 1; b.byT0 = S.t; if (byNow) { p.byHoldT = 0; b.landX = tx; b.landY = ty; q.uChase = { until: S.t + 6, mode: 'ball' }; { const mt = tsukiMeet(q); if (mt && mt.t < 6) { b.landX = mt.x; b.landY = mt.y; } } act(p, 'bypass', 4, { x0: +p.x.toFixed(2), y0: +p.y.toFixed(2), r: q.idx, lv: p.uniqLv || 1 }); p.uOn = Math.min(p.uOn, S.t + 0.5); }   // 白い光の尾を引いて大きな弧
       b.aoP = b.aoP || (S.uzWant && !hrNow && !byNow); if (b.aoP && uOn(p, 'aonoouza')) { act(p, 'aopass', 3, { r: q.idx, lv: p.uniqLv || 1 }); if (p.uniq === 'aonoouza') act(p, 'aopostend', 0.1); }   // 蒼の王座の1本は、どの出し方でも青い光の尾 S.uzWant = false; if (b.aoP) q.uChase = { until: S.t + 3.5, mode: 'ball' };   // 蒼の王座：穴へ走り込む味方への1本は、相手に触られずに届く（受け手は合う所へ全力で）
       b.hari = hrNow; b.hariLv = p.uniqLv || 1; if (hrNow && style !== 'cross') { b.landX = tx; b.landY = ty; q.uChase = { until: S.t + 3.5, mode: 'ball' }; }   // 受け手は、ボールと同時に着く所へ全力で走り込む
