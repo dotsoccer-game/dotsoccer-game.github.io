@@ -1913,7 +1913,7 @@
   // 毎月1日に切りかわる。ピックアップは固有スキルを持つ☆5の18人を1か月に1人ずつ。天井：そのガチャで200回引くとピックアップ確定
   const GACHA_ORDER = ['guren', 'tsukikage', 'minato', 'byakuya', 'midori', 'kinshachi', 'aonoouza', 'harinoana', 'shiden', 'kagenui', 'matsuri', 'miyabi', 'sakurajima', 'ikari', 'uzushio', 'kage', 'tetsurou', 'sutemi'];
   const GACHA_START = [2026, 9];   // 2026年10月から（月は0から数える）
-  const GACHA_RATE = [[5, 0.5], [4, 4], [3, 15], [2, 30], [1, 50.5]];   // 版910：☆5は0.5%（減らした0.5%は☆1へ）。☆5は国内屈指の18人のだれか（ピックアップなし）   // 版662：☆5は1%（☆1を50%に）   // ☆ と 確率（％）
+  const GACHA_RATE = [[5, 1], [4, 4], [3, 15], [2, 30], [1, 50]];   // 版912：☆5は1%（版911の0.5%から戻した）。☆5は国内屈指の18人のだれか（ピックアップなし）   // 版662：☆5は1%（☆1を50%に）   // ☆ と 確率（％）
   const GACHA_COST = { one: 100, ten: 900 }, GACHA_PITY = 200;   // 版572：10回まとめてだと1回ぶんお得（900）
   const KAKERA_OF = { 1: 1, 2: 2, 3: 5, 4: 15, 5: 50 };
   // 版642：覚醒のカケラで凸（覚醒）する。1回で凸が1つ上がる（最大3凸）。☆が高いほどたくさん必要
@@ -1929,7 +1929,12 @@
   }
   // 版910：ピックアップをやめて、国内屈指の18人を全員入れる（☆5が出たら18人のだれか。1人あたり0.5%÷18）
   const GACHA_ALL = true;
-  function gachaUniqList() { return GACHA_ORDER.map((key) => { const [tid, no] = D.UNIQ[key].face.split('_'); return { key, tid, no: +no }; }); }
+  let gachaUL = null;
+  function gachaUniqList() {   // 版912：国内屈指の18人は、ロスターの「国内屈指」の印（top）で探す（顔の絵の番号ではない。針の穴通しのきのしたは、なにわの顔の絵を使っている）
+    if (gachaUL) return gachaUL; const L = [];
+    for (const key of GACHA_ORDER) { let hit = null; for (const tid in ROSTERS) { const q = rosterAt(tid, 1).players.find((x) => x.top && D.UNIQ_BY_TOP && D.UNIQ_BY_TOP[x.top] === key); if (q) { hit = { key, tid, no: q.no }; break; } } if (hit) L.push(hit); }
+    return (gachaUL = L);
+  }
   function gachaBanner(date) {
     if (GACHA_ALL) return { id: 'all', key: 'all', all: true, list: gachaUniqList(), until: '' };
     const d = date || new Date(), m = (d.getFullYear() - GACHA_START[0]) * 12 + d.getMonth() - GACHA_START[1];
@@ -1989,7 +1994,17 @@
     for (const p of dup) { let n = 12; while (seen.has(n) && n < 99) n++; if (seen.has(n)) { n = 1; while (seen.has(n)) n++; } p.number = n; seen.add(n); }
     return dup.length;
   }
-  function gachaFixOld(save) { try { fixNumbers(save); } catch (_) {} for (const p of [...save.team.players, ...(save.reserve || [])]) { if (p.gsrc && (p.gweak || 0) < 2) gachaWeak(p); if (p.gsrc && p.uniq && D.UNIQ[p.uniq] && D.UNIQ[p.uniq].hair) p.hairColor = D.UNIQ[p.uniq].hair; } }   // 版555：前に来た国内屈指級の髪の色も直す
+  function gachaFixOld(save) { try { fixNumbers(save); } catch (_) {}
+    try {   // 版912：版911のスカウトで、針の穴通しの代わりに、なにわの「おおの」（ふつうの選手）が☆5で来てしまった。正しい国内屈指（薩摩のきのした）に入れ替える
+      const lists = [save.team.players, save.reserve || []];
+      for (const L of lists) for (let i = 0; i < L.length; i++) { const p = L[i]; if (!(p.gsrc === 'naniwa_10' && p.star === 5)) continue;
+        const ok = [...save.team.players, ...(save.reserve || [])].find((x) => x.gsrc === 'satsuma_8');
+        if (ok) { ok.totsu = Math.min(3, (ok.totsu || 0) + 1 + (p.totsu || 0)); L.splice(i, 1); i--; continue; }
+        const q = gachaQ('satsuma', 8); if (!q) continue; const np = rosterPlayer(q, 0); const hc = np.topHair; delete np.topHair; delete np.role;
+        Object.assign(np, { number: p.number, star: 5, totsu: p.totsu || 0, gsrc: 'satsuma_8', faceKey: faceKeyOf('satsuma', q) || undefined, fatigue: p.fatigue || 10, cond: 0, injury: 0, games: p.games || 0, foot: np.foot || 'R' }); delete np.age;
+        { const h2 = hc || (np.faceKey && root.STAR_HAIR && root.STAR_HAIR[np.faceKey]); if (h2 != null) np.hairColor = h2; }
+        np.gweak = 0; gachaWeak(np); L[i] = np; }
+    } catch (_) {} for (const p of [...save.team.players, ...(save.reserve || [])]) { if (p.gsrc && (p.gweak || 0) < 2) gachaWeak(p); if (p.gsrc && p.uniq && D.UNIQ[p.uniq] && D.UNIQ[p.uniq].hair) p.hairColor = D.UNIQ[p.uniq].hair; } }   // 版555：前に来た国内屈指級の髪の色も直す
   function gachaPull(save, n, r) {
     r = r || Math.random; const bn = gachaBanner(), cost = n >= 10 ? GACHA_COST.ten : GACHA_COST.one * n;
     if ((save.coins || 0) < cost) return null;
