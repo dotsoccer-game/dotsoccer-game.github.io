@@ -2196,7 +2196,7 @@
           const fr = pl.filter((q) => q.idx !== ref.idx && brainFree(q) && q.slot.line >= 1 && !bTy(q, 'アンカー') && fx(t, q.x) > bxf - (bTy(q, 'ダイナモ') ? 16 : 8)).sort((a0, c0) => fx(t, c0.x) - fx(t, a0.x)).slice(0, 3);
           const lanes = [GOAL_Y - 17, GOAL_Y, GOAL_Y + 17], used = new Set();
           for (const q of fr) { let bl = -1, bd = 1e9; lanes.forEach((ly, k) => { if (!used.has(k) && Math.abs(q.y - ly) < bd) { bd = Math.abs(q.y - ly); bl = k; } }); if (bl < 0) break; used.add(bl);
-            q.ctr = { x: fx(t, Math.min(offL - 1, L - 12, Math.max(fx(t, q.x) + ((globalThis.__Kfst ?? 0) ? 16 : 10), bxf + ((globalThis.__Kfst ?? 0) ? 18 : 12)))), y: lanes[bl], until: S.t + ((globalThis.__Kfst ?? 0) ? 4 : 3) }; if (globalThis.__tacLog) globalThis.__tacLog.push(['ctr', +S.t.toFixed(1), t, q.idx]); } }
+            q.ctr = { x: fx(t, Math.min((globalThis.__Kfsr ?? 0) ? Math.max(offL - 1, fx(t, q.x) + 6) : offL - 1, L - 12, Math.max(fx(t, q.x) + ((globalThis.__Kfst ?? 0) || (globalThis.__Kfsr ?? 0) ? 16 : 10), bxf + ((globalThis.__Kfst ?? 0) || (globalThis.__Kfsr ?? 0) ? 18 : 12)))), y: lanes[bl], until: S.t + ((globalThis.__Kfst ?? 0) || (globalThis.__Kfsr ?? 0) ? 4 : 3) }; if (globalThis.__tacLog) globalThis.__tacLog.push(['ctr', +S.t.toFixed(1), t, q.idx]); } }
       }
       // それぞれの目標
       const LN = [13.85, 24.85, 43.15, 54.15], lane = (y) => (y < LN[0] ? 0 : y < LN[1] ? 1 : y < LN[2] ? 2 : y < LN[3] ? 3 : 4);
@@ -4793,7 +4793,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       if (p.gk && !p.hold && !S.setPiece && !S.restart && S.ball.owner === p.idx && gkFeet(p)) return;   // 版863：足もとのボール（バックパス）：GKもビルドアップに加わる
       if (!p.gk && !S.setPiece && S.ball.owner === p.idx && S.ball.z > 0.15) { S.decision = 0.05; return; }   // 版812：胸・ももで止めたボールが足もとに落ちてくるまでは、蹴らない（頭の上から真っすぐ飛んでいた。ワンタッチで打つ時も、落ちてから）
       if (S.forceShot != null) { const a = S.forceShot, h = S.forceHow; S.forceShot = null; S.forceHow = null; shoot(p, a, h); return; }
-      if (brainOn() && (globalThis.__bAtk ?? 1) && !p.gk && !S.setPiece && !S.restart && S.ball.owner === p.idx) {   // 版902：原理原則から作り直した判断
+      const uqOld = (globalThis.__Kuq ?? 1) && (p.uniq || (p.hariT || 0) > S.t || (p.byT || 0) > S.t || (p.finT || 0) > S.t || (p.uzDrive && p.uzDrive.until > S.t) || (p.mdFree || 0) > S.t || (p.mdDrive || 0) > S.t || (p.mtCounter || 0) > S.t || (p.tsukiGuard || 0) > S.t || (p.aoFast || 0) > S.t);   // 版914：固有スキルを持つ選手と、固有スキルの効果を受けている選手は、固有スキルの判断が入っている判断（版907まで）を使う（新しい判断には固有スキルの判断がなく、出なかった。設計一覧18章）
+      if (brainOn() && (globalThis.__bAtk ?? 1) && !uqOld && !p.gk && !S.setPiece && !S.restart && S.ball.owner === p.idx) {   // 版902：原理原則から作り直した判断
         if (emptyGoal(p)) { shoot(p, null, null); return; }
         if (S.mustClear && S.mustClear.i === p.idx && S.t - S.mustClear.t < 1.5) { S.mustClear = null; const [ax, ay] = clearAim(p, clamp(p.x + sgn(p.team) * R.range(20, 34), 2, L - 2), p.y < GOAL_Y ? R.range(-4, 10) : W - R.range(-4, 10)); kick(p, ax, ay, 'pass', 'clear', { landFrac: R.range(0.8, 1.0) }); S.ball.intended = -1; S.ball.offside = false; S.ball.kind = 'loose'; return; }
         decideBrain(p); return; }
