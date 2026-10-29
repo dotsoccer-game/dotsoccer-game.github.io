@@ -1695,14 +1695,14 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     nrm(0); nrm(1); nrm(2);
     ballM = out;
   }
-  function ballDraw(b, spinCode, bs) {
+  function ballDraw(b, spinCode, bs, held) {
     let speed = 0;
     if (lastBall) {
       const dx = b.x - lastBall.x, dy = b.y - lastBall.y, dz = b.z - lastBall.z;
       const d = Math.hypot(dx, dy, dz), dh = Math.hypot(dx, dy);
       const dt = Math.max(1e-3, simT - lastBall.t);
       speed = d / dt;
-      if (dt < 0.5 && dh > 1e-4) {
+      if (dt < 0.5 && dh > 1e-4 && !(held >= 0) && !(ballOwned && b.z > 0.6)) {   // 版923：スロー・GKが手で持っている間は回さない
         // 1コマで回る量（速すぎるとコマ落ちで逆回転に見えるので上限）
         const roll = Math.min(0.6, (dh / 0.11) * 0.22);
         const air = b.z > 0.35;
@@ -2809,9 +2809,9 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
             else if (o) bb = { ...st.ball, x: st.ball.x + a.dx * o[0] + a.fx * o[1], y: st.ball.y + a.dy * o[0] + a.fy * o[1], z: (st.ball.z || 0) + (o[2] || 0) };
           }
         }
-        if (!(goalDefer && (goalDefer.before.length || goalDefer.after.length)) && (bb.z || 0) > 1.6) { hiBall = [bb, st.spin, st.bs, st.owner >= 0]; continue; }   // 版670：高い浮き球（ヒールリフトなど）は、名前・スキルの吹き出しに隠れないよう、いちばん最後に描く
+        if (!(goalDefer && (goalDefer.before.length || goalDefer.after.length)) && (bb.z || 0) > 1.6) { hiBall = [bb, st.spin, st.bs, st.owner >= 0, st.held]; continue; }   // 版670：高い浮き球（ヒールリフトなど）は、名前・スキルの吹き出しに隠れないよう、いちばん最後に描く
         if (goalDefer && goalDefer.before.length) goalDraw(goalDefer.gx, goalDefer.before);   // ボールの奥にある柱・手前のネット
-        ballOwned = st.owner >= 0; ballDraw(bb, st.spin, st.bs);
+        ballOwned = st.owner >= 0; ballDraw(bb, st.spin, st.bs, st.held);
         if (goalDefer && goalDefer.after.length) goalDraw(goalDefer.gx, goalDefer.after);   // ボールの手前にある奥のネット（ゴールの裏・天井の上など）
         continue;
       }
@@ -3733,7 +3733,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       if (kk) ctx.restore();
       ctx.fillStyle = uq ? cc[2] : oc ? oc[2] : '#3a2a00'; ctx.textAlign = 'center'; ctx.fillText(k, x, y - 2);
     });
-    if (hiBall) { ballOwned = hiBall[3]; ballDraw(hiBall[0], hiBall[1], hiBall[2]); }
+    if (hiBall) { ballOwned = hiBall[3]; ballDraw(hiBall[0], hiBall[1], hiBall[2], hiBall[4]); }
     { // 版864：GKがボールに触った瞬間（はじく・パンチング・指先・足・体）：ボールの所に白い衝撃の光を出す（手に当たったと見て分かるように）
       const HIT = { parry: 1, diveparry: 1, punch: 1, tipover: 1, footsave: 1, block: 1, tip: 1 };
       const he = match && match.events && match.events.find((e) => (e.type === 'save' || e.type === 'gk') && HIT[e.act] && simT - (e.tt ?? e.t) >= -0.02 && simT - (e.tt ?? e.t) < 0.3);
