@@ -1976,7 +1976,7 @@
     p.star = pick.star; p.totsu = 0; p.gsrc = pick.tid + '_' + pick.no; p.faceKey = faceKeyOf(pick.tid, q) || undefined;
     { const hc = topHc || (p.faceKey && root.STAR_HAIR && root.STAR_HAIR[p.faceKey]); if (hc != null) p.hairColor = hc; }   // 版555：国内屈指級はその選手だけの髪の色（CPUの時と同じ）
     p.fatigue = 10; p.cond = 0; p.injury = 0; p.games = 0; p.foot = p.foot || (Math.random() < 0.2 ? 'L' : 'R'); delete p.age; gachaWeak(p);
-    if (full) save.reserve.push(p); else ps.push(p);
+    if (full) { p.gNew = 1; save.reserve.push(p); } else ps.push(p);   // 版915：リザーブに入った新しい選手は、リザーブの一番上に出す（gNew）
     return { kind: 'new', p, star: pick.star, q, tid: pick.tid, reserve: full };
   }
   // 版506：スカウトで来た選手は、育てる前の弱い状態（能力はE〜C）。得意・不得意の形（どの能力が高いか）はそのまま残す
@@ -2001,7 +2001,7 @@
         const ok = [...save.team.players, ...(save.reserve || [])].find((x) => x.gsrc === 'satsuma_8');
         if (ok) { ok.totsu = Math.min(3, (ok.totsu || 0) + 1 + (p.totsu || 0)); L.splice(i, 1); i--; continue; }
         const q = gachaQ('satsuma', 8); if (!q) continue; const np = rosterPlayer(q, 0); const hc = np.topHair; delete np.topHair; delete np.role;
-        Object.assign(np, { number: p.number, star: 5, totsu: p.totsu || 0, gsrc: 'satsuma_8', faceKey: faceKeyOf('satsuma', q) || undefined, fatigue: p.fatigue || 10, cond: 0, injury: 0, games: p.games || 0, foot: np.foot || 'R' }); delete np.age;
+        Object.assign(np, { gNew: 1, number: p.number, star: 5, totsu: p.totsu || 0, gsrc: 'satsuma_8', faceKey: faceKeyOf('satsuma', q) || undefined, fatigue: p.fatigue || 10, cond: 0, injury: 0, games: p.games || 0, foot: np.foot || 'R' }); delete np.age;
         { const h2 = hc || (np.faceKey && root.STAR_HAIR && root.STAR_HAIR[np.faceKey]); if (h2 != null) np.hairColor = h2; }
         np.gweak = 0; gachaWeak(np); L[i] = np; }
     } catch (_) {} for (const p of [...save.team.players, ...(save.reserve || [])]) { if (p.gsrc && (p.gweak || 0) < 2) gachaWeak(p); if (p.gsrc && p.uniq && D.UNIQ[p.uniq] && D.UNIQ[p.uniq].hair) p.hairColor = D.UNIQ[p.uniq].hair; } }   // 版555：前に来た国内屈指級の髪の色も直す

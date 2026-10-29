@@ -1555,7 +1555,7 @@
       pop = `<div class="s2pop s2rpop" style="left:${PX0 + 4}px;top:9999px"><div class="s2ph"><i class="pos ${POSC[q.position]}">${q.position}</i><span>${esc(q.name)}</span>${starHTML(C.ensureStar(q), q.totsu)}<small class="s2rp-tag">リザーブ</small></div>
         <div class="s2pr">${PK.map((k, j) => `<span title="${esc(D.PARAMS[j].name)}">${ico(k)}<i class="rk2 g-${rk[j]}">${rk[j]}</i></span>`).join('')}</div>
         <div class="s2pt"><span class="tbadge ${TYPE_CLS[q.type] || 'ty-bal'}">${esc(q.type || '')}</span>${condGauge(q, 'sm')}<small>疲労 ${Math.round(q.fatigue || 0)}%</small><span class="s2ft">利き足${footSVG(q.foot)}<b>${q.foot === 'L' ? '左' : '右'}</b></span></div></div>`; }
-    if (sqResOpen && (save.reserve || []).length > 1) save.reserve.sort((a, b) => statOvr(b) - statOvr(a));   // 版692：能力の高い順（版858：総合力）
+    if (sqResOpen && (save.reserve || []).length > 1) save.reserve.sort((a, b) => ((b.gNew ? 1 : 0) - (a.gNew ? 1 : 0)) || ((b.gNew ? b.star || 0 : 0) - (a.gNew ? a.star || 0 : 0)) || statOvr(b) - statOvr(a));   // 版692：能力の高い順（版858：総合力）。版915：スカウトで来たばかりの選手（☆の高い順）は一番上
     $('#clubLayer').innerHTML = `<div class="sq2${PHN ? ' ph' : ''}${sqResOpen && (save.reserve || []).length ? ' resopen' : ''}"><div class="s2board"${boardCss}>
         <div class="s2head"><img src="${emblemURL(save.team.name, 40)}" alt=""><b>${esc(save.team.name)}</b><em>［${esc(label)}］</em></div>
         <div class="s2pitch" style="left:${PX0}px;top:${PY0}px;width:${PW}px;height:${PH}px"><i class="s2gk" style="top:${R * CH}px;height:${CH * 2}px"></i><i class="s2box" style="left:${PW * 0.22}px;width:${PW * 0.56}px;top:${R * CH - CH * 0.15}px;height:${CH * 2.15}px"></i><i class="s2box2" style="left:${PW * 0.34}px;width:${PW * 0.32}px;top:${R * CH + CH * 0.85}px;height:${CH * 1.15}px"></i></div>
@@ -1581,7 +1581,7 @@
       else if (a === 'res') { sqResOpen = !sqResOpen; sqRes = -1; sqMulti = null; renderLineup2(); }
       else if (a === 'club') openClub({ onDone: () => renderLineup() }); });
     { const rb = L.querySelector('.s2res-back'); if (rb) rb.onclick = () => { sqRes = -1; renderLineup2(); }; }
-    { const rx = L.querySelector('.s2res-x'); if (rx) rx.onclick = () => { sqResOpen = false; sqRes = -1; sqMulti = null; renderLineup2(); }; }
+    { const rx = L.querySelector('.s2res-x'); if (rx) rx.onclick = () => { sqResOpen = false; sqRes = -1; sqMulti = null; for (const q of save.reserve || []) delete q.gNew; renderLineup2(); }; }   // 版915：リザーブを閉じたら「新しい」の印を消す
     // 版517：リザーブとチームの入れかえ（タップでもドラッグでも）
     function swapRes(k, i) {
       const ps = save.team.players, r = save.reserve[k]; if (!r || !ps[i]) return;
