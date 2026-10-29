@@ -655,6 +655,7 @@
       act(p, 'uniq', 2.2, { k: 'sakurajima', lv: p.uniqLv || 1 }); ev('uniq', { team: p.team, player: p.name, number: p.number, k: 'sakurajima', name: u.name, lv: p.uniqLv || 1, face: u.face, gk: 0 });
       uniqLog.push({ t: +S.t.toFixed(2), i: p.idx, team: p.team, k: 'sakurajima' }); return true;
     }
+    const U21 = () => !!(globalThis.__Ku21 ?? 1);   // 版921：発動の少ない固有スキルの条件を少しゆるめる（設計一覧22章）
     function uFire(p, k, chMul) {
       if (!p || p.uniq !== k || p.off || S.celebrate > 0) return false;
       if (p.uOn > S.t) return true;
@@ -924,7 +925,7 @@
             else if (!own && S.ball.kind === 'pass' && S.ball.intended >= 0 && P[S.ball.intended].team !== p.team) { const q = P[S.ball.intended], sd = segDist(p.x, p.y, S.ball.x, S.ball.y, q.x, q.y); if (Math.abs(q.y - GOAL_Y) < zw && fx(p.team, q.x) < 46 && (sd.d < 4 || hyp(q.x - p.x, q.y - p.y) < 6)) uFire(p, 'tetsurou'); }   // 真ん中へ通そうとしたパス
             break; }
           case 'kage': if (globalThis.__kmZ && own === p && S.t > (p.kmZt || 0)) { p.kmZt = S.t + 1; const z = globalThis.__kmZ; z.own++; if (fx(p.team, p.x) > L / 2 + 2 && fx(p.team, p.x) < L - 12) { z.zone++; if (Math.abs(p.y - GOAL_Y) < 28) { z.cen++; if (mates(p).some((m) => m !== p && !m.off && !m.gk && m.position === 'FW' && fx(p.team, m.x) > fx(p.team, p.x) + 2 && fx(p.team, m.x) < offsideLine(p.team) + 3)) z.fw++; if (p.uCd > S.t) z.cd++; } } }
-            if (own === p && !S.setPiece && fx(p.team, p.x) > L / 2 + 2 && fx(p.team, p.x) < L - 12 && Math.abs(p.y - GOAL_Y) < 28 && mates(p).some((m) => m !== p && !m.off && !m.gk && m.position === 'FW' && fx(p.team, m.x) > fx(p.team, p.x) + 2 && fx(p.team, m.x) < offsideLine(p.team) + 3)) uFire(p, 'kage'); break;   // 影の一刺し：FWのすぐ後ろで、前を向いて持った
+            if (own === p && !S.setPiece && fx(p.team, p.x) > L / 2 + (U21() ? -4 : 2) && fx(p.team, p.x) < L - (U21() ? 9 : 12) && Math.abs(p.y - GOAL_Y) < (U21() ? 32 : 28) && mates(p).some((m) => m !== p && !m.off && !m.gk && m.position === 'FW' && fx(p.team, m.x) > fx(p.team, p.x) + 2 && fx(p.team, m.x) < offsideLine(p.team) + 3)) uFire(p, 'kage'); break;   // 影の一刺し：FWのすぐ後ろで、前を向いて持った
         }
       }
       // ムードメーカー（バランスのサポートパッシブ）：負けている時・引き分けの時、味方全員の能力が少し上がる
@@ -4294,6 +4295,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
     }
     function isOTReturn(p, q) { return S.oneTwo && S.oneTwo.b === p.idx && S.oneTwo.a === q.idx && q.otRun && S.t < q.otRun.until; }
     function startPass(p, q, through, chip, skill) {
+      if (U21() && through && !chip && q && q !== p && q.uniq === 'aonoouza' && q.team === p.team && !q.off && !S.setPiece && !(q.uOn > S.t) && !(q.uCd > S.t) && fx(q.team, q.x) > 50 && fx(q.team, q.x) < offsideLine(q.team) - 1.5 && hyp(q.x - p.x, q.y - p.y) < 40) { through = false; skill = null; }   // 版921：蒼の王座：裏ではなく、くもいの足もとへ（下りて受けるのがくもいの仕事）
       if (S.nm && p.layoff && p.layoff.until > S.t && q && q.team === p.team && fx(p.team, q.x) < fx(p.team, p.x)) {   // 版894：落としたら、すぐ裏へ（背負っていた相手の背中を回って）
         const offL0 = offsideLine(p.team), sd = Math.sign(GOAL_Y - p.y) || 1, mk = P[p.layoff.mk];
         p.run = R.range(2.4, 3.0); p.runCd = 0; p.brT = S.t; p.brTimed = true; p.otRun = { x: fx(p.team, Math.min(offL0 + 8, L - 9)), y: clamp(p.y + sd * 3, 6, W - 6), until: S.t + 3.2 }; p.spinT = S.t + 3.2;
@@ -4499,7 +4501,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       if (skill === 'pinpointCross') act(p, 'pppass', 1.9, { r: q.idx, lx: +tx.toFixed(1), ly: +ty.toFixed(1) });   // 版838：ピンポイントクロス：落ちる所に金の的、ボールに金の光の尾
       if ((tsukiPass || through) && fx(p.team, tx) > offL + 1.5 && fx(p.team, tx) > L - 40 && !off) for (const m of opps(p)) if (m.uniq === 'miyabi' && !m.off) uFire(m, 'miyabi');   // 裏を取られた：雅の後始末
       b.tact = p.cdFirst === S.t; b.tactLv = 1; b.tactDef = -1;   // 港の指揮者：合図の1本は、相手が触れない（勢いが落ちるまで）
-      if (q.uniq === 'aonoouza' && q !== p && !q.off && !S.setPiece && !through && fx(q.team, q.x) > 55 && fx(q.team, q.x) < 95 && fx(q.team, q.x) > fx(p.team, p.x) + 4 && hyp(q.x - p.x, q.y - p.y) < 34 && !style && S.t > 4 && !(q.uOn > S.t) && !(q.uCd > S.t)) { S.aoPasser = p.idx; uFire(q, 'aonoouza'); S.aoPasser = null; q.aoHoldT = 0; if (q.uOn > S.t) { act(q, 'aopost', 4.5, { lv: q.uniqLv || 1 }); act(q, 'aoflash', 1.1, { lv: q.uniqLv || 1 }); b.aoP = true; b.aoIn = true; q.aoTurn = 0; b.uSafe = Math.max(b.uSafe || 0, 0.4); }   /* 縦パスは、落ちてきたくもいが体を入れて収める */ }   /* くもいへの縦パスは、落ちてきたくもいが体を入れて受ける（カットされにくい） */   // 蒼の王座：下りてきたくもいにパスが出た瞬間、CBが釣り出され、2列目が穴へ走り出す
+      if (q.uniq === 'aonoouza' && q !== p && !q.off && !S.setPiece && !through && fx(q.team, q.x) > (U21() ? 50 : 55) && fx(q.team, q.x) < 95 && fx(q.team, q.x) > fx(p.team, p.x) + 4 && hyp(q.x - p.x, q.y - p.y) < (U21() ? 40 : 34) && (!style || (U21() && style === 'drive')) && S.t > 4 && !(q.uOn > S.t) && !(q.uCd > S.t)) { S.aoPasser = p.idx; uFire(q, 'aonoouza'); S.aoPasser = null; q.aoHoldT = 0; if (q.uOn > S.t) { act(q, 'aopost', 4.5, { lv: q.uniqLv || 1 }); act(q, 'aoflash', 1.1, { lv: q.uniqLv || 1 }); b.aoP = true; b.aoIn = true; q.aoTurn = 0; b.uSafe = Math.max(b.uSafe || 0, 0.4); }   /* 縦パスは、落ちてきたくもいが体を入れて収める */ }   /* くもいへの縦パスは、落ちてきたくもいが体を入れて受ける（カットされにくい） */   // 蒼の王座：下りてきたくもいにパスが出た瞬間、CBが釣り出され、2列目が穴へ走り出す
       b.byP = byNow; b.byLv = p.uniqLv || 1; b.byT0 = S.t; if (byNow) { p.byHoldT = 0; b.landX = tx; b.landY = ty; q.uChase = { until: S.t + 6, mode: 'ball' }; { const mt = tsukiMeet(q); if (mt && mt.t < 6) { b.landX = mt.x; b.landY = mt.y; } } act(p, 'bypass', 4, { x0: +p.x.toFixed(2), y0: +p.y.toFixed(2), r: q.idx, lv: p.uniqLv || 1 }); p.uOn = Math.min(p.uOn, S.t + 0.5); }   // 白い光の尾を引いて大きな弧
       b.aoP = b.aoP || (S.uzWant && !hrNow && !byNow); if (b.aoP && uOn(p, 'aonoouza')) { act(p, 'aopass', 3, { r: q.idx, lv: p.uniqLv || 1 }); if (p.uniq === 'aonoouza') act(p, 'aopostend', 0.1); }   // 蒼の王座の1本は、どの出し方でも青い光の尾 S.uzWant = false; if (b.aoP) q.uChase = { until: S.t + 3.5, mode: 'ball' };   // 蒼の王座：穴へ走り込む味方への1本は、相手に触られずに届く（受け手は合う所へ全力で）
       b.hari = hrNow; b.hariLv = p.uniqLv || 1; if (hrNow && style !== 'cross') { b.landX = tx; b.landY = ty; q.uChase = { until: S.t + 3.5, mode: 'ball' }; }   // 受け手は、ボールと同時に着く所へ全力で走り込む
@@ -5234,7 +5236,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         //  突破のドリブル：前へ速く・ボールを大きく押し出す・緩急で抜く（前が空いている時、相手陣、高速ドリブル・カットインを持つ選手）
         //  運ぶドリブル　：ボールを足元から離さず、360°どこへでも動いてキープ（囲まれている・前に相手・自陣）
         if (p.type === 'ファンタジスタ') w *= xf > L / 2 - 5 && pressure >= 1 ? 2.8 : 1.6;   // ファンタジスタは自分で仕掛ける（版797：相手陣の狭い所では、1人かわしにいく）
-        if (p.uniq === 'shiden') w *= 1.5;   // 紫電の遊戯（かまた）：遊び心。いつでもドリブルで仕掛ける
+        if (p.uniq === 'shiden') w *= 1.5 * (U21() && p.slot && p.slot.line === 1 && xf > L / 2 - 15 && xf < L - 30 ? 1.6 : 1);   // 版921：MFに置いた時は、中盤からでもさらに仕掛ける   // 紫電の遊戯（かまた）：遊び心。いつでもドリブルで仕掛ける
         const dribT = ['ドリブラー', 'ファンタジスタ', 'アタッカー', 'ウイング'].includes(p.type);
         const beatOK = !S.nm || !(globalThis.__Kbeat ?? 1) || xf > L - 38 || space >= 5 || dribT || pressure === 0;   // 版901：ビート（抜くドリブル）は、抜けば決定機になる所だけ
         const brk = w * (skZ(p, 'speedDribble') || skZ(p, 'cutIn') ? 1.4 : 1) * (space >= 5 ? 1.15 : 0.9) * (beatOK ? 1 : 0.4);
@@ -5347,7 +5349,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       // 白夜の視界：自陣の深い所から、相手のペナルティアークまで届く35m以上のロングフィードがある時だけ出る。裏へ走る味方の走る先へ（いなければ相手陣内の空いた味方へ）
       if (globalThis.__byCnt && p.uniq === 'byakuya') { globalThis.__byCnt.all++; if (xf < 66) globalThis.__byCnt.zone++; }
       if (p.uniq === 'byakuya' && !p.gk && !S.setPiece && xf < 66 && (uOn(p, 'byakuya') || !(p.uCd > S.t))) { const olB = offsideLine(p.team);
-        const longOk = (o) => o.kind === 'pass' && o.q && o.q.position !== 'DF' && (o.d ?? 0) >= 35 && fx(p.team, o.q.x) < olB - 0.3 && fx(p.team, o.q.x) > L / 2 - 5;
+        const longOk = (o) => o.kind === 'pass' && o.q && o.q.position !== 'DF' && (o.d ?? 0) >= (U21() ? 28 : 35) && fx(p.team, o.q.x) < olB - 0.3 && fx(p.team, o.q.x) > L / 2 - (U21() ? 10 : 5);
         const cand = opts.filter(longOk), nearLine = cand.filter((o) => fx(p.team, o.q.x) > olB - 18);
         if (globalThis.__byCnt) { const c = globalThis.__byCnt; c.dec++; if (cand.length) c.cand++; if (p.uCd > S.t) c.cd++; }
         if (cand.length && (uOn(p, 'byakuya') || uFire(p, 'byakuya'))) {
@@ -5626,7 +5628,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         if (S.dribbleMode !== pick.mode) { p.pace = null; p.carrySide = 0; act(p, 'dmode', 0.3, { m: pick.mode }); }
         S.dribbleMode = pick.mode;
         if (pick.protect != null) { p.protect = Math.max(p.protect || 0, S.t + 0.7); p.protT = S.t; p.protFrom = pick.protect; S.decision = Math.min(S.decision, 0.55); if (globalThis.__tacLog) globalThis.__tacLog.push(['protect', +S.t.toFixed(1), p.team, p.idx]); }
-        if (p.uniq === 'shiden' && xf > L / 2 - 8) uFire(p, 'shiden');
+        if (p.uniq === 'shiden' && xf > L / 2 - (U21() && p.slot && p.slot.line === 1 ? 15 : 8)) uFire(p, 'shiden');   // 版921：MFに置いた時は、センターラインの手前から仕掛けられる
         if (uOn(p, 'shiden')) { S.dribbleDir = sdFwd(p, S.dribbleDir[0], S.dribbleDir[1]); if (dGoal > 20) S.dribbleMode = 'break'; }
         if ((p.hariT || 0) > S.t || (p.finT || 0) > S.t) { S.dribbleDir = sdFwd(p, S.dribbleDir[0], S.dribbleDir[1]); S.dribbleMode = 'break'; }
         if (p.uzDrive && p.uzDrive.until > S.t) { S.dribbleDir = p.uzDrive.dir; S.dribbleMode = 'break'; S.decision = Math.min(S.decision, 0.35); }   // 渦潮の囮で空いたスペースへ、まっすぐ突っ込む（こまめに見直して、打てる所で打つ）
