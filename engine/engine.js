@@ -1224,6 +1224,15 @@
     }
     // 版881：目標の位置をなめらかにする：ボールが動くたびに目標が大きく跳ねて、選手が全力で追い続けていた（形ができない・ずっと走り回る）。
     //  急ぐ場面（寄せ・こぼれ球・走り込みなど）は今まで通りすぐ反応し、それ以外は少しずつ動いて落ち着いて位置を取る
+    function gkDepthPost() {   // 版913：相手が自陣で持ったら、GKはボールが近づくほどゴールへ戻る（スイーパーキーパーも）。前に出すぎていたら急いで戻る（設計一覧18章）
+      if (!(globalThis.__Kgkp ?? 1) || S.restart || S.setPiece) return;
+      const own = ownerP(); if (!own) return;
+      const t = 1 - own.team, g = T[t].players.find((q) => q.gk && !q.off); if (!g || chasing[g.idx] || !targets[g.idx] || (S.gkCk && S.gkCk.g === g.idx)) return;
+      const bxf = fx(t, S.ball.x); if (bxf >= L / 2) return;
+      const cap = clamp((bxf - 28) * 0.4, 1.5, 8) + (g.type === 'スイーパーキーパー' ? 1 : 0);
+      const tx0 = fx(t, targets[g.idx][0]); if (tx0 > cap) { const k = cap / Math.max(tx0, 0.1), ty = GOAL_Y + (targets[g.idx][1] - GOAL_Y) * Math.max(k, 0.6); targets[g.idx] = [fx(t, cap), ty]; }
+      if (fx(t, g.x) > cap + 1.2) urgent[g.idx] = true;
+    }
     function crashPost() {   // 版910：こぼれ球への詰め（設計一覧16章）：シュート・クロスの後、前にいる味方がゴール前のこぼれそうな所へ詰める
       if (!(globalThis.__Kcrash ?? 1) || S.restart || S.setPiece || S.celebrate > 0) return;
       const b = S.ball; if (b.owner >= 0 || b.lastTeam == null || b.lastTeam < 0) return;
@@ -2187,7 +2196,7 @@
           const fr = pl.filter((q) => q.idx !== ref.idx && brainFree(q) && q.slot.line >= 1 && !bTy(q, 'アンカー') && fx(t, q.x) > bxf - (bTy(q, 'ダイナモ') ? 16 : 8)).sort((a0, c0) => fx(t, c0.x) - fx(t, a0.x)).slice(0, 3);
           const lanes = [GOAL_Y - 17, GOAL_Y, GOAL_Y + 17], used = new Set();
           for (const q of fr) { let bl = -1, bd = 1e9; lanes.forEach((ly, k) => { if (!used.has(k) && Math.abs(q.y - ly) < bd) { bd = Math.abs(q.y - ly); bl = k; } }); if (bl < 0) break; used.add(bl);
-            q.ctr = { x: fx(t, Math.min(offL - 1, L - 12, Math.max(fx(t, q.x) + 10, bxf + 12))), y: lanes[bl], until: S.t + 3 }; if (globalThis.__tacLog) globalThis.__tacLog.push(['ctr', +S.t.toFixed(1), t, q.idx]); } }
+            q.ctr = { x: fx(t, Math.min(offL - 1, L - 12, Math.max(fx(t, q.x) + ((globalThis.__Kfst ?? 0) ? 16 : 10), bxf + ((globalThis.__Kfst ?? 0) ? 18 : 12)))), y: lanes[bl], until: S.t + ((globalThis.__Kfst ?? 0) ? 4 : 3) }; if (globalThis.__tacLog) globalThis.__tacLog.push(['ctr', +S.t.toFixed(1), t, q.idx]); } }
       }
       // それぞれの目標
       const LN = [13.85, 24.85, 43.15, 54.15], lane = (y) => (y < LN[0] ? 0 : y < LN[1] ? 1 : y < LN[2] ? 2 : y < LN[3] ? 3 : 4);
@@ -2599,6 +2608,12 @@
       if ((globalThis.__Kwon ?? 1) && S.t - (T[t].wonT ?? -9) < 2.0 && S.t - (p.recvT ?? -9) < 2.0) {
         const fO = foes.filter((o) => !o.gk), nbO = fO.filter((o) => fx(t, o.x) > xf + 1).length;
         if (nbO >= fO.length - 1 || pr === 2) for (const o of opts) { if (o.kind === 'pass' && !o.cross) { if ((o.danger ?? 1) < 0.3) o.v += 0.6; else if ((o.danger ?? 0) > 0.4) o.v -= 0.6; } else if (o.kind === 'dribble' && !o.protect) o.v -= 0.4; }
+      }
+      // 版913：速攻（設計一覧18章）：中盤で奪って、相手の陣形が整っていない（ボールより前の相手が5人以下）間は、横・後ろでつながずに前へ。1〜2タッチで出すか、空いていれば運ぶ
+      if ((globalThis.__Kfst ?? 0) && S.t - (T[t].wonT ?? -9) < 5 && xf > 25 && xf < L - 18) {
+        const nbO2 = foes.filter((o) => !o.gk && fx(t, o.x) > xf + 1).length;
+        if (nbO2 <= 5) { for (const o of opts) { if (o.kind === 'pass' && !o.cross) { const adv0 = (o.space ? fx(t, o.space[0]) : fx(t, o.q.x)) - xf; if (adv0 > 8 && (o.danger ?? 1) < 0.8) o.v += (globalThis.__Kfsp ?? 1.0) + ((o.q.ctr && o.q.ctr.until > S.t) ? 0.4 : 0); else if (adv0 < 2) o.v -= globalThis.__Kfsb ?? 1.2; } else if (o.kind === 'dribble' && !o.protect && o.dir && o.dir[0] * sgn(t) > 0.5) o.v += globalThis.__Kfsd ?? 0.8; else if (o.kind === 'dribble' && o.mode === 'carry' && o.protect) o.v -= 0.8; }
+          if (S.decision > 0.12) S.decision = 0.12; }
       }
       if (!opts.length) opts.push({ kind: 'dribble', mode: 'carry', dir: [fwd[0], dy0], v: 0 });
       // 版907：クロスの前に、走り込みの合図を出す（設計一覧13章：走り込む味方が動き出したのを見てから上げる）
@@ -3115,7 +3130,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             // 版904：DFラインが高い時、GKはラインの後ろのスペースをカバーする（ラインとの距離を空けすぎない）
             if (brainOn() && (globalThis.__Kgkc ?? 1) && bxf > 38 && !(own && own.team === tm.ti && fx(tm.ti, own.x) < 30)) {
               const dls = tm.players.filter((m) => !m.off && !m.gk && m.slot && m.slot.line === 0).map((m) => fx(tm.ti, m.x)); const dlx = dls.length ? Math.min(...dls) : 0;
-              if (dlx > 24) { const k0 = clamp(((p.vision || 50) - 30) / 40, 0.4, 1) * (p.gkAtk ? 1.15 : 1); tx = Math.max(tx, Math.min(dlx - 15, p.gkAtk ? 18 : 14) * k0); }
+              if (dlx > 24) { const k0 = clamp(((p.vision || 50) - 30) / 40, 0.4, 1) * (p.gkAtk ? 1.15 : 1); let cap = p.gkAtk ? 18 : 14; if ((globalThis.__Kgkp ?? 1) && own && own.team !== tm.ti && bxf < L / 2) cap = Math.min(cap, clamp((bxf - 28) * 0.4, 1.5, 8));   /* 版913：相手が自陣に入ってきたら、ボールが近づくほどゴールへ戻る（設計一覧18章） */ tx = Math.max(tx, Math.min(dlx - 15, cap) * k0); }
             }
             // 版458：相手が持ってシュートを狙える所に来たら、距離に合わせて前に出て角度を消す（遠いシュートには下がり気味、近いほど前へ）。相手に詰められているなら出すぎない
             if (!globalThis.__noDepth && own && own.team !== tm.ti && !S.restart && p.type !== 'スイーパーキーパー' || (own && own.team !== tm.ti && p.type === 'スイーパーキーパー' && bxf < 40)) {
@@ -6070,7 +6085,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       const own = ownerP();
       if (own) {
         const dir = S.dribbleDir || own.bdir || [own.facing, 0];
-        if (own.gk && own.hold) { b.x += (own.x + sgn(own.team) * 0.25 - b.x) * 0.6; b.y += (own.y - b.y) * 0.6; b.z += ((own.downT > 0 ? 0.3 : 1.0) - b.z) * 0.45; b.vx = b.vy = b.vz = 0; return; }
+        if (own.gk && own.hold) { { const hx = own.x + sgn(own.team) * 0.25 - b.x, hy = own.y - b.y, hd = hyp(hx, hy); if (!(globalThis.__Kgkc2 ?? 1)) { b.x += hx * 0.6; b.y += hy * 0.6; } else if (hd > 0.001) { const gs = Math.min(Math.max(0, hd - 0.3), 0.3); own.x -= hx / hd * gs; own.y -= hy / hd * gs; const st = Math.min(hd - gs, 0.12); b.x += hx / hd * st; b.y += hy / hd * st; } }   /* 版912：つかんだ時は、GKの体がボールの方へ寄り、ボールは手の所から胸へゆっくり引き寄せる（ボールが横へ吸い寄せられない） */ b.z += ((own.downT > 0 ? 0.3 : 1.0) - b.z) * 0.45; b.vx = b.vy = b.vz = 0; return; }
         // 版889：ドリブルで足から離れたボールに、相手が先に足を届かせた（相手の方がボールに近く、0.55m以内）：つつかれてこぼれる（見た目は相手のボールなのに、こちらのボールのままにしない）
         if (!own.settle && !((own.protect || 0) > S.t) && !own.gk && b.z < 0.8) { const dO = hyp(b.x - own.x, b.y - own.y); if (dO > (globalThis.__Kpk ?? 1.0)) { for (const q of opps(own)) { if (q.off || q.gk || q.downT > 0 || (q.touchCd || 0) > 0 || (q.stun || 0) > 0 || (q.lagT || 0) > S.t) continue; const dd = hyp(b.x - q.x, b.y - q.y);
           if (dd < 0.55 && dd < dO - 0.3) { const ux = b.x - q.x, uy = b.y - q.y, ul = hyp(ux, uy) || 1, an = Math.atan2(uy, ux) + R.range(-0.6, 0.6), v = R.range(2, 4); Object.assign(b, { owner: -1, kind: 'loose', vx: Math.cos(an) * v, vy: Math.sin(an) * v, vz: 0, lastTeam: q.team, lastPlayer: q.idx, intended: -1 }); act(q, 'poke', 0.35, { dx: ux / ul, dy: uy / ul }); own.touchCd = Math.max(own.touchCd || 0, 0.3); S.dribbleDir = null; own.settle = false; if (globalThis.__ownFix) globalThis.__ownFix.p++; return; } } } }
@@ -6520,8 +6535,11 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       S.refFocus = { x: own.x, y: own.y, t: 3 };
       const r = R.next();
       let card = null;
-      if (lastMan && !inBox && r < 0.55) card = 'red';
-      else if (r < (sev ? SLIDE_RULE[sev].red : 0.025)) card = 'red';
+      const K18 = globalThis.__Kcard ?? 1;   // 版913：一発レッドは、決定機をつぶした時（ゴール前の真ん中で、ゴールへ向かう相手）と、危ないスライディングだけ（設計一覧18章）
+      const dogso = lastMan && !inBox && (!K18 || (xf > L - 30 && Math.abs(own.y - GOAL_Y) < 15 && (own.vx || 0) * sgn(att) > 0.5));
+      if (dogso && r < (K18 ? 0.6 : 0.55)) card = 'red';
+      else if (r < (sev ? SLIDE_RULE[sev].red : K18 ? 0.004 : 0.025)) card = 'red';
+      else if (K18 && lastMan && !inBox && r < 0.85) card = 'yellow';   // 決定機ではない「最後の1人」の反則はイエロー
       else if (r < (sev ? SLIDE_RULE[sev].yellow : 0.2) + q.physical * 0.0015 + (inBox || lastMan ? 0.3 : 0)) card = 'yellow';
       if (card && !q.gk) giveCard(q, card);
       if (inBox) setRestart('penalty', att, fx(att, L - 11), GOAL_Y, penaltyTaker(att));
@@ -7387,7 +7405,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             const bodyHit = (off < (shotD < 12 ? 0.28 : 0.42) || (pre && off < 0.85)) && !b.knuckle && !b.csPlace;   // 置きに行くコントロールショットは、GKの手がぎりぎり届かない隅へ置く   // 至近距離は体の正面でも反応が間に合わないことがある   // 届くと決まった横っ跳びも、必ず触る
             if (gkRoll < prob || bodyHit) {
               { const hr = p.diveT > 0 ? 1.1 : 0.8, dy0 = yAt - p.y;   // 版866：触った瞬間、ボールはGKの手の先（体からhrの所まで）にそろえる
-                if (b.z < 1.95) { b.x = p.x + sgn(p.team) * 0.3; b.y = p.y + clamp(dy0, -hr, hr); } else if (b.px != null) { const u0 = segDist(p.x, p.y, b.px, b.py, b.x, b.y).u; b.x = b.px + (b.x - b.px) * u0; b.y = b.py + (b.y - b.py) * u0; if (b.pz != null) b.z = b.pz + (b.z - b.pz) * u0; } /* 版869・870：頭より高い球は手の位置へ動かさず、このコマで通った線の上の、手にいちばん近い所（本当に触れた所）にそろえる */ b.bs = 0; b.drive = 0; b.driveOn = false; b.driveUp = 0; b.curveAll = false; b.wobW = null; }   // 版866：GKが触ったら、シュートの回転（ドライブの落ちる力など）は消える
+                if (b.z < 1.95 && !((globalThis.__Kgkc2 ?? 1) && b.px != null)) { b.x = p.x + sgn(p.team) * 0.3; b.y = p.y + clamp(dy0, -hr, hr); } else if (b.px != null) {   /* 版912：低い球も、ボールが通った線の上で手に当たる（手の所へ飛び移らない） */ const u0 = segDist(p.x, p.y, b.px, b.py, b.x, b.y).u; b.x = b.px + (b.x - b.px) * u0; b.y = b.py + (b.y - b.py) * u0; if (b.pz != null) b.z = b.pz + (b.z - b.pz) * u0; } /* 版869・870：頭より高い球は手の位置へ動かさず、このコマで通った線の上の、手にいちばん近い所（本当に触れた所）にそろえる */ b.bs = 0; b.drive = 0; b.driveOn = false; b.driveUp = 0; b.curveAll = false; b.wobW = null; }   // 版866：GKが触ったら、シュートの回転（ドライブの落ちる力など）は消える
               const high = b.z > 1.7, diving = p.diveT > 0;
               // 無回転シュート：ブレるので、どんなGKでもキャッチできない。触っても必ずファンブルする
               //  そのままゴールへこぼれ込む／前にこぼす／うまいGKなら、コースを変えてゴールの外へ逃がす（CK）のが精一杯
@@ -7765,7 +7783,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       computeTargets();
       mdPost();
       shapePost();
-      if (!S.nm) { widthPost(); blockPost(); } else if (brainOn()) { brainPost(); gkHoldPost(); crashPost(); } else newMovePost();
+      if (!S.nm) { widthPost(); blockPost(); } else if (brainOn()) { brainPost(); gkHoldPost(); crashPost(); gkDepthPost(); } else newMovePost();
       urgentPost();
       smoothPost();
       if (globalThis.__tgHook) globalThis.__tgHook(S, P, targets, urgent, fx, offsideLine, ownerP);
