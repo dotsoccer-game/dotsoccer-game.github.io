@@ -2014,7 +2014,7 @@
         const c = pl.filter((q) => q.idx !== ref.idx && brainFree(q) && !used.has(q.idx) && !(q.bRun && q.bRun.until > S.t) && q.slot.line >= 1 && !bTy(q, 'アンカー') && fx(t, q.x) > bxf - (bTy(q, 'ダイナモ', 'シャドー') ? 22 : 14) && fx(t, q.x) < offL + 0.3 && hyp(fx(t, q.x) - sx, q.y - sy) < 26 + (bTy(q, 'ダイナモ', 'シャドー') ? 8 : 0))
           .sort((a0, c0) => fb(a0) - fb(c0))[0];
         if (!c) continue; used.add(c.idx); n++;
-        c.bRun = { x: fx(t, sx), y: sy, until: S.t + 2.2 }; c.run = 2.2; c.runCd = 0; c.brT = S.t; c.brTimed = true; c.finRun = S.t + 2.2;
+        c.bRun = { x: fx(t, sx), y: sy, until: S.t + (globalThis.__Kfru ?? 2.2) }; c.run = (globalThis.__Kfru ?? 2.2); c.runCd = 0; c.brT = S.t; c.brTimed = true; c.finRun = S.t + 2.2;
         if (globalThis.__tacLog) globalThis.__tacLog.push(['finRun', +S.t.toFixed(1), t, c.idx]);
       }
       if (n) tm.frCd = S.t + 3;
@@ -2548,7 +2548,7 @@
       // クロス・折り返し：サイドの深い所から、ゴール前の空いている所（ニア・ファー・PKマーク・マイナス）へ。味方が相手より先に着ける所だけ
       // 版907：クロスは、エリアの中で合わせる味方が2人以上いる（走り込んでいる）時に上げる（設計一覧13章：エリア1・2に2人以上）
       const boxMates = (globalThis.__Kfb ?? 1) ? mates(p).filter((m) => !m.off && !m.gk && m !== p && ((fx(t, m.x) > L - (globalThis.__Kbx ?? 24) && Math.abs(m.y - GOAL_Y) < 18) || (m.bRun && m.bRun.until > S.t && fx(t, m.bRun.x) > L - 18 && fx(t, m.x) > L - (globalThis.__Kbr ?? 30)))).length : 9;
-      if (xf > L - 34 && Math.abs(p.y - GOAL_Y) > 11 && (boxMates >= 2 || held > 3.5)) {
+      if (xf > L - 34 && Math.abs(p.y - GOAL_Y) > 11 && (boxMates >= 2 || held > (globalThis.__Kcrh ?? 3.5))) {
         const sd = Math.sign(p.y - GOAL_Y), spots = [[L - 6, GOAL_Y + sd * 4, 'near'], [L - 11, GOAL_Y, 'pk'], [L - 6, GOAL_Y - sd * 5, 'far'], [L - 15, GOAL_Y + sd * 2, 'cut']];
         for (const [sx0, sy, k] of spots) {
           const sx = fx(t, sx0), dS = hyp(sx - p.x, sy - p.y); if (dS < 6 || dS > 38) continue;
@@ -6434,7 +6434,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
               if ((globalThis.__Kphy ?? 1) && rd > 0.15 && (rx * ux + ry * uy) / rd < -0.1) {   // 版908：ボールのある側と反対へは、体をすり抜けて置けない。ボールのある側の横へ置いて、体を向け直す（設計一覧14章）
                 const ax = rx / rd, ay = ry / rd, c1 = [-ay, ax], c2 = [ay, -ax], c = (c1[0] * ux + c1[1] * uy) >= (c2[0] * ux + c2[1] * uy) ? c1 : c2;
                 ux = c[0] * 0.8 + ax * 0.2; uy = c[1] * 0.8 + ay * 0.2; const l2 = hyp(ux, uy) || 1; ux /= l2; uy /= l2; }
-              const put = 0.75 + qq * 0.35, lead = 0.32, Tx = p.x + ux * put, Ty = p.y + uy * put;
+              const put = 0.75 + qq * 0.35, lead = 0.32, mvL = (globalThis.__Ktr2 ?? 1) ? lead : 0, Tx = p.x + p.vx * mvL + ux * put, Ty = p.y + p.vy * mvL + uy * put;   // 版915：走っている選手には、ボールが着く頃に体がいる所の前へ置く（置いた所を追い越して、体の後ろにならない）
               p.settle = 'meet'; p.settleT = 0; p.meet = [Tx, Ty]; p.bdir = [ux, uy];
               b.vx = (Tx - b.x) / lead; b.vy = (Ty - b.y) / lead; b.vz = 0;
               p.vx += ux * 1.2; p.vy += uy * 1.2;   // 置いた方へ体も向かう
@@ -7190,7 +7190,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           }
           if ((globalThis.__Kphy ?? 1) && !mtG && !mtC && !uOn(q, 'miyabi') && !uOn(q, 'tetsurou')) {   // 版908：奪えるのはボールに足が届く時だけ（ボールまで約1m）。持っている選手の体の向こう側（背中側）からは、体を通り抜けて取れない（設計一覧14章）
             const dB = hyp(q.x - b.x, q.y - b.y), side = (b.x - own.x) * (q.x - own.x) + (b.y - own.y) * (q.y - own.y);
-            const ov = hyp(own.vx, own.vy), bk = ov > 1.5 && ((q.x - own.x) * own.vx + (q.y - own.y) * own.vy) / ov < -0.3; if (dB > (globalThis.__Ktk ?? 1.2) || ((side < 0 || bk) && dB > 0.55)) continue;   /* 版908：走っている選手の背中側からは、足がボールに届く所（0.55m）まで来ないと取れない */
+            const ov = hyp(own.vx, own.vy), bk = ov > 1.5 && ((q.x - own.x) * own.vx + (q.y - own.y) * own.vy) / ov < -0.3; if (dB > 1.2 || ((side < 0 || bk) && dB > ((globalThis.__Ktk2 ?? 1) ? 0.3 : 0.55))) continue;   /* 版915：背中側からは、ほぼ取れない（足がボールの真上に来た時だけ） */   /* 版908：走っている選手の背中側からは、足がボールに届く所（0.55m）まで来ないと取れない */
           }
           if (!uOn(q, 'miyabi') && !uOn(q, 'matsuri') && !uOn(q, 'tetsurou') && !(uOn(q, 'kagenui') && (own.kgPin || 0) > S.t) && !(q.uniq === 'kinshachi' && fx(q.team, own.x) < 34) && R.next() > (0.13 + pr * 0.0018) * 0.7 * (1 + DOM[q.team] * 1.5)) continue;   // 雅の後始末は、追いついたら必ず止めに行く
           if (!mtG) { act(q, 'duel', 0.5, { o: own.idx }); act(own, 'duel', 0.5, { o: q.idx }); }
