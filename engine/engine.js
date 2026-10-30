@@ -4897,6 +4897,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       const zHit = b.z + b.vz * tHit - 4.9 * tHit * tHit;
       b.shotOnTarget = Math.abs(yHit - GOAL_Y) < POST && (b.drive > 0 ? b.driveOn : zHit < BAR);   // ドライブシュートは、上へ外れそうに見えて落ちてくる
       b.shotFrom = hyp(gx - p.x, GOAL_Y - p.y);
+      if (globalThis.__shD) { const g0 = opps(p).find((o) => o.gk && !o.off); globalThis.__shD.push({ t: S.t, i: p.idx, team: p.team, kick: p.kick, kq: p.kick * 0.6 + p.technique * 0.4, ot: b.shotOnTarget ? 1 : 0, yH: +(yHit - GOAL_Y).toFixed(2), zH: +zHit.toFixed(2), v: +hyp(b.vx, b.vy).toFixed(1), d: +b.shotFrom.toFixed(1), gkY: g0 ? +(g0.y - GOAL_Y).toFixed(2) : 0, gkD: g0 ? +hyp(g0.x - gx, g0.y - GOAL_Y).toFixed(1) : 0, skill: S.ball.skill || '' }); }
       const s = stats[p.team];
       s.shots++;
       if (b.shotOnTarget) s.shots_on_target++; else s.off_target++;
@@ -6367,11 +6368,20 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         if (spd > 1.6 && S.dribbleDir && b.z <= 0.02) {
           own.dV -= 3.4 * DT; own.dO += own.dV * DT;
           const carry = S.dribbleMode === 'carry', sd = (own.sdOn || 0) > S.t;   // 運ぶ：ボールは足元（0.3〜0.55m）／突破：大きく押し出す（速いほど遠く、最大1.3m）／高速ドリブル：大きく蹴り出す（最大2.4m）
-          if (own.dO <= (carry ? 0.3 : 0.4)) { own.dO = carry ? 0.3 : 0.4; own.dV = carry ? 0.55 + spd * 0.05 : sd ? 1.9 + spd * 0.2 : 1.1 + spd * 0.14; act(own, 'touch', 0.25); }
-          own.dO = Math.min(own.dO, carry ? 0.55 : sd ? 2.4 : 1.3);
-          if ((globalThis.__Kbx ?? 1) && fx(own.team, own.x) > L - 24 && Math.abs(own.y - GOAL_Y) < 17 && own.dO > 0.75) { own.dO = 0.75; own.dV = Math.min(own.dV, 0.3); }   // 版929：ゴール前（24m以内）では、大きく蹴り出さず、すぐ打てる所にボールを置く（打てる場面でドリブルを続けない）
+          if (own.dO <= (carry ? 0.3 : 0.4)) { own.dO = carry ? 0.3 : 0.4; own.dV = carry ? 0.55 + spd * 0.05 : sd ? 1.9 + spd * 0.2 : 1.1 + spd * 0.14; act(own, 'touch', 0.25);
+            // 版934：能力の差がプレーに出る（設計24章）：ドリブルが下手なほど、相手が近いほど、速く走るほど、タッチが大きくなる（ボールが足から離れて、取られやすい）
+            if ((globalThis.__Kab ?? 1) && !own.gk && !(own.uniq && uOn(own, own.uniq))) { const qd = clamp((85 - ((own.dribble || 50) * 0.7 + (own.technique || 50) * 0.3)) / 60, 0, 1);
+              let nd0 = 9; for (const q of opps(own)) { if (q.off || q.gk) continue; nd0 = Math.min(nd0, hyp(q.x - own.x, q.y - own.y)); }
+              const pH = clamp(qd * qd * (globalThis.__Kab7 ?? 0.15) + (nd0 < 4 ? qd * (globalThis.__Kab8 ?? 0.12) : 0) + (spd > 6 ? qd * 0.05 : 0), 0, 0.3);
+              if (R.next() < pH) { own.dV = (carry ? 1.3 : own.dV * R.range(1.6, 2.1)) + 0.4; own.heavyT = S.t + 0.5; if (globalThis.__hvLog) globalThis.__hvLog.push({ i: own.idx, drb: own.dribble, nd: +nd0.toFixed(1) });
+                if (nd0 < 3.5) {   // 相手が近い時の大きなタッチは、ボールが足から離れて、こぼれ球になる（どちらが先に触るかの勝負）
+                  const v0 = spd + R.range(2.5, 4.5), a0 = Math.atan2(dir[1], dir[0]) + R.gauss() * 0.25;
+                  Object.assign(b, { owner: -1, kind: 'loose', vx: Math.cos(a0) * v0, vy: Math.sin(a0) * v0, vz: 0, z: 0, lastTeam: own.team, lastPlayer: own.idx, intended: -1 });
+                  own.touchCd = 0.3; own.settle = false; S.dribbleDir = null; own.heavyT = 0; act(own, 'touch', 0.25); return; } } } }
+          own.dO = Math.min(own.dO, (own.heavyT || 0) > S.t ? 2.2 : carry ? 0.55 : sd ? 2.4 : 1.3);
+          if ((globalThis.__Kbx ?? 1) && fx(own.team, own.x) > L - 24 && Math.abs(own.y - GOAL_Y) < 17 && own.dO > 0.75 && !((own.heavyT || 0) > S.t)) { own.dO = 0.75; own.dV = Math.min(own.dV, 0.3); }   // 版929：ゴール前（24m以内）では、大きく蹴り出さず、すぐ打てる所にボールを置く（打てる場面でドリブルを続けない）
           { let nd = 9; for (const q of opps(own)) { if (q.off || q.gk) continue; const dd = hyp(q.x - own.x, q.y - own.y); if (dd < nd && ((q.x - own.x) * dir[0] + (q.y - own.y) * dir[1]) > -0.5) nd = dd; }   // 版889：相手が近い（3m以内）時は、ボールを大きく出さず足もとに置く（うまい選手ほど近くに置ける）
-            if (nd < 3 && !(sd && nd > 2)) { const cap = 0.42 + (1 - clamp(((own.dribble || 50) + (own.technique || 50)) / 200, 0, 1)) * 0.3; if (own.dO > cap) { own.dO = cap; own.dV = Math.min(own.dV, 0.4); } } }
+            if (nd < 3 && !(sd && nd > 2) && !((own.heavyT || 0) > S.t)) { const cap = 0.42 + (1 - clamp(((own.dribble || 50) + (own.technique || 50)) / 200, 0, 1)) * 0.3; if (own.dO > cap) { own.dO = cap; own.dV = Math.min(own.dV, 0.4); } } }
         } else { own.dO += (0.5 - own.dO) * 0.3; own.dV = 0; }
         const fxp = own.x + dir[0] * own.dO, fyp = own.y + dir[1] * own.dO;
         if (b.z > 0.02) { if ((globalThis.__Kr5 ?? 1) && hyp(b.x - own.x, b.y - own.y) > (globalThis.__Kreach ?? 0.75) + 0.25) { b.x += b.rv[0] * DT; b.y += b.rv[1] * DT; } else { b.x += (fxp - b.x) * 0.55; b.y += (fyp - b.y) * 0.55; } b.z = Math.max(0, b.z - Math.max(2.2, b.z * 3.2) * DT); }   // 版895：足から離れた浮き球は、そのまま飛ぶ（足もとへ吸い寄せない）
@@ -6921,6 +6931,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
               else if (!tight) prob = Math.max(prob, 0.5 + 0.4 * gkQ);
               else prob = Math.max(prob, 0.7 * gkQ);   // 版790：隅ぎりぎりの強い球も、うまいGKは遠めなら反応できる（D1でミドル・ロングが4割近く入っていた）
             }
+            // 版934：能力の差がプレーに出る（設計24章）：決定力。同じ所へ飛んだ枠内のシュートでも、キック・テクニックの高い選手ほどGKの届きにくい所へ・叩きつけるように蹴れる
+            if ((globalThis.__Kab ?? 1) && !b.pkShot && P[b.kicker] && sp >= 15 && !rolling) { const kq = P[b.kicker].kick * 0.6 + P[b.kicker].technique * 0.4; prob -= (kq - (globalThis.__Kab6c ?? 82)) * (globalThis.__Kab6 ?? 0.006) * (0.4 + 0.6 * narrowF); }
             if (globalThis.__dpl && b.drive > 0) globalThis.__dpl.push({ t: S.t, prob: +prob.toFixed(2), vz: +b.vz.toFixed(1), on: b.driveOn, sp: +sp.toFixed(1), kind: b.kind });
             if (ik) prob = Math.max(prob, 0.3 * gP(p)) + 0.08 * gkF(p);   // 至近距離の決定機でも、簡単には割らせない
             if (visA < 0.3 && b.shotSkill !== 'controlShot' && !b.pkShot) prob = Math.max(prob, 0.8 + (0.3 - visA));   // ほぼ真横（角度なし）からのシュートは、GKの正面。まず止める
@@ -7427,6 +7439,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           if ((own.tsukiGuard || 0) > S.t && !isCover(q) && !(q.trackRun && q.trackRun.r === own.idx)) continue;   // 月影の抜け出しで運んでいる間は、カバーリングできるDFしか止めに来られない
           if (q.uniq !== 'matsuri' && T[q.team].players.some((m) => ((m.mtCharge && m.mtCharge.o === own.idx) || (m.mtGrip && m.mtGrip.o === own.idx)) && m.uOn > S.t)) continue;   // 祭り太鼓の壁が突っ込んでいる相手には、ほかの味方は手を出さない（あおやまがぶつかる）
           let d = hyp(q.x - own.x, q.y - own.y);
+          if ((own.heavyT || 0) > S.t && (globalThis.__Kab ?? 1)) d = Math.min(d, hyp(q.x - b.x, q.y - b.y));
+          if (globalThis.__hvC && (own.heavyT || 0) > S.t) { const C0 = globalThis.__hvC; C0.n++; if (d <= 1.7) C0.near++; }   // 版934：足から離れた球には、ボールの近くの相手が足を出せる
           const pr = clamp(q.press + T[q.team].mods.press + T[q.team].tac.press + DOM[q.team] * 40 + T[q.team].urg * 30 + (skZ(q, 'pressMonster') ? 30 : 0) , 0, 100);
           // 紫電の遊戯：相手と1対1になったら
           if (own.uniq === 'shiden' && d < 3.2 && !own.gk) uFire(own, 'shiden');
@@ -7450,7 +7464,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             const dB = hyp(q.x - b.x, q.y - b.y), side = (b.x - own.x) * (q.x - own.x) + (b.y - own.y) * (q.y - own.y);
             const ov = hyp(own.vx, own.vy), bk = ov > 1.5 && ((q.x - own.x) * own.vx + (q.y - own.y) * own.vy) / ov < -0.3; if (dB > 1.2 || ((side < 0 || bk) && dB > ((globalThis.__Ktk2 ?? 1) ? 0.3 : 0.55))) continue;   /* 版915：背中側からは、ほぼ取れない（足がボールの真上に来た時だけ） */   /* 版908：走っている選手の背中側からは、足がボールに届く所（0.55m）まで来ないと取れない */
           }
-          if (!uOn(q, 'miyabi') && !uOn(q, 'matsuri') && !uOn(q, 'tetsurou') && !(uOn(q, 'kagenui') && (own.kgPin || 0) > S.t) && !(q.uniq === 'kinshachi' && fx(q.team, own.x) < 34) && R.next() > (0.13 + pr * 0.0018) * 0.7 * (1 + DOM[q.team] * 1.5)) continue;   // 雅の後始末は、追いついたら必ず止めに行く
+          if (!uOn(q, 'miyabi') && !uOn(q, 'matsuri') && !uOn(q, 'tetsurou') && !(uOn(q, 'kagenui') && (own.kgPin || 0) > S.t) && !(q.uniq === 'kinshachi' && fx(q.team, own.x) < 34) && !((own.heavyT || 0) > S.t && (globalThis.__Kab ?? 1)) && R.next() > (0.13 + pr * 0.0018) * 0.7 * (1 + DOM[q.team] * 1.5)) continue;   // 雅の後始末は、追いついたら必ず止めに行く
+          if (globalThis.__hvC && (own.heavyT || 0) > S.t) globalThis.__hvC.duel++;
           if (!mtG) { act(q, 'duel', 0.5, { o: own.idx }); act(own, 'duel', 0.5, { o: q.idx }); }
           if (uOn(q, 'matsuri') && !mtG) { q.mtCharge = null; own.mtLock = S.t + 0.8; { const hx = own.x - q.x, hy = own.y - q.y, hl = hyp(hx, hy) || 1; act(q, 'mthit', 0.8, { dx: hx / hl, dy: hy / hl, lv: q.uniqLv || 1 }); act(own, 'mtpush', 0.45, { dx: -hx / hl, dy: -hy / hl }); } act(q, 'taiko', 0.7, { lv: q.uniqLv || 1 }); if (q.uniqLv >= 2) { own.mtSlow = S.t + 2.5; act(own, 'mtslow', 2.5); } }   // 祭り太鼓の壁：ドン！（凸：ぶつかった相手はしばらく動きが鈍る）
           // ドリブル技（覚えている選手だけ）：寄せてきた相手を技でかわす
@@ -7458,6 +7473,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           if (uOn(q, 'matsuri') && !mtG) { q.mtGrip = { o: own.idx, at: S.t + 0.25 }; own.mtHeld = S.t + 0.25; return; }   // 祭り太鼓の壁：ぶつかったら、まず体を当てたまま押し込む（すぐには奪わない）
           let pS = ((own.kgPin || 0) > S.t ? 0.3 : 0) + 0.55 + (S.t - (own.beatT ?? -9) < 2 && !(own.uniq && own.uOn > S.t) ? 0.1 : 0) + (q.defense + q.physical - own.dribble - own.physical) * ((globalThis.__Kab ?? 1) ? (globalThis.__Kab5 ?? 0.009) : 0.005) - (own.physical - 55) * 0.003 + (own.cur - q.cur) * -0.002 + uDuel(q, own) - ((own.tsukiGuard || 0) > S.t ? 0.15 : 0);   // 国内屈指のアタッカーの抜け出しは、カバーに来ても止めにくい
           // ショルダーチャージ：並走している相手に肩から当たって体を入れる（フィジカル勝負）
+          if ((own.heavyT || 0) > S.t && (globalThis.__Kab ?? 1)) pS += 0.3;   // 版934：タッチが大きくなって足から離れた球は、寄せた相手に取られやすい
           if (mtG) pS += 0.25;   // 祭り太鼓の壁：押し込んだあとの奪い合いは、ほぼ負けない
           if (skZ(own, 'postPlay') && fx(own.team, own.x) > L / 2 && own.vx * sgn(own.team) < 1.5) pS -= 0.22;   // ポストプレー：背負ってキープ
           if (S.dribbleMode === 'carry') pS -= 0.06 + own.technique * 0.0008;   // 運ぶドリブルは足元から離れないので取られにくい
