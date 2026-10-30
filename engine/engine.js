@@ -3794,10 +3794,15 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         p.punchT = Math.max(0, (p.punchT || 0) - DT);
         p.saveT = Math.max(0, (p.saveT || 0) - DT);
         p.highT = Math.max(0, (p.highT || 0) - DT);
+        // 版930：ハイボール全般：ボールが手に届く少し前（0.15〜0.35秒前）に踏み切る（取ってから跳ぶように見えない）
+        if (p.gk && (globalThis.__Kgkp2 ?? 1) && !(p.highT > 0) && !(S.t - (p.preJT ?? -9) < 0.9) && !(p.diveT > 0) && !(p.downT > 0) && S.ball.owner < 0 && S.ball.z > 1.2 && fx(p.team, S.ball.x) < 20) {
+          const bb = S.ball, rx = bb.x - p.x, ry = bb.y - p.y, v2 = bb.vx * bb.vx + bb.vy * bb.vy;
+          if (v2 > 4) { const tC = -(rx * bb.vx + ry * bb.vy) / v2; if (tC > (globalThis.__Kpj0 ?? 0.2) && tC < (globalThis.__Kpj1 ?? 0.55)) { const lx = rx + bb.vx * tC, ly = ry + bb.vy * tC, zC = bb.z + bb.vz * tC - 4.9 * tC * tC; if (hyp(lx, ly) < 1.7 && zC > 1.7 && zC < gkReachZ(p) + 0.3) { p.preJT = S.t; act(p, 'jump', 0.6); } } }
+        }
         // 版834：ハイボール：出ると決めたGKは、ボールが来る少し前に踏み切って、いちばん高い所で両手を伸ばして取る（パンチング）
         if (p.gk && !(p.highT > 0) && S.gkCk && S.gkCk.g === p.idx && S.gkCk.mode !== 'stay' && S.t < S.gkCk.until && S.ball.owner < 0 && S.ball.z > 1.3 && S.ball.vz < 2) {
           const bb = S.ball, dd = hyp(bb.x - p.x, bb.y - p.y), cs = Math.max(4, hyp(bb.vx, bb.vy));
-          const jT = 0.56 + p.jump * 0.0045, lat = (globalThis.__Kphy ?? 1) ? segDist(p.x, p.y, bb.x, bb.y, bb.x + bb.vx * 1.2, bb.y + bb.vy * 1.2).d : 0; const tA = dd / cs, zP = bb.z + bb.vz * tA - 4.9 * tA * tA; if (dd < cs * jT * 0.55 + 0.6 && lat < 0.9 && (!(globalThis.__Kphy ?? 1) || zP <= gkReachZ(p) + 0.15 || dd < 1.2)) {   /* 版908b：ボールの通り道の横にずれている間は跳ばずに、通り道へ寄ってから跳ぶ */ p.highT = jT; p.highZ = bb.z; p.hiPunch = S.gkCk.mode === 'punch';   /* 版872：パンチングと決めて跳ぶ時は、片手の絵 */ act(p, 'jump', jT); }   // 版864：少し早めに踏み切って、空中でキャッチ。ジャンプ力が高いほど長く・高く跳ぶ
+          const jT = 0.56 + p.jump * 0.0045, lat = (globalThis.__Kphy ?? 1) ? segDist(p.x, p.y, bb.x, bb.y, bb.x + bb.vx * 1.2, bb.y + bb.vy * 1.2).d : 0; const tA = dd / cs, zP = bb.z + bb.vz * tA - 4.9 * tA * tA; if (dd < cs * jT * (globalThis.__Kgkj ?? 0.55) + 0.6 && lat < 0.9 && (!(globalThis.__Kphy ?? 1) || zP <= gkReachZ(p) + 0.15 || dd < 1.2)) {   /* 版908b：ボールの通り道の横にずれている間は跳ばずに、通り道へ寄ってから跳ぶ */ p.highT = jT; p.highJT = jT; p.highZ = bb.z; p.hiPunch = S.gkCk.mode === 'punch';   /* 版872：パンチングと決めて跳ぶ時は、片手の絵 */ act(p, 'jump', jT); }   // 版864：少し早めに踏み切って、空中でキャッチ。ジャンプ力が高いほど長く・高く跳ぶ
         }
         if (p.slideT > 0) {
           p.slideT -= DT;
@@ -5503,9 +5508,9 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       // 針の穴通しの1本を受けた味方：裏へ抜けたら、GKとの距離を詰めてから打つ（前が空いている間は運ぶ。GKが出てきた・前をふさがれた・ゴール目の前で打つ）
       if (((p.hariT || 0) > S.t || (p.finT || 0) > S.t) && !sdCtx && !p.gk) { const best2 = (k, f) => Math.max(0, ...opts.filter((o) => o.kind === k && (!f || f(o))).map((o) => o.ww));
         const gq = opps(p).find((q) => q.gk); let spF = 9; for (const q of opps(p)) { if (q.gk) continue; const rx = q.x - p.x, ry = q.y - p.y, dd = hyp(rx, ry); if (dd < 9 && (rx * dir[0] + ry * dir[1]) / (dd || 1) > 0.45) spF = Math.min(spF, dd); }
-        const gkD = gq ? hyp(gq.x - p.x, gq.y - p.y) : 99, kIn = p.aoKeepFast && p.aoCutBy != null && P[p.aoCutBy] && (P[p.aoCutBy].aoCutT || 0) > S.t && !P[p.aoCutBy].off && hyp(P[p.aoCutBy].x - p.x, P[p.aoCutBy].y - p.y) < 15 && Math.abs(P[p.aoCutBy].y - GOAL_Y) + 4 < Math.abs(p.y - GOAL_Y), laneO = (globalThis.__Khrs ?? 1) && !opps(p).some((o) => { if (o.gk || o.off) return false; const sd = segDist(o.x, o.y, p.x, p.y, fx(p.team, L), GOAL_Y); return sd.u > 0.03 && sd.d < 1.4; }), shootNow = p.aoKeepFast ? (dGoal < 18 || gkD < 5) && !(kIn && Math.abs(p.y - GOAL_Y) > 7 && dGoal > 8 && gkD > 3) : (dGoal < 16 || gkD < 5 || (dGoal < 24 && spF < ((globalThis.__Khrs ?? 1) ? 3.2 : 2.0)) || (dGoal < 23 && laneO && Math.abs(p.y - GOAL_Y) < 12)),   /* 版929：針の穴の1本を受けたら、ゴール前でコースが空いていれば迷わず打つ（ドリブルで相手の中へ入っていかない） */   /* 蒼の王座の1本を受けた味方は、18m以内に入るまで遠くから打たない */ s0 = best2('shot'), d0 = best2('dribble', (o) => o.mode === 'break');
+        const gkD = gq ? hyp(gq.x - p.x, gq.y - p.y) : 99, kIn = p.aoKeepFast && p.aoCutBy != null && P[p.aoCutBy] && (P[p.aoCutBy].aoCutT || 0) > S.t && !P[p.aoCutBy].off && hyp(P[p.aoCutBy].x - p.x, P[p.aoCutBy].y - p.y) < 15 && Math.abs(P[p.aoCutBy].y - GOAL_Y) + 4 < Math.abs(p.y - GOAL_Y), laneO = (globalThis.__Khrs ?? 1) && !opps(p).some((o) => { if (o.gk || o.off) return false; const sd = segDist(o.x, o.y, p.x, p.y, fx(p.team, L), GOAL_Y); return sd.u > 0.03 && sd.d < 1.4; }), shootNow = p.aoKeepFast ? (dGoal < 18 || gkD < 5) && !(kIn && Math.abs(p.y - GOAL_Y) > 7 && dGoal > 8 && gkD > 3) : (dGoal < ((globalThis.__Khrs ?? 1) ? (globalThis.__Khrd ?? 19) : 16) || gkD < 5 || (dGoal < 24 && spF < ((globalThis.__Khrs ?? 1) ? 3.2 : 2.0)) || (dGoal < 23 && laneO && Math.abs(p.y - GOAL_Y) < 12)),   /* 版929：針の穴の1本を受けたら、ゴール前でコースが空いていれば迷わず打つ（ドリブルで相手の中へ入っていかない） */   /* 蒼の王座の1本を受けた味方は、18m以内に入るまで遠くから打たない */ s0 = best2('shot'), d0 = best2('dribble', (o) => o.mode === 'break');
         if (shootNow && s0 > 0) { for (const o of opts) if (o.kind !== 'shot') o.ww = Math.min(o.ww, s0 * 0.08); }
-        else if (d0 > 0 && dGoal < 45) { for (const o of opts) if (o.kind === 'shot' || (o.kind === 'pass' && !(o.danger < 0.3 && o.q && hyp(L - fx(p.team, o.q.x), GOAL_Y - o.q.y) < dGoal - 8))) o.ww = Math.min(o.ww, d0 * 0.05); } }
+        else if (d0 > 0 && dGoal < 45 && !((globalThis.__Khrs ?? 1) && dGoal < 23 && s0 > 0)) { for (const o of opts) if (o.kind === 'shot' || (o.kind === 'pass' && !(o.danger < 0.3 && o.q && hyp(L - fx(p.team, o.q.x), GOAL_Y - o.q.y) < dGoal - 8))) o.ww = Math.min(o.ww, d0 * 0.05); } }
       // 蒼の王座の1本を受けた味方：パス＆ゴーでゴール正面に入ってきたくもいが空いていれば、ダイレクトで折り返す（くもいが決める）
       if (p.aoKeepFast && !p.gk && !S.setPiece && p.aoCutBy != null && P[p.aoCutBy]) { const k = P[p.aoCutBy];
         if (!k.off && k.team === p.team && (k.aoCutT || 0) > S.t && !(S.ball.owner === k.idx)) { const kx = fx(p.team, k.x), kd = hyp(L - kx, GOAL_Y - k.y), dk = hyp(k.x - p.x, k.y - p.y);
@@ -5721,6 +5726,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       for (const o of opts) sum += o.ww;
       let r = R.next() * sum, pick = opts[opts.length - 1];
       for (const o of opts) { r -= o.ww; if (r <= 0) { pick = o; break; } }
+      if (globalThis.__hrD && (p.hariT || 0) > S.t) { const sw = opts.filter((o) => o.kind === 'shot').reduce((a, o) => Math.max(a, o.ww), 0), dw = opts.filter((o) => o.kind === 'dribble').reduce((a, o) => Math.max(a, o.ww), 0); globalThis.__hrD.push([+S.t.toFixed(1), +dGoal.toFixed(1), +sw.toPrecision(2), +dw.toPrecision(2), pick.kind, p.sdOn ? 'sd' : '', +(sum).toPrecision(2)]); }
       if (globalThis.__tacLog && p.waitSb && p.waitSb.until + 1.5 > S.t) { if (pick.wait && S.t - (p.wtLog ?? -9) > 3) { p.wtLog = S.t; globalThis.__tacLog.push(['wait', +S.t.toFixed(1), p.team, p.idx, p.waitSb.sb]); } else if (pick.kind === 'pass' && pick.q && pick.q.idx === p.waitSb.sb) globalThis.__tacLog.push(['waitgo', +S.t.toFixed(1), p.team, p.idx]); }
       { const bl = opts.find((o) => o.byLong || o.uzLong || o.aoLong); if (bl && pick !== bl && pick.kind !== 'shot') pick = bl; }
       { const ms = opts.find((o) => o.mustShoot); if (ms) pick = ms; }
@@ -6260,6 +6266,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           const carry = S.dribbleMode === 'carry', sd = (own.sdOn || 0) > S.t;   // 運ぶ：ボールは足元（0.3〜0.55m）／突破：大きく押し出す（速いほど遠く、最大1.3m）／高速ドリブル：大きく蹴り出す（最大2.4m）
           if (own.dO <= (carry ? 0.3 : 0.4)) { own.dO = carry ? 0.3 : 0.4; own.dV = carry ? 0.55 + spd * 0.05 : sd ? 1.9 + spd * 0.2 : 1.1 + spd * 0.14; act(own, 'touch', 0.25); }
           own.dO = Math.min(own.dO, carry ? 0.55 : sd ? 2.4 : 1.3);
+          if ((globalThis.__Kbx ?? 1) && fx(own.team, own.x) > L - 24 && Math.abs(own.y - GOAL_Y) < 17 && own.dO > 0.75) { own.dO = 0.75; own.dV = Math.min(own.dV, 0.3); }   // 版929：ゴール前（24m以内）では、大きく蹴り出さず、すぐ打てる所にボールを置く（打てる場面でドリブルを続けない）
           { let nd = 9; for (const q of opps(own)) { if (q.off || q.gk) continue; const dd = hyp(q.x - own.x, q.y - own.y); if (dd < nd && ((q.x - own.x) * dir[0] + (q.y - own.y) * dir[1]) > -0.5) nd = dd; }   // 版889：相手が近い（3m以内）時は、ボールを大きく出さず足もとに置く（うまい選手ほど近くに置ける）
             if (nd < 3 && !(sd && nd > 2)) { const cap = 0.42 + (1 - clamp(((own.dribble || 50) + (own.technique || 50)) / 200, 0, 1)) * 0.3; if (own.dO > cap) { own.dO = cap; own.dV = Math.min(own.dV, 0.4); } } }
         } else { own.dO += (0.5 - own.dO) * 0.3; own.dV = 0; }
@@ -6518,6 +6525,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       const inOwnBox = fx(p.team, b.x) < 16.5 && Math.abs(b.y - GOAL_Y) < 20.2;
       p.bpFromY = p.gk && prevTeam === p.team && P[prevPlayer] && prevPlayer !== p.idx ? P[prevPlayer].y : null;   // 版863：戻してきた味方のサイド（GK経由のサイドチェンジ用）
       if (globalThis.__bpD && p.gk && inOwnBox && !bp0 && prevTeam === p.team && prevPlayer !== p.idx) globalThis.__bpD.push([how, prevKind, b.kicker, prevPlayer, b.ftBy, b.kickKind, b.kind, P[prevPlayer] ? P[prevPlayer].team === p.team : null, +S.t.toFixed(1)]);
+      if (globalThis.__bpC && p.gk && inOwnBox) { const oldBp = (() => { const k = b.kicker; return k >= 0 && k !== p.idx && k === b.lastPlayer && b.ftBy === k && b.kickKind !== 'head' && P[k] && P[k].team === p.team; })(); globalThis.__bpC[bp0 ? (oldBp ? 'パスのバックパス' : 'ドリブルのバックパス（新しく足で処理）') : '手で取る'] = (globalThis.__bpC[bp0 ? (oldBp ? 'パスのバックパス' : 'ドリブルのバックパス（新しく足で処理）') : '手で取る'] || 0) + 1; }
       p.hold = p.gk && inOwnBox && !bp0;   // 版861：バックパス（味方が足で蹴った球・スローイン）は手で持たない（足で処理）
       p.gkOutT = p.gk && !inOwnBox ? S.t : 0;   // エリアの外で触ったGKは、すぐ処理する
       // 自陣ゴール前で相手FWに寄せられながらこぼれ球を拾ったDF：迷わずクリア
@@ -7357,7 +7365,9 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           if (R.next() < clamp(pS + (pS < 0.2 ? (pS - 0.2) * 0.5 : 0) + (pS > 0.7 ? (pS - 0.7) * 0.5 : 0), 0.03, 0.95)) {   // 力の差が大きいと、ほぼ一方的
             stats[q.team].tackles_won++;
             stats[own.team].tackles_lost++;
-            const took = R.next() < (mtG || uOn(q, 'matsuri') ? 0.95 : uOn(q, 'tetsurou') ? 0.97 : 0.55);   // 祭り太鼓の壁も、つつき出すだけでなく体ごと奪い切る   // 鉄狼の関所：しっかり自分のボールにする
+            const gkSteal = (globalThis.__Kgks ?? 1) && own.gk && fx(own.team, own.x) < 16.5;   // 版929：ゴール前で足もとのGKから奪ったFWは、そのまま自分のボールにする（つついてGKに拾い直させない）
+            const took = R.next() < (gkSteal ? 0.9 : mtG || uOn(q, 'matsuri') ? 0.95 : uOn(q, 'tetsurou') ? 0.97 : 0.55);
+            if (gkSteal) own.touchCd = Math.max(own.touchCd || 0, 0.8);   // 祭り太鼓の壁も、つつき出すだけでなく体ごと奪い切る   // 鉄狼の関所：しっかり自分のボールにする
             if (took && uOn(q, 'tetsurou')) { q.uTetsu = S.t + 2.5; act(q, 'ttsteal', 0.8, { lv: q.uniqLv || 1 }); }
             if (uOn(q, 'matsuri')) { const ux = own.x - q.x, uy = own.y - q.y, ud = hyp(ux, uy) || 1; own.stun = Math.max(own.stun || 0, 0.7 + 0.6 * Math.min(1, mtF(q))); own.vx = (ux / ud) * 3.5; own.vy = (uy / ud) * 3.5; act(own, 'lose', 1.4, { o: q.idx, big: 1 }); }   // 祭り太鼓の壁：体をぶつけられた相手は、大きくよろける
             const mtRoll = took && (mtG || uOn(q, 'matsuri'));
@@ -7693,7 +7703,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         else if (p.team === b.lastTeam && b.intended === p.idx && p.technique >= 55 && sp < 20 + pvB && b.z < 1.0) prob = Math.max(prob, 0.97);   // テクニックC以上：味方からの普通のパスは、まず止める   // D1・D2レベル（テクニック68以上）：味方からのパスを置き去りにするトラップミスは、ほぼしない
         if (b.tsukiP && b.kind === 'pass' && p.idx === b.intended) prob = Math.max(prob, 0.97);   // 月影の抜け出し：走りながらぴたりと収める
         if (gkHands && S.gkCk && S.gkCk.g === p.idx && S.gkCk.mode !== 'stay' && b.z > 0.8 && b.kind === 'pass') {
-          const m = S.gkCk.mode; S.gkCk = null; if (!(p.highT > 0)) { p.highT = 0.45; act(p, 'jump', 0.45); }
+          const m = S.gkCk.mode; S.gkCk = null; if (globalThis.__gkJ) { const J = globalThis.__gkJ; J.n++; if (!(p.highT > 0)) J.late++; else J.early.push(+(1 - p.highT / (p.highJT || 1)).toFixed(2)); } if (!(p.highT > 0)) { p.highT = 0.45; act(p, 'jump', 0.45); }
           if (m === 'miss') { p.touchCd = 1.2; ev('gk', { team: p.team, player: p.name, act: 'miss' }); continue; }   // 目測を誤って、かぶる
           if (m === 'punch') { p.punchT = 0.5; p.touchCd = 0.6; stats[p.team].saves++; ev('save', { team: p.team, player: p.name, act: 'punch' }); punchTo(p, b, true); return; }
           gainBall(p, 'control'); ev('gk', { team: p.team, player: p.name, act: 'claim' }); return;
@@ -7708,7 +7718,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         if (gkHands) {
           prob = Math.max(prob, 0.9);
           const crowded = b.z > 1.1 && opps(p).some((q) => hyp(q.x - p.x, q.y - p.y) < 1.8);
-          if (b.z > 1.6) act(p, 'jump', 0.55);   // 高いボールに跳んで手を伸ばす
+          if (globalThis.__gkJ2 && b.z > 1.6) { const J = globalThis.__gkJ2; J.n++; if (S.t - (p.preJT ?? -9) < 0.8) J.pre.push(+(S.t - p.preJT).toFixed(2)); else J.late++; }
+          if (b.z > 1.6 && !(S.t - (p.preJT ?? -9) < 0.8)) act(p, 'jump', 0.55);   // 高いボールに跳んで手を伸ばす（先に踏み切っていれば、そのまま空中で取る）
           if (crowded && R.next() < 0.55 - p.technique * 0.004) {   // テクニックが高いほど、競られてもキャッチできる（基本はジャンプしてキャッチ）
             p.punchT = 0.5; p.touchCd = 0.6;
             ev('save', { team: p.team, player: p.name, act: 'punch' });
