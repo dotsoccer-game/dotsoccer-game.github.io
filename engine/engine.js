@@ -1118,7 +1118,64 @@
       }
     }
     const throwHelp = [-1, -1];
+    // 版931：セットプレーの準備（設計22-11）。CKは「止まって待つ位置」と「助走が始まったら走り込む先」を分ける。
+    //  攻撃：GKの前に1人（スクリーン）、PKスポットのまわりに4人が止まって待ち、助走に合わせてニア・中央・ファー・PKスポットへ走り込む。エリアの外に1人、後ろに2人。
+    //  守備：GKはゴールライン、ニアポストに1人、ゴールエリアのラインに3人（ゾーン）、走り込む4人にはゴール側にマンマーク、エリアの外に1人、前に1人残す
+    function planCorner2(r) {
+      for (const k in cornerSpots) delete cornerSpots[k];
+      const att = r.team, def = 1 - att, ns = r.y < GOAL_Y ? 1 : -1;   // ns：ニア側が−、ファー側が＋（GOAL_Y + v*ns）
+      const at = (x, y) => [fx(att, x), GOAL_Y + y * ns];
+      const air = (q) => q.jump * 0.6 + q.physical * 0.4;
+      const atk = T[att].players.filter((p) => !p.gk && !p.off && p.idx !== r.taker).sort((a, c) => (c.slot.line ?? 0) - (a.slot.line ?? 0)).slice(0, 7);
+      const dfAll = T[def].players.filter((p) => !p.gk && !p.off);
+      const top4 = (arr) => arr.map(air).sort((a, c) => c - a).slice(0, 4).reduce((a, v) => a + v, 0) / 4;
+      const gap = top4(dfAll) - top4(atk), tk0 = P[r.taker], ckm = tk0 && tk0.sk.has('ckMaster');
+      r.ck = !ckm && gap > 6 && atk.length > 2 && R.next() < clamp(0.25 + (gap - 6) * 0.03, 0.25, 0.6) ? 'short'
+        : (() => { const v = R.next(), far = 0.34 + (top4(atk) - 60) * 0.004; return v < 0.33 ? 'near' : v < 0.33 + far ? 'far' : 'mid'; })();
+      if (r.ck !== 'short' && atk.length >= 5 && R.next() < 0.3) r.ck = 'late';
+      for (const m of T[att].players) { m.ckRole = null; m.ckRun = null; m.ckGo = null; m.ckWait = 0; }
+      for (const m of T[def].players) { m.ckMark = null; }
+      // 走り込む4人（待つ位置 → 走り込む先）。ボールが落ちる所（near/far/mid）と同じ場所へ
+      const RUN = { near: { s: [-12, -3.6], g: [-6.2, -2.9] }, mid: { s: [-13.8, -0.8], g: [-10.5, 0] }, ctr: { s: [-12.6, 1.6], g: [-6.4, 0.6] }, far: { s: [-13, 4.6], g: [-8.6, 5.8] } };
+      const pool = atk.slice(), take = (f) => { if (!pool.length) return null; pool.sort((a, c) => f(c) - f(a)); return pool.shift(); };
+      const roles = {};
+      // 狙われる選手を先に決める（ニア：速さ、ファー・中間：空中戦）
+      const mainKey = r.ck === 'near' ? 'near' : r.ck === 'far' || r.ck === 'late' ? 'far' : r.ck === 'mid' ? 'mid' : null;
+      if (mainKey) roles[mainKey] = take(mainKey === 'near' ? (q) => q.speed + q.dash : (q) => air(q) + q.technique * 0.2);
+      for (const k of ['far', 'mid', 'near', 'ctr']) if (!roles[k]) roles[k] = take(k === 'near' ? (q) => q.speed + q.dash : air);
+      const scr = take((q) => q.physical), edge = take((q) => q.kick + q.technique * 0.3), spare = take((q) => q.pass);
+      for (const k in RUN) { const q = roles[k]; if (!q) continue; const st = RUN[k].s, gl = RUN[k].g;
+        cornerSpots[q.idx] = at(L + st[0], st[1]); q.ckGo = at(L + gl[0], gl[1]); q.ckRole = 'run'; q.ckWait = k === 'mid' ? 0.35 : 0.15; }
+      if (r.ck === 'late' && roles.far) { const q = roles.far; cornerSpots[q.idx] = at(L - 16.5, 8); q.ckWait = 0.55; q.ckRole = 'late'; for (const k of ['near', 'ctr']) if (roles[k]) { roles[k].ckRole = 'decoy'; roles[k].ckGo = at(L - 5.2, -3.5); } }
+      if (scr) cornerSpots[scr.idx] = at(L - 1.4, -0.6);   // GKの前に立つ（GKの動きを邪魔する）
+      if (edge) cornerSpots[edge.idx] = at(L - 18.5, 1.5);   // エリアの外：こぼれ球を拾う・シュート
+      if (spare) cornerSpots[spare.idx] = r.ck === 'short' ? [fx(att, L - 5.5), clamp(r.y + ns * 6, 1, W - 1)] : at(L - 17, -9);
+      r.ckTo = r.ck === 'short' ? (spare ? spare.idx : null) : mainKey && roles[mainKey] ? roles[mainKey].idx : null;
+      if (r.ck === 'short' && spare) { spare.ckGo = null; for (const k in roles) if (roles[k]) roles[k].ckGo = null; }
+      // 守備
+      const ds = dfAll.slice(), dTake = (f) => { if (!ds.length) return null; ds.sort((a, c) => f(c) - f(a)); return ds.shift(); };
+      const up = dTake((q) => (q.slot.line ?? 0) * 100 + q.speed); if (up) cornerSpots[up.idx] = at(L - 30, 5);   // 前に1人残す（カウンター）
+      const runners = ['far', 'mid', 'near', 'ctr'].map((k) => roles[k]).filter(Boolean).sort((a, c) => air(c) - air(a));
+      for (const a of runners) { const d = dTake((q) => air(q) + q.defense * 0.3); if (!d) break; const [ax, ay] = cornerSpots[a.idx];
+        cornerSpots[d.idx] = [ax + sgn(att) * 1.0, ay + (GOAL_Y - ay) * 0.1]; d.ckMark = a.idx; }
+      for (const y of [-2.8, 0.6, 3.8]) { const d = dTake(air); if (!d) break; cornerSpots[d.idx] = at(L - 5.6, y); }   // ゴールエリアのライン（ゾーン）
+      const np = dTake((q) => q.speed + q.defense * 0.2); if (np) cornerSpots[np.idx] = at(L - 0.7, -3.0);   // ニアポスト
+      const ed = dTake((q) => q.speed); if (ed) cornerSpots[ed.idx] = at(L - 17.5, -1);   // エリアの外
+      while (ds.length) { const d = ds.shift(); cornerSpots[d.idx] = at(L - 12, -6); }
+      r.spT = null;
+    }
+    // 版931：PK。キッカーとGK以外は、ペナルティエリアの外（アークの両側）に、攻守交互に並ぶ。こぼれ球に備えて内側の位置を取り合う
+    function planPK(r) {
+      const att = r.team, def = 1 - att; r.pkSp = {};
+      const near = (t, n) => T[t].players.filter((q) => !q.gk && !q.off && q.idx !== r.taker).sort((a, c) => (c.slot.line ?? 0) - (a.slot.line ?? 0)).slice(0, n);
+      const A = near(att, 5), Dd = near(def, 6).reverse();   // 攻撃は前の選手から5人、守備は後ろの選手から6人
+      const ys = [9.9, 11.3, -9.9, -11.3, 12.7, 14.1, -12.7, -14.1, 15.5, 16.9, -15.5, -16.9];   // 両側とも、内から守・攻・守・攻
+      const seq = []; for (let k = 0; k < 6; k++) { if (Dd[k]) seq.push(Dd[k]); if (A[k]) seq.push(A[k]); }   // 内側は守備側から
+      seq.forEach((q, k) => { const y = ys[k]; if (y == null) return; r.pkSp[q.idx] = [fx(att, L - 17.3), GOAL_Y + y]; });
+      for (const q of near(def, 10).slice(0, Math.max(0, near(def, 10).length - 6))) { if (!r.pkSp[q.idx] && (q.slot.line ?? 0) >= 2) r.pkSp[q.idx] = [fx(att, L - 34), GOAL_Y + (q.idx % 2 ? 7 : -7)]; }   // 守備側のFWは前に残る
+    }
     function planCorner(r) {
+      if (globalThis.__Kspc ?? 1) return planCorner2(r);
       for (const k in cornerSpots) delete cornerSpots[k];
       const att = r.team, def = 1 - att;
       const spots = [[L - 5.5, -2.6], [L - 6.5, 3.2], [L - 10.5, 0], [L - 8.5, -6.5], [L - 9, 6.5], [L - 13.5, -2.5], [L - 17.5, 4]];
@@ -2920,6 +2977,7 @@
       }
       if (r && r.type === 'corner' && !r.planned) { planCorner(r); r.planned = true; }
       if (r && r.type === 'free' && !r.planned) { planFK(r); r.planned = true; }
+      if (r && r.type === 'penalty' && !r.planned && (globalThis.__Kspc ?? 1)) { planPK(r); r.planned = true; }
       if (r && r.type === 'throw' && !r.planned) {
         const near = T[r.team].players.filter((m) => !m.gk && !m.off && m.idx !== r.taker).sort((a, c) => hyp(a.x - r.x, a.y - r.y) - hyp(c.x - r.x, c.y - r.y));
         throwHelp[0] = near[0] ? near[0].idx : -1; throwHelp[1] = near[1] ? near[1].idx : -1; r.planned = true;
@@ -2941,7 +2999,7 @@
           const sx = clamp(r.x - rx * runD, -4, L + 4), sy = clamp(r.y - ry * runD, -3.5, W + 3.5);
           const atSpot = hyp(p.x - sx, p.y - sy) < 0.7;
           const runTime = hyp(sx - r.x, sy - r.y) / 5 + 0.3;
-          if (!r.runup && atSpot && r.wait <= runTime && (r.type !== 'penalty' || pkClear(r) || (r.pkHold || 0) >= 8)) { r.runup = true; if (r.type === 'penalty') ev('pkgo', { team: r.team }); else if (r.type === 'free' && (r.wall || fx(r.team, r.x) > L / 2)) ev('fkgo', { team: r.team }); }   /* 版846：FKも、笛が鳴ってから蹴る */   /* v742 PK：全員がエリアの外に出てから、笛で助走 */
+          if (!r.runup && atSpot && r.wait <= runTime && (r.type !== 'penalty' || pkClear(r) || (r.pkHold || 0) >= 8) && spReadyOk(r)) { r.runup = true; r.runupT = S.t; spLog(r, '笛'); if (r.type === 'penalty') ev('pkgo', { team: r.team }); else if (r.type === 'free' && (r.wall || fx(r.team, r.x) > L / 2)) ev('fkgo', { team: r.team }); }   /* 版846：FKも、笛が鳴ってから蹴る */   /* v742 PK：全員がエリアの外に出てから、笛で助走 */
           if (!r.runup) { targets[p.idx] = [sx, sy]; urgent[p.idx] = !atSpot; }
           else { targets[p.idx] = [r.x - rx * 0.4, r.y - ry * 0.4]; urgent[p.idx] = true; }
         }
@@ -2950,10 +3008,16 @@
           if (fkSpots[p.idx]) { const [tx, ty] = fkSpots[p.idx]; targets[p.idx] = [tx, ty]; urgent[p.idx] = hyp(p.x - tx, p.y - ty) > 5; }
           if (targets[p.idx]) { let [tx, ty] = targets[p.idx]; const dx = tx - r.x, dy = ty - r.y, d = hyp(dx, dy), need = p.team !== r.team ? 9.6 : 4.5;
             if (d < need) { const ux = d > 0.1 ? dx / d : -sgn(r.team), uy = d > 0.1 ? dy / d : 0; tx = r.x + ux * need; ty = r.y + uy * need; targets[p.idx] = [clamp(tx, 0.5, L - 0.5), clamp(ty, 0.5, W - 0.5)]; } }
+          if (fkSpots[p.idx] && targets[p.idx]) { p.spR = r; p.spTgt = targets[p.idx]; }
         }
         // コーナー：攻撃側はゴール前の決まった場所へ、守備側はそれぞれマークにつく
         if (r.type === 'corner' && !p.gk && p.idx !== r.taker && cornerSpots[p.idx]) {
-          const [tx, ty] = cornerSpots[p.idx]; targets[p.idx] = [tx, ty]; urgent[p.idx] = hyp(p.x - tx, p.y - ty) > 6;
+          const [tx, ty] = cornerSpots[p.idx]; targets[p.idx] = [tx, ty]; urgent[p.idx] = hyp(p.x - tx, p.y - ty) > ((globalThis.__Kspc ?? 1) ? 0.8 : 6);
+          if ((globalThis.__Kspc ?? 1) && r.runup && r.ck !== 'short') {
+            if (p.ckGo && S.t - r.runupT >= (p.ckWait || 0)) { targets[p.idx] = p.ckGo; urgent[p.idx] = true; }   // 助走に合わせて走り込む
+            else if (p.ckMark != null && P[p.ckMark] && P[p.ckMark].ckGo && S.t - r.runupT >= (P[p.ckMark].ckWait || 0)) { const a = P[p.ckMark], gx0 = fx(p.team, 0), gl = hyp(gx0 - a.x, GOAL_Y - a.y) || 1;   // マークの相手について行く（ゴール側）
+              targets[p.idx] = [a.x + a.vx * 0.3 + (gx0 - a.x) / gl * 0.9, a.y + a.vy * 0.3 + (GOAL_Y - a.y) / gl * 0.9]; urgent[p.idx] = true; }
+          }
         }
         // スローイン：近くの味方2人が受けに来る（1人は足元へ、1人はライン沿いの前へ）
         if (r.type === 'throw' && p.team === r.team && !p.gk && p.idx !== r.taker && (throwHelp[0] === p.idx || throwHelp[1] === p.idx)) {
@@ -2964,12 +3028,13 @@
         // コーナー・FKの待ち時間：ゴール前の選手は小刻みに動いて位置を取り合う
         if ((r.type === 'corner' || (r.type === 'free' && r.wall)) && !p.gk && p.idx !== r.taker && targets[p.idx]) {
           const [tx, ty] = targets[p.idx];
-          if (fx(r.team, tx) > L - 20) targets[p.idx] = [tx + Math.sin(S.t * 1.7 + p.idx) * 1.1, ty + Math.cos(S.t * 1.3 + p.idx * 2) * 1.3];
+          if (fx(r.team, tx) > L - 20 && !(globalThis.__Kspc ?? 1)) targets[p.idx] = [tx + Math.sin(S.t * 1.7 + p.idx) * 1.1, ty + Math.cos(S.t * 1.3 + p.idx * 2) * 1.3];
         }
         if (r.type === 'penalty' && p.idx !== r.taker) {
           // PKの時はキッカーとGK以外はペナルティエリアの外
           const att = r.team;
           if (p.gk && p.team !== att) { targets[p.idx] = [fx(att, L - 0.4), GOAL_Y]; continue; }
+          if (r.pkSp && r.pkSp[p.idx]) { const [sx2, sy2] = r.pkSp[p.idx]; targets[p.idx] = [sx2, sy2]; urgent[p.idx] = hyp(p.x - sx2, p.y - sy2) > 0.8; p.spR = r; p.spTgt = r.pkSp[p.idx]; continue; }
           let [tx, ty] = targets[p.idx];
           const xf = fx(att, tx);
           if (xf > L - 18.5) tx = fx(att, L - 18.5 - (p.idx % 4) * 1.2);
@@ -3684,6 +3749,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           if (globalThis.__tgHook) { p._dbgT = S.t; p._dbgTx = tx; }
           const offOk = (S.restart && S.restart.taker === p.idx) || (S.hurry && S.celebrate > 0 && S.hurry.i === p.idx);   // ネットの中までボールを取りに行く
           if (attacking && !chasing[p.idx] && !(own && own.idx === p.idx) && !S.restart && S.ball.intended !== p.idx && !(S.hurry && S.celebrate > 0 && S.hurry.i === p.idx)) tx = Math.min(tx, L - 6);   /* 版781：ネットのボールを取りに行く選手は除く（ゴールの手前で止まって、ずっと取りに行けなかった） */   /* v749：攻めている時、ボールを追っていない選手は、ゴールラインから6mより奥（GKの横）には立たない */
+          if (p.ckRun && p.ckRun.until <= S.t) p.ckRun = null;
           if (p.ckRun && p.ckRun.until > S.t && !own && b.intended !== p.idx && !S.restart) { tx = fx(tm.ti, p.ckRun.to[0]); ty = p.ckRun.to[1]; u = true; }   // 版878：CKのおとり：ニアへ全力で走る
           if (p.fGo && p.fShot === b.shotT && p.fTgt && !own && !chasing[p.idx] && (b.kind === 'shot' || (b.kind === 'loose' && S.t - (b.shotT ?? -9) < 2.5)) && !(S.restart)) { tx = p.fTgt[0]; ty = p.fTgt[1]; u = true; }   // 版878：シュートを打ったら、決めた所へ最後まで詰める（ほかの動きより優先）
           targets[p.idx] = [fx(tm.ti, clamp(tx, offOk ? -4 : 0.8, offOk ? L + 4 : L - 0.8)), clamp(ty, offOk ? -3.5 : 1, offOk ? W + 3.5 : W - 1)];
@@ -5889,7 +5955,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       }
       // 再開までの「間」：審判・副審が判定を示し、選手が位置につくまで待つ
       const WAIT = { corner: 5.2, penalty: 7.5, throw: 3.0, goalkick: 4.6, free: 3.6 };
-      S.restart = { type, team, x, y, taker, wait: WAIT[type] || 3.6, stage: 'settle', settle: hyp(S.ball.vx, S.ball.vy) > 9 || S.ball.z > 1 ? 1.8 : 0.9 };   // 勢いのある球は、飛んでいく先まで見せる
+      S.restart = { type, team, x, y, taker, t0: S.t, wait: WAIT[type] || 3.6, stage: 'settle', settle: hyp(S.ball.vx, S.ball.vy) > 9 || S.ball.z > 1 ? 1.8 : 0.9 };   // 勢いのある球は、飛んでいく先まで見せる
       if (S.refCard) S.restart.wait = Math.max(S.restart.wait, S.refCard.t + 2.6);   // カードを見せ終わってから
       // ゴールに近い直接フリーキックは壁を作る
       if (type === 'free' && fx(team, x) > L - 32 && Math.abs(y - GOAL_Y) < 24) {
@@ -6061,6 +6127,21 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
     /* v742 PK：キッカーと守るGK以外が、ペナルティエリアとアークの外に出るまで蹴らない */
     function pkInZone(q, r) { return fx(r.team, q.x) > L - 16.5 - 0.6 && Math.abs(q.y - GOAL_Y) < 20.16 + 0.6 || hyp(q.x - r.x, q.y - r.y) < 9.15 + 0.4; }
     function pkClear(r) { return P.every((q) => q.off || q.idx === r.taker || (q.gk && q.team !== r.team) || !pkInZone(q, r)); }
+    function spLog(r, tag) {
+      if (!globalThis.__spDbg || r.type === 'throw' || r.type === 'goalkick' || (r.type === 'free' && !r.wall && fx(r.team, r.x) <= L - 36)) return;
+      const sp = spAssign(r); let nr = 0, mx = 0, n = 0, mv = 0; for (const [i, xy] of sp) { const q = P[i]; if (!q || q.off) continue; n++; const dd = hyp(q.x - xy[0], q.y - xy[1]); if (dd > 1.5) nr++; mx = Math.max(mx, dd); mv += hyp(q.vx, q.vy); }
+      if (globalThis.__spWho) for (const [i, xy] of sp) { const q = P[i]; if (q && !q.off && hyp(q.x - xy[0], q.y - xy[1]) > 5) globalThis.__spWho.push({ tag, type: r.type, wall: !!r.wall, i, team: q.team, tk: r.team, gk: q.gk, pos: [+q.x.toFixed(1), +q.y.toFixed(1)], tgt: xy.map((v) => +v.toFixed(1)), fk: fkSpots[i] && fkSpots[i].map((v) => +v.toFixed(1)), inWall: !!(r.wall && r.wall.some((w) => w.idx === i)), rx: +r.x.toFixed(1), ry: +r.y.toFixed(1), urg: urgent[i], t: +(S.t - r.t0).toFixed(1) }); }
+      globalThis.__spDbg.push({ tag, type: r.type + (r.wall ? '壁' : ''), n, notReady: nr, maxD: +mx.toFixed(1), meanV: +(mv / Math.max(1, n)).toFixed(2), waited: +(S.t - (r.t0 ?? S.t)).toFixed(1) });
+    }
+    // 版931：全員が位置についてから笛（助走）。最大10秒まで待つ
+    function spReadyOk(r) {
+      if (!(globalThis.__Kspc ?? 1) || !(r.type === 'corner' || r.type === 'free' || r.type === 'penalty')) return true;
+      if (r.type === 'free' && !r.wall && fx(r.team, r.x) <= L - 36) return true;
+      if (S.t - (r.t0 ?? S.t) > 10) return true;
+      for (const [i, xy] of spAssign(r)) { const q = P[i]; if (!q || q.off) continue; if (hyp(q.x - xy[0], q.y - xy[1]) > 1.2) return false; }
+      return true;
+    }
+    function spAssign(r) { const out = []; if (r.type === 'corner') for (const k in cornerSpots) out.push([+k, cornerSpots[k]]); else if (r.type === 'free') { for (const k in fkSpots) out.push([+k, P[+k] && P[+k].spR === r && P[+k].spTgt ? P[+k].spTgt : fkSpots[k]]); for (const w of r.wall || []) out.push([w.idx, [w.x, w.y]]); } else if (r.type === 'penalty') { if (r.pkSp) for (const k in r.pkSp) out.push([+k, r.pkSp[k]]); } return out; }
     function tickRestart() {
       const r = S.restart;
       r.wait -= DT;
@@ -6070,6 +6151,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       const quick = r.type === 'throw' && fx(r.team, r.x) > 40 && opps(tk).filter((q) => fx(r.team, q.x) < fx(r.team, r.x)).length <= 4;
       const ready = r.type === 'throw' ? r.stage === 'held' && S.t - (r.heldAt ?? S.t) >= (quick ? 0.4 : 1.0) : r.stage === 'ready' && r.runup;
       if (r.wait <= 0 && ready && hyp(tk.x - r.x, tk.y - r.y) < (r.type === 'throw' ? 1.0 : 0.75)) {
+        spLog(r, '蹴る');
         if (r.type === 'throw') { tk.x = r.x; tk.y = r.y; }
         S.ball.x = r.x; S.ball.y = r.y; S.ball.z = 0;
         S.ball.owner = tk.idx; S.ball.kind = 'owned'; S.ball.lastTeam = tk.team; S.ball.lastPlayer = tk.idx;
@@ -6109,13 +6191,16 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
                 // 版878：おとり→ファーに遅れて入る：ニアへおとりが走って空いたファーへ、後ろから走り込む選手の頭に合わせる
                 const ax = fx(tk.team, L - 8.2) + sgn(tk.team) * R.gauss() * err * 0.8, ay = GOAL_Y + nearSide * (5.2 + R.gauss() * err * 0.8);
                 kick(tk, ax, ay, 'pass', 'high', { landFrac: 1.0, acc });
-                if (globalThis.__tacLog) globalThis.__tacLog.push(['cklate', +S.t.toFixed(1), tk.team, r.ckTo != null ? r.ckTo : tk.idx]); for (const m of T[tk.team].players) if (m.ckRole === 'decoy') m.ckRun = { until: S.t + 1.6, to: [fx(tk.team, L - 5.2), GOAL_Y - nearSide * 3.5] }; else if (m.ckRole === 'late') m.ckRun = { until: S.t + 2.2, to: [ax, ay] };
+                if (globalThis.__tacLog) globalThis.__tacLog.push(['cklate', +S.t.toFixed(1), tk.team, r.ckTo != null ? r.ckTo : tk.idx]); for (const m of T[tk.team].players) if (m.ckRole === 'decoy') m.ckRun = { until: S.t + 1.6, to: [L - 5.2, GOAL_Y - nearSide * 3.5] }; else if (m.ckRole === 'late') m.ckRun = { until: S.t + 2.2, to: [fx(tk.team, ax), ay] };   /* 版931：to はチーム基準（右チームは逆のゴールへ走っていた） */
               } else {
                 // 中間（PKスポットのあたり）へ、ゴールへ向かって巻いて落とす
                 const ax = fx(tk.team, L - 10.5) + sgn(tk.team) * R.gauss() * err, ay = GOAL_Y + R.gauss() * err * 1.2;
                 kick(tk, ax, ay, 'pass', 'cross', { spinSign: inSw, spinMul: 1.0, acc });
               }
               S.ball.intended = qq.idx;
+              if ((globalThis.__Kspc ?? 1) && ck !== 'short') for (const m of P) { if (m.off) continue;
+                if (m.team === tk.team && m.ckGo && !(m.ckRun && m.ckRun.until > S.t)) m.ckRun = { until: S.t + 1.6, to: [fx(tk.team, m.ckGo[0]), m.ckGo[1]] };
+                if (m.team !== tk.team && m.ckMark != null) m.trackRun = { until: S.t + 2.0, r: m.ckMark }; }
               if (ck !== 'short') gkCornerCall(tk, ck === 'late' ? 'far' : ck);
               if (typeof globalThis !== 'undefined' && globalThis.__ckLog) globalThis.__ckLog.push({ ck, gk: S.gkCk && S.gkCk.mode, t: S.t, team: tk.team });
             }
@@ -6157,6 +6242,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           // PKの名手：最後までGKを見て、逆をつく
           const guess = R.next() < (0.42 + gk.mental * 0.002 + (gk.sk.has('pkStopper') ? 0.12 : 0) + (uOn(gk, 'ikari') ? 0.25 : 0)) * (tk.sk.has('pkMaster') ? 0.3 : 1) ? sideAim : -sideAim;   // 白亜の城壁：読みも当たりやすい
           startDive(gk, guess, 2.4 + R.next() * 0.8, 0.12);
+          if (r.pkSp) for (const k in r.pkSp) { const q = P[+k]; if (!q || q.off) continue; const [sx2, sy2] = r.pkSp[k]; if (fx(tk.team, sx2) < L - 25) continue;   // 版931：蹴ったら、こぼれ球へ一斉にエリアへ入る
+            q.ckRun = { until: S.t + 1.1, to: [fx(q.team, fx(tk.team, L - 9.5 - (q.team === tk.team ? 0 : 0.8))), GOAL_Y + (sy2 - GOAL_Y) * 0.45] }; }
           // PKストッパー：同じ方向に来たら、高確率で触る
           if (gk.sk.has('pkStopper') && guess === sideAim) { S.ball.pkStop = true; act(gk, 'skill', 1.4, { k: 'pkStopper' }); }
         } else {
