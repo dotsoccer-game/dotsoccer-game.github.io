@@ -3936,7 +3936,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           if (!skZ(p, 'controlShot') && fx(p.team, p.x) > L - 30 && Math.abs(p.y - GOAL_Y) > 3 && Math.sign(S.dribbleDir[1]) === Math.sign(p.y - GOAL_Y)) {
             const gx = fx(p.team, L) - p.x, gy = GOAL_Y - p.y, gl = hyp(gx, gy) || 1, k = 0.12;
             const nx = S.dribbleDir[0] * (1 - k) + gx / gl * k, ny = S.dribbleDir[1] * (1 - k) + gy / gl * k, nl = hyp(nx, ny) || 1; S.dribbleDir = [nx / nl, ny / nl]; }
-          vmax *= 0.8 + p.dribble * 0.0016;   // ドリブルが上手いほど速く運べる（S 約0.94、E 約0.86。全力疾走より少し遅い）
+          vmax *= 0.8 + p.dribble * 0.0016 - ((globalThis.__Kab ?? 1) ? Math.max(0, 85 - p.dribble) * (globalThis.__Kab9 ?? 0.004) : 0);   // 版935：ドリブルが85より低いと、ボールを持つと遅くなる（60で約8割・40で約7割）   // ドリブルが上手いほど速く運べる（S 約0.94、E 約0.86。全力疾走より少し遅い）
           if (S.dribbleMode === 'carry') {
             vmax *= 0.58 + p.technique * 0.0015;   // 運ぶドリブル：足元に置いたまま、ゆっくり
             { const v0 = hyp(p.vx, p.vy); if ((globalThis.__Kphy ?? 1) && v0 > 3 && S.t - (p.recvT ?? -9) < 0.8 && !opps(p).some((o) => !o.gk && hyp(o.x - p.x, o.y - p.y) < 3)) vmax = Math.max(vmax, Math.min(v0 * 0.92, maxSpeed(p) * 0.8)); }   // 版908：走りながら受けた直後は、勢いを残したまま（いきなり歩く速さにしない）
