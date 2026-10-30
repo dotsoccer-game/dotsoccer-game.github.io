@@ -4207,6 +4207,9 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           if (p.sk.has('clutch') && (T[p.team].urg || opt.pk)) menF *= 0.72;                   // 勝負強さ：追いかける終盤・PKで決める
           if (p.sk.has('bigStage') && close) menF *= 0.82; }                                   // 大舞台に強い：接戦の後半
         ang += menF * Math.max(0.3, 2.1 - p.kick / 55) * (1 - DOM[p.team] * 0.72) * R.gauss() * (opt.calm ? 0.3 + (1 - p.mental / 100) * 0.6 : 1) * (opt.pk ? 0.03 + (1 - p.mental / 100) * 0.03 : 0.065 + d * 0.0032 - p.kick * 0.0004 + pressure * 0.05 + fatigue * 0.04);
+        // 版932：能力の差がプレーに出る（設計24章）：シュート。キックが低いほど、向きも高さも大きくぶれる（上手い選手は今のまま）
+        const abK = (globalThis.__Kab ?? 1) && !opt.pk && !opt.empty ? 1 + Math.max(0, 85 - p.kick) * (globalThis.__Kab4 ?? 0.025) : 1;
+        if (abK > 1) ang = Math.atan2(dy, dx) + (ang - Math.atan2(dy, dx)) * abK;
         if (!opt.pk && !opt.empty && d > 12) ang += R.gauss() * (d - 12) * 0.006 * (1.15 - p.kick / 200) * (opt.fk ? 0.6 : 1);   // 版790：遠くからのシュートは、キックがSでも隅ぴったりには行きにくい（上のリーグでミドル・ロングが入りすぎていた）
         if (opt.empty) ang = Math.atan2(dy, dx) + (ang - Math.atan2(dy, dx)) * 0.12;   // 無人のゴール：ほとんどズレない
         // 弾道：低く速いグラウンダーは2割。多くはすねから胸の高さ、時々バーの下ギリギリへズバッと
@@ -4214,7 +4217,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           // グラウンダー・すね〜胸・頭上〜バーぎりぎりまで幅広く。キックが下手・遠い・寄せられていると上下にもブレる（バーの上へふかす）
           const r0 = R.next();
           let h = opt.pk ? R.range(0.2, 2.0) : r0 < 0.22 ? R.range(0.1, 0.4) : r0 < 0.62 ? R.range(0.5, 1.8) : R.range(1.8, 2.75);
-          if (!opt.pk) h += R.gauss() * menF * (0.1 + (1 - p.kick / 100) * 0.6 + pressure * 0.3 + d * 0.008) * (1 - DOM[p.team] * 0.6) * (uOn(p, 'guren') ? Math.max(0.2, 1 - (p.uniqLv >= 2 ? 0.7 : 0.55) * grF(p)) : 1);   // 紅蓮の牙：ふかさない
+          if (!opt.pk) h += R.gauss() * abK * menF * (0.1 + (1 - p.kick / 100) * 0.6 + pressure * 0.3 + d * 0.008) * (1 - DOM[p.team] * 0.6) * (uOn(p, 'guren') ? Math.max(0.2, 1 - (p.uniqLv >= 2 ? 0.7 : 0.55) * grF(p)) : 1);   // 紅蓮の牙：ふかさない
           h = Math.max(0.05, h);
           if (opt.empty) h = R.range(0.1, 0.7);   // 無人のゴール：低く確実に
           const t = Math.max(0.15, d / speed);
@@ -4320,6 +4323,15 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         speed = clamp(speed * (1 + R.gauss() * (0.02 + (1 - p.pass / 100) * 0.1 + (1 - p.vision / 100) * 0.08) * (opt.arriveT ? 0.5 : 1) * Math.min(1, (opt.acc ?? 1) * 2)), 6, maxV);   // 下手だと強すぎ・弱すぎ
         if (opt.spinSign != null && kind === 'pass') { spin = opt.spinSign * (0.1 + p.pass * 0.005); aimCurve = true; }   /* v741 巻いたグラウンダー：パスが上手いほど強く・狙いどおりに曲げられる */
         ang += (opt.acc ?? 1) * (S.oneTouch ? Math.max(0.4, 2.2 - (p.pass + p.vision) / 80) * (S.oneTouchBoost ? 0.55 : 1) : 1) * R.gauss() * clamp(0.12 - p.pass * 0.0013 + pressure * 0.045 * clamp(1.6 - p.pass / 100, 0.5, 1.2) + fatigue * 0.035 + d * 0.0006, 0.008, 0.2);
+      }
+      // 版932：能力の差がプレーに出る（設計24章）：パスの「ミスキック」。パスが下手なほど、寄せられているほど、遠いほど起きやすい。
+      //  起きると、向きが大きくずれる・強すぎる／弱すぎる。上手い選手はほとんど起きない
+      if ((globalThis.__Kab ?? 1) && kind === 'pass' && !opt.pk && !(p.uniq && uOn(p, p.uniq)) && !opt.arriveT) {
+        const q = clamp((100 - (p.pass * 0.8 + p.technique * 0.2)) / 100, 0, 1), pr = Math.min(1, pressure);
+        const pBad = clamp((q * q * (globalThis.__Kab0 ?? 0.8) + pr * q * (globalThis.__Kab1 ?? 0.6) + Math.max(0, d - 22) * q * 0.006 + fatigue * q * 0.15) * (opt.acc != null ? clamp(opt.acc, 0.5, 1.2) : 1), 0, 0.25);
+        if (R.next() < pBad) { const sg = R.next() < 0.5 ? -1 : 1, big = R.range(0.17, 0.38) * (0.6 + q) * (globalThis.__Kab2 ?? 1);
+          ang += sg * big; speed *= R.next() < 0.5 ? R.range(0.55, 0.75) : R.range(1.25, 1.5); if (vz) vz *= R.range(0.85, 1.15);
+          S.ball.missK = S.t; if (globalThis.__abLog) globalThis.__abLog.push({ t: S.t, i: p.idx, pass: p.pass, pr, d: +d.toFixed(1) }); }
       }
       // 利き足：逆足で蹴ると精度とパワーが落ちる（キック・テクニックが低いほど差が大きく、Sで差がなくなる）
       let usedFoot = p.foot === 'L' ? 'L' : 'R';   // 実際に蹴った足（絵で右足・左足を描き分ける）
@@ -7440,7 +7452,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           // ドリブル技（覚えている選手だけ）：寄せてきた相手を技でかわす
           if (!mtG && R.next() < (uOn(own, 'shiden') ? 1 : (dribbleCtx(own, q).list.some((k) => zr(own, k) === 2) ? 0.85 : 0.6) * (uOn(q, 'matsuri') ? 0.5 : 1)) && skillMove(own, q)) return;   // 紫電の遊戯：競り合いになったら、必ず先に技で抜きにいく   // 祭り太鼓の壁に体を当てられると、技を出す余裕も少ない   // 積極的なエリアでは、競り合いになったらほぼ仕掛ける
           if (uOn(q, 'matsuri') && !mtG) { q.mtGrip = { o: own.idx, at: S.t + 0.25 }; own.mtHeld = S.t + 0.25; return; }   // 祭り太鼓の壁：ぶつかったら、まず体を当てたまま押し込む（すぐには奪わない）
-          let pS = ((own.kgPin || 0) > S.t ? 0.3 : 0) + 0.55 + (S.t - (own.beatT ?? -9) < 2 && !(own.uniq && own.uOn > S.t) ? 0.1 : 0) + (q.defense + q.physical - own.dribble - own.physical) * 0.005 - (own.physical - 55) * 0.003 + (own.cur - q.cur) * -0.002 + uDuel(q, own) - ((own.tsukiGuard || 0) > S.t ? 0.15 : 0);   // 国内屈指のアタッカーの抜け出しは、カバーに来ても止めにくい
+          let pS = ((own.kgPin || 0) > S.t ? 0.3 : 0) + 0.55 + (S.t - (own.beatT ?? -9) < 2 && !(own.uniq && own.uOn > S.t) ? 0.1 : 0) + (q.defense + q.physical - own.dribble - own.physical) * ((globalThis.__Kab ?? 1) ? (globalThis.__Kab5 ?? 0.009) : 0.005) - (own.physical - 55) * 0.003 + (own.cur - q.cur) * -0.002 + uDuel(q, own) - ((own.tsukiGuard || 0) > S.t ? 0.15 : 0);   // 国内屈指のアタッカーの抜け出しは、カバーに来ても止めにくい
           // ショルダーチャージ：並走している相手に肩から当たって体を入れる（フィジカル勝負）
           if (mtG) pS += 0.25;   // 祭り太鼓の壁：押し込んだあとの奪い合いは、ほぼ負けない
           if (skZ(own, 'postPlay') && fx(own.team, own.x) > L / 2 && own.vx * sgn(own.team) < 1.5) pS -= 0.22;   // ポストプレー：背負ってキープ
@@ -7788,6 +7800,12 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         if (sp < 4.5 && b.z < 0.5) prob = Math.max(prob, 0.97);   // ゆっくり転がるボールはしっかり収める
         if (p.team === b.lastTeam && b.intended === p.idx && p.technique >= 68 && sp < 24 + pvB && b.z < 1.0) prob = Math.max(prob, 0.995);
         else if (p.team === b.lastTeam && b.intended === p.idx && p.technique >= 55 && sp < 20 + pvB && b.z < 1.0) prob = Math.max(prob, 0.97);   // テクニックC以上：味方からの普通のパスは、まず止める   // D1・D2レベル（テクニック68以上）：味方からのパスを置き去りにするトラップミスは、ほぼしない
+        // 版932：能力の差がプレーに出る（設計24章）：トラップ。テクニックが低いほど、寄せられているほど、速い球・浮き球ほど、足から離れる
+        if ((globalThis.__Kab ?? 1) && p.team === b.lastTeam && b.intended === p.idx && !(b.hari || b.byP) && !gkHands && !(sp < 4.5 && b.z < 0.5)) {
+          const T0 = p.technique, od = nearestOpp(p, p.x, p.y).d, pr = od < 1.8 ? 1 : od < 3.5 ? 0.5 : 0, wk = 1.3 - T0 / 100;
+          prob = clamp(0.9 + (T0 - 60) * 0.0028 - pr * 0.12 * wk * (globalThis.__Kab3 ?? 1) - Math.max(0, sp - 14 - pvB * 0.5) * 0.012 * wk - (b.z > 0.6 ? 0.07 * wk : 0) + (b.uSafe || 0) * 0.3 + (condLv(p.team) ? 0.1 : 0), 0.45, 0.998);
+          if (globalThis.__trLog) globalThis.__trLog.push({ tec: T0, prob });
+        }
         if (b.tsukiP && b.kind === 'pass' && p.idx === b.intended) prob = Math.max(prob, 0.97);   // 月影の抜け出し：走りながらぴたりと収める
         if (gkHands && S.gkCk && S.gkCk.g === p.idx && S.gkCk.mode !== 'stay' && b.z > 0.8 && b.kind === 'pass') {
           const m = S.gkCk.mode; S.gkCk = null; if (globalThis.__gkJ) { const J = globalThis.__gkJ; J.n++; if (!(p.highT > 0)) J.late++; else J.early.push(+(1 - p.highT / (p.highJT || 1)).toFixed(2)); } if (!(p.highT > 0)) { p.highT = 0.45; act(p, 'jump', 0.45); }
