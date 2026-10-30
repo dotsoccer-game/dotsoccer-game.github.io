@@ -2623,6 +2623,9 @@
           if (thrSpot) { px = thrSpot[0]; py = thrSpot[1]; } }
         if (fx(t, px) > L - 5) px = fx(t, L - 5);
         const d = hyp(px - p.x, py - p.y); if (d < 4) continue;
+        // 版933：判断（視野）の差（設計24章）：視野が低い選手は、裏への走り・遠くの味方に気づかないことがある
+        const VIS = !!(globalThis.__Kvis ?? 1), vq = clamp((100 - (p.vision || 50)) / 100, 0, 1);
+        if (VIS && (through || d > 24) && !(q.uniq && uOn(q, q.uniq)) && R.next() < clamp(((globalThis.__Kvis1 ?? 72) - (p.vision || 50)) / 50, 0, 0.6)) continue;
         let danger = 0;
         if (through) {   // スルーパス：走っている味方が、相手より先にボールに着けるか（前半の通り道は、足が届くかで見る）
           const tb = 0.15 + d / passAvgV(p, d), tq = hyp(px - q.x, py - q.y) / maxSpeed(q) + 0.15; let to = 99;
@@ -2641,6 +2644,7 @@
           if (sd.u < 0.3 && sd.d < 1.8 && hyp(ox0 - p.x, oy0 - p.y) < 3.2) danger += 1.4;   // 寄せてきた相手の足もと
         }
         danger = Math.max(0, danger * (1 + R.gauss() * (1 - (p.vision || 50) / 100)));
+        if (VIS) danger *= 1 - clamp((85 - (p.vision || 50)) / 60, 0, 1) * (globalThis.__Kvis2 ?? 0.6);   // 視野が低いほど、パスの道にいる相手を甘く見る（危ないパスを出してしまう）
         const recvOpp = nearestOpp(q, px, py).d, pxf = fx(t, px), adv = pxf - xf;
         let byp = 0; for (const o of foes) if (!o.gk) { const ox = fx(t, o.x); if (ox > xf + 0.5 && ox < pxf - 0.5) byp++; }
         const zr = xf < 35 ? 3.0 : xf < 70 ? (globalThis.__Bzr2 ?? 2.5) : (globalThis.__Bzr3 ?? 1.7);   // 自陣ほど失うのが怖い
@@ -4327,8 +4331,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       // 版932：能力の差がプレーに出る（設計24章）：パスの「ミスキック」。パスが下手なほど、寄せられているほど、遠いほど起きやすい。
       //  起きると、向きが大きくずれる・強すぎる／弱すぎる。上手い選手はほとんど起きない
       if ((globalThis.__Kab ?? 1) && kind === 'pass' && !opt.pk && !(p.uniq && uOn(p, p.uniq)) && !opt.arriveT) {
-        const q = clamp((100 - (p.pass * 0.8 + p.technique * 0.2)) / 100, 0, 1), pr = Math.min(1, pressure);
-        const pBad = clamp((q * q * (globalThis.__Kab0 ?? 0.8) + pr * q * (globalThis.__Kab1 ?? 0.6) + Math.max(0, d - 22) * q * 0.006 + fatigue * q * 0.15) * (opt.acc != null ? clamp(opt.acc, 0.5, 1.2) : 1), 0, 0.25);
+        const q = clamp(((globalThis.__KabT ?? 85) - (p.pass * 0.8 + p.technique * 0.2)) / 60, 0, 1), pr = Math.min(1, pressure);
+        const pBad = clamp((q * q * (globalThis.__Kab0 ?? 0.8) + pr * q * (globalThis.__Kab1 ?? 0.6) + Math.max(0, d - 22) * q * 0.006 + fatigue * q * 0.15) * (opt.acc != null ? clamp(opt.acc, 0.5, 1.2) : 1), 0, 0.2);
         if (R.next() < pBad) { const sg = R.next() < 0.5 ? -1 : 1, big = R.range(0.17, 0.38) * (0.6 + q) * (globalThis.__Kab2 ?? 1);
           ang += sg * big; speed *= R.next() < 0.5 ? R.range(0.55, 0.75) : R.range(1.25, 1.5); if (vz) vz *= R.range(0.85, 1.15);
           S.ball.missK = S.t; if (globalThis.__abLog) globalThis.__abLog.push({ t: S.t, i: p.idx, pass: p.pass, pr, d: +d.toFixed(1) }); }
@@ -7803,7 +7807,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         // 版932：能力の差がプレーに出る（設計24章）：トラップ。テクニックが低いほど、寄せられているほど、速い球・浮き球ほど、足から離れる
         if ((globalThis.__Kab ?? 1) && p.team === b.lastTeam && b.intended === p.idx && !(b.hari || b.byP) && !gkHands && !(sp < 4.5 && b.z < 0.5)) {
           const T0 = p.technique, od = nearestOpp(p, p.x, p.y).d, pr = od < 1.8 ? 1 : od < 3.5 ? 0.5 : 0, wk = 1.3 - T0 / 100;
-          prob = clamp(0.9 + (T0 - 60) * 0.0028 - pr * 0.12 * wk * (globalThis.__Kab3 ?? 1) - Math.max(0, sp - 14 - pvB * 0.5) * 0.012 * wk - (b.z > 0.6 ? 0.07 * wk : 0) + (b.uSafe || 0) * 0.3 + (condLv(p.team) ? 0.1 : 0), 0.45, 0.998);
+          prob = clamp(0.935 + (T0 - 60) * 0.0025 - pr * 0.1 * Math.max(0, (85 - T0) / 60) * 2 * (globalThis.__Kab3 ?? 1) - Math.max(0, sp - 14 - pvB * 0.5) * 0.012 * wk - (b.z > 0.6 ? 0.07 * wk : 0) + (b.uSafe || 0) * 0.3 + (condLv(p.team) ? 0.1 : 0), 0.45, 0.998);
           if (globalThis.__trLog) globalThis.__trLog.push({ tec: T0, prob });
         }
         if (b.tsukiP && b.kind === 'pass' && p.idx === b.intended) prob = Math.max(prob, 0.97);   // 月影の抜け出し：走りながらぴたりと収める
