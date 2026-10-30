@@ -636,6 +636,7 @@
     const ev = (type, extra) => events.push({ t: +S.t.toFixed(1), clock: Math.round(S.t * CLOCK_SCALE + (S.half === 2 ? 0 : 0)), type, ...extra, ...((type === 'save' || type === 'gk') && S.ball ? { tt: +S.t.toFixed(3), hx: +S.ball.x.toFixed(2), hy: +S.ball.y.toFixed(2), hz: +(S.ball.z || 0).toFixed(2) } : {}) });   // 版865：GKが触った時刻と場所（衝撃の光を、手の所に出す）
 
     // ---------- 固有スキル・サポートパッシブ ----------
+    const liveMap = [];   // 版927：[試合の時刻, プレーが動いていた時間の合計] を1秒ごとに
     const uniqLog = [];
     const uOn = (p, k) => !!p && p.uniq === k && p.uOn > S.t;
     // 版850：固有スキルは「国内屈指級の選手」の特権。本人の総合力（12能力の平均）が低いうちは、発動しにくく・効き目も弱い（総合50で約半分、80で満点）
@@ -8019,12 +8020,14 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           for (const m of T[k.team].players) if (m !== k && !m.off && fx(k.team, m.x) > ol + 0.3 && fx(k.team, m.x) > fx(k.team, bb.x) && fx(k.team, m.x) > L / 2) { set.push(m.idx); pos[m.idx] = [m.x, m.y]; }
           S.shotOff = set.length ? { t: bb.shotT, set, pos, line: fx(k.team, ol), team: k.team } : { t: bb.shotT, set: [], pos: {}, line: fx(k.team, ol), team: k.team }; }
         if (S.shotOff && (bb.owner >= 0 && P[bb.owner].team !== S.shotOff.team || S.restart || (bb.lastPlayer >= 0 && P[bb.lastPlayer] && P[bb.lastPlayer].team === S.shotOff.team && !S.shotOff.set.includes(bb.lastPlayer) && bb.kind !== 'shot'))) S.shotOff = null; }
+      if (!S.restart && !(S.celebrate > 0)) S.liveT = (S.liveT || 0) + DT;   // 版927：ボールが外に出ている間・ゴールの後は、試合の時計を止める
+      if (step % 10 === 0) liveMap.push(+S.t.toFixed(2), +(S.liveT || 0).toFixed(2));
       S.t += DT;
       if (!S.cap70 && S.t > HALF * 1.45 && !S.restart) { S.cap70 = 1; for (let k = 0; k < 2; k++) if (S.score[k] <= S.score[1 - k]) capRally(k); }   // 版838：終盤（70分ごろ）、勝っていなければもう一度
       step++;
       if (rec && step % FRAME_EVERY === 0) record();
     }
-    const matchEnd = S.t;
+    const matchEnd = S.t; liveMap.push(+S.t.toFixed(2), +(S.liveT || 0).toFixed(2));
     ev('fulltime', { score: [...S.score] });
 
     const tot = stats[0].possession + stats[1].possession;
@@ -8039,9 +8042,17 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       actions,
       rosterStart,
       captains: T.map((tm) => { const c = tm.role.captain || tm.players.find((q) => q.sk.has('captaincy')) || tm.players.filter((q) => !q.gk).sort((x, y) => ((y.uniq ? 100 : 0) + y.mental) - ((x.uniq ? 100 : 0) + x.mental))[0]; return Math.max(0, tm.players.indexOf(c)); }),   // 版801：キャプテン（入場の列の先頭）
-      typeLog, duration: +matchEnd.toFixed(2), halfTime: +halfStartT.toFixed(2), nominalHalf: HALF, clockScale: CLOCK_SCALE, frameDt: DT * FRAME_EVERY,
+      typeLog, duration: +matchEnd.toFixed(2), halfTime: +halfStartT.toFixed(2), nominalHalf: HALF, clockScale: CLOCK_SCALE, frameDt: DT * FRAME_EVERY, liveMap,
     };
   }
 
-  root.DotSoccer = { uniqStrength, UNIQ_LG, UNIQ, UNIQ_BY_TOP, PASSIVE, simulateMatch, buildSlots, beginningTeam, presetTeam, atLevel, PRESET_NAMES, PARAMS, PARAM_KEYS, SKILLS, TYPE_HIDDEN, HIDDEN0, grade, fillParams, CONST: { L, W, GOAL_Y, POST, BAR, HALF, CLOCK_SCALE } };
+  // 版927：表示する試合時間（秒）。ボールが外に出ている間は止まり、前半・後半それぞれちょうど45分で終わる
+  function gameSec(m, t) {
+    const lm = m && m.liveMap, cs = (m && m.clockScale) || CLOCK_SCALE; if (!lm || lm.length < 4 || !(globalThis.__Klive ?? 1)) return t * cs;
+    const lt = (x) => { let lo = 0, hi = lm.length / 2 - 1; if (x <= lm[0]) return lm[1]; if (x >= lm[hi * 2]) return lm[hi * 2 + 1]; while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (lm[mid * 2] <= x) lo = mid; else hi = mid; } const t0 = lm[lo * 2], t1 = lm[hi * 2]; return lm[lo * 2 + 1] + (lm[hi * 2 + 1] - lm[lo * 2 + 1]) * (t1 > t0 ? (x - t0) / (t1 - t0) : 0); };
+    const h = m.halfTime || m.duration, nh = (m.nominalHalf || HALF) * cs, e = m.duration;
+    if (t < h || h >= e) { const H = lt(Math.min(h, e)); return H > 0 ? (lt(t) / H) * nh * (Math.min(h, e) / (m.nominalHalf || HALF)) : t * cs; }
+    const a = lt(h), z = lt(e); return nh + (z > a ? ((lt(t) - a) / (z - a)) * nh * ((e - h) / (m.nominalHalf || HALF)) : (t - h) * cs);
+  }
+  root.DotSoccer = { gameSec, uniqStrength, UNIQ_LG, UNIQ, UNIQ_BY_TOP, PASSIVE, simulateMatch, buildSlots, beginningTeam, presetTeam, atLevel, PRESET_NAMES, PARAMS, PARAM_KEYS, SKILLS, TYPE_HIDDEN, HIDDEN0, grade, fillParams, CONST: { L, W, GOAL_Y, POST, BAR, HALF, CLOCK_SCALE } };
 })(typeof globalThis !== 'undefined' ? globalThis : window);

@@ -397,8 +397,8 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     const out = [], ev = match.events, ts = (k) => (k ? match.awayShort : match.homeShort);
     const tName = (k) => (k ? (mctx && mctx.opts.awayName) || match.awayShort : (mctx && mctx.opts.homeName) || match.homeShort);
     const scoreAt = (t) => [0, 1].map((k) => goals.filter((g) => g.team === k && g.t <= t + 0.01).length);
-    const minOf = (t) => { const m = Math.ceil((t * match.clockScale) / 60); return t < halfT ? Math.min(45, m) : Math.min(90, m); };
-    const minTxt = (t) => { const m = Math.ceil((t * match.clockScale) / 60); return t < halfT ? (m > 45 ? `45'+${m - 45}` : `${m}'`) : (m > 90 ? `90'+${m - 90}` : `${m}'`); };
+    const minOf = (t) => { const m = Math.ceil((D.gameSec(match, t)) / 60); return t < halfT ? Math.min(45, m) : Math.min(90, m); };
+    const minTxt = (t) => { const m = Math.ceil((D.gameSec(match, t)) / 60); return t < halfT ? (m > 45 ? `45'+${m - 45}` : `${m}'`) : (m > 90 ? `90'+${m - 90}` : `${m}'`); };
     const halfTxt = (t) => `${t < halfT ? '前半' : '後半'}${String(t < halfT ? minOf(t) : minOf(t) - 45).replace(/[0-9]/g, (d) => '０１２３４５６７８９'[d])}分`;
     for (const g of goals) {
       const sc = scoreAt(g.t), prev = sc.slice(); prev[g.team]--;
@@ -2315,7 +2315,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     if (show.phase === 'digest') { drawDigestFrame(); return; }
     if (false) {
       const g = show.list[show.k];
-      const min = Math.ceil((g.t * match.clockScale) / 60), half = g.t < halfT ? '前半' : '後半', m2 = g.t < halfT ? min : min - 45;
+      const min = Math.ceil((D.gameSec(match, g.t)) / 60), half = g.t < halfT ? '前半' : '後半', m2 = g.t < halfT ? min : min - 45;
       ctx.fillStyle = 'rgba(10,40,20,0.85)'; ctx.fillRect(0, 60, CW, 34);
       ctx.fillStyle = '#fff'; ctx.font = `800 17px ${JP}`; ctx.textAlign = 'left';
       ctx.fillText(`DIGEST　${g.player}（${g.team ? match.awayShort : match.homeShort}）  ${min}'    ${match.homeShort} ${g.score[0]}-${g.score[1]} ${match.awayShort}`, 16, 83);
@@ -2378,7 +2378,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       if (age < 0.5 && !show.noFade) { ctx.fillStyle = `rgba(0,0,0,${1 - age / 0.5})`; ctx.fillRect(0, 0, CW, CH); }
       if (g && g.idx >= 0 && age > 0.3 && age < 3.6) {
         const a = Math.min(1, (age - 0.3) * 4, (3.6 - age) * 3);
-        const min = Math.ceil((g.t * match.clockScale) / 60);
+        const min = Math.ceil((D.gameSec(match, g.t)) / 60);
         playerPanel(g.idx, [`${min}分　この試合${show.nGoals}点目のゴール`, g.assist ? `アシスト　${g.assist}` : 'アシストなし'], a, null, true);
       }
     }
@@ -3771,7 +3771,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
   // 時計：前後半それぞれ「45分＋アディショナルタイム」が試合の本来の長さ（nominalHalf）にあたる。
   //  笛はそれを少し越えたところ、攻撃の最中ならそのプレーが終わったところで鳴る（エンジンが決める）ので、時計は同じ速さで進め続ける
   function clockParts(t, holdHalf) {
-    const hT = halfT, inSecond = t >= hT && !holdHalf, el = inSecond ? t - hT : Math.min(t, hT);
+    const hT = halfT, inSecond = t >= hT && !holdHalf, gs = D.gameSec(match, inSecond ? t : Math.min(t, hT)) / (match.clockScale || 12), el = inSecond ? gs - (match.nominalHalf || hT) : gs;   // 版927：ボールが外に出ている間は止まる
     const NH = match.nominalHalf || (inSecond ? match.duration - hT : hT), addN = addedMin(inSecond ? 2 : 1);
     const raw = (el / NH) * (45 + addN) * 60, base = inSecond ? 45 * 60 : 0;
     return { sec: Math.floor((base + raw) / 10) * 10, addN, added: raw >= 45 * 60, inSecond };
@@ -3864,7 +3864,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
   function subCardShow(e) {
     const el = document.getElementById('subCard');
     if (!el) return;
-    const min = Math.min(90, Math.max(1, Math.ceil((e.t * match.clockScale) / 60)));
+    const min = Math.min(90, Math.max(1, Math.ceil((D.gameSec(match, e.t)) / 60)));
     const POS = { GK: 'p-gk', DF: 'p-df', MF: 'p-mf', FW: 'p-fw' };
     el.innerHTML = `<div class="sc-face"></div><div class="sc-body"><div class="sc-top"><b>${e.team ? match.awayShort : match.homeShort}</b><span>${min}'</span></div><p class="sc-in"><i>▲</i><em class="${POS[e.pos] || ''}">${e.pos || ''}</em><b>${e.number}</b>${e.in}</p><p class="sc-out"><i>▼</i><em class="${POS[e.outPos] || ''}">${e.outPos || ''}</em><b>${e.outNumber}</b>${e.out}</p></div>`;
     let url = null; try { const C2 = window.__career; url = C2 && C2.matchFace ? C2.matchFace(e.info, TEAM[e.team].W) : null; } catch (er) { url = null; }
@@ -3897,7 +3897,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     const g = $('#goal');
     g.querySelector('strong').textContent = `${e.score[0]} − ${e.score[1]}`;
     g.classList.add('show');
-    const min = Math.ceil((e.t * match.clockScale) / 60);
+    const min = Math.ceil((D.gameSec(match, e.t)) / 60);
     $('#scorer').textContent = `⚽ ${e.number} ${e.player}（${e.team ? match.awayShort : match.homeShort}）　${min}分${e.assist ? '　アシスト ' + e.assist : ''}`;
     $('#scorer').classList.add('show');
     clearTimeout(g._t);
@@ -3944,7 +3944,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       ['カード', `<i class="yc"></i>${S2[0].y}／<i class="rc"></i>${S2[0].r}`, `<i class="yc"></i>${S2[1].y}／<i class="rc"></i>${S2[1].r}`],
       ['ボール支配率', `${pos[0]}%`, `${pos[1]}%`],
     ];
-    const gl = (k) => S2[k].goals.map((g) => `${g.number} ${g.player} ${Math.ceil((g.t * match.clockScale) / 60)}'`).join('<br>') || '—';
+    const gl = (k) => S2[k].goals.map((g) => `${g.number} ${g.player} ${Math.ceil((D.gameSec(match, g.t)) / 60)}'`).join('<br>') || '—';
     return `<div class="hs-head"><span>${match.homeShort}</span><span>${sc[0]} − ${sc[1]}<small style="display:block;font-size:11px;font-weight:700">${title}</small></span><span>${match.awayShort}</span></div>` +
       rows.map((r) => `<div class="hs-row"><span>${r[1]}</span><b>${r[0]}</b><span>${r[2]}</span></div>`).join('') +
       `<div class="hs-row"><span>${gl(0)}</span><b>得点</b><span>${gl(1)}</span></div>`;
@@ -3975,7 +3975,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     ];
     $('#statTable').innerHTML = rows.map((r) => `<div class="stat-row"><span>${r[1]}</span><b>${r[0]}</b><span>${r[2]}</span></div>`).join('');
     const goals = match.events.filter((e) => e.type === 'goal');
-    $('#goalsList').innerHTML = goals.map((e) => `<span class="goal-row">${Math.ceil((e.t * match.clockScale) / 60)}分 ${e.player}（${e.team ? match.awayShort : match.homeShort}）</span>`).join('') || '得点なし';
+    $('#goalsList').innerHTML = goals.map((e) => `<span class="goal-row">${Math.ceil((D.gameSec(match, e.t)) / 60)}分 ${e.player}（${e.team ? match.awayShort : match.homeShort}）</span>`).join('') || '得点なし';
     const issues = match.events.filter((e) => e.type === 'issue' && e.team === 0);
     $('#cards').innerHTML = issues.map((e) => `<span class="card-reward"><i class="card-icon">★</i>${e.card}<small>　${e.text}</small></span>`).join('') || '課題は見つかりませんでした';
     // 育成モードの試合：結果を渡して育成画面へ戻るボタン
@@ -4121,7 +4121,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     const t = atHalf ? halfT : simT, st = stateAt(t);
     mctx.opts.onSub({
       atHalf, t,
-      minute: Math.min(90, Math.ceil((t * match.clockScale) / 60)),
+      minute: Math.min(90, Math.ceil((D.gameSec(match, t)) / 60)),
       stamina: st.players.slice(0, 11).map((p) => p.st),
       score: [0, 1].map((ti) => goals.filter((g) => g.t < t && g.team === ti).length),
       cancel: () => { if (!atHalf && wasPlaying) play(); },
@@ -4398,7 +4398,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       addEventListener('resize', fit); el._fit = fit;
     }
     el.hidden = false; el._fit();   // 版534：隠れたまま大きさを測ると0になり、画面が小さく縮んでいた
-    const t = simT, second = t >= halfT, m = Math.max(1, Math.min(90, Math.ceil((t * match.clockScale) / 60)));
+    const t = simT, second = t >= halfT, m = Math.max(1, Math.min(90, Math.ceil((D.gameSec(match, t)) / 60)));
     const ws = document.getElementById('wStop'), wsWas = ws && !ws.hidden; if (ws) ws.hidden = true;   // 版535：状況の画面には自分のもどるボタンがあるので、観戦をやめるボタンは隠す
     renderStatus(el.querySelector('.lk-sub'), t, `${second ? '後半' : '前半'}　${m}分`, m, () => { el.hidden = true; if (ws && wsWas) ws.hidden = false; if (wasPlaying) play(); });
   }
@@ -4421,7 +4421,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     // 得点：真ん中に時間、左のチームのゴールは左に、右のチームのゴールは右に名前
     const who = (g) => { const i = idxOf(g.team, g.number), info = i >= 0 ? rinfo(g.team, i % 11, g.t) : { position: '' }; return `<i class="pv-pos ${POSC[info.position] || ''}">${info.position || ''}</i><b>${g.number}</b><span>${plvEsc(g.player)}</span>`; };
     const goalsList = [...S2[0].goals, ...S2[1].goals].sort((a, b) => a.t - b.t).map((g) => {
-      const m = Math.ceil((g.t * match.clockScale) / 60), mm = g.t < halfT ? Math.min(m, 45) : Math.min(m, 90);
+      const m = Math.ceil((D.gameSec(match, g.t)) / 60), mm = g.t < halfT ? Math.min(m, 45) : Math.min(m, 90);
       return `<div class="lk-gl2"><div class="lk-gside l">${g.team === 0 ? who(g) : ''}</div><em>${mm}'</em><div class="lk-gside r">${g.team === 1 ? who(g) : ''}</div></div>`;
     }).join('') || '<p class="lk-none">得点はありません</p>';
     const ab = (o.absent || []).map((a) => `<div class="lk-gl home"><i class="pv-pos ${POSC[a.pos] || ''}">${a.pos}</i><b>${a.number}</b><span>${plvEsc(a.name)}</span><em>${a.why || `ケガ（あと${a.weeks}週）`}</em></div>`).join('') || '<p class="lk-none">欠場している選手はいません</p>';

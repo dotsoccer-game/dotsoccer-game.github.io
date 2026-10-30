@@ -2699,7 +2699,7 @@
       return;
     }
     const r = D.simulateMatch(mt.team, opp, seed, { frames: false });
-    const goals = r.events.filter((e) => e.type === 'goal').map((e) => `${Math.ceil((e.t * r.clockScale) / 60)}分 ${esc(e.player)}`).join('　') || '得点なし';
+    const goals = r.events.filter((e) => e.type === 'goal').map((e) => `${Math.ceil((D.gameSec ? D.gameSec(r, e.t) : e.t * r.clockScale) / 60)}分 ${esc(e.player)}`).join('　') || '得点なし';
     await modal(`<h2>試合結果</h2><p class="cr-score">${esc(save.team.short)} ${r.score[0]} − ${r.score[1]} ${esc(opTeamInfo.short)}</p><p>${goals}</p>`, [{ label: 'OK', primary: true }]);
     done(r.score.slice(), r.events, lineupRestore(mt.played.slice()));
   }
