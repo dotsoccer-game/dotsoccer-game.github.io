@@ -3968,12 +3968,14 @@
     const el = fullScreen('gachaScreen', 'std-wrap gc-wrap'); el.style.zIndex = 9000; el.hidden = false; el._fit();   // 確認ページ：ほかの画面（クラブ設定など）より上に出す
     return gachaShow(el, { results, promo, fx }).then(() => { el.hidden = true; });
   }
+  let gcBgmT = null;   // 版928：前のスカウトの「曲をもどす」予約（すぐ次を引いた時に、新しいスカウトの音を消してしまっていた）
   function gachaShow(el, res) {
+    clearTimeout(gcBgmT); gcBgmT = null;
     // 版821：スカウト中はドキドキする曲。止まり始めたら曲を止めて、音が上がっていく。終わったら元の曲に戻す
     const DS = window.DotSound, bgmBack = DS && DS.state ? DS.state.want : null; try { DS && DS.bgm('gacha'); } catch (_) {}
     const BACK = bgmBack || 'club'; let cheered = false;
-    const faceCheer = (big) => { if (cheered) return; cheered = true; SND2(big ? 'gachaCheer' : 'gachaCheerS'); setTimeout(() => { try { DS && (DS.bgmIn ? DS.bgmIn(BACK, 3.5) : DS.bgm(BACK)); } catch (_) {} }, 1800); };   // 版822：顔が出たら歓声 → 歓声が小さくなるころ、いつもの曲がだんだん大きく
-    return new Promise((done0) => { const done = (v) => { try { DS && DS.bgm(BACK); } catch (_) {} done0(v); };
+    const faceCheer = (big) => { if (cheered) return; cheered = true; SND2(big ? 'gachaCheer' : 'gachaCheerS'); clearTimeout(gcBgmT); gcBgmT = setTimeout(() => { gcBgmT = null; try { DS && (DS.bgmIn ? DS.bgmIn(BACK, 3.5) : DS.bgm(BACK)); } catch (_) {} }, 1800); };   // 版822：顔が出たら歓声 → 歓声が小さくなるころ、いつもの曲がだんだん大きく
+    return new Promise((done0) => { const done = (v) => { const pend = !!gcBgmT; clearTimeout(gcBgmT); gcBgmT = null; try { DS && (pend && DS.bgmIn ? DS.bgmIn(BACK, 1.2) : DS.bgm(BACK)); } catch (_) {} done0(v); };
       const rs = res.results, one = rs.length === 1, box = el.querySelector('.lk-box');
       const ov = document.createElement('div'); ov.className = 'gcs gx'; box.appendChild(ov);
       let skip = false, finished = false; const timers = new Set();
