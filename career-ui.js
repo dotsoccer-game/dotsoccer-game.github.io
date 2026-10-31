@@ -996,14 +996,17 @@
     } else if (pcPage === 1) {
       body = `<div class="pc-bars">${D.PARAMS.map((q) => { const v = p.pts[q.k], ri = C.rankInfo(v); return `<div class="pc-bar" title="${q.name}"><i class="bar"><i style="height:${Math.round(ri.pct * 100)}%"></i></i><b>${Math.floor(v)}</b><small>あと${Math.max(0, Math.ceil(ri.next - v))}</small></div>`; }).join('')}</div>`;
     } else {
-      const n = C.slots(p), sk = p.skills || [], si = C.slotInfo(p);
-      const cells = Array.from({ length: Math.max(n, sk.length) }, (_, k) => sk[k] ? `<button class="has pc-skb" data-sk="${sk[k]}">${esc(D.SKILLS[sk[k]].name)}<i>説明</i></button>` : '<span>？</span>');
+      const sk = p.skills || [], si = C.slotInfo(p);
+      // 版938：スキル枠は「技」と「特性」の2種類
+      const grp = (kind, n) => { const a = sk.filter((k) => C.skKind(k) === kind); return Array.from({ length: Math.max(n, a.length) }, (_, k) => a[k] ? `<button class="has pc-skb" data-sk="${a[k]}">${esc(D.SKILLS[a[k]].name)}<i>説明</i></button>` : '<span>？</span>').join(''); };
       // 版852：固有スキルのいまの強さ（総合力×所属リーグ）。上のリーグ・総合力80で満点
       const uqPow = (q) => { if (!D.uniqStrength) return ''; const lg = (save.world && save.world.me) || null, r = D.uniqStrength(q, lg), pc = Math.round(r.power * 100), d1 = Math.round(r.powerD1 * 100), lgN = { regE2: '地域2部', regW2: '地域2部', regE1: '地域1部', regW1: '地域1部', d3: 'D3', d2: 'D2', d1: 'D1' }[lg] || '';
         const tip = pc >= 100 ? '本来の力を出し切れる' : r.ef < 1 && r.lf < 1 ? `総合力${Math.round(r.ovr)}・${lgN}のため。総合力80・D1で100%` : r.ef < 1 ? `総合力${Math.round(r.ovr)}のため。総合力80で100%` : `${lgN}のため。D1で100%`;
         return `<span class="pc-uqp"><span>いまの強さ</span><i class="bar"><i style="width:${Math.min(100, pc)}%"></i></i><b>${pc}%</b>${lg !== 'd1' && d1 > pc ? `<em>D1なら ${d1}%</em>` : ''}<small>${esc(tip)}</small></span>`; };
       const u = p.uniq && D.UNIQ[p.uniq], uq = u ? `<details class="pc-uq"><summary><span class="pc-uqh">固有スキル${p.uniqLv >= 2 ? '・覚醒' : ''}</span><b>${esc(u.name)}</b><i class="pc-uqi">説明</i>${uqPow(p)}</summary><div class="pc-uqd"><p><span>発動</span>${esc(u.sw || u.when)}</p><p><span>効果</span>${esc(u.se || u.what)}</p>${u.st ? `<p><span>凸</span>${esc(u.st)}</p>` : ''}</div></details>` : '';
-      body = `${uq}<div class="pc-sk"><div class="pc-skh">習得スキル　${sk.length}/${n}</div><div class="pc-skg">${cells.join('')}</div><div class="pc-skd" hidden></div></div><p class="pc-note">${si.nextAvg ? `能力の平均が ${si.nextAvg} になると、スキル枠がもう1つ増えます（今 ${Math.floor(si.avg)}）` : 'スキル枠はMAXです'}</p>`;
+      const nT = sk.filter((k) => C.skKind(k) === 'tech').length, nR = sk.filter((k) => C.skKind(k) === 'trait').length;
+      const nxt = [si.nextTech ? `${si.nextTech}で技の枠` : '', si.nextTrait ? `${si.nextTrait}で特性の枠` : ''].filter(Boolean).join('、');
+      body = `${uq}<div class="pc-sk"><div class="pc-skh">技　${nT}/${si.tech}</div><div class="pc-skg">${grp('tech', si.tech)}</div><div class="pc-skh">特性　${nR}/${si.trait}</div><div class="pc-skg">${grp('trait', si.trait)}</div><div class="pc-skd" hidden></div></div><p class="pc-note">${nxt ? `能力の平均が ${nxt}がもう1つ増えます（今 ${Math.floor(si.avg)}）` : 'スキル枠はMAXです'}</p>`;
     }
     return `<div class="pc-card${embed ? ' pc-embed' : ''}"><img class="pc-emb" src="${emblemURL(save.team.name, 80)}" alt="">
       <div class="pc-head"><i class="pos ${POSC[p.position]}">${p.position}</i><b>${esc(p.name)}</b>${ovrBadge(p)}<span>${esc(save.team.name)}</span></div>
@@ -2008,8 +2011,9 @@
       if (C.learnSkill(p, o.learned)) o.got = true;
       else {
         const nm = D.SKILLS[o.learned].name;
-        const pk = await modal(`<h2>${esc(p.name)}が「${esc(nm)}」を覚えようとしている！</h2><p>スキル枠（${C.slots(p)}つ）がいっぱいです。忘れるスキルを1つ選んでください。</p>`,
-          [...p.skills.map((k) => ({ label: `${D.SKILLS[k].name}を忘れる`, value: k })), { label: `${nm}を覚えない`, value: null }]);
+        const kind = C.skKind(o.learned), kn = kind === 'trait' ? '特性' : '技';
+        const pk = await modal(`<h2>${esc(p.name)}が「${esc(nm)}」を覚えようとしている！</h2><p>${kn}の枠（${C.slotsOf(p, kind)}つ）がいっぱいです。忘れる${kn}を1つ選んでください。</p>`,
+          [...C.skillsOf(p, kind).map((k) => ({ label: `${D.SKILLS[k].name}を忘れる`, value: k })), { label: `${nm}を覚えない`, value: null }]);
         if (pk) { C.learnSkill(p, o.learned, pk); o.got = true; o.forgot = pk; } else o.skipped = true;
       }
       store();
