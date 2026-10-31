@@ -4,6 +4,8 @@
   window.__noShow = true;
   const SC = window.__SAVE_SCENES || {};
   const KINDS = [
+    ['new_block', '【試作】近いシュートを体で止める', -3.2, 2.0, '試作（本番にはまだ入っていません）：PKラインより内側からのシュートに、GKが横に飛ばず、前に構えて体を大きく広げて当てて止める'],
+    ['new_footsave', '【試作】近いシュートを足で止める', -3.2, 2.0, '試作（本番にはまだ入っていません）：PKラインより内側からの低いシュートに、GKが横に飛ばず、片足を伸ばして止める'],
     ['tipover', '指先でバーの上へ・柱の外へ', -1.4, 2.6, 'ゴールに近い高い球を、跳び上がって指先で外へ。バーの上（ゴールの裏へ落ちて転がる）と、柱の外（横）の2通り。どちらもコーナーキック'],
     ['ready', 'シュート前の構え', -2.6, -0.1, '相手がシュートを打てる所でボールを持っている間、GKは腰を落として、ボールに向いて構える（シュートの直前まで）'],
     ['footsave', '足を伸ばして止める', -1.4, 1.6, '至近距離のグラウンダーに、ボールに正対したまま片足を伸ばして止める'],
@@ -22,17 +24,18 @@
   ].filter(([k]) => (SC[k] || []).length);
   let kind = KINDS[0] ? KINDS[0][0] : null, idx = 0, sp = 0.5, cur = null, loaded = null, paused = false;
   const K = (k) => KINDS.find((x) => x[0] === k);
-  function loadSeed(seed) {
-    if (loaded === seed) return;
+  function loadSeed(seed, lab) {
+    const key = seed + (lab ? 'L' : ''); if (loaded === key) return;
+    globalThis.__Kgkft = lab ? 1 : undefined;   // 版946：確認画面だけの新しい止め方（近い距離のシュートを、飛ばずに足・体で止める）
     document.querySelector('#level').value = 's'; const op = document.querySelector('#opponent'); if (op) op.value = 'バランス型';
     document.getElementById('seed').value = String(seed);
-    D.start(); D.stop(); loaded = seed;
+    D.start(); D.stop(); loaded = key;
   }
   const win = () => { const k = K(kind); return [cur.t + k[2], cur.t + k[3]]; };
   function go() {
     const L = SC[kind] || []; if (!L.length) return;
     idx = (idx + L.length) % L.length; cur = L[idx];
-    loadSeed(cur.seed); 
+    loadSeed(cur.seed, cur.lab); 
     const [a] = win(); D.seek(Math.max(0.2, a)); D.setSpeed(sp); if (!paused) D.play(); info();
     const c0 = cur; setTimeout(() => { if (cur === c0) { D.seek(Math.max(0.2, a)); D.setSpeed(sp); } }, 200);
   }
