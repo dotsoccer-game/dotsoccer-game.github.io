@@ -6483,9 +6483,9 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             if ((globalThis.__Kab ?? 1) && !own.gk && !(own.uniq && uOn(own, own.uniq))) { const qd = clamp((85 - ((own.dribble || 50) * 0.7 + (own.technique || 50) * 0.3)) / 60, 0, 1);
               let nd0 = 9; for (const q of opps(own)) { if (q.off || q.gk) continue; nd0 = Math.min(nd0, hyp(q.x - own.x, q.y - own.y)); }
               const pH = clamp(qd * qd * (globalThis.__Kab7 ?? 0.15) + (nd0 < 4 ? qd * (globalThis.__Kab8 ?? 0.12) : 0) + (spd > 6 ? qd * 0.05 : 0), 0, 0.3);
-              if (R.next() < pH) { own.dV = (carry ? 1.3 : own.dV * R.range(1.6, 2.1)) + 0.4; own.heavyT = S.t + 0.5; if (globalThis.__hvLog) globalThis.__hvLog.push({ i: own.idx, drb: own.dribble, nd: +nd0.toFixed(1) });
+              if (R.next() < pH && !((globalThis.__Khv2 ?? 1) && ((own.burstT || 0) > S.t - 0.6 || S.t - (own.recvT ?? -9) < 0.5 || S.t - (own.cutInT ?? -9) < 1.3 || (own.protect || 0) > S.t))) { own.dV = (carry ? 1.3 : own.dV * R.range(1.6, 2.1)) + 0.4; own.heavyT = S.t + 0.5;   /* 版956：受けた直後・技で抜いた直後は、大きなタッチにしない */ if (globalThis.__hvLog) globalThis.__hvLog.push({ i: own.idx, drb: own.dribble, nd: +nd0.toFixed(1) });
                 if (nd0 < 3.5) {   // 相手が近い時の大きなタッチは、ボールが足から離れて、こぼれ球になる（どちらが先に触るかの勝負）
-                  const v0 = spd + R.range(2.5, 4.5), a0 = Math.atan2(dir[1], dir[0]) + R.gauss() * 0.25;
+                  const v0 = (globalThis.__Khv2 ?? 1) ? Math.min(7, spd * 0.85 + R.range(1.0, 2.2)) : spd + R.range(2.5, 4.5), a0 = Math.atan2(dir[1], dir[0]) + R.gauss() * ((globalThis.__Khv2 ?? 1) ? 0.15 : 0.25);   // 版956：大きなタッチでも、足から3〜5m先にこぼれる程度（前は秒速10m近くで20m以上転がっていた）
                   Object.assign(b, { owner: -1, kind: 'loose', vx: Math.cos(a0) * v0, vy: Math.sin(a0) * v0, vz: 0, z: 0, lastTeam: own.team, lastPlayer: own.idx, intended: -1 });
                   own.touchCd = 0.3; own.settle = false; S.dribbleDir = null; own.heavyT = 0; act(own, 'touch', 0.25); return; } } } }
           own.dO = Math.min(own.dO, (own.heavyT || 0) > S.t ? 2.2 : carry ? 0.55 : sd ? 2.4 : 1.3);
