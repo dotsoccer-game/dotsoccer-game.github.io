@@ -3437,7 +3437,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
               const kD = b.sx0 != null ? hyp(b.sx0 - p.x, b.sy0 - p.y) : 99, passedGk = fx(tm.ti, b.x) < fx(tm.ti, p.x) + 0.3 || tG < 0.06;   // 版876：ボールがもうGKの横・後ろを通り過ぎた：今から飛んでも間に合わない（ボールの今の位置へ遅れて飛ぶと、逆に飛んだように見える）
               if ((globalThis.__Knar ?? 1) && gInBox && !p.diveT && !p.downT && !p.svPrep && !passedGk && tG < 0.55 && Math.abs(gap) < (globalThis.__Knar1 ?? 1.1) && b.sx0 != null) {   // 版948：角度のない所からのシュートは、ほぼ正面に来る：飛ばずに、立ったまま足・体で止める（よほど良いコースでなければ飛ばない）
                 const ax = fx(tm.ti, b.sx0), ay = Math.abs(b.sy0 - GOAL_Y);
-                if (ay > POST + 1.5 && ax < ay * 0.9 && Math.abs(gap) >= 0.6) p.svPrep = { t: b.shotT, k: 'footsave', dir: Math.sign(gap) || 1, nar: 1 }; }   // 体の正面（0.6m以内）に来る球は、ふつうにキャッチ
+                if (ay > POST + 1.5 && ax < ay * 0.9 && (Math.abs(gap) >= 0.6 || kD >= 7)) p.svPrep = { t: b.shotT, k: kD < 7 ? 'footsave' : 'stand', dir: Math.sign(gap) || 1, nar: 1 }; }   // 版950：足で止めるのは至近距離（7m以内）だけ。それより遠い所からは、立ったまま手で取る・はじく（飛ばない）。体の正面（0.6m以内）の至近距離の球は、ふつうにキャッチ
               if ((globalThis.__Kgkft ?? 0) && gInBox && !p.diveT && !p.downT && !p.svPrep && !passedGk && tG < 0.55 && Math.abs(gap) < 2.4 && (b.z + (b.vz || 0) * tG - 4.9 * tG * tG) < 1.75 && kD < 13) { const zG = b.z + (b.vz || 0) * tG - 4.9 * tG * tG; p.svPrep = { t: b.shotT, k: 'footsave', dir: Math.sign(gap) || (R.next() < 0.5 ? 1 : -1), zG, gap, ft: 1 }; }   // 版946（確認画面だけ・__Kgkft）：近い距離（PKラインより内側）から、体の高さ（約1.7m）より低く来るシュートは、横に飛ばずに、片足を伸ばす形で止めに行く（当たる所は、足・体・手）
               if (gInBox && !p.diveT && !p.downT && !p.svPrep && tG < 0.5 && Math.abs(gap) > 0.5 && Math.abs(gap) < 2.2 && b.z < 0.35 && Math.abs(b.vz || 0) < 1.5 && kD < 11 && R.next() < 0.75) p.svPrep = { t: b.shotT, k: 'footsave', dir: Math.sign(gap) };   // 版864：至近距離のグラウンダーだけ
               /* 版865：体を広げて止めるは取りやめ（至近距離は足を伸ばして止めるに集約） */   // 版864：至近距離の浮き球：体を大きくして、体のどこかに当ててはじく
@@ -7801,8 +7801,10 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
               { const s0 = sgn(p.team); let sty = null;
                 const ftP = p.svPrep && p.svPrep.t === b.shotT && p.svPrep.ft ? p.svPrep : null, narP = !!(p.svPrep && p.svPrep.t === b.shotT && p.svPrep.nar);
                 const pr0 = p.svPrep && p.svPrep.t === b.shotT ? p.svPrep.k : null; p.svPrep = null;
-                if (pr0 && !diving && !high) sty = pr0;
+                if (pr0 && pr0 !== 'stand' && !diving && !high) sty = pr0;
                 else if (!high && !diving && b.z < 0.35 && shotD < 11 && off > 0.25 && off < 1.05 && !rolling && R.next() < 0.6) sty = 'footsave';
+                if (sty && (globalThis.__Kslc ?? 1) && sp < 13 + (skill - 50) * 0.1 && b.z < 1.3) {   // 版950：ゆるいシュートは、はじかずにキャッチ（はじくのは、キャッチできないほど強い・速い球だけ）
+                  stats[p.team].saves++; ev('save', { team: p.team, player: p.name, act: 'catch' }); gainBall(p, 'save'); p.touchCd = 0.4; return; }
                 if (sty) {
                   // 版946（確認画面だけ）：片足を伸ばす形のまま、来た高さで当たる所が変わる：低い球＝伸ばした足／腰の高さ＝体／胸より上＝手
                   let part = null, kd = yAt - p.y > 0 ? 9 : 10;
@@ -7869,7 +7871,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             p.touchCd = 1.2;
             // 止められなかった：正面でも体を投げ出して手を伸ばす（GKも頑張ったが届かなかった、と見えるように）
             // 届かなかったように見せる：飛ぶのが少し遅れて、手はボールの手前までしか届かない
-            if (p.svPrep && p.svPrep.t === b.shotT) { p.saveT = 0.7; p.saveK = p.svPrep.k === 'block' ? 11 : (yAt - p.y > 0 ? 9 : 10); p.svPrep = null; }   // 版862：足・体で止めに行ったが届かなかった
+            if (p.svPrep && p.svPrep.t === b.shotT && p.svPrep.k !== 'stand') { p.saveT = 0.7; p.saveK = p.svPrep.k === 'block' ? 11 : (yAt - p.y > 0 ? 9 : 10); p.svPrep = null; }   // 版862：足・体で止めに行ったが届かなかった
             else if (!p.diveT && !p.downT && !p.lateDive && Math.abs(yAt - p.y) > 1.0) missDive(p, yAt - p.y, 0.12, false);   // 正面は飛ばない
             continue;
           }
