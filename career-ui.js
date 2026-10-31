@@ -997,18 +997,12 @@
       body = `<div class="pc-bars">${D.PARAMS.map((q) => { const v = p.pts[q.k], ri = C.rankInfo(v); return `<div class="pc-bar" title="${q.name}"><i class="bar"><i style="height:${Math.round(ri.pct * 100)}%"></i></i><b>${Math.floor(v)}</b><small>あと${Math.max(0, Math.ceil(ri.next - v))}</small></div>`; }).join('')}</div>`;
     } else {
       const sk = p.skills || [], si = C.slotInfo(p);
-      // 版939：スキル枠を見やすく：技（左・2列）と特性（右）。覚えたスキル＝色つき（種類ごとの色の帯）、空き枠＝点線、まだ開いていない枠＝鍵と開く条件
-      const SKC = { dribble: '#e8742a', shot: '#d6283a', pass: '#2a78d6', def: '#2f9a4a', gk: '#17908e', mental: '#8a4ad0', offball: '#1aa3c8', set: '#c99a12' };
-      const grp = (kind) => { const a = sk.filter((k) => C.skKind(k) === kind), n = kind === 'trait' ? si.trait : si.tech, mx = kind === 'trait' ? si.traitMax : si.techMax, at = kind === 'trait' ? si.traitAt : si.techAt, base = kind === 'trait' ? 1 : 2;
-        return Array.from({ length: Math.max(mx, a.length) }, (_, k) => { const s0 = a[k]; if (s0) { const g = (D.SKILLS[s0] || {}).group || (s0 === 'fk' ? 'set' : 'shot'); return `<button class="pc-skb sk2-c has" data-sk="${s0}" style="--skc:${SKC[g] || '#888'}"><span>${esc(D.SKILLS[s0].name)}</span><i>?</i></button>`; }
-          return k < n ? '<span class="sk2-c open">空き</span>' : `<span class="sk2-c lock"><b>🔒</b>平均${at[k - base]}で解放</span>`; }).join(''); };
       // 版852：固有スキルのいまの強さ（総合力×所属リーグ）。上のリーグ・総合力80で満点
       const uqPow = (q) => { if (!D.uniqStrength) return ''; const lg = (save.world && save.world.me) || null, r = D.uniqStrength(q, lg), pc = Math.round(r.power * 100), d1 = Math.round(r.powerD1 * 100), lgN = { regE2: '地域2部', regW2: '地域2部', regE1: '地域1部', regW1: '地域1部', d3: 'D3', d2: 'D2', d1: 'D1' }[lg] || '';
         const tip = pc >= 100 ? '本来の力を出し切れる' : r.ef < 1 && r.lf < 1 ? `総合力${Math.round(r.ovr)}・${lgN}のため。総合力80・D1で100%` : r.ef < 1 ? `総合力${Math.round(r.ovr)}のため。総合力80で100%` : `${lgN}のため。D1で100%`;
         return `<span class="pc-uqp"><span>いまの強さ</span><i class="bar"><i style="width:${Math.min(100, pc)}%"></i></i><b>${pc}%</b>${lg !== 'd1' && d1 > pc ? `<em>D1なら ${d1}%</em>` : ''}<small>${esc(tip)}</small></span>`; };
       const u = p.uniq && D.UNIQ[p.uniq], uq = u ? `<details class="pc-uq"><summary><span class="pc-uqh">固有スキル${p.uniqLv >= 2 ? '・覚醒' : ''}</span><b>${esc(u.name)}</b><i class="pc-uqi">説明</i>${uqPow(p)}</summary><div class="pc-uqd"><p><span>発動</span>${esc(u.sw || u.when)}</p><p><span>効果</span>${esc(u.se || u.what)}</p>${u.st ? `<p><span>凸</span>${esc(u.st)}</p>` : ''}</div></details>` : '';
-      const nT = sk.filter((k) => C.skKind(k) === 'tech').length, nR = sk.filter((k) => C.skKind(k) === 'trait').length;
-      body = `${uq}<div class="sk2"><section class="sk2-g"><div class="sk2-h"><b>技</b><span>${nT} / ${si.tech}</span><small>ドリブル・シュート・パス・守備</small></div><div class="sk2-l two">${grp('tech')}</div></section><section class="sk2-g"><div class="sk2-h"><b>特性</b><span>${nR} / ${si.trait}</span><small>メンタル・動き・セットプレー</small></div><div class="sk2-l">${grp('trait')}</div></section></div><div class="pc-skd" hidden></div><p class="pc-note">今の能力の平均 ${Math.floor(si.avg)}（${'詳しい能力値'}の平均）。スキル名をタップすると説明が出ます</p>`;
+      body = `${uq}${skGridHTML(sk, si)}<p class="pc-note">今の能力の平均 ${Math.floor(si.avg)}（詳しい能力値の平均）。スキル名をタップすると説明が出ます</p>`;
     }
     return `<div class="pc-card${embed ? ' pc-embed' : ''}"><img class="pc-emb" src="${emblemURL(save.team.name, 80)}" alt="">
       <div class="pc-head"><i class="pos ${POSC[p.position]}">${p.position}</i><b>${esc(p.name)}</b>${ovrBadge(p)}<span>${esc(save.team.name)}</span></div>
@@ -1036,6 +1030,19 @@
     root.querySelectorAll('[data-pg]').forEach((b) => b.onclick = (e) => { e.stopPropagation(); pcPage = +b.dataset.pg; redraw(); });
     root.querySelector('.pc-nav.prev').onclick = (e) => { e.stopPropagation(); go((i + n - 1) % n); };
     root.querySelector('.pc-nav.next').onclick = (e) => { e.stopPropagation(); go((i + 1) % n); };
+  }
+  // 版939・940：スキル欄（技＝左・2列、特性＝右）。si があれば枠（空き・鍵）も出す。CPUの選手（si なし）は覚えているスキルだけ
+  const SKC = { dribble: '#e8742a', shot: '#d6283a', pass: '#2a78d6', def: '#2f9a4a', gk: '#17908e', mental: '#8a4ad0', offball: '#1aa3c8', set: '#c99a12' };
+  function skGridHTML(sk, si) {
+    sk = sk || [];
+    const chip = (s0) => { const g = (D.SKILLS[s0] || {}).group || (s0 === 'fk' ? 'set' : 'shot'); return `<button class="pc-skb sk2-c has" data-sk="${s0}" style="--skc:${SKC[g] || '#888'}"><span>${esc((D.SKILLS[s0] || {}).name || s0)}</span><i>?</i></button>`; };
+    const grp = (kind) => { const a = sk.filter((k) => C.skKind(k) === kind);
+      if (!si) return a.length ? a.map(chip).join('') : '<span class="sk2-c open">なし</span>';
+      const n = kind === 'trait' ? si.trait : si.tech, mx = kind === 'trait' ? si.traitMax : si.techMax, at = kind === 'trait' ? si.traitAt : si.techAt, base = kind === 'trait' ? 1 : 2;
+      return Array.from({ length: Math.max(mx, a.length) }, (_, k) => a[k] ? chip(a[k]) : k < n ? '<span class="sk2-c open">空き</span>' : `<span class="sk2-c lock"><b>🔒</b>平均${at[k - base]}で解放</span>`).join(''); };
+    const nT = sk.filter((k) => C.skKind(k) === 'tech').length, nR = sk.length - nT;
+    const cnt = (n, m) => si ? `${n} / ${m}` : `${n}`;
+    return `<div class="sk2"><section class="sk2-g"><div class="sk2-h"><b>技</b><span>${cnt(nT, si && si.tech)}</span><small>ドリブル・シュート・パス・守備</small></div><div class="sk2-l two">${grp('tech')}</div></section><section class="sk2-g"><div class="sk2-h"><b>特性</b><span>${cnt(nR, si && si.trait)}</span><small>メンタル・動き・セットプレー</small></div><div class="sk2-l">${grp('trait')}</div></section></div><div class="pc-skd" hidden></div>`;
   }
   // 習得スキルの「説明」：押したスキルの説明を下に出す（もう一度押すと閉じる）
   function bindSkillDesc(root) {
@@ -3225,7 +3232,7 @@
       const uk = q.top && D.UNIQ_BY_TOP ? D.UNIQ_BY_TOP[q.top] : null, u = uk && D.UNIQ[uk];   // 国内屈指：その選手だけの固有スキル
       // 固有スキル：名前だけ出しておき、タップすると発動の条件と効果が開く
       const uq = u ? `<details class="pc-uq"><summary><span class="pc-uqh">固有スキル</span><b>${esc(u.name)}</b><i class="pc-uqi">説明</i></summary><div class="pc-uqd"><p><span>発動</span>${esc(u.sw || u.when)}</p><p><span>効果</span>${esc(u.se || u.what)}</p>${u.st ? `<p><span>凸</span>${esc(u.st)}</p>` : ''}</div></details>` : '';
-      body = `${uq}<div class="pc-sk"><div class="pc-skh">習得スキル　${sk.length}</div><div class="pc-skg">${cells.join('')}</div><div class="pc-skd" hidden></div></div>`;
+      body = `${uq}${skGridHTML(sk, null)}`;
     }
     return `<div class="pc-card"><img class="pc-emb" src="${emblemURL(tm.name, 80)}" alt="">
       <div class="pc-head"><i class="pos ${POSC[q.pos]}">${q.pos}</i><b>${esc(q.name)}</b>${ovrBadge(q)}<span>${esc(tm.name || '')}</span></div>
@@ -5119,7 +5126,7 @@
     if (loading) { try { const r = await DotNet.cloudInfo(code()); cloud = r ? { info: r.info, at: r.at } : null; } catch (_) { flash('通信できませんでした（クラウドの情報が読めません）'); } loading = false; if (document.body.contains(scr) && !scr.querySelector('.cs-dlg')) draw(); }
   }
   window.__career = { playerDetail: (i, o) => playerDetail(i, o), resCard: (o) => resCard(o), seasonEndCard: (o) => seasonEndCard(o), coachNews: (l) => coachNews(l), rewardCard: (r) => rewardCard(r), gachaDemo: (st, pr, fx) => gachaDemo(st, pr, fx), storyCard: (o) => storyCard(o), gotCardsHTML: (got) => `<div class="gc-cards${got.length > 8 ? ' lots' : got.length > 4 ? ' many' : ''}">${got.map((c) => artCard(c, { ups: true })).join('')}</div><p class="cp-msg gc-msg">クラブハウスの「特訓」で、選手に最大3枚セットできます。</p>`, trainResult: (o) => trainResult(o), airport, openPost, syncPost, onlineDone, setVenue: (k) => { venueNow = k; }, champDemo, champAfter, coinShop, faceFill: () => faceFill(), openGacha, venueTalk: (se) => venueTalk(se), matchFace, openOffice, cpuCard, openClub, openAssoc, open, go, stadium, advance, subSheet, labMatch, townRect, tutPractice, shop, store: () => store(), renderHome: () => renderHome(), clubhouseBg: () => clubhouseBg(), isMatchWeek: () => isMatchWeek(), get view() { return view; }, staffFace: (k) => staffFace(k), get save() { return save; }, get drill() { return clubDrill; }, faceURL, starFace, setDrill(d) { clubDrill = d; drillT0 = -1; drillSnap = true; } };
-  window.__career.openCloud = openCloud;
+  window.__career.openCloud = openCloud; window.__career.cpuCard = (t, i) => cpuCard(t, i, $("#career"));
   window.__career.shop = (t) => shop(t); window.__career.premDaily = () => premDaily();
   window.__career.embURL = () => { try { return save ? embFromLook(C.ensureClub(save).emb, 96) : ''; } catch (_) { return ''; } };   // 版680：設定のアカウントIDの横に出す、自分のクラブのエンブレム
   window.__career.myFid = async () => { if (!save) return null; const on = ensureOnline(); if (on.fid && !(window.DotNet && DotNet.FID_MOVE && DotNet.FID_MOVE[on.fid])) return on.fid; return (await publishMe()) || on.fid; };   // 版678：アカウントID（なければ作る）
