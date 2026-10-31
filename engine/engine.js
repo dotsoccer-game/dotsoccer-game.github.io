@@ -1448,9 +1448,10 @@
         g.smCd = S.t + 2.5;
         const gq = (g.vision + g.dash + g.technique + g.jump) / 4, aq = (own.dribble + own.technique) / 2;
         const pS = clamp(0.42 + (gq - aq) * 0.006 + (g.sk.has('oneOnOne') ? 0.15 : 0) + (uOn(g, 'sutemi') ? 0.3 : 0) + (uOn(g, 'ikari') ? 0.15 : 0) - (uOn(own, 'shiden') ? 0.25 : 0), 0.15, 0.8);
-        g.saveT = 0.75; g.saveK = own.y - g.y > 0 ? 9 : 10; g.vx *= 0.3; g.vy *= 0.3; g.touchCd = Math.max(g.touchCd || 0, 0.5);   // 版943：グラウンダーを足で止める絵（片足を伸ばす）で止めに行く
+        const bodyB = d < 1.2 || R.next() < 0.4;   // 版945：足を伸ばして止める／体を大きく広げて止める（体に当てる）
+        g.saveT = 0.75; g.saveK = bodyB ? 11 : own.y - g.y > 0 ? 9 : 10; g.vx *= 0.3; g.vy *= 0.3; g.touchCd = Math.max(g.touchCd || 0, 0.5);   // 版943：グラウンダーを足で止める絵（片足を伸ばす）で止めに行く
         if (globalThis.__gkcLog) globalThis.__gkcLog.push({ t: S.t, block: 1, pS });
-        if (R.next() < pS) { stats[t].saves++; ev('gkblock', { team: t, player: g.name, shooter: own.name, atkTeam: own.team });   // 版944：試合中の文字は出さない（ダイジェストでファインセーブとして流す）   // 足・体に当てて、ボールがこぼれる
+        if (R.next() < pS) { stats[t].saves++; ev('gkblock', { team: t, player: g.name, shooter: own.name, atkTeam: own.team, how: bodyB ? 'body' : 'foot' });   // 版944：試合中の文字は出さない（ダイジェストでファインセーブとして流す）   // 足・体に当てて、ボールがこぼれる
           const b = S.ball, a0 = Math.atan2(own.y - g.y, own.x - g.x) + R.range(-0.9, 0.9), v0 = R.range(3, 6);
           Object.assign(b, { owner: -1, kind: 'loose', vx: Math.cos(a0) * v0, vy: Math.sin(a0) * v0, vz: R.range(0, 1.5), z: 0.1, lastTeam: t, lastPlayer: g.idx, intended: -1 });
           own.touchCd = 0.6; own.settle = false; S.dribbleDir = null; act(own, 'lose', 0.6, { o: g.idx }); }

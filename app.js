@@ -428,7 +428,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     }
     // 版944：ファインセーブ：エリアに運び込んできた相手を、GKが詰めて足で止めた場面（最大2つ。ほかの場面と近すぎないもの）
     { let nb = 0; for (const e of ev) { if (e.type !== 'gkblock' || nb >= 2) continue; if (out.some((x) => Math.abs(x.t - e.t) < 10)) continue;
-      out.push({ t0: Math.max(0.2, e.t - 5), t1: e.t + 2.2, t: e.t, head: `${minTxt(e.t)}`, sc: scoreAt(e.t), cap1: `${halfTxt(e.t)}　${tName(e.team)}`, cap2: `ファインセーブ！ ${e.player}が飛び出して、${e.shooter}を足で止めた` }); nb++; } }
+      out.push({ t0: Math.max(0.2, e.t - 5), t1: e.t + 2.2, t: e.t, head: `${minTxt(e.t)}`, sc: scoreAt(e.t), cap1: `${halfTxt(e.t)}　${tName(e.team)}`, cap2: `ファインセーブ！ ${e.player}が飛び出して、${e.shooter}を${e.how === 'body' ? '体を張って' : '足を伸ばして'}止めた` }); nb++; } }
     // スーパープレイ：ドリブルで3人以上抜いた場面（そのままゴールなら、ゴールの場面をドリブルの始めから流す）
     for (const e of ev) {
       if (e.type !== 'dribbleRun') continue;
