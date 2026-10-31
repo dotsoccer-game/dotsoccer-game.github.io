@@ -1418,6 +1418,23 @@
         targets[p.idx] = [clamp(g.x + ux * Math.max(R0, dd), 1, L - 1), clamp(g.y + uy * Math.max(R0, dd), 1, W - 1)]; urgent[p.idx] = pd < R0;
       }
     }
+    // 版941：GKがボールを持ったら、味方は広がって受ける形を作る（エリアの中に固まらない）。
+    //  CB：エリアの角の外（ゴールから17m・横に開く）、SB：タッチライン寄りの高い所（26m）、MF：32m前後、FW：48m前後（オフサイドの線まで）
+    function gkOwnHoldPost() {
+      if (!(globalThis.__Kgko ?? 1) || S.restart || S.setPiece || S.celebrate > 0) return;
+      const g = ownerP(); if (!g || !g.gk || fx(g.team, g.x) > 20) return;
+      const t = g.team, ol = offsideLine(t);
+      for (const p of T[t].players) {
+        if (p.off || p.gk || !targets[p.idx] || !p.slot) continue;
+        const ln = p.slot.line ?? (p.position === 'DF' ? 0 : p.position === 'MF' ? 1 : 2), sy = p.slot.y ?? p.y, wide = Math.abs(sy - GOAL_Y) > 15;
+        const minX = ln === 0 ? (wide ? 26 : 17) : ln === 1 ? 32 : Math.min(48, ol - 1);
+        let [tx, ty] = targets[p.idx]; const xf = fx(t, tx);
+        if (xf >= minX) continue;
+        if (ln === 0 && !wide) ty = GOAL_Y + (Math.sign(sy - GOAL_Y) || (p.idx % 2 ? 1 : -1)) * Math.max(Math.abs(ty - GOAL_Y), 13);   // CBは左右に開く
+        if (ln === 0 && wide) ty = GOAL_Y + Math.sign(sy - GOAL_Y) * Math.max(Math.abs(ty - GOAL_Y), 27);   // SBはタッチライン寄り
+        targets[p.idx] = [fx(t, minX), clamp(ty, 2, W - 2)]; urgent[p.idx] = minX - fx(t, p.x) > 5; if (urgent[p.idx]) p.bUrg = S.t;   // 離れていれば走って広がる
+      }
+    }
     function urgentPost() {   // 版881：全力で走るのは、ボールに関わる時だけ（遠くの選手まで全力で走り続けていた）
       if (!(globalThis.__Kurg ?? 1) || S.restart || S.celebrate > 0 || S.setPiece) return;
       const b = S.ball, own = ownerP(), at = own ? own.team : b.lastTeam;
@@ -8094,7 +8111,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       computeTargets();
       mdPost();
       shapePost();
-      if (!S.nm) { widthPost(); blockPost(); } else if (brainOn()) { brainPost(); gkHoldPost(); ppSupportPost(); gpPost(); gpDefPost(); crashPost(); gkDepthPost(); } else newMovePost();
+      if (!S.nm) { widthPost(); blockPost(); } else if (brainOn()) { brainPost(); gkHoldPost(); gkOwnHoldPost(); ppSupportPost(); gpPost(); gpDefPost(); crashPost(); gkDepthPost(); } else newMovePost();
       urgentPost();
       if (globalThis.__Kkg2 ?? 1) for (const p of P) if (p.kgTgtT === S.t && !p.off) { targets[p.idx] = p.kgTgt; urgent[p.idx] = true; }   // 版936：影縫い：張りつく位置を、ほかの守備の決まり（ゾーン・ライン）で上書きしない
       smoothPost();

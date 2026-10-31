@@ -3227,7 +3227,7 @@
       body = `<div class="pc-st"><span class="pc-chip">利き足${footSVG(foot)}<small>${foot === 'L' ? '左' : '右'}</small></span><span class="pc-chip">${q.starter ? 'スタメン' : '控え'}</span></div>
         <div class="pc-car"><span>所属</span><b>${esc(tm.name || '')}</b><span>リーグ</span><b>${esc((C.LG[t.lg] || {}).name || '')}</b></div>`;
     } else {
-      const sk = C.noSkillLg(t.lg) ? [] : q.skills || [];   // 版559：地域リーグのCPUはスキルなし
+      const sk = C.cpuSkills ? C.cpuSkills(q, t.lg, C.rosterOfTeam(t.id, save.season, save)) : C.noSkillLg(t.lg) ? [] : q.skills || [];   // 版941：試合と同じ（能力に見合った数。地域2部はなし・地域1部は1人だけ1つ）
       const cells = sk.length ? sk.map((k) => `<button class="has pc-skb" data-sk="${k}">${esc((D.SKILLS[k] || {}).name || k)}<i>説明</i></button>`) : ['<span>なし</span>'];
       const uk = q.top && D.UNIQ_BY_TOP ? D.UNIQ_BY_TOP[q.top] : null, u = uk && D.UNIQ[uk];   // 国内屈指：その選手だけの固有スキル
       // 固有スキル：名前だけ出しておき、タップすると発動の条件と効果が開く
@@ -3277,7 +3277,7 @@
     const KS = D.PARAM_KEYS, ovr = (q) => Math.round(KS.reduce((a, k) => a + q[k], 0) / KS.length), G = (v) => D.grade(v);
     const order = { GK: 0, DF: 1, MF: 2, FW: 3 };
     const ps = cpuList(t.id);   // 選手カードと同じ並び（番号で選手を取り違えないように）
-    const sk = (q) => C.noSkillLg(t.lg) ? '' : q.skills.slice(0, 3).map((k) => ((D.SKILLS[k] || {}).name || k)).join('・') + (q.skills.length > 3 ? ` ほか${q.skills.length - 3}` : '');
+    const sk = (q) => { const a = C.cpuSkills ? C.cpuSkills(q, t.lg, ro) : C.noSkillLg(t.lg) ? [] : q.skills; return a.slice(0, 3).map((k) => ((D.SKILLS[k] || {}).name || k)).join('・') + (a.length > 3 ? ` ほか${a.length - 3}` : ''); };
     const rows = ps.map((q, pi) => `<div class="tm-row${q.starter ? ' st' : ''}" data-pi="${pi}" data-tid="${t.id}"><span class="tm-no">${q.no}</span><i class="pos ${POSC[q.pos]}">${q.pos}</i><span class="tm-nm">${esc(q.name)}${starHTML(C.starOf(t.id, q), C.totsuOf(t.id, q), 'sm')}${C.titleOf(save, t.id, q.name) ? `<b class="tm-top" title="国内屈指の${esc(C.titleOf(save, t.id, q.name))}">国内屈指</b>` : ''}${C.titleOf(save, t.id, q.name) ? '' : q.role === 'ace' ? '<b class="tm-ace">エース</b>' : q.role === 'core' && !q.top ? '<b class="tm-core">中心</b>' : ''}</span><span class="tm-ty">${typeBadge(q.type, 'sm')}</span>${KS.map((k) => `<span class="tm-g"><b class="rk rk-${G(q[k])}">${G(q[k])}</b></span>`).join('')}<span class="tm-sk" title="${esc(q.skills.map((k) => (D.SKILLS[k] || {}).name || k).join('・'))}">${esc(sk(q))}</span></div>`).join('');
     const lg = (C.LG[t.lg] || {}).name || '';
     const rank = (q) => (C.titleOf(save, t.id, q.name) ? 0 : q.role === 'ace' ? 1 : 2);

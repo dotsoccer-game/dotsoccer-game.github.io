@@ -312,6 +312,40 @@
     return MOBMAP[tid][q.no] || null;
   }
   const noSkillLg = (lg) => /^reg/.test(lg || '');   // 地域リーグ（東1・東2・西1・西2）
+  // 版941：CPUの選手のスキル（設計一覧25章）。能力に見合った数（自分の選手と同じ枠の数）を持たせる。
+  //  ロスターにある元のスキル（その選手らしさ）を残し、足りない分をポジションに合うスキルから選ぶ（選手ごとに決まった乱数。理想の組み合わせとは限らない）
+  //  地域2部：なし。地域1部：エースか中心選手のどちらか1人だけ、スキルを1つ
+  const CPU_POOL = {
+    FW: { tech: ['nearPost', 'controlShot', 'volley', 'knuckle', 'driveShot', 'powerMid', 'lob', 'toeKick', 'divingHeader', 'speedDribble', 'cutIn', 'kickFeint', 'bodyFeint', 'scissors', 'doubleTouch', 'throughPass', 'oneTouchPass', 'aerial', 'heelPass', 'bicycle'],
+      trait: ['behindRun', 'looseBall', 'postPlay', 'nearRun', 'farWait', 'calm', 'clutch', 'ironMan', 'fighting', 'pkMaster', 'oneTwo', 'bigStage'] },
+    MF: { tech: ['throughPass', 'loftedThrough', 'oneTouchPass', 'switchPlay', 'longFeed', 'earlyCross', 'pinpointCross', 'controlShot', 'knuckle', 'curve', 'powerMid', 'intercept', 'pressMonster', 'slide', 'doubleTouch', 'roulette', 'bodyFeint', 'cutIn', 'noLook', 'superLong'],
+      trait: ['ironMan', 'captaincy', 'calm', 'oneTwo', 'overlap', 'looseBall', 'fk', 'ckMaster', 'lateGrit', 'moodMaker', 'fighting', 'wallPass'] },
+    DF: { tech: ['intercept', 'aerial', 'shotBlock', 'cover', 'manMark', 'shoulder', 'slide', 'recovery', 'pressMonster', 'longFeed', 'switchPlay', 'earlyCross', 'curve'],
+      trait: ['fighting', 'ironMan', 'lateGrit', 'captaincy', 'overlap', 'bigStage', 'longThrow', 'moodMaker'] },
+    GK: { tech: ['superReflex', 'punching', 'pkStopper', 'oneOnOne', 'lowThrow', 'lowPunt', 'coaching'], trait: ['moodMaker', 'captaincy', 'ironMan'] },
+  };
+  function cpuSkills(q, lg, ro) {
+    const base = (q.skills || []).slice();
+    if (/^reg.2$/.test(lg || '')) return [];
+    const hs = (str) => { let h = 2166136261; for (const c of str) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return h >>> 0; };
+    if (/^reg/.test(lg || '')) {   // 地域1部：エースか中心選手のどちらか1人に、1つだけ
+      const cand = (ro && ro.players || []).filter((x) => x.role === 'ace' || x.role === 'core'); if (!cand.length) return [];
+      const pick = cand[hs((ro.players[0] || {}).name + (lg || '')) % cand.length]; if (pick.name !== q.name) return [];
+      const pool = CPU_POOL[q.pos] || CPU_POOL.MF; return [base[0] || pool.tech[hs(q.name) % pool.tech.length]];
+    }
+    const pv = {}; for (const k of KEYS) pv[k] = q[k]; const tmp = { pts: Object.fromEntries(KEYS.map((k) => [k, toPts(q[k])])) };
+    const si = slotInfo(tmp), want = { tech: si.tech, trait: si.trait };
+    let seed = hs(q.name + (q.no || '') + q.pos); const rnd = () => ((seed = (Math.imul(seed ^ (seed >>> 15), 2246822507) + 0x9e3779b9) >>> 0) / 4294967296);
+    const out = [];
+    for (const kind of ['tech', 'trait']) {
+      const have = base.filter((k) => D.SKILLS[k] && skKind(k) === kind && !(q.pos === 'GK' ? !isGKSkill(k) && kind === 'tech' : isGKSkill(k)));
+      const pool = ((CPU_POOL[q.pos] || CPU_POOL.MF)[kind] || []).filter((k) => !have.includes(k));
+      const list = have.slice(0, want[kind]);
+      while (list.length < want[kind] && pool.length) { const k = pool.splice(Math.floor(rnd() * pool.length), 1)[0]; if (kind === 'trait' && k === 'captaincy' && rnd() < 0.6) continue; list.push(k); }
+      out.push(...list);
+    }
+    return out;
+  }
   function rosterTeam(save, tm, ro) {
     const st = STYLES.find((x) => x.id === STYLE_ID[ro.style]) || STYLES[0];
     const ovr = (q) => KEYS.reduce((a, k) => a + q[k], 0) / KEYS.length;
@@ -321,7 +355,7 @@
     const bench = [];
     for (const [pos, n] of [['GK', 1], ['DF', 2], ['MF', 2], ['FW', 2]]) bench.push(...rest.filter((q) => q.pos === pos).slice(0, n));
     const noSk = noSkillLg(tm.lg);   // 版559：地域リーグのCPUはスキルを持たない
-    const ps = [...starters, ...bench].map((q, k) => { const p = rosterPlayer(q, k); if (noSk) p.skills = []; const fk = faceKeyOf(tm.id, q), hc = p.topHair || (fk && root.STAR_HAIR && root.STAR_HAIR[fk]); delete p.topHair; if (hc) p.hairColor = hc; if (fk) p.faceKey = fk; p.cpuTid = tm.id; p.cpuNo = q.no; return p; });   // 国内屈指はその選手だけの鮮やかな色   // 試合のドット絵の髪は、顔の絵と同じ色に
+    const ps = [...starters, ...bench].map((q, k) => { const p = rosterPlayer(q, k); p.skills = (globalThis.__Kcps ?? 1) ? cpuSkills(q, tm.lg, ro) : noSk ? [] : p.skills; const fk = faceKeyOf(tm.id, q), hc = p.topHair || (fk && root.STAR_HAIR && root.STAR_HAIR[fk]); delete p.topHair; if (hc) p.hairColor = hc; if (fk) p.faceKey = fk; p.cpuTid = tm.id; p.cpuNo = q.no; return p; });   // 国内屈指はその選手だけの鮮やかな色   // 試合のドット絵の髪は、顔の絵と同じ色に
     const t = { name: tm.name, short: tm.short, color: 'red', policies: [], autoSubs: true, kit: ro.kit, players: ps };
     applyTactics(t, { ...st.t, formation: ro.formation });
     if (lu) {   // 並びはそのまま（フォーメーションの名前はマスの人数から）
@@ -2019,5 +2053,5 @@
     const picks = []; for (let i = 0; i < n; i++) picks.push(gachaOne(save, bn, r, n >= 10 && i === n - 1 && !picks.some((x) => x.star >= 3) ? 3 : 0));   // 10連は☆3以上を1人確定
     return { banner: bn, results: picks.map((pk) => gachaApply(save, pk)) };
   }
-  root.DotCareer = { skKind, slotsOf, skillsOf, syncSuspend, PREFS, prefRegion, setHometown, earnCoins, earnedOf, homeTier, myNextLg, PREM, premOn, cardMax, awaken, awakeCost, AWAKE_COST, registerGuest, guestCode, GUESTS, champPeek, CARD_MAX, noSkillLg, gachaBanner, gachaPull, gachaPoolAll, ensureGacha, GACHA_RATE, GACHA_COST, GACHA_PITY, KAKERA_OF, oppKits, BENCH_N, kitsPair, d1Round, pinWatch, faceKeyOf, cpuTeam, ensureStar, starOf, totsuOf, capGrade, capPts, capIdx, GRADES, rosterAt, lvlAt, retiredAt, titleOf, ensureTitles, evalTitles, CUP_LABELS, cupIn, ensureClub, renameClub, kitsFor, KIT_DEFAULT, EMB_DEFAULT, TEAMS, TEAM_BY_ID, ROSTERS, rosterOfTeam, leagueTable, prevOrder, goalRank, recordGoals, CUP_WEEKS_ALL: CUP_WEEKS, leagueWeeksOf: leagueWeeks, POST_WEEKS, CARDS, CAT_NAME, SP, findSpecial, previewCards, trainCards, trainOne, weekTick, GRID_R, GRID_C, zoneOf, cellsFor, formationLabel, FORMATIONS, TACTIC_ITEMS, STYLES, SITU_DEFAULT, SITU_ACTS, SITU_ROWS, SITU_FROM, ensureTactics, slotRoles, applyTactics, skillRate, endWeek, SEASON_WEEKS, INJURIES, TYPE_TUNE, COND_NAME, condOf, trainedThisWeek, trainsDone, trainLimit, trainMult, campState, campAdvance, CAMP, slotInfo, SLOT_MAX, SKILL_RATE, rewardCards, newLeague, newCup, playFixture, peekRound, afterOfficial, playPractice, practiceOpponent, practiceOptions, teamLook, recordStats, teamLevel, findTeam, CUP_WEEKS, CAMPS, LG, rankInfo, PMAX, PRICE, buyCard, buyPack, toEng, toPts, migrate, ensurePts, TEAM_MENUS: TEAM_PTS, MENUS, SPECIAL, LEAGUES, PNAME, newCareer, menusFor, train, learnSkill, slots, skillChance, nextFixture, finishRound, standings, endSeason, opponentTeam, matchTeam, avgParam, decideType, TYPES_BY_POS };
+  root.DotCareer = { cpuSkills, skKind, slotsOf, skillsOf, syncSuspend, PREFS, prefRegion, setHometown, earnCoins, earnedOf, homeTier, myNextLg, PREM, premOn, cardMax, awaken, awakeCost, AWAKE_COST, registerGuest, guestCode, GUESTS, champPeek, CARD_MAX, noSkillLg, gachaBanner, gachaPull, gachaPoolAll, ensureGacha, GACHA_RATE, GACHA_COST, GACHA_PITY, KAKERA_OF, oppKits, BENCH_N, kitsPair, d1Round, pinWatch, faceKeyOf, cpuTeam, ensureStar, starOf, totsuOf, capGrade, capPts, capIdx, GRADES, rosterAt, lvlAt, retiredAt, titleOf, ensureTitles, evalTitles, CUP_LABELS, cupIn, ensureClub, renameClub, kitsFor, KIT_DEFAULT, EMB_DEFAULT, TEAMS, TEAM_BY_ID, ROSTERS, rosterOfTeam, leagueTable, prevOrder, goalRank, recordGoals, CUP_WEEKS_ALL: CUP_WEEKS, leagueWeeksOf: leagueWeeks, POST_WEEKS, CARDS, CAT_NAME, SP, findSpecial, previewCards, trainCards, trainOne, weekTick, GRID_R, GRID_C, zoneOf, cellsFor, formationLabel, FORMATIONS, TACTIC_ITEMS, STYLES, SITU_DEFAULT, SITU_ACTS, SITU_ROWS, SITU_FROM, ensureTactics, slotRoles, applyTactics, skillRate, endWeek, SEASON_WEEKS, INJURIES, TYPE_TUNE, COND_NAME, condOf, trainedThisWeek, trainsDone, trainLimit, trainMult, campState, campAdvance, CAMP, slotInfo, SLOT_MAX, SKILL_RATE, rewardCards, newLeague, newCup, playFixture, peekRound, afterOfficial, playPractice, practiceOpponent, practiceOptions, teamLook, recordStats, teamLevel, findTeam, CUP_WEEKS, CAMPS, LG, rankInfo, PMAX, PRICE, buyCard, buyPack, toEng, toPts, migrate, ensurePts, TEAM_MENUS: TEAM_PTS, MENUS, SPECIAL, LEAGUES, PNAME, newCareer, menusFor, train, learnSkill, slots, skillChance, nextFixture, finishRound, standings, endSeason, opponentTeam, matchTeam, avgParam, decideType, TYPES_BY_POS };
 })(typeof window !== 'undefined' ? window : globalThis);
