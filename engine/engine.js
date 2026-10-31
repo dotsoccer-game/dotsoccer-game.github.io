@@ -6710,6 +6710,13 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       if (prevTeam != null && prevTeam !== p.team) { for (const q of P) { q.cutInShot = 0; q.wantShot = 0; } p.wonT = S.t; T[p.team].wonT = S.t; T[prevTeam].lostT = S.t; }   // 版905：チームとしても「奪った時刻」を持つ（カウンターの判定に使う）
       if (globalThis.__lossLog && prevTeam !== p.team && prevTeam != null) globalThis.__lossLog.push({ xf: fx(prevTeam, b.x), how, kind: b.kind, lp: b.lastPlayer, predD: b.predD, predLen: b.predLen, trav: b.kicker >= 0 && P[b.kicker] ? hyp(b.x - P[b.kicker].x, b.y - P[b.kicker].y) : -1, z: b.z });
       if (p.gkAtk && prevTeam !== p.team && fx(p.team, p.x) > 15) act(p, 'gkplay', 1.2, { k: 'rushOut' });   // 吹き出しは、飛び出しのスキルを持っているGKだけ   // 飛び出し：裏へのボールを先に処理
+      // 版953：オフサイド（どんな蹴り方でも）：味方が最後にボールを蹴った・触った瞬間に、オフサイドの位置にいた選手が拾ったら反則（スローイン・CK・ゴールキックからは除く）
+      { const os = S.offSnap;
+        if ((globalThis.__Kofs2 ?? 1) && os && os.team === p.team && p.idx !== os.kicker && !p.gk && !S.restart && os.pos[p.idx] && !(b.kind === 'pass' && b.intended === p.idx && b.offside)) {
+          const [ox, oy] = os.pos[p.idx]; S.offSnap = null;
+          stats[p.team].offsides++; ev('offside', { team: p.team, player: p.name, number: p.number, passT: os.t, line: os.line, ox, oy });
+          setRestart('free', 1 - p.team, ox, oy); S.restart.offside = true; S.restart.wait = Math.max(S.restart.wait, 4.6); return; }
+        if (os && os.team !== p.team) S.offSnap = null; }   // 相手が持ったら、そこで終わり
       // パスの結果
       if (b.kind === 'pass' && b.selfPass) { b.kind = 'loose'; }
       if (b.kind === 'pass') {
@@ -8211,7 +8218,16 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       smoothPost();
       if (globalThis.__tgHook) globalThis.__tgHook(S, P, targets, urgent, fx, offsideLine, ownerP);
       movePlayers();
-      if (!S.celebrate) { stepBall(); if (!S.celebrate) contest(); }   // ゴールが決まったコマでは、もうだれも触らない（入った球をGKがはじき出す描写をなくす）
+      if (S.restart) { S.rsType = S.restart.type; S.rsEndT = S.t; }
+      if (!S.celebrate) { stepBall(); if (!S.celebrate) contest();   // ゴールが決まったコマでは、もうだれも触らない
+      { const b = S.ball, lp = b.lastPlayer;   // 版953：味方がボールを離した・触った瞬間の、オフサイドの位置にいる選手を覚える
+        if (!S.restart && !S.celebrate && lp >= 0 && ((S.ofPrevOwner >= 0 && b.owner < 0) || (b.owner < 0 && lp !== S.ofPrevLP))) {
+          const t = P[lp].team, exempt = S.t - (S.rsEndT ?? -9) < 0.6 && (S.rsType === 'throw' || S.rsType === 'corner' || S.rsType === 'goalkick');
+          if (exempt) S.offSnap = null;
+          else { const line = offsideLine(t), pos = {}; let n = 0; for (const m of T[t].players) { if (m.off || m.gk || m.idx === lp) continue; const mx = fx(t, m.x); if (mx > line + 0.3 && mx > L / 2) { pos[m.idx] = [m.x, m.y]; n++; } }
+            S.offSnap = n ? { team: t, kicker: lp, t: S.t, line: fx(t, line), pos } : null; } }
+        S.ofPrevOwner = b.owner; S.ofPrevLP = lp; }
+      }
       else {
         const b = S.ball, h = S.hurry;
         if (h && (h.stage === 'net' || h.stage === 'carry') && S.celebrate <= 0.6) h.stage = 'done';   /* 版781：取りに行けないまま時間が来たら、あきらめて自分の位置へ（ボールはセンターに置かれる） */
