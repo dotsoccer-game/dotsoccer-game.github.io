@@ -1448,9 +1448,9 @@
         g.smCd = S.t + 2.5;
         const gq = (g.vision + g.dash + g.technique + g.jump) / 4, aq = (own.dribble + own.technique) / 2;
         const pS = clamp(0.42 + (gq - aq) * 0.006 + (g.sk.has('oneOnOne') ? 0.15 : 0) + (uOn(g, 'sutemi') ? 0.3 : 0) + (uOn(g, 'ikari') ? 0.15 : 0) - (uOn(own, 'shiden') ? 0.25 : 0), 0.15, 0.8);
-        act(g, 'gkplay', 1.0, { k: 'oneOnOne' }); startDive(g, Math.sign(own.y - g.y) || 1, Math.max(0.6, Math.abs(own.y - g.y)), 0.15);
+        g.saveT = 0.75; g.saveK = own.y - g.y > 0 ? 9 : 10; g.vx *= 0.3; g.vy *= 0.3; g.touchCd = Math.max(g.touchCd || 0, 0.5);   // 版943：グラウンダーを足で止める絵（片足を伸ばす）で止めに行く
         if (globalThis.__gkcLog) globalThis.__gkcLog.push({ t: S.t, block: 1, pS });
-        if (R.next() < pS) { stats[t].saves++; ev('save', { team: t, player: g.name, act: 'smother' });   // 足・体に当てて、ボールがこぼれる
+        if (R.next() < pS) { stats[t].saves++; ev('save', { team: t, player: g.name, act: 'footsave' });   // 足・体に当てて、ボールがこぼれる
           const b = S.ball, a0 = Math.atan2(own.y - g.y, own.x - g.x) + R.range(-0.9, 0.9), v0 = R.range(3, 6);
           Object.assign(b, { owner: -1, kind: 'loose', vx: Math.cos(a0) * v0, vy: Math.sin(a0) * v0, vz: R.range(0, 1.5), z: 0.1, lastTeam: t, lastPlayer: g.idx, intended: -1 });
           own.touchCd = 0.6; own.settle = false; S.dribbleDir = null; act(own, 'lose', 0.6, { o: g.idx }); }
@@ -8129,7 +8129,10 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           // 版942：ドリブルでGKに近づきすぎない。エリアの中でGKが目の前（5m以内）に来たら、GKのいない側へすぐ打つ（GKの足もとまで運んでから打たない）
           if ((globalThis.__Kgkc ?? 1) && !own.gk && !S.setPiece && S.forceShot == null && fx(own.team, own.x) > L - 17 && Math.abs(own.y - GOAL_Y) < 16 && hyp(own.vx, own.vy) > 1.2) {
             const g = opps(own).find((q) => q.gk && !q.off && !(q.downT > 0)), dG = g ? hyp(g.x - own.x, g.y - own.y) : 99;
-            if (g && dG < (globalThis.__Kgkc1 ?? 6) && gkInFront(g, own) && !emptyGoal(own) && !((own.shotCdT || 0) > S.t)) { const side = Math.sign(GOAL_Y - g.y) || (own.y < GOAL_Y ? 1 : -1); S.forceShot = GOAL_Y + side * R.range(2.0, 3.6); S.forceHow = null; S.decision = 0; own.shotCdT = S.t + 2; if (globalThis.__gkcLog) globalThis.__gkcLog.push({ t: S.t, dG }); }
+            // 版943：基本は、PKマーク（ゴールから約11m）の辺りまで来たら打つ。ドリブルとテクニックがとても高く、技で崩すタイプ（ファンタジスタ・アタッカー・紫電の遊戯）だけは、GKをかわしに行ってもよい
+            const techy = (own.dribble >= 88 && own.technique >= 85 && (own.type === 'ファンタジスタ' || own.type === 'アタッカー')) || uOn(own, 'shiden');
+            const pkLine = hyp(fx(own.team, L) - fx(own.team, own.x), GOAL_Y - own.y) < (globalThis.__Kpkl ?? 12) && Math.abs(own.y - GOAL_Y) < 11;
+            if (g && (pkLine && !techy || dG < (globalThis.__Kgkc1 ?? 6) && !techy) && gkInFront(g, own) && !emptyGoal(own) && !((own.shotCdT || 0) > S.t)) { const side = Math.sign(GOAL_Y - g.y) || (own.y < GOAL_Y ? 1 : -1); S.forceShot = GOAL_Y + side * R.range(2.0, 3.6); S.forceHow = null; S.decision = 0; own.shotCdT = S.t + 2; if (globalThis.__gkcLog) globalThis.__gkcLog.push({ t: S.t, dG }); }
           }   // 無人のゴールが見えたら、すぐ打つ
           if (S.decision <= 0 && !((own.mtLock || 0) > S.t) && (!own.settle || hyp(S.ball.x - own.x, S.ball.y - own.y) < (S.forceShot != null || S.oneTouchBoost ? 1.6 : 1.0)) && (S.oneTouchBoost || own.dO == null || (own.dO < 0.8 && !((globalThis.__Kr3 ?? 1) && S.ball.z < 0.05 && hyp(S.ball.x - own.x, S.ball.y - own.y) > 1.0)) || (close < 2 && !((globalThis.__Kr3 ?? 1) && S.ball.z < 0.05 && hyp(S.ball.x - own.x, S.ball.y - own.y) > 1.0)) || ((own.tsukiRecv || own.aoKeepFast || emptyGoal(own)) && fx(own.team, own.x) > L - 26 && own.dO < 2.4) || ((own.kmCall || 0) > S.t && own.dO < 2.4))) decide(own);   // 月影の抜け出し：高速ドリブル中でも、ペナルティエリアに入ったら打てる
         }
