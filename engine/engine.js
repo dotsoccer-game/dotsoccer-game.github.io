@@ -8223,7 +8223,9 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       { const b = S.ball, lp = b.lastPlayer;   // 版953：味方がボールを離した・触った瞬間の、オフサイドの位置にいる選手を覚える
         if (!S.restart && !S.celebrate && lp >= 0 && ((S.ofPrevOwner >= 0 && b.owner < 0) || (b.owner < 0 && lp !== S.ofPrevLP))) {
           const t = P[lp].team, exempt = S.t - (S.rsEndT ?? -9) < 0.6 && (S.rsType === 'throw' || S.rsType === 'corner' || S.rsType === 'goalkick');
-          if (exempt) S.offSnap = null;
+          const defl = S.ofPrevOwner < 0 && S.offSnap && S.offSnap.team !== t;   // 版954：相手が持たずに触っただけ（GKがはじいた・DFに当たった）：それは「プレー」ではないので、前のオフサイドの判定を残す
+          if (defl && (globalThis.__Kofs3 ?? 1)) { /* 残す */ }
+          else if (exempt) S.offSnap = null;
           else { const line = offsideLine(t), pos = {}; let n = 0; for (const m of T[t].players) { if (m.off || m.gk || m.idx === lp) continue; const mx = fx(t, m.x); if (mx > line + 0.3 && mx > L / 2) { pos[m.idx] = [m.x, m.y]; n++; } }
             S.offSnap = n ? { team: t, kicker: lp, t: S.t, line: fx(t, line), pos } : null; } }
         S.ofPrevOwner = b.owner; S.ofPrevLP = lp; }
