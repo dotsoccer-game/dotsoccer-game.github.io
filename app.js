@@ -426,6 +426,9 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       const e = c.e, sc = scoreAt(e.t);
       out.push({ t0: Math.max(0.2, e.t - 5), t1: e.t + 2.2, t: e.t, head: `${minTxt(e.t)}`, sc, cap1: `${halfTxt(e.t)}　${tName(e.team)}`, cap2: c.post ? `${e.player}のシュートは、ポストに嫌われた` : `${e.player}がシュートを放つが、ゴールは阻まれた` });
     }
+    // 版944：ファインセーブ：エリアに運び込んできた相手を、GKが詰めて足で止めた場面（最大2つ。ほかの場面と近すぎないもの）
+    { let nb = 0; for (const e of ev) { if (e.type !== 'gkblock' || nb >= 2) continue; if (out.some((x) => Math.abs(x.t - e.t) < 10)) continue;
+      out.push({ t0: Math.max(0.2, e.t - 5), t1: e.t + 2.2, t: e.t, head: `${minTxt(e.t)}`, sc: scoreAt(e.t), cap1: `${halfTxt(e.t)}　${tName(e.team)}`, cap2: `ファインセーブ！ ${e.player}が飛び出して、${e.shooter}を足で止めた` }); nb++; } }
     // スーパープレイ：ドリブルで3人以上抜いた場面（そのままゴールなら、ゴールの場面をドリブルの始めから流す）
     for (const e of ev) {
       if (e.type !== 'dribbleRun') continue;
@@ -3736,7 +3739,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     if (hiBall) { ballOwned = hiBall[3]; ballDraw(hiBall[0], hiBall[1], hiBall[2], hiBall[4]); }
     { // 版864：GKがボールに触った瞬間（はじく・パンチング・指先・足・体）：ボールの所に白い衝撃の光を出す（手に当たったと見て分かるように）
       const HIT = { parry: 1, diveparry: 1, punch: 1, tipover: 1, footsave: 1, block: 1, tip: 1 };
-      const he = match && match.events && match.events.find((e) => (e.type === 'save' || e.type === 'gk') && HIT[e.act] && simT - (e.tt ?? e.t) >= -0.02 && simT - (e.tt ?? e.t) < 0.3);
+      const he = match && match.events && match.events.find((e) => ((e.type === 'save' || e.type === 'gk') && HIT[e.act] || e.type === 'gkblock') && simT - (e.tt ?? e.t) >= -0.02 && simT - (e.tt ?? e.t) < 0.3);
       if (he) { const hx = he.hx ?? st.ball.x, hy = he.hy ?? st.ball.y, u = Math.max(0, simT - (he.tt ?? he.t)) / 0.3, bq = P3(hx, hy, he.hz ?? (st.ball.z || 0)), s0 = proj(hx, hy).s, R0 = (6 + u * 16) * Math.max(0.8, s0);
         ctx.save(); ctx.globalAlpha = 1 - u; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = Math.max(1.5, 2.4 * s0); ctx.beginPath();
         for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4 + 0.2, r1 = R0 * 0.45, r2 = R0; ctx.moveTo(bq.x + Math.cos(a) * r1, bq.y + Math.sin(a) * r1 * 0.8); ctx.lineTo(bq.x + Math.cos(a) * r2, bq.y + Math.sin(a) * r2 * 0.8); }

@@ -633,7 +633,7 @@
     const frames = [];
     const typeLog = {}; // タイプごとの位置の記録（本物の座標から集計）
 
-    const ev = (type, extra) => events.push({ t: +S.t.toFixed(1), clock: Math.round(S.t * CLOCK_SCALE + (S.half === 2 ? 0 : 0)), type, ...extra, ...((type === 'save' || type === 'gk') && S.ball ? { tt: +S.t.toFixed(3), hx: +S.ball.x.toFixed(2), hy: +S.ball.y.toFixed(2), hz: +(S.ball.z || 0).toFixed(2) } : {}) });   // 版865：GKが触った時刻と場所（衝撃の光を、手の所に出す）
+    const ev = (type, extra) => events.push({ t: +S.t.toFixed(1), clock: Math.round(S.t * CLOCK_SCALE + (S.half === 2 ? 0 : 0)), type, ...extra, ...((type === 'save' || type === 'gk' || type === 'gkblock') && S.ball ? { tt: +S.t.toFixed(3), hx: +S.ball.x.toFixed(2), hy: +S.ball.y.toFixed(2), hz: +(S.ball.z || 0).toFixed(2) } : {}) });   // 版865：GKが触った時刻と場所（衝撃の光を、手の所に出す）
 
     // ---------- 固有スキル・サポートパッシブ ----------
     const liveMap = [];   // 版927：[試合の時刻, プレーが動いていた時間の合計] を1秒ごとに
@@ -1450,7 +1450,7 @@
         const pS = clamp(0.42 + (gq - aq) * 0.006 + (g.sk.has('oneOnOne') ? 0.15 : 0) + (uOn(g, 'sutemi') ? 0.3 : 0) + (uOn(g, 'ikari') ? 0.15 : 0) - (uOn(own, 'shiden') ? 0.25 : 0), 0.15, 0.8);
         g.saveT = 0.75; g.saveK = own.y - g.y > 0 ? 9 : 10; g.vx *= 0.3; g.vy *= 0.3; g.touchCd = Math.max(g.touchCd || 0, 0.5);   // 版943：グラウンダーを足で止める絵（片足を伸ばす）で止めに行く
         if (globalThis.__gkcLog) globalThis.__gkcLog.push({ t: S.t, block: 1, pS });
-        if (R.next() < pS) { stats[t].saves++; ev('save', { team: t, player: g.name, act: 'footsave' });   // 足・体に当てて、ボールがこぼれる
+        if (R.next() < pS) { stats[t].saves++; ev('gkblock', { team: t, player: g.name, shooter: own.name, atkTeam: own.team });   // 版944：試合中の文字は出さない（ダイジェストでファインセーブとして流す）   // 足・体に当てて、ボールがこぼれる
           const b = S.ball, a0 = Math.atan2(own.y - g.y, own.x - g.x) + R.range(-0.9, 0.9), v0 = R.range(3, 6);
           Object.assign(b, { owner: -1, kind: 'loose', vx: Math.cos(a0) * v0, vy: Math.sin(a0) * v0, vz: R.range(0, 1.5), z: 0.1, lastTeam: t, lastPlayer: g.idx, intended: -1 });
           own.touchCd = 0.6; own.settle = false; S.dribbleDir = null; act(own, 'lose', 0.6, { o: g.idx }); }
