@@ -1446,20 +1446,31 @@
       }
     }
     // 版942：ドリブルで向かってくる相手がエリアの中で近づいたら、GKは前へ出て間合いを詰め（角度を消す）、2m以内なら足・体を投げ出して止めに行く
+    // 版957：恐れ：ロングシュートを怖がるGKは、ゴールラインに近い所に立つ（前に出ない）。その分、DFラインとの間が空く
+    function fearGkPost() {
+      if (!(globalThis.__Kfear ?? 1) || S.restart || S.setPiece) return;
+      const own = ownerP(); if (!own || own.gk) return;
+      for (const tm of T) { const f = tm.fear || 0; if (f < 0.05 || own.team === tm.ti) continue;
+        const g = tm.players.find((q) => q.gk && !q.off); if (!g || !targets[g.idx] || g.diveT > 0) continue;
+        const oxf = fx(tm.ti, own.x); if (oxf < 18 || oxf > 50) continue;   // ゴール前（1対1など）は、ふだん通り
+        const gx = fx(tm.ti, targets[g.idx][0]); if (gx <= 1.2) continue;
+        targets[g.idx][0] = fx(tm.ti, Math.max(1.0, gx * (1 - 0.45 * f))); }
+    }
     // 版952：ゴール前（30m以内）でボールを持って向かってくる相手に、だれも寄せていなければ、一番近いDF（ゴール側にいる選手）が必ず寄せる
     function dfPressPost() {
       if (!(globalThis.__Kdfp ?? 1) || S.restart || S.setPiece || S.celebrate > 0) return;
       const own = ownerP(); if (!own || own.gk) return;
-      const t = 1 - own.team, oxf = fx(t, own.x); if (oxf > 30 || Math.abs(own.y - GOAL_Y) > 20) return;
+      const t = 1 - own.team, oxf = fx(t, own.x), fr = (globalThis.__Kfear ?? 1) ? (T[t].fear || 0) : 0; if (oxf > 30 + 10 * fr || Math.abs(own.y - GOAL_Y) > 20 + 4 * fr) return;   // 版957：恐れ：ロングシュートが怖いと、もっと遠く（最大40m）から寄せに行く
       const defs = opps(own).filter((m) => !m.gk && !m.off && !(m.downT > 0) && !(m.slideT > 0));
       if (defs.some((m) => hyp(m.x - own.x, m.y - own.y) < 2.8)) return;   // もう誰かが寄せている
       let best = null, bd = 1e9; for (const m of defs) { if (fx(t, m.x) > oxf + 1.5) continue; const d = hyp(m.x - own.x, m.y - own.y); if (d < bd) { bd = d; best = m; } }
-      if (!best || bd > 15) return;
+      if (!best || bd > 15 + 6 * fr) return;
       const gx0 = fx(t, 0), dl = hyp(gx0 - own.x, GOAL_Y - own.y) || 1;
       targets[best.idx] = [own.x + own.vx * 0.3 + (gx0 - own.x) / dl * 1.0, own.y + own.vy * 0.3 + (GOAL_Y - own.y) / dl * 1.0]; urgent[best.idx] = true;
       if (globalThis.__dfpLog) globalThis.__dfpLog.push(S.t);
     }
     function gkChargePost() {
+      fearGkPost();
       if (!(globalThis.__Kgkc ?? 1) || S.restart || S.setPiece) return;
       const own = ownerP(); if (!own || own.gk) return;
       const g = opps(own).find((q) => q.gk && !q.off); if (!g || g.downT > 0 || g.diveT > 0) return;
@@ -2786,6 +2797,7 @@
           const KB = globalThis.__Ku22v ?? 1.6;
           if (q.uniq === 'kage' && !(q.uCd > S.t) && !q.off && pxf > L / 2 - 4 && pxf < L - 9 && adv > -6 && danger < 0.9 && mates(p).some((m) => m !== q && m !== p && !m.off && !m.gk && m.position === 'FW' && fx(t, m.x) > pxf + 2)) v += KB;
           if (q.uniq === 'aonoouza' && !(q.uOn > S.t) && !(q.uCd > S.t) && !q.off && !through && pxf > 42 && pxf < 92 && adv > 1.5 && d < 40 && danger < 0.9) v += KB * 1.2;
+          if ((globalThis.__Kbyg ?? 1) && q.uniq === 'byakuya' && !(q.uOn > S.t) && !(q.uCd > S.t) && !q.off && pxf > 15 && pxf < 66 && danger < 0.7 && pxf > xf - 25) v += KB * 1.6;   // 版957：白夜の視界：空いているレジスタ（ことう）に、まず預ける
         }
         if (danger < 0.4) bestSafe = Math.max(bestSafe, v);
         if (globalThis.__gpV && gpG && ((gpG.k === 'sh' && p.idx === gpG.a && q.idx === gpG.c) || (gpG.k === 'dc' && gpG.ph === 1 && p.idx === gpG.b && q.idx === gpG.c))) globalThis.__gpV.push([gpG.k, +v0dbg.toFixed(1), +v.toFixed(1), +danger.toFixed(2), ph, +adv.toFixed(0), +d.toFixed(0), through ? 1 : 0, +xf.toFixed(0)]);
@@ -4320,6 +4332,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         // 版932：能力の差がプレーに出る（設計24章）：シュート。キックが低いほど、向きも高さも大きくぶれる（上手い選手は今のまま）
         const abK = (globalThis.__Kab ?? 1) && !opt.pk && !opt.empty ? 1 + Math.max(0, 85 - p.kick) * (globalThis.__Kab4 ?? 0.025) : 1;
         if (abK > 1) ang = Math.atan2(dy, dx) + (ang - Math.atan2(dy, dx)) * abK;
+        if (opt.skill === 'superLong' && (globalThis.__Kslg ?? 1)) ang = Math.atan2(dy, dx) + (ang - Math.atan2(dy, dx)) * (globalThis.__Kslg1 ?? 0.65);   // 版957：超ロングシュートは、技として狙って蹴るので、遠さの割に向きのぶれを小さく（枠に飛びやすく）
         if (!opt.pk && !opt.empty && d > 12) ang += R.gauss() * (d - 12) * 0.006 * (1.15 - p.kick / 200) * (opt.fk ? 0.6 : 1);   // 版790：遠くからのシュートは、キックがSでも隅ぴったりには行きにくい（上のリーグでミドル・ロングが入りすぎていた）
         if (opt.empty) ang = Math.atan2(dy, dx) + (ang - Math.atan2(dy, dx)) * 0.12;   // 無人のゴール：ほとんどズレない
         // 弾道：低く速いグラウンダーは2割。多くはすねから胸の高さ、時々バーの下ギリギリへズバッと
@@ -4894,6 +4907,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
     function shoot(p, aimY, how, charged) { if (globalThis.__tyDbg && (p.stDg || 0) > S.t - 2.5) globalThis.__tyDbg.dgS++;
       if (uOn(p, 'kage')) act(p, 'kmshot', 0.8, { lv: p.uniqLv || 1 });   // 影の一刺し：自分で突いて打つ時は、銀の閃光
       if (!S.pk && !S.fkDirect && S.ball.owner === p.idx && skSmother(p, 2.4)) return;   // 目の前で打とうとした相手には、体を投げ出す   // 詰めてきたスイーパーキーパーが、打つ瞬間に足もとへ飛び込む
+      if ((globalThis.__Kfear ?? 1) && !S.pk && !S.fkDirect) { const dS = hyp(fx(p.team, L) - p.x, GOAL_Y - p.y); if (dS > 22) { const dT = T[1 - p.team]; dT.fear = Math.min(1, (dT.fear || 0) + (dS > 30 ? 0.3 : 0.22)); } }   // 版957：恐れ：ロングシュートを打たれるほど、守る側はロングシュートを怖がる（時間がたつと薄れる）
       S.lastShotT = S.t; S.lastShotTeam = p.team;   // こぼれ球（GKがはじいた・ポストに当たった）を詰める判断に使う
       const gx = fx(p.team, L);
       // シュート技：場面ごとに出せるものから選ぶ（ボレー等の「来た球に合わせる技」は how で指定）
@@ -5459,7 +5473,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         if ((q.uzT || 0) > S.t && teamU(p.team, 'uzushio') && !qOff && danger < 0.8) v += 1.5;   // 渦潮の囮で空いた手前で受ける2列目の味方へ
         if (q.uniq === 'uzushio' && !p.gk) { const one = !opps(q).some((o) => !o.gk && !o.off && fx(q.team, o.x) > fx(q.team, q.x) - 1 && hyp(o.x - q.x, o.y - q.y) < 7); if ((!one || qOff) && uOn(q, 'uzushio')) v -= 3; }   // 渦潮の囮：走っている間は、てらだにはほとんど出さない（完全に1対1の時だけ）
         if (q.uniq === 'aonoouza' && !(q.uCd > S.t) && !(q.uOn > S.t) && !q.off && fx(p.team, q.x) > 55 && fx(p.team, q.x) > xf + 10 && d < 34 && !through && danger < 0.9) v += 2.4;   // 蒼の王座：CBに張りついたくもいへ、縦パスを入れる（落ちてきて受ける）
-        if (q.uniq === 'byakuya' && !(q.uCd > S.t) && !q.off && fx(p.team, q.x) < 60 && danger < 0.5 && recvOpp > 3 && pxf > xf - 25) v += 0.8;   // 白夜の視界：レジスタが空いていれば、まず預けて、そこからロングフィード
+        if (q.uniq === 'byakuya' && !(q.uCd > S.t) && !q.off && fx(p.team, q.x) < ((globalThis.__Kbyg ?? 1) ? 66 : 60) && danger < ((globalThis.__Kbyg ?? 1) ? 0.6 : 0.5) && recvOpp > ((globalThis.__Kbyg ?? 1) ? 2.5 : 3) && pxf > xf - 25) v += (globalThis.__Kbyg ?? 1) ? 2.0 : 0.8;   // 版957：もっと預ける   // 白夜の視界：レジスタが空いていれば、まず預けて、そこからロングフィード
         if (q.uniq === 'midori' && !q.off && (T[q.team].mdStack || 0) < 4 && fx(q.team, q.x) < 72 && danger < 1.0) v += 4.5 + (S.t > 150 ? 1.5 : 0);   /* 版468：4回たまるまでは、チームで積極的にむらおかへ通す（後半はさらに） */
         else if (q.uniq === 'midori' && !(q.uCd > S.t) && !q.off && !p.gk && pxf < 46 && danger < 0.6 && opps(q).some((o) => !o.off && !o.gk && hyp(o.x - q.x, o.y - q.y) < 26 && fx(q.team, o.x) > pxf - 3)) v += 1.8;
         if (q.uniq === 'midori' && !q.off && p.gk && (T[q.team].mdStack || 0) < 4 && danger < 0.5) v += 2.0;   // GKからも   /* 版448 翠の起点：自陣では、まずむらおかに預ける（そこから誘い込む） */
@@ -5681,6 +5695,11 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       if (uOn(p, 'uzushio') && !p.gk && !S.setPiece && dGoal > 13) { const mp = opts.filter((o) => o.kind === 'pass' && o.q && !o.q.gk && o.q.position !== 'DF' && (o.danger ?? 1) < 0.7 && fx(p.team, o.q.x) > xf - 10); for (const o of mp) o.ww *= 3; const bp = Math.max(0, ...mp.map((o) => o.ww)); for (const o of opts) if (o.kind === 'shot') o.ww = mp.length ? Math.min(o.ww * 0.2, bp * 0.4) : o.ww * 0.5; else if (o.kind === 'dribble' && mp.length) o.ww = Math.min(o.ww * 0.4, bp); }
       // 白夜の視界：自陣の深い所から、相手のペナルティアークまで届く35m以上のロングフィードがある時だけ出る。裏へ走る味方の走る先へ（いなければ相手陣内の空いた味方へ）
       if (globalThis.__byCnt && p.uniq === 'byakuya') { globalThis.__byCnt.all++; if (xf < 66) globalThis.__byCnt.zone++; }
+      if ((globalThis.__Kbyr ?? 1) && p.uniq === 'byakuya' && !p.gk && !S.setPiece && xf < 66 && !uOn(p, 'byakuya') && !(p.uCd > S.t) && !(S.t - (p.byPreT ?? -9) < 5)) {   // 版957：白夜の視界が出せそうな時は、ことうが前を向いた瞬間に、前の味方がもう裏へ走り出す（ロングフィードの受け手を作る）
+        const ol = offsideLine(p.team); let best = null, bs = -1e9;
+        for (const q of mates(p)) { if (q === p || q.gk || q.off || q.position === 'DF') continue; const qf = fx(p.team, q.x); if (qf > ol - 0.3 || qf < ol - 22 || qf < L / 2 - 8 || hyp(q.x - p.x, q.y - p.y) < 25) continue;
+          const v = qf * 0.2 - Math.abs(q.y - GOAL_Y) * 0.05 + (q.position === 'FW' ? 2 : 0) + Math.min(8, nearestOpp(q, q.x, q.y).d) * 0.3; if (v > bs) { bs = v; best = q; } }
+        if (best) { p.byPreT = S.t; best.byRunT = S.t + 2.6; best.byRunLv = p.uniqLv || 1; best.byRunTo = [fx(p.team, Math.min(ol + 10, L - 11)), clamp(best.y + (GOAL_Y - best.y) * 0.35, 6, W - 6)]; best.run = Math.max(best.run || 0, 2.6); p.byRunner = best.idx; } }
       if (p.uniq === 'byakuya' && !p.gk && !S.setPiece && xf < 66 && (uOn(p, 'byakuya') || !(p.uCd > S.t))) { const olB = offsideLine(p.team);
         const longOk = (o) => o.kind === 'pass' && o.q && o.q.position !== 'DF' && (o.d ?? 0) >= (U21() ? 28 : 35) && fx(p.team, o.q.x) < olB - 0.3 && fx(p.team, o.q.x) > L / 2 - (U21() ? 10 : 5);
         const cand = opts.filter(longOk), nearLine = cand.filter((o) => fx(p.team, o.q.x) > olB - 18);
@@ -8221,11 +8240,13 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       if (!brainOn() && (globalThis.__Kgkall ?? 1)) gkChargePost();   // 版952：GKの詰め・1対1の飛び出しは、どの動きの設定でも
       dfPressPost();
       urgentPost();
+      if ((globalThis.__Kbyr ?? 1) && brainOn()) { const o0 = ownerP(); for (const p of P) if ((p.byRunT || 0) > S.t && p.byRunTo && !p.off && o0 && o0.team === p.team && o0 !== p) { const olR = offsideLine(p.team); targets[p.idx] = [fx(p.team, Math.min(fx(p.team, p.byRunTo[0]), olR - 1.5)), p.byRunTo[1]]; urgent[p.idx] = true; } }   // 版957：白夜の視界の走り出しを、新しい動きの位置取りで上書きしない
       if (globalThis.__Kkg2 ?? 1) for (const p of P) if (p.kgTgtT === S.t && !p.off) { targets[p.idx] = p.kgTgt; urgent[p.idx] = true; }   // 版936：影縫い：張りつく位置を、ほかの守備の決まり（ゾーン・ライン）で上書きしない
       smoothPost();
       if (globalThis.__tgHook) globalThis.__tgHook(S, P, targets, urgent, fx, offsideLine, ownerP);
       movePlayers();
       if (S.restart) { S.rsType = S.restart.type; S.rsEndT = S.t; }
+      for (const tm of T) if (tm.fear) { tm.fear *= 1 - DT / 150; if (tm.fear < 0.01) tm.fear = 0; }
       if (!S.celebrate) { stepBall(); if (!S.celebrate) contest();   // ゴールが決まったコマでは、もうだれも触らない
       { const b = S.ball, lp = b.lastPlayer;   // 版953：味方がボールを離した・触った瞬間の、オフサイドの位置にいる選手を覚える
         if (!S.restart && !S.celebrate && lp >= 0 && ((S.ofPrevOwner >= 0 && b.owner < 0) || (b.owner < 0 && lp !== S.ofPrevLP))) {
