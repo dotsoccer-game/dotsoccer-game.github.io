@@ -2883,7 +2883,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
         // GK：体勢を崩していない時は、いつもボールにおへそを向ける（横に動く時もボールを見たままサイドステップ）
         if (info.gk && !kp && p.sp < 5.2 && !((gkCode >= 1 && gkCode <= 4) || gkCode === 13 || gkCode === 14)) { const bq = proj(st.ball.x, st.ball.y); if (Math.hypot(bq.x - q.x, bq.y - q.y) > 2) ang = Math.atan2((bq.y - q.y) / 0.45, bq.x - q.x); }
         // 蒼の王座：縦パスを受けに落ちてくる・キープしている間は、おへそと体を自分のゴールの方へ向ける（相手ゴールに背を向けて受ける）
-        { const LP = actsOf[i]; if (LP) for (let k = LP.length - 1; k >= 0; k--) { const a = LP[k]; if (a.t > simT) continue; if (simT - a.t > 5) break; if (a.a === 'aopostend') break; if (a.a === 'aopost') { if (simT - a.t < a.d && (st.owner === i || st.passTo === i)) { const oq = proj(105 - attackX, 34); ang = Math.atan2((oq.y - q.y) / 0.45, oq.x - q.x); } break; } } }
+        { const LP = actsOf[i]; if (LP) for (let k = LP.length - 1; k >= 0; k--) { const a = LP[k]; if (a.t > simT) continue; if (simT - a.t > 5) break; if (a.a === 'aopostend') break; if (a.a === 'aopost') { if (simT - a.t < a.d && (st.owner === i || st.passTo === i) && !(p.sp > 1.5 && p.vx * Math.sign((105 - attackX) - p.x) < 0.3 * Math.hypot(p.vx, p.vy))) {   /* 版952：相手ゴールの方へ走っている時は、背中を向けない（ムーンウォークに見えるため） */ const oq = proj(105 - attackX, 34); ang = Math.atan2((oq.y - q.y) / 0.45, oq.x - q.x); } break; } } }
         if (ang == null) dmFacing = (h && h.d16 != null) ? h.d16 * Math.PI / 8 : Math.PI / 2;
         else {
           // 向きがコマごとにパタパタ変わらないように：小さなずれでは変えない／一度向いたら少しの間は保つ（大きく向きを変えたときだけすぐ変える）
