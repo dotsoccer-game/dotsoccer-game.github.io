@@ -6976,10 +6976,14 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       return true;
     }
     function punchTo(p, b, hard) {
+      // 版955：パンチングは、ボールが飛んできたのと逆のサイドへ（そちらの方が空いていることが多い）。来た方へ返すと詰められる
+      const K5 = (globalThis.__Kpun ?? 1), oy0 = b.kY != null ? b.kY : b.sy0 != null ? b.sy0 : null;
+      const away = oy0 != null && Math.abs(oy0 - p.y) > 3 ? -Math.sign(oy0 - p.y) : (Math.sign(b.vy || 0) || (p.y < GOAL_Y ? 1 : -1));
       if (p.sk.has('punching')) {
-        const mts = mates(p).filter((m) => !m.gk && fx(p.team, m.x) > fx(p.team, p.x) + 8 && hyp(m.x - p.x, m.y - p.y) < 30 && Math.abs(m.y - GOAL_Y) > 12);   // 版864：中央へは返さない（もう一度打たれる）
+        let mts = mates(p).filter((m) => !m.gk && fx(p.team, m.x) > fx(p.team, p.x) + 8 && hyp(m.x - p.x, m.y - p.y) < 30 && Math.abs(m.y - GOAL_Y) > 12);
+        if (K5) mts = mts.filter((m) => Math.sign(m.y - GOAL_Y) === away);   // 版864：中央へは返さない（もう一度打たれる）
         const tgt = mts.sort((a, c) => nearestOpp(c, c.x, c.y).d - nearestOpp(a, a.x, a.y).d)[0];
-        const tx = tgt ? tgt.x : p.x + sgn(p.team) * 18, ty = tgt ? tgt.y : (p.y < GOAL_Y ? R.range(4, 14) : W - R.range(4, 14));
+        const tx = tgt ? tgt.x : p.x + sgn(p.team) * 18, ty = tgt ? tgt.y : K5 ? (away > 0 ? W - R.range(4, 14) : R.range(4, 14)) : (p.y < GOAL_Y ? R.range(4, 14) : W - R.range(4, 14));
         const dx = tx - p.x, dy = ty - p.y, d = hyp(dx, dy) || 1, v = clamp(d * 0.7, 9, 17);
         act(p, 'gkplay', 1.2, { k: 'punching' });   // パンチングの吹き出しは出さない
         Object.assign(b, { vx: (dx / d) * v, vy: (dy / d) * v, vz: R.range(4.5, 6.5), z: Math.max(b.z, 1.8), kind: tgt ? 'pass' : 'loose', intended: tgt ? tgt.idx : -1, kicker: p.idx, lastTeam: p.team, lastPlayer: p.idx, spin: 0, knuckle: false, offside: false });
@@ -6987,10 +6991,10 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       }
       // テクニックが高いほど、ゴール前から遠いサイドへ大きく逃がす（下手だと正面にこぼす）
       // 版864：パンチングは、ボールが来た向きのまま逆サイドへ、なるべく外（タッチライン寄り）へ。うまいGKほど正確
-      { const side = Math.sign(b.vy || 0) || (p.y < GOAL_Y ? -1 : 1), good = R.next() < clamp(0.5 + (p.technique - 50) * 0.01 + (uOn(p, 'ikari') ? 0.3 : 0), 0.35, 0.95);
+      { const side = K5 ? away : Math.sign(b.vy || 0) || (p.y < GOAL_Y ? -1 : 1), good = R.next() < clamp((K5 ? 0.55 + (p.technique - 50) * 0.015 : 0.5 + (p.technique - 50) * 0.01) + (uOn(p, 'ikari') ? 0.3 : 0), 0.35, K5 ? 0.98 : 0.95);   // 版955：D1級（テクニック80）のGKはほぼ毎回、逆サイドの外へ
         if (good) { const tx = p.x + sgn(p.team) * R.range(12, 24), ty = side > 0 ? W - R.range(3, 11) : R.range(3, 11), dx = tx - p.x, dy = ty - p.y, d = hyp(dx, dy) || 1, v = clamp(d * 0.62, 10, 17);
           Object.assign(b, { vx: (dx / d) * v, vy: (dy / d) * v, vz: R.range(5, 7), z: Math.max(b.z, hard ? 1.6 : 1.8), kind: 'loose', lastTeam: p.team, lastPlayer: p.idx, kicker: p.idx, spin: 0, knuckle: false, intended: -1 }); return; } }
-      const safe = R.next() < 0.25 + p.technique * 0.0065 + (uOn(p, 'ikari') ? 0.5 * gkF(p) : 0), side = p.y < GOAL_Y ? -1 : 1;   // 白亜の城壁：はじく時も、相手のいない外へ正確に逃がす
+      const safe = R.next() < 0.25 + p.technique * 0.0065 + (uOn(p, 'ikari') ? 0.5 * gkF(p) : 0), side = K5 ? away : p.y < GOAL_Y ? -1 : 1;   // 白亜の城壁：はじく時も、相手のいない外へ正確に逃がす
       Object.assign(b, { vx: sgn(p.team) * (safe ? R.range(9, 14) : hard ? R.range(5, 10) : R.range(3, 7)), vy: safe ? side * R.range(5, 9) : R.gauss() * 5, vz: R.range(4, 7), z: Math.max(b.z, hard ? 1.6 : 1.8), kind: 'loose', lastTeam: p.team, lastPlayer: p.idx, spin: 0, knuckle: false, intended: -1 });
     }
     // GKがこのシュートを止められる確率（触った瞬間と、横っ跳びを始める瞬間の両方で使う）
@@ -8198,9 +8202,12 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           if ((globalThis.__Kgkc ?? 1) && !own.gk && !S.setPiece && S.forceShot == null && fx(own.team, own.x) > L - 17 && Math.abs(own.y - GOAL_Y) < 16 && hyp(own.vx, own.vy) > 1.2) {
             const g = opps(own).find((q) => q.gk && !q.off && !(q.downT > 0)), dG = g ? hyp(g.x - own.x, g.y - own.y) : 99;
             // 版943：基本は、PKマーク（ゴールから約11m）の辺りまで来たら打つ。ドリブルとテクニックがとても高く、技で崩すタイプ（ファンタジスタ・アタッカー・紫電の遊戯）だけは、GKをかわしに行ってもよい
-            const techy = (own.dribble >= 88 && own.technique >= 85 && (own.type === 'ファンタジスタ' || own.type === 'アタッカー')) || uOn(own, 'shiden');
-            const pkLine = hyp(fx(own.team, L) - fx(own.team, own.x), GOAL_Y - own.y) < (globalThis.__Kpkl ?? 12) && Math.abs(own.y - GOAL_Y) < 11;
-            if (g && (pkLine && !techy || dG < (globalThis.__Kgkc1 ?? 6) && !techy) && gkInFront(g, own) && !emptyGoal(own) && !((own.shotCdT || 0) > S.t)) { const side = Math.sign(GOAL_Y - g.y) || (own.y < GOAL_Y ? 1 : -1); S.forceShot = GOAL_Y + side * R.range(2.0, 3.6); S.forceHow = null; S.decision = 0; own.shotCdT = S.t + 2; if (globalThis.__gkcLog) globalThis.__gkcLog.push({ t: S.t, dG }); }
+            const techT = (own.dribble >= 88 && own.technique >= 85 && (own.type === 'ファンタジスタ' || own.type === 'アタッカー')) || uOn(own, 'shiden');
+            // 版955：かわしに行ってよいのは、GKと1対1（まわり・前に相手のDFがいない）で、勢いに乗ったドリブル（秒速5m超）の時だけ。それ以外はファンタジスタ・アタッカーでもPKマークの辺りで打つ
+            const gxT = fx(own.team, L), oneT = !opps(own).some((o) => !o.gk && !o.off && (hyp(o.x - own.x, o.y - own.y) < 4 || segDist(o.x, o.y, own.x, own.y, gxT, GOAL_Y).d < 2));
+            const techy = techT && (!(globalThis.__Ksht ?? 1) || (oneT && hyp(own.vx, own.vy) > 5));
+            const pkLine = hyp(fx(own.team, L) - fx(own.team, own.x), GOAL_Y - own.y) < (globalThis.__Kpkl ?? ((globalThis.__Ksht ?? 1) ? 14 : 12)) && Math.abs(own.y - GOAL_Y) < 12;   // 版955：PKマークより少し手前（ゴールから14m）で打つ
+            if (g && (pkLine && !techy || dG < (globalThis.__Kgkc1 ?? ((globalThis.__Ksht ?? 1) ? 8 : 6)) && !techy) && gkInFront(g, own) && !emptyGoal(own) && !((own.shotCdT || 0) > S.t)) { const side = Math.sign(GOAL_Y - g.y) || (own.y < GOAL_Y ? 1 : -1); S.forceShot = GOAL_Y + side * R.range(2.0, 3.6); S.forceHow = null; S.decision = 0; own.shotCdT = S.t + 2; if (globalThis.__gkcLog) globalThis.__gkcLog.push({ t: S.t, dG }); }
           }   // 無人のゴールが見えたら、すぐ打つ
           if (S.decision <= 0 && !((own.mtLock || 0) > S.t) && (!own.settle || hyp(S.ball.x - own.x, S.ball.y - own.y) < (S.forceShot != null || S.oneTouchBoost ? 1.6 : 1.0)) && (S.oneTouchBoost || own.dO == null || (own.dO < 0.8 && !((globalThis.__Kr3 ?? 1) && S.ball.z < 0.05 && hyp(S.ball.x - own.x, S.ball.y - own.y) > 1.0)) || (close < 2 && !((globalThis.__Kr3 ?? 1) && S.ball.z < 0.05 && hyp(S.ball.x - own.x, S.ball.y - own.y) > 1.0)) || ((own.tsukiRecv || own.aoKeepFast || emptyGoal(own)) && fx(own.team, own.x) > L - 26 && own.dO < 2.4) || ((own.kmCall || 0) > S.t && own.dO < 2.4))) decide(own);   // 月影の抜け出し：高速ドリブル中でも、ペナルティエリアに入ったら打てる
         }
