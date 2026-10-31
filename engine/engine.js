@@ -977,6 +977,9 @@
     }
     // 固有スキルが出ている間の速さ
     // 紫電の遊戯：運ぶ向きは縦が基本（横にも行くが、後ろへは戻らない）。ゴール前20m以内では、シュートコースを開けるための切り返し（後ろ向き）もあり
+    function sdBlock(p, q) {   // 版948：相手が、ゴールへ向かう道（前方±35°・5m以内）に立っているか
+      const gx = fx(p.team, L) - p.x, gy = (GOAL_Y - p.y) * 0.6, gl = hyp(gx, gy) || 1, rx = q.x - p.x, ry = q.y - p.y, rl = hyp(rx, ry) || 1;
+      return rl < 5 && (rx * gx + ry * gy) / (rl * gl) > 0.82; }
     function sdFwd(p, dx, dy) {
       const gx = fx(p.team, L) - p.x, gy = GOAL_Y - p.y, gl = hyp(gx, gy) || 1, dl = hyp(dx, dy) || 1; let ux = dx / dl, uy = dy / dl;
       if (gl < 20 && opps(p).some((o) => !o.gk && hyp(o.x - p.x, o.y - p.y) < 3 && (o.x - p.x) * gx + (o.y - p.y) * gy > 0)) return [ux, uy];   // ゴール前20m以内で、前をふさがれている時だけ切り返し（後ろ向き）もあり
@@ -1068,6 +1071,8 @@
       S.restart = null; S.celebrate = 0;
       S.decision = 0.6;
       S.dribbleDir = null;
+      S.forceShot = null; S.forceHow = null; S.mustClear = null;   // 版948：前半の最後に決めかけていたシュート（ボレーなど）を、後半のキックオフに持ち越さない
+      for (const p of P) { p.wantShot = 0; p.cutInShot = 0; p.rbWait = 0; p.ckRun = null; }
     }
 
     // ---------- 目標地点 ----------
@@ -2632,6 +2637,7 @@
             if (globalThis.__ftDbg) globalThis.__ftDbg.o++;
             opts.push({ kind: 'dribble', mode: 'carry', dir: [sgn(t) * 0.25, sd0], feint: blk.idx, v: v - 0.2 + ((p.technique || 50) - 50) / 40 }); }
         }
+        if ((globalThis.__Kshz ?? 1) && dGoal <= 19 && bl === 0 && Math.abs(p.y - GOAL_Y) < 11) v += globalThis.__Kshz1 ?? 1.2;   // 版948：シュートを打つべき所（ゴールの正面・19m以内・コースが空いている）では、スルーパスより先にシュート
         if (bTy(p, 'ストライカー')) v += 0.4;   // 版906：ストライカーは打てる所では迷わず打つ
         opts.push({ kind: 'shot', v });
       }
@@ -3429,6 +3435,9 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
               const gInBox = fx(tm.ti, p.x) < 16.8 && Math.abs(p.y - GOAL_Y) < 20.5;   // 版862：ペナルティエリアの外では手が使えない：横っ跳びはしない（足・体で止めに行く）
               // 版862：近い所からの低い球が体の近くに来る：飛ばずに足を伸ばして止める。1対1の至近距離：体を大きく広げて当てる
               const kD = b.sx0 != null ? hyp(b.sx0 - p.x, b.sy0 - p.y) : 99, passedGk = fx(tm.ti, b.x) < fx(tm.ti, p.x) + 0.3 || tG < 0.06;   // 版876：ボールがもうGKの横・後ろを通り過ぎた：今から飛んでも間に合わない（ボールの今の位置へ遅れて飛ぶと、逆に飛んだように見える）
+              if ((globalThis.__Knar ?? 1) && gInBox && !p.diveT && !p.downT && !p.svPrep && !passedGk && tG < 0.55 && Math.abs(gap) < (globalThis.__Knar1 ?? 1.1) && b.sx0 != null) {   // 版948：角度のない所からのシュートは、ほぼ正面に来る：飛ばずに、立ったまま足・体で止める（よほど良いコースでなければ飛ばない）
+                const ax = fx(tm.ti, b.sx0), ay = Math.abs(b.sy0 - GOAL_Y);
+                if (ay > POST + 1.5 && ax < ay * 0.9) p.svPrep = { t: b.shotT, k: 'footsave', dir: Math.sign(gap) || 1 }; }
               if ((globalThis.__Kgkft ?? 0) && gInBox && !p.diveT && !p.downT && !p.svPrep && !passedGk && tG < 0.55 && Math.abs(gap) < 2.4 && (b.z + (b.vz || 0) * tG - 4.9 * tG * tG) < 1.75 && kD < 13) { const zG = b.z + (b.vz || 0) * tG - 4.9 * tG * tG; p.svPrep = { t: b.shotT, k: 'footsave', dir: Math.sign(gap) || (R.next() < 0.5 ? 1 : -1), zG, gap, ft: 1 }; }   // 版946（確認画面だけ・__Kgkft）：近い距離（PKラインより内側）から、体の高さ（約1.7m）より低く来るシュートは、横に飛ばずに、片足を伸ばす形で止めに行く（当たる所は、足・体・手）
               if (gInBox && !p.diveT && !p.downT && !p.svPrep && tG < 0.5 && Math.abs(gap) > 0.5 && Math.abs(gap) < 2.2 && b.z < 0.35 && Math.abs(b.vz || 0) < 1.5 && kD < 11 && R.next() < 0.75) p.svPrep = { t: b.shotT, k: 'footsave', dir: Math.sign(gap) };   // 版864：至近距離のグラウンダーだけ
               /* 版865：体を広げて止めるは取りやめ（至近距離は足を伸ばして止めるに集約） */   // 版864：至近距離の浮き球：体を大きくして、体のどこかに当ててはじく
@@ -3907,6 +3916,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         if (!S.restart && !S.celebrate && !p.gk) { if (p.y < 0.45) { p.y = 0.45; if (p.vy < 0) p.vy = 0; } else if (p.y > W - 0.45) { p.y = W - 0.45; if (p.vy > 0) p.vy = 0; } }
         for (const gl of [0, L]) {
           const d = gl === 0 ? -1 : 1, behind = (p.x - gl) * d, wasBehind = (p.ppx - gl) * d;
+          // 版948：ゴールポストの所（ゴールラインのすぐ上〜少し奥）に立たない。ポストに重なって、ポストの向こうにいるように見えるため。ラインの0.35m手前まで出す
+          if ((globalThis.__Kpst ?? 1) && !p.gk && !S.celebrate && behind > -0.35 && behind < 1.2 && Math.abs(p.y - GOAL_Y) < POST + 0.6) { p.x = gl - d * 0.35; if (p.vx * d > 0) p.vx = 0; continue; }
           if (behind <= 0) continue;
           const inY = Math.abs(p.y - GOAL_Y) < POST + 0.3, wasInY = Math.abs(p.ppy - GOAL_Y) < POST + 0.3;
           if (inY && !wasInY && wasBehind > 0.15) { p.y = GOAL_Y + Math.sign(p.ppy - GOAL_Y) * (POST + 0.32); p.vy = 0; }   // 横のネット（外側）
@@ -7492,6 +7503,9 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       }
       return true;
     }
+    // 版948：その選手より先にボールへ届く相手（足もと・胸の高さ）がいるか。相手の足もとに収まった球を、こちらが受けたことにしない
+    function oppFirst(p, b) { if (!(globalThis.__Kopf ?? 1)) return false; const dp = hyp(p.x - b.x, p.y - b.y);
+      return P.some((q) => q.team !== p.team && !q.off && !(q.downT > 0) && !(q.slideT > 0) && b.z < (q.gk ? 2.6 : 1.9) && hyp(q.x - b.x, q.y - b.y) < Math.min(1.3, dp - 0.15)); }
     function contest() {
       const b = S.ball;
       if (S.restart || b.kind === 'dead') return;
@@ -7520,7 +7534,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           if (q.mtGrip && q.mtGrip.o === own.idx && S.t < q.mtGrip.at) { own.vx *= 0.6; own.vy *= 0.6; if (d > 0.62) { const ux = (own.x - q.x) / d, uy = (own.y - q.y) / d, st = Math.min(d - 0.6, 6 * DT); q.x += ux * st; q.y += uy * st; q.vx = own.vx + ux * 2; q.vy = own.vy + uy * 2; } else { q.vx = own.vx; q.vy = own.vy; } continue; }   // 祭り太鼓の壁：体を当てて、押し合っている間（0.4秒）。ここで一瞬ため、そのあと奪う
           const mtG = !!(q.mtGrip && q.mtGrip.o === own.idx && S.t >= q.mtGrip.at && S.t < q.mtGrip.at + 0.5 && d < 3); if (q.mtGrip && (mtG || S.t >= q.mtGrip.at + 0.5)) q.mtGrip = null;   // 発動したら必ずぶつかる：0.3秒後、届く範囲なら一気に踏み込んで体当たり（何も起きずに終わらない）
           // 積極的なエリア：寄せてきた相手（1.7〜3.2m）に、競り合いになる前に自分から技を仕掛ける
-          if (d > 1.7 && d < (uOn(own, 'shiden') ? 4.5 : 3.2) && !own.gk && !(uOn(own, 'shiden') && hyp(L - fx(own.team, own.x), GOAL_Y - own.y) < 21 && !(fx(own.team, q.x) > fx(own.team, own.x) && Math.abs(q.y - own.y - (GOAL_Y - own.y) * (fx(own.team, q.x) - fx(own.team, own.x)) / Math.max(1, L - fx(own.team, own.x))) < 1.6)) && /* 紫電の遊戯：シュートレンジでは、シュートコースをふさがれている時だけ技で外す */ !((own.skillCd || 0) > S.t) && R.next() < (uOn(own, 'shiden') ? 0.95 : 0.2) && dribbleCtx(own, q).list.some((k) => zr(own, k) === 2 || (uOn(own, 'shiden') && fx(own.team, own.x) > L / 2 - 5 && zr(own, k) > 0)) && skillMove(own, q)) return;   // 紫電の遊戯（かまた）：発動中、ゴール前（38m以内）では自分から技を仕掛ける
+          if (d > 1.7 && d < (uOn(own, 'shiden') ? 4.5 : 3.2) && !own.gk && !(uOn(own, 'shiden') && hyp(L - fx(own.team, own.x), GOAL_Y - own.y) < 21 && !(fx(own.team, q.x) > fx(own.team, own.x) && Math.abs(q.y - own.y - (GOAL_Y - own.y) * (fx(own.team, q.x) - fx(own.team, own.x)) / Math.max(1, L - fx(own.team, own.x))) < 1.6)) && /* 紫電の遊戯：シュートレンジでは、シュートコースをふさがれている時だけ技で外す */ !(uOn(own, 'shiden') && (globalThis.__Ksdf ?? 1) && !sdBlock(own, q)) && /* 版948：紫電の遊戯：前（ゴールへの道）をふさいでいる相手にだけ技を使う。横・後ろの相手には使わず、前のスペースへ運ぶ */ !((own.skillCd || 0) > S.t) && R.next() < (uOn(own, 'shiden') ? 0.95 : 0.2) && dribbleCtx(own, q).list.some((k) => zr(own, k) === 2 || (uOn(own, 'shiden') && fx(own.team, own.x) > L / 2 - 5 && zr(own, k) > 0)) && skillMove(own, q)) return;   // 紫電の遊戯（かまた）：発動中、ゴール前（38m以内）では自分から技を仕掛ける
           if (!mtC && !mtG && d > (mtH ? 2.4 : 1.7)) {
             if ((uOn(q, 'miyabi') || q.mybStay) && d < 3.8 && R.next() < 0.3) { slideTackle(q, own); return; }
             if (q.uniq === 'kinshachi' && fx(q.team, own.x) < 34 && fx(q.team, q.x) < fx(q.team, own.x) + 0.5 && d < 3.6 && R.next() < 0.3) { slideTackle(q, own); return; }   /* ゴール側（前・横）からだけ。後ろからは滑らない */   // 金鯱の心臓：ゴール前では、最後はスライディングで止めに行く   // 雅の後始末：届くなら滑り込んででも止める
@@ -7626,7 +7640,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         if (b.byP && q && !q.off && !(q.downT > 0) && q.team === b.lastTeam && b.z >= 0.8 && b.z < 2.7 && dq0 < 2.8 && b.vz < 0 && !((b.byTrapT || -9) > S.t - 1.2)) {   // 白夜の視界：胸・ももで勢いを殺して、走る足もとへ自然に落とす（瞬間移動させない）
           act(q, 'chest', 0.4); b.byTrapT = S.t; b.landX = null; b.landY = null; const T0 = 0.42, tx = q.x + q.vx * (T0 + 0.1), ty = q.y + q.vy * (T0 + 0.1);
           b.vx = (tx - b.x) / T0; b.vy = (ty - b.y) / T0; b.vz = Math.min(0, b.vz) * 0.15; b.spin = 0; b.bs = 0; b.knuckle = false; }
-        else if (q && !q.off && !(q.downT > 0) && q.team === b.lastTeam && b.z < (b.byP ? 0.8 : 1.5) && dq0 < (b.byP ? 1.5 : 1.6) && (b.z < 0.8 || b.vz < 0)) { if (b.z > 1.0) act(q, 'chest', 0.4); stats[q.team].passes_completed++; const aoRcv = b.aoP && !b.hari && !b.byP; gainBall(q, 'control');
+        else if (q && !q.off && !(q.downT > 0) && q.team === b.lastTeam && b.z < (b.byP ? 0.8 : 1.5) && dq0 < (b.byP ? 1.5 : 1.6) && (b.z < 0.8 || b.vz < 0) && !oppFirst(q, b)) { if (b.z > 1.0) act(q, 'chest', 0.4); stats[q.team].passes_completed++; const aoRcv = b.aoP && !b.hari && !b.byP; gainBall(q, 'control');
           { const gx = fx(q.team, L), dx = gx - q.x, dy = (GOAL_Y - q.y) * 0.5, dl = hyp(dx, dy) || 1, ux = dx / dl, uy = dy / dl, sp = Math.max(hyp(q.vx, q.vy), maxSpeed(q) * 0.85);   // 前を向いたまま、走る足もとにぴたりと収める（後ろを向いて止めない）
             if (aoRcv) { const kb = q.uniq === 'aonoouza', bl = hyp(b.x - q.x, b.y - q.y) || 1, wx = kb ? (b.x - q.x) / bl : ux, wy = kb ? (b.y - q.y) / bl : uy;   // くもい自身（ゴールに背を向けて受ける）：来た側の足もとに止める（背中の向こうへ飛ばさない）
               const T0 = kb ? 0.3 : 0.25, nx = q.x + q.vx * T0 + wx * (kb ? 0.4 : 0.6), ny = q.y + q.vy * T0 + wy * (kb ? 0.4 : 0.6); Object.assign(b, { z: 0, vz: 0, vx: (nx - b.x) / T0, vy: (ny - b.y) / T0 }); q.settle = 'meet'; q.settleT = 0; q.meet = [nx, ny]; }   // 蒼の王座のスルーパス：走る先（前）へボールを置く（後ろに落とさない）
@@ -7636,7 +7650,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           return; } }
       // 月影の抜け出し：足もと付近に落ちてきたスルーパスは、走りながら確実に収める（胸・もも・足で）
       if (b.tsukiP && b.kind === 'pass' && b.intended >= 0) { const q = P[b.intended];
-        if (q && !q.off && !(q.downT > 0) && b.z < 2.3 && hyp(q.x - b.x, q.y - b.y) < 1.5 && (b.z < 0.5 || b.vz < 0)) { if (b.z > 1.0) act(q, 'chest', 0.4); stats[q.team].passes_completed++; gainBall(q, 'control');
+        if (q && !q.off && !(q.downT > 0) && b.z < 2.3 && hyp(q.x - b.x, q.y - b.y) < 1.5 && (b.z < 0.5 || b.vz < 0) && !oppFirst(q, b)) { if (b.z > 1.0) act(q, 'chest', 0.4); stats[q.team].passes_completed++; gainBall(q, 'control');
           { const gx = fx(q.team, L), dx = gx - q.x, dy = (GOAL_Y - q.y) * 0.5, dl = hyp(dx, dy) || 1; const nx = q.x + (dx / dl) * 0.5, ny = q.y + (dy / dl) * 0.5, jx = nx - b.x, jy = ny - b.y, jl = hyp(jx, jy), lim = 0; Object.assign(b, { z: 0, vz: 0, vx: q.vx + jx / 0.2, vy: q.vy + jy / 0.2 }); S.dribbleDir = [dx / dl, dy / dl]; q.settle = 'meet'; q.settleT = 0; q.meet = [nx + q.vx * 0.2, ny + q.vy * 0.2]; q.dO = 0.5; }   // ファーストタッチは前へ（後ろに置かない）
           return; } }
       // こぼれ球・パス・シュートを止める
@@ -7659,7 +7673,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             const cross = b.kind === 'pass' && (b.style === 'cross' || b.style === 'high' || b.style === 'lob') && b.kicker !== p.idx;
             if ((cross && hyp(b.vx, b.vy) > 4) || (away && hyp(b.vx, b.vy) > 3)) how = 'bicycle';
           }
-          if (!how || R.next() > 0.75) continue;
+          if (!how || R.next() > 0.75 || oppFirst(p, b)) continue;   // 版948：相手が先に触れる球は、ボレーで合わせたことにしない
           // 味方へのパスならパス成功として数える
           if (b.kind === 'pass' && b.kicker >= 0 && P[b.kicker].team === p.team && !b.selfPass) stats[p.team].passes_completed++;
           Object.assign(b, { owner: p.idx, kind: 'owned', vx: 0, vy: 0, vz: 0, lastTeam: p.team, lastPlayer: p.idx, intended: -1 });
@@ -7937,7 +7951,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         if (globalThis.__tfLog && p.team === b.lastTeam && b.intended === p.idx) globalThis.__tfLog.push({ t: S.t, q: p.idx, prob: +prob.toFixed(3), sp: +sp.toFixed(1), z: +b.z.toFixed(2), tec: p.technique });
         if (R.next() < prob) { const icp = b.kind === 'pass' && b.lastTeam !== p.team && !gkHands && p.sk.has('intercept'); gainBall(p, 'control'); if (icp) { act(p, 'icpt', 0.9);   /* 版846：インターセプトは吹き出しなし（青い輪だけ） */ if (globalThis.__tyDbg) globalThis.__tyDbg.icpt = (globalThis.__tyDbg.icpt || 0) + 1; } if (gkHands && b.z > 1.1) ev('gk', { team: p.team, player: p.name, act: 'claim' }); return; }   // 版838：インターセプトで奪ったら、頭の上に技の名前と青い輪
         p.touchCd = 0.45;
-        if (p.team !== b.lastTeam && b.kind === 'pass' && (b.uSafe || 0) > 0 && R.next() < b.uSafe) { p.touchCd = 0.8; continue; }   // うまいパスは、出した足をすり抜けていく（触れずに通る。はじいてこぼさない）
+        if (p.team !== b.lastTeam && b.kind === 'pass' && (b.uSafe || 0) > 0 && !((globalThis.__Kopf ?? 1) && (dGk < 0.55 || (b.z > 0.5 && dGk < 0.9)))   /* 版948：足もと・胸に来た球は、すり抜けない */ && R.next() < b.uSafe) { p.touchCd = 0.8; continue; }   // うまいパスは、出した足をすり抜けていく（触れずに通る。はじいてこぼさない）
         // 味方へのパスを、受け手がすぐ後ろで待っている時だけはまたいで通す（スルー）
         if (p.team === b.lastTeam && b.intended >= 0 && b.intended !== p.idx && hyp(P[b.intended].x - p.x, P[b.intended].y - p.y) < 8) { p.touchCd = 0.8; continue; }
         // はじいた（受け手のトラップミスは足元近くにこぼれる）
@@ -8053,7 +8067,9 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       { const b0 = S.ball, fly = b0.owner < 0 && (b0.kind === 'cross' || b0.kind === 'shot' || (b0.kind === 'pass' && b0.style === 'cross') || ((b0.kind === 'pass') && (b0.z || 0) > 0.4 && (b0.x < 32 || b0.x > L - 32 || (b0.landX != null && (b0.landX < 32 || b0.landX > L - 32)))));
         const loose = b0.owner < 0 && lastPlay && lastPlay.team != null && fx(lastPlay.team, b0.x) > L - 30;   // 版849：ゴール前のこぼれ球（はじいた・ブロック）も、クリアされるまで待つ
         if ((fly || loose) && el < HALF + 30) return false; }   // 版845：クロス・シュートが飛んでいる間は、待ち時間の上限でも笛を吹かない（落ちて次のプレーが決まってから）
-      if (el >= HALF + 20 + (lastPlay && lastPlay.ck ? 9 : 0)) return true;   // ラストプレーは最大20秒まで待つ（CKまでやるときは、そのぶん長く）
+      if (el >= HALF + 20 + (lastPlay && lastPlay.ck ? 9 : 0)) {   // 版948：待ち時間を越えても、攻撃がまだ続いている（攻める側が持つ／こぼれ球が相手ゴール前30m）なら、切れるまで待つ（最大45秒）
+        const b1 = S.ball, o1 = ownerP(), live = !!(lastPlay && lastPlay.team != null && !S.restart && !(o1 && o1.gk) && fx(lastPlay.team, b1.landX != null && b1.owner < 0 ? b1.landX : b1.x) > L - 30 && (!o1 || o1.team === lastPlay.team));
+        if (!(live && el < HALF + 45)) return true; }   // ラストプレーは最大20秒まで待つ（CKまでやるときは、そのぶん長く）
       if (!lastPlay) { if (!hot()) return true; const rt = S.restart ? S.restart.type : null; lastPlay = { team: S.restart ? S.restart.team : S.poss, restart: rt, shot: false, ck: rt === 'corner' }; return false; }
       // ラストプレーの続き：終わったら笛
       const b = S.ball, own = ownerP();
