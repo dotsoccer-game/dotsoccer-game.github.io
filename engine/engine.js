@@ -3437,7 +3437,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
               const kD = b.sx0 != null ? hyp(b.sx0 - p.x, b.sy0 - p.y) : 99, passedGk = fx(tm.ti, b.x) < fx(tm.ti, p.x) + 0.3 || tG < 0.06;   // 版876：ボールがもうGKの横・後ろを通り過ぎた：今から飛んでも間に合わない（ボールの今の位置へ遅れて飛ぶと、逆に飛んだように見える）
               if ((globalThis.__Knar ?? 1) && gInBox && !p.diveT && !p.downT && !p.svPrep && !passedGk && tG < 0.55 && Math.abs(gap) < (globalThis.__Knar1 ?? 1.1) && b.sx0 != null) {   // 版948：角度のない所からのシュートは、ほぼ正面に来る：飛ばずに、立ったまま足・体で止める（よほど良いコースでなければ飛ばない）
                 const ax = fx(tm.ti, b.sx0), ay = Math.abs(b.sy0 - GOAL_Y);
-                if (ay > POST + 1.5 && ax < ay * 0.9 && (Math.abs(gap) >= 0.6 || kD >= 7)) p.svPrep = { t: b.shotT, k: kD < 7 ? 'footsave' : 'stand', dir: Math.sign(gap) || 1, nar: 1 }; }   // 版950：足で止めるのは至近距離（7m以内）だけ。それより遠い所からは、立ったまま手で取る・はじく（飛ばない）。体の正面（0.6m以内）の至近距離の球は、ふつうにキャッチ
+                if (ay > POST + 1.5 && ax < ay * 0.9 && (Math.abs(gap) >= 0.6 || kD >= 7)) p.svPrep = { t: b.shotT, k: kD < 7 ? 'footsave' : 'stand', dir: Math.sign(gap) || 1, nar: 1 }; if (ay > POST + 1.5 && ax < ay * 0.9) p.narT = b.shotT; }   // 版950：足で止めるのは至近距離（7m以内）だけ。それより遠い所からは、立ったまま手で取る・はじく（飛ばない）。体の正面（0.6m以内）の至近距離の球は、ふつうにキャッチ
               if ((globalThis.__Kgkft ?? 0) && gInBox && !p.diveT && !p.downT && !p.svPrep && !passedGk && tG < 0.55 && Math.abs(gap) < 2.4 && (b.z + (b.vz || 0) * tG - 4.9 * tG * tG) < 1.75 && kD < 13) { const zG = b.z + (b.vz || 0) * tG - 4.9 * tG * tG; p.svPrep = { t: b.shotT, k: 'footsave', dir: Math.sign(gap) || (R.next() < 0.5 ? 1 : -1), zG, gap, ft: 1 }; }   // 版946（確認画面だけ・__Kgkft）：近い距離（PKラインより内側）から、体の高さ（約1.7m）より低く来るシュートは、横に飛ばずに、片足を伸ばす形で止めに行く（当たる所は、足・体・手）
               if (gInBox && !p.diveT && !p.downT && !p.svPrep && tG < 0.5 && Math.abs(gap) > 0.5 && Math.abs(gap) < 2.2 && b.z < 0.35 && Math.abs(b.vz || 0) < 1.5 && kD < 11 && R.next() < 0.75) p.svPrep = { t: b.shotT, k: 'footsave', dir: Math.sign(gap) };   // 版864：至近距離のグラウンダーだけ
               /* 版865：体を広げて止めるは取りやめ（至近距離は足を伸ばして止めるに集約） */   // 版864：至近距離の浮き球：体を大きくして、体のどこかに当ててはじく
@@ -3899,6 +3899,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       p.vx *= 0.2; p.vy *= 0.2;
     }
     function startDive(p, dir, dist, tHit, src, zKnown) {
+      if ((globalThis.__Knar ?? 1) && p.gk && S.ball.kind === 'shot' && p.narT != null && p.narT === S.ball.shotT) return;   // 版951：角度のない所からの、体の近くに来るシュートには、触る瞬間も飛ばない（立ったまま止める・はじく）
       { const bb = S.ball; let zAt = zKnown; if (zAt == null) { let z = bb.z || 0, vz = bb.vz || 0, vx = bb.vx || 0, vy = bb.vy || 0; const bs = bb.bs || 0; for (let tt = 0; tt < tHit; tt += 0.02) { const h = hyp(vx, vy), v = Math.hypot(h, vz); vx -= AIR * v * vx * 0.02; vy -= AIR * v * vy * 0.02; vz -= (9.8 + AIR * v * vz - LIFT * bs * h) * 0.02; z += vz * 0.02; if (z < 0) { z = 0; vz = Math.abs(vz) * 0.4; } } zAt = z; }   // 版876：届く頃の高さは、空気・回転（ドライブで落ちる）も入れて見積もる
         p.hiDiveT = zAt > 1.8 && (bb.z || 0) > 0.9 ? S.t + 1.0 : 0; }   // 版871：高い球へ飛ぶ時は、高く飛ぶ横っ跳び（絵は13・14）
       p.diveT = 0.7; p.diveDir = dir;
