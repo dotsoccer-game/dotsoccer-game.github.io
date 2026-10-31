@@ -94,7 +94,7 @@
     const avg = KEYS.reduce((a, k) => a + p.pts[k], 0) / KEYS.length;
     const tech = 2 + TECH_AT.filter((v) => avg >= v - 1e-9).length, trait = 1 + TRAIT_AT.filter((v) => avg >= v - 1e-9).length;
     const nextTech = TECH_AT.find((v) => avg < v - 1e-9) ?? null, nextTrait = TRAIT_AT.find((v) => avg < v - 1e-9) ?? null;
-    return { total: tech + trait, tech, trait, ability: tech + trait, exp: 0, avg, nextAvg: nextTech, nextTech, nextTrait, nextGames: null };
+    return { techAt: TECH_AT, traitAt: TRAIT_AT, techMax: SLOT_MAX, traitMax: TRAIT_MAX, total: tech + trait, tech, trait, ability: tech + trait, exp: 0, avg, nextAvg: nextTech, nextTech, nextTrait, nextGames: null };
   }
   function slotsOf(p, kind) { const si = slotInfo(p); return kind === 'trait' ? si.trait : si.tech; }
   function skillsOf(p, kind) { return (p.skills || []).filter((k) => skKind(k) === kind); }

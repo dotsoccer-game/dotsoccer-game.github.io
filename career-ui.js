@@ -997,16 +997,18 @@
       body = `<div class="pc-bars">${D.PARAMS.map((q) => { const v = p.pts[q.k], ri = C.rankInfo(v); return `<div class="pc-bar" title="${q.name}"><i class="bar"><i style="height:${Math.round(ri.pct * 100)}%"></i></i><b>${Math.floor(v)}</b><small>あと${Math.max(0, Math.ceil(ri.next - v))}</small></div>`; }).join('')}</div>`;
     } else {
       const sk = p.skills || [], si = C.slotInfo(p);
-      // 版938：スキル枠は「技」と「特性」の2種類
-      const grp = (kind, n) => { const a = sk.filter((k) => C.skKind(k) === kind); return Array.from({ length: Math.max(n, a.length) }, (_, k) => a[k] ? `<button class="has pc-skb" data-sk="${a[k]}">${esc(D.SKILLS[a[k]].name)}<i>説明</i></button>` : '<span>？</span>').join(''); };
+      // 版939：スキル枠を見やすく：技（左・2列）と特性（右）。覚えたスキル＝色つき（種類ごとの色の帯）、空き枠＝点線、まだ開いていない枠＝鍵と開く条件
+      const SKC = { dribble: '#e8742a', shot: '#d6283a', pass: '#2a78d6', def: '#2f9a4a', gk: '#17908e', mental: '#8a4ad0', offball: '#1aa3c8', set: '#c99a12' };
+      const grp = (kind) => { const a = sk.filter((k) => C.skKind(k) === kind), n = kind === 'trait' ? si.trait : si.tech, mx = kind === 'trait' ? si.traitMax : si.techMax, at = kind === 'trait' ? si.traitAt : si.techAt, base = kind === 'trait' ? 1 : 2;
+        return Array.from({ length: Math.max(mx, a.length) }, (_, k) => { const s0 = a[k]; if (s0) { const g = (D.SKILLS[s0] || {}).group || (s0 === 'fk' ? 'set' : 'shot'); return `<button class="pc-skb sk2-c has" data-sk="${s0}" style="--skc:${SKC[g] || '#888'}"><span>${esc(D.SKILLS[s0].name)}</span><i>?</i></button>`; }
+          return k < n ? '<span class="sk2-c open">空き</span>' : `<span class="sk2-c lock"><b>🔒</b>平均${at[k - base]}で解放</span>`; }).join(''); };
       // 版852：固有スキルのいまの強さ（総合力×所属リーグ）。上のリーグ・総合力80で満点
       const uqPow = (q) => { if (!D.uniqStrength) return ''; const lg = (save.world && save.world.me) || null, r = D.uniqStrength(q, lg), pc = Math.round(r.power * 100), d1 = Math.round(r.powerD1 * 100), lgN = { regE2: '地域2部', regW2: '地域2部', regE1: '地域1部', regW1: '地域1部', d3: 'D3', d2: 'D2', d1: 'D1' }[lg] || '';
         const tip = pc >= 100 ? '本来の力を出し切れる' : r.ef < 1 && r.lf < 1 ? `総合力${Math.round(r.ovr)}・${lgN}のため。総合力80・D1で100%` : r.ef < 1 ? `総合力${Math.round(r.ovr)}のため。総合力80で100%` : `${lgN}のため。D1で100%`;
         return `<span class="pc-uqp"><span>いまの強さ</span><i class="bar"><i style="width:${Math.min(100, pc)}%"></i></i><b>${pc}%</b>${lg !== 'd1' && d1 > pc ? `<em>D1なら ${d1}%</em>` : ''}<small>${esc(tip)}</small></span>`; };
       const u = p.uniq && D.UNIQ[p.uniq], uq = u ? `<details class="pc-uq"><summary><span class="pc-uqh">固有スキル${p.uniqLv >= 2 ? '・覚醒' : ''}</span><b>${esc(u.name)}</b><i class="pc-uqi">説明</i>${uqPow(p)}</summary><div class="pc-uqd"><p><span>発動</span>${esc(u.sw || u.when)}</p><p><span>効果</span>${esc(u.se || u.what)}</p>${u.st ? `<p><span>凸</span>${esc(u.st)}</p>` : ''}</div></details>` : '';
       const nT = sk.filter((k) => C.skKind(k) === 'tech').length, nR = sk.filter((k) => C.skKind(k) === 'trait').length;
-      const nxt = [si.nextTech ? `${si.nextTech}で技の枠` : '', si.nextTrait ? `${si.nextTrait}で特性の枠` : ''].filter(Boolean).join('、');
-      body = `${uq}<div class="pc-sk"><div class="pc-skh">技　${nT}/${si.tech}</div><div class="pc-skg">${grp('tech', si.tech)}</div><div class="pc-skh">特性　${nR}/${si.trait}</div><div class="pc-skg">${grp('trait', si.trait)}</div><div class="pc-skd" hidden></div></div><p class="pc-note">${nxt ? `能力の平均が ${nxt}がもう1つ増えます（今 ${Math.floor(si.avg)}）` : 'スキル枠はMAXです'}</p>`;
+      body = `${uq}<div class="sk2"><section class="sk2-g"><div class="sk2-h"><b>技</b><span>${nT} / ${si.tech}</span><small>ドリブル・シュート・パス・守備</small></div><div class="sk2-l two">${grp('tech')}</div></section><section class="sk2-g"><div class="sk2-h"><b>特性</b><span>${nR} / ${si.trait}</span><small>メンタル・動き・セットプレー</small></div><div class="sk2-l">${grp('trait')}</div></section></div><div class="pc-skd" hidden></div><p class="pc-note">今の能力の平均 ${Math.floor(si.avg)}（${'詳しい能力値'}の平均）。スキル名をタップすると説明が出ます</p>`;
     }
     return `<div class="pc-card${embed ? ' pc-embed' : ''}"><img class="pc-emb" src="${emblemURL(save.team.name, 80)}" alt="">
       <div class="pc-head"><i class="pos ${POSC[p.position]}">${p.position}</i><b>${esc(p.name)}</b>${ovrBadge(p)}<span>${esc(save.team.name)}</span></div>
