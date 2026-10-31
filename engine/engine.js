@@ -954,7 +954,7 @@
       if (b.kind === 'shot' && p.team === b.lastTeam && b.lastPlayer !== p.idx) return false;   // 味方のシュートには触らない（ゴールへ向かう球を、横から触ってコースを変えたり、オフサイドにしたりしない）
       if (byLock(b) && b.intended >= 0 && p.idx !== b.intended && P[b.intended] && !P[b.intended].off) return p.team !== b.lastTeam && p.gk && fx(p.team, b.x) < 5.5;   // 白夜の視界の1本：受け手が触るまで、ほかの味方も相手も触らない
       if (b.kind !== 'pass' || b.intended < 0 || p.idx === b.intended) return true;
-      if (p.team === b.lastTeam) return false;
+      if (p.team === b.lastTeam) return !!((globalThis.__Kpsw ?? 1) && p.gk && fx(p.team, b.x) < 5.5 && Math.abs(b.y - GOAL_Y) < 9.2);   // 版937：自陣のゴールエリアを通る味方のパスは、GKが止めてよい（ゴール前を横切る球を見送らない）
       if (b.aoIn) return false;   // 蒼の王座：発動した瞬間の、くもいへの縦パスはカットされない（くもいが体を入れて受ける）
       if (b.mdP && (p.lagT || 0) > S.t && !p.gk) return false;   /* 版448 翠の起点：食いついて置き去りにされた相手の足は届かない */
       if (b.aoP && S.t - (b.passT ?? -9) < 0.25 && !p.gk) { const vl = hyp(b.vx, b.vy) || 1, rx = p.x - b.x, ry = p.y - b.y; if ((rx * b.vx + ry * b.vy) / vl < 0.3) return false; }   // 蒼の王座の1本：蹴った瞬間、背中・横で押さえていた相手の足は届かない（出す方向の前にいる相手は触れる）
@@ -3169,8 +3169,15 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             const tt = (k + 1) * 0.1, dd = hyp(path[k][0] - q.x, path[k][1] - q.y);
             if (dd <= v * Math.max(0, tt - 0.3) + 0.3) { best = { dd, x: path[k][0], y: path[k][1] }; break; }
           }
+          const reached = !!best;
           if (!best) { let bl = 1e9; for (let k = 0; k < path.length; k++) { if (path[k][2] > 1.6) continue; if (path[k][1] <= 0.6 || path[k][1] >= W - 0.6) break; const tt = (k + 1) * 0.1, late = hyp(path[k][0] - q.x, path[k][1] - q.y) / v + 0.3 - tt; if (late < bl) { bl = late; best = { x: path[k][0], y: path[k][1] }; } } }   // 間に合う点がない：いちばん早く追いつける所へ（通り道から外れたまま見送らない）
           if (best) { q._cx = best.x; q._cy = best.y; }
+          // 版937：受け手を通り過ぎて流れたパス：受け手が間に合わず、球が受け手から離れていくなら、いちばん先に触れる味方（自陣ゴールへ向かう球ならGKも）が拾いに行く。受け手だけが追いかけ、近くの味方が見送る形をなくす
+          if ((globalThis.__Kpsw ?? 1) && !reached && b.lastTeam === q.team && !(b.hari || b.byP || b.tsukiP || b.tact || b.aoP || b.mdP)) {
+            const away = ((b.x - q.x) * b.vx + (b.y - q.y) * b.vy) > 0 && hyp(b.x - q.x, b.y - q.y) > 2;
+            let alt = null, at = 99; for (const m of T[q.team].players) { if (m === q || m.off || (m.downT || 0) > 0 || m._ct >= 99) continue; if (m.gk && !(fx(q.team, m._cx) < 16.5 && Math.abs(m._cy - GOAL_Y) < 20.2)) continue; if (m._ct < at) { at = m._ct; alt = m; } }
+            if (alt && away) { chasers[q.team] = alt.idx; b.intended = alt.idx; if (globalThis.__pswLog) globalThis.__pswLog.push({ t: S.t, from: q.idx, to: alt.idx, gk: alt.gk ? 1 : 0 }); }
+          }
           if (q.gk && (globalThis.__Kbpg ?? 1) && fx(q.team, q._cx) < 0.8) q._cx = fx(q.team, 0.8);   // 版936：GKはゴールの中へ走り込んで球を待たない
         }
       }
@@ -3945,6 +3952,9 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             if ((globalThis.__Kphy ?? 1) && hyp(p.vx, p.vy) > 2.5) { const ex = tx - p.x, ey = ty - p.y, el = hyp(ex, ey); if (el > 0.05 && (ex * p.vx + ey * p.vy) > 0) { tx += ex / el * 1.5; ty += ey / el * 1.5; } } }   // 版908：走りながら止めたら、置いた所で止まらずそのまま走り続ける（減速しない）
           else { tx = S.ball.x; ty = S.ball.y; }
         } else if (own === p && S.dribbleDir) {
+          // 版937：自陣ゴールの前（ゴールラインから10m以内）では、ゴールの方へ運ばない（横・前へ向け直す）。ドリブルで自陣ゴールに入れていた
+          if ((globalThis.__Kogd ?? 1) && !p.gk && fx(p.team, p.x) < 10 && Math.abs(p.y - GOAL_Y) < POST + 6 && S.dribbleDir[0] * sgn(p.team) < 0.15) {
+            const sd = Math.sign(p.y - GOAL_Y) || 1, nx = sgn(p.team) * 0.35, ny = sd * 0.94, nl = hyp(nx, ny); S.dribbleDir = [nx / nl, ny / nl]; }
           if ((uOn(p, 'shiden') || (p.hariT || 0) > S.t || (p.finT || 0) > S.t)) S.dribbleDir = sdFwd(p, S.dribbleDir[0], S.dribbleDir[1]);
           // ゴール前（30m以内）を運んでいる時、外へ流れていたら少しずつゴールの方へ向き直す（コントロールショットを持つ選手は、外へ流れて巻くのもあり）
           if (!skZ(p, 'controlShot') && fx(p.team, p.x) > L - 30 && Math.abs(p.y - GOAL_Y) > 3 && Math.sign(S.dribbleDir[1]) === Math.sign(p.y - GOAL_Y)) {
