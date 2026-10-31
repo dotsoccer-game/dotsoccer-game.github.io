@@ -3437,7 +3437,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
               const kD = b.sx0 != null ? hyp(b.sx0 - p.x, b.sy0 - p.y) : 99, passedGk = fx(tm.ti, b.x) < fx(tm.ti, p.x) + 0.3 || tG < 0.06;   // 版876：ボールがもうGKの横・後ろを通り過ぎた：今から飛んでも間に合わない（ボールの今の位置へ遅れて飛ぶと、逆に飛んだように見える）
               if ((globalThis.__Knar ?? 1) && gInBox && !p.diveT && !p.downT && !p.svPrep && !passedGk && tG < 0.55 && Math.abs(gap) < (globalThis.__Knar1 ?? 1.1) && b.sx0 != null) {   // 版948：角度のない所からのシュートは、ほぼ正面に来る：飛ばずに、立ったまま足・体で止める（よほど良いコースでなければ飛ばない）
                 const ax = fx(tm.ti, b.sx0), ay = Math.abs(b.sy0 - GOAL_Y);
-                if (ay > POST + 1.5 && ax < ay * 0.9) p.svPrep = { t: b.shotT, k: 'footsave', dir: Math.sign(gap) || 1 }; }
+                if (ay > POST + 1.5 && ax < ay * 0.9 && Math.abs(gap) >= 0.6) p.svPrep = { t: b.shotT, k: 'footsave', dir: Math.sign(gap) || 1, nar: 1 }; }   // 体の正面（0.6m以内）に来る球は、ふつうにキャッチ
               if ((globalThis.__Kgkft ?? 0) && gInBox && !p.diveT && !p.downT && !p.svPrep && !passedGk && tG < 0.55 && Math.abs(gap) < 2.4 && (b.z + (b.vz || 0) * tG - 4.9 * tG * tG) < 1.75 && kD < 13) { const zG = b.z + (b.vz || 0) * tG - 4.9 * tG * tG; p.svPrep = { t: b.shotT, k: 'footsave', dir: Math.sign(gap) || (R.next() < 0.5 ? 1 : -1), zG, gap, ft: 1 }; }   // 版946（確認画面だけ・__Kgkft）：近い距離（PKラインより内側）から、体の高さ（約1.7m）より低く来るシュートは、横に飛ばずに、片足を伸ばす形で止めに行く（当たる所は、足・体・手）
               if (gInBox && !p.diveT && !p.downT && !p.svPrep && tG < 0.5 && Math.abs(gap) > 0.5 && Math.abs(gap) < 2.2 && b.z < 0.35 && Math.abs(b.vz || 0) < 1.5 && kD < 11 && R.next() < 0.75) p.svPrep = { t: b.shotT, k: 'footsave', dir: Math.sign(gap) };   // 版864：至近距離のグラウンダーだけ
               /* 版865：体を広げて止めるは取りやめ（至近距離は足を伸ばして止めるに集約） */   // 版864：至近距離の浮き球：体を大きくして、体のどこかに当ててはじく
@@ -7799,7 +7799,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
               }
               // 版862：セーブの型：足を伸ばして止める（低い球・近い距離・体の横）／1対1で体を大きく広げて当てる（スプレッド）
               { const s0 = sgn(p.team); let sty = null;
-                const ftP = p.svPrep && p.svPrep.t === b.shotT && p.svPrep.ft ? p.svPrep : null;
+                const ftP = p.svPrep && p.svPrep.t === b.shotT && p.svPrep.ft ? p.svPrep : null, narP = !!(p.svPrep && p.svPrep.t === b.shotT && p.svPrep.nar);
                 const pr0 = p.svPrep && p.svPrep.t === b.shotT ? p.svPrep.k : null; p.svPrep = null;
                 if (pr0 && !diving && !high) sty = pr0;
                 else if (!high && !diving && b.z < 0.35 && shotD < 11 && off > 0.25 && off < 1.05 && !rolling && R.next() < 0.6) sty = 'footsave';
@@ -7812,7 +7812,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
                     b.x = p.x + sgn(p.team) * (part === 'foot' ? 0.35 : 0.25); b.y = p.y + dr * oy; b.z = oz; }
                   stats[p.team].saves++; ev('save', { team: p.team, player: p.name, act: sty, ...(part ? { part } : {}) });
                   p.saveT = 0.75; p.saveK = sty === 'block' ? 11 : kd; if (globalThis.__scnLog) globalThis.__scnLog.push(['sv' + p.saveK, +S.t.toFixed(1), p.team]); p.touchCd = 0.8;
-                  if (!parryAway(p, b, skill, Math.sign(yAt - p.y) || 0)) Object.assign(b, { vx: s0 * R.range(2, 6), vy: R.gauss() * 4, vz: R.range(0.3, 1.5), z: Math.max(b.z, 0.3), kind: 'loose', lastTeam: p.team, lastPlayer: p.idx, spin: 0, knuckle: false, intended: -1 });
+                  if (narP) { const sy = Math.sign(b.y - GOAL_Y) || 1; Object.assign(b, { vx: -s0 * R.range(1.5, 3.5), vy: sy * R.range(4, 7), vz: R.range(0.2, 1.2), z: Math.max(b.z, 0.3), kind: 'loose', lastTeam: p.team, lastPlayer: p.idx, spin: 0, knuckle: false, intended: -1 }); }   // 版948：角度のない所からのシュートを足で止めた：ゴールの前にこぼさず、ポストの外（ゴールラインの外＝CK）へはじく
+                  else if (!parryAway(p, b, skill, Math.sign(yAt - p.y) || 0)) Object.assign(b, { vx: s0 * R.range(2, 6), vy: R.gauss() * 4, vz: R.range(0.3, 1.5), z: Math.max(b.z, 0.3), kind: 'loose', lastTeam: p.team, lastPlayer: p.idx, spin: 0, knuckle: false, intended: -1 });
                   { const cap = Math.max(4, sp * R.range(0.3, 0.45)), h = hyp(b.vx, b.vy); if (h > cap) { b.vx *= cap / h; b.vy *= cap / h; } b.vz = Math.min(b.vz, 2.5); }   // 版868：足に当たった球も、シュートより遅く
                   return;
                 } }
