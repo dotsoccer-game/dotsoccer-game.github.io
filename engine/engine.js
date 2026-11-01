@@ -2710,7 +2710,7 @@
       // シュート：決められる所では、意図を持って打つ（コースはGKのいない側＝shoot()が選ぶ）
       if (dGoal < 30) {
         let bl = 0, blk0 = null; for (const o of foes) { if (o.gk) continue; const sd = segDist(o.x, o.y, p.x, p.y, fx(t, L), GOAL_Y); if (sd.d < 1.3 && sd.u > 0.05) { bl++; if (hyp(o.x - p.x, o.y - p.y) < 7 && (!blk0 || hyp(o.x - p.x, o.y - p.y) < hyp(blk0.x - p.x, blk0.y - p.y))) blk0 = o; } }
-        let v = (globalThis.__Bsh ?? 4.8) - Math.max(0, dGoal - 10) * 0.15 - Math.max(0, dGoal - 20) * 0.25 - bl * 0.8 + (p.kick - 50) / 60 + (ph === 'fin' ? 1.2 : 0) + (dGoal < 12 ? 1.0 : 0) + (pr >= 1 && bl === 0 ? 0.4 : 0);
+        let v = (globalThis.__Bsh ?? 4.8) + ((globalThis.__Kshv ?? 1) && dGoal < 24 && bl <= 1 ? (globalThis.__Kshv1 ?? 0.6) : 0) - Math.max(0, dGoal - 10) * 0.15 - Math.max(0, dGoal - 20) * 0.25 - bl * 0.8 + (p.kick - 50) / 60 + (ph === 'fin' ? 1.2 : 0) + (dGoal < 12 ? 1.0 : 0) + (pr >= 1 && bl === 0 ? 0.4 : 0);
         if (Math.abs(p.y - GOAL_Y) > (L - xf) * 1.1) v -= 1.4;
         if (bl === 0 && dGoal < 20) v += globalThis.__Bopen ?? 1.0;   // コースが空いていれば打つ
         // 版905：シュートはエリア1・2（ゴール前）で打つ（設計一覧3章）。それより遠くからは、キックの強い選手がコースの空いている時だけ
@@ -2787,7 +2787,7 @@
           if (sd.u < 0.3 && sd.d < 1.8 && hyp(ox0 - p.x, oy0 - p.y) < 3.2) danger += 1.4;   // 寄せてきた相手の足もと
         }
         danger = Math.max(0, danger * (1 + R.gauss() * (1 - (p.vision || 50) / 100)));
-        if (VIS) danger *= 1 - clamp((85 - (p.vision || 50)) / 60, 0, 1) * (globalThis.__Kvis2 ?? 0.6);   // 視野が低いほど、パスの道にいる相手を甘く見る（危ないパスを出してしまう）
+        if (VIS) danger *= 1 - clamp((85 - (p.vision || 50)) / 60, 0, 1) * (globalThis.__Kvis2 ?? 0.3);   // 視野が低いほど、パスの道にいる相手を甘く見る（危ないパスを出してしまう）
         const recvOpp = nearestOpp(q, px, py).d, pxf = fx(t, px), adv = pxf - xf;
         let byp = 0; for (const o of foes) if (!o.gk) { const ox = fx(t, o.x); if (ox > xf + 0.5 && ox < pxf - 0.5) byp++; }
         const zr = xf < 35 ? 3.0 : xf < 70 ? (globalThis.__Bzr2 ?? 2.5) : (globalThis.__Bzr3 ?? 1.7);   // 自陣ほど失うのが怖い
@@ -2951,6 +2951,7 @@
       let sum = 0; for (const o of opts) { o.w = Math.exp(clamp(o.v, -6, 8) * sharp); sum += o.w; }
       let r0 = R.next() * sum, pick = opts[opts.length - 1]; for (const o of opts) { r0 -= o.w; if (r0 <= 0) { pick = o; break; } }
       if (globalThis.__ppDbg) { const G = globalThis.__ppDbg; if (backMk) { G.back++; G['b_' + pick.kind + (pick.kind === 'pass' && fx(t, pick.q.x) < xf + 2 ? 'Back' : '')] = (G['b_' + pick.kind + (pick.kind === 'pass' && fx(t, pick.q.x) < xf + 2 ? 'Back' : '')] || 0) + 1; } if (brushQ) { G.br++; if (pick.kind === 'pass' && pick.q === brushQ) G.brRet++; else G['r_' + pick.kind] = (G['r_' + pick.kind] || 0) + 1; } }
+      if (globalThis.__zDec && dGoal < 24) globalThis.__zDec.push(['B', pick.kind, dGoal < 16 ? 'near' : 'mid', opts.some((o) => o.kind === 'shot') ? 'shotOpt' : 'noShot']);
       if (globalThis.__bDec) globalThis.__bDec.push({ minus: pick.minus ? 1 : 0, minusOpt: opts.filter((o) => o.minus).length, minusV: Math.max(-9, ...opts.filter((o) => o.minus).map((o) => o.v)), dG: dGoal, sv: (opts.find((o) => o.kind === 'shot') || {}).v, pv: pick.v, pd: pick.danger, pdist: pick.d, cross: pick.cross || '', chip: pick.chip ? 1 : 0, t: S.t, tm: t, i: p.idx, beat: pick.beat ? 1 : 0, prot: pick.protect != null ? 1 : 0, dm: oneDef && pick.beat ? (oneDef.nmDef || '') + ((S.t - (oneDef.jockeyT ?? -9) < 0.5) ? '|j' : '') : '', ph, pr, pick: pick.kind + (pick.mode ? ':' + pick.mode : '') + (pick.through ? ':thr' : '') + (pick.space ? ':spc' : ''), xf, v: pick.v, adv: pick.q ? fx(t, pick.space ? fx(t, pick.space[0]) === 0 ? 0 : pick.space[0] : pick.q.x) - xf : 0, n: opts.length, best: Math.max(...opts.map((o) => o.v)), fws: opts.filter((o) => o.kind === 'pass' && o.q && fx(t, o.q.x) - xf > 5 && (o.danger ?? 1) < 0.4).length, fwAll: opts.filter((o) => o.kind === 'pass' && o.q && fx(t, o.q.x) - xf > 5).length, ahead: mates(p).filter((m) => !m.off && !m.gk && fx(t, m.x) > xf + 5).length, near: near.d });
       // 実行
       if (pick.kind === 'shot') { shoot(p); return; }
@@ -4511,7 +4512,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       //  起きると、向きが大きくずれる・強すぎる／弱すぎる。上手い選手はほとんど起きない
       if ((globalThis.__Kab ?? 1) && kind === 'pass' && !opt.pk && !(p.uniq && uOn(p, p.uniq)) && !opt.arriveT) {
         const q = clamp(((globalThis.__KabT ?? 85) - (p.pass * 0.8 + p.technique * 0.2)) / 60, 0, 1), pr = Math.min(1, pressure);
-        const pBad = clamp((q * q * (globalThis.__Kab0 ?? 0.8) + pr * q * (globalThis.__Kab1 ?? 0.6) + Math.max(0, d - 22) * q * 0.006 + fatigue * q * 0.15) * (opt.acc != null ? clamp(opt.acc, 0.5, 1.2) : 1), 0, 0.2);
+        const pBad = clamp((q * q * (globalThis.__Kab0 ?? 0.8) + pr * q * (globalThis.__Kab1 ?? 0.6) + Math.max(0, d - 22) * q * 0.006 + fatigue * q * 0.15) * (opt.acc != null ? clamp(opt.acc, 0.5, 1.2) : 1) * ((globalThis.__Kmk ?? 1) ? 0.6 : 1), 0, (globalThis.__Kmk ?? 1) ? 0.12 : 0.2);   // 版967：ミスキックを少なく（最大2割→1.2割）。下のリーグで中盤のパスがつながらず、ゴール前まで行けなかった
         if (R.next() < pBad) { const sg = R.next() < 0.5 ? -1 : 1, big = R.range(0.17, 0.38) * (0.6 + q) * (globalThis.__Kab2 ?? 1);
           ang += sg * big; speed *= R.next() < 0.5 ? R.range(0.55, 0.75) : R.range(1.25, 1.5); if (vz) vz *= R.range(0.85, 1.15);
           S.ball.missK = S.t; if (globalThis.__abLog) globalThis.__abLog.push({ t: S.t, i: p.idx, pass: p.pass, pr, d: +d.toFixed(1) }); }
@@ -5358,7 +5359,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         if (gkOff > 6 || R.next() < 0.02) opts.push({ kind: 'shot', w: gkOff > 6 ? 3 : 0.4 });
       }
       // シュート
-      const range = 22 + p.kick * 0.09 + ((p.wantShot || 0) > S.t ? 5 : 0) + (p.type === 'パサー' ? 4 : 0);   // 版798：パサー（デブライネ）はミドルも打つ   // E（40）でも26m、S（90）なら30mまでは打つ候補に入る
+      const range = ((globalThis.__Kshv ?? 1) ? 25.5 + p.kick * 0.06 : 22 + p.kick * 0.09) +   /* 版967：打てる時に打つ：ミドルの範囲を少し広く（E 28m・S 31m） */ ((p.wantShot || 0) > S.t ? 5 : 0) + (p.type === 'パサー' ? 4 : 0);   // 版798：パサー（デブライネ）はミドルも打つ   // E（40）でも26m、S（90）なら30mまでは打つ候補に入る
       const striker = p.type === 'ストライカー' && p.position === 'FW';   // 版732：ストライカーはゴールに貪欲
       const justWon = S.t - (p.wonT ?? -9) < 0.7 && !S.setPiece && !(striker && dGoal < 16);   // ストライカーは、ゴール前でこぼれ球を拾ったら、そのまま打てる   // 相手から奪った・相手のパスを拾った直後：まずボールを収めてから（いきなりシュートは打たない）
       if (dGoal < range && !p.gk && !justWon) {
@@ -5369,6 +5370,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           if (sd.d < 1.3 && sd.u > 0.05) blockers++;
         }
         let v = 4.8 - (dGoal - 10) * 0.13 - Math.max(0, dGoal - 16) * 0.4 - DOM[p.team] * Math.max(0, dGoal - 18) * 0.35   /* 力の差があるなら、確実に決まる所まで運ぶ */   /* 遠すぎるミドルは打たない。崩してから */ + p.goal_wait / 110 + p.kick / 160 - blockers * 0.9 + tm.mods.attack;
+        if ((globalThis.__Kshv ?? 1) && blockers === 0 && dGoal < 30) v += Math.max(0, Math.min(dGoal, 26) - 16) * (globalThis.__Kshv2 ?? 0.28);   // 版967：コースが空いていれば、16〜25mのミドルも打つ（打てる時に打つ）
         if (Math.abs(p.y - GOAL_Y) > (L - xf) * 1.1) v -= 1.2;
         if (dGoal < 11) v += 0.8;
         if (S.fkDirect) v += 1.4 + blockers * 0.9;
@@ -5383,7 +5385,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           // トゥーキック：囲まれて踏み込めない狭い所でも、構えずに打てる
           if (skZ(p, 'toeKick') && dGoal < 16 && opps(p).filter((q) => !q.gk && hyp(q.x - p.x, q.y - p.y) < 3.5).length >= 2) v += 0.3 + blockers * 0.3; }   // 強烈ミドル：ミドルレンジから思い切って
         if (p.uniq === 'guren' && dGoal < 26 && blockers <= 1) v += 0.9;   // 屈指の点取り屋：打てる所では迷わず打つ
-        v += 1.1 + DOM[p.team] * 1.4;   // 打てる場面では打つ（ゴールが大きくなった分）
+        v += 1.1 + DOM[p.team] * 1.4 + ((globalThis.__Kshv ?? 1) && dGoal < 24 && blockers <= 1 ? (globalThis.__Kshv1 ?? 0.6) : 0);   // 打てる場面では打つ（ゴールが大きくなった分）。版967：24m以内でコースが（ほぼ）空いていれば、もっと打つ
         // 版732：ストライカーはゴールに貪欲：ゴール前では、横パスより自分で打つ（コースに1人いても打つ）
         if (striker) v += dGoal < 18 ? 1.8 + (blockers <= 1 ? 0.8 : 0) : dGoal < 25 ? 1.1 + (blockers === 0 ? 0.6 : 0) : 0;   // 版846：ストライカーは25mまで、打てるなら打つ
         if (tm.urg && dGoal < 26) v += 0.6;   // 追いかける終盤は、打てる所では積極的に打つ
@@ -6046,6 +6048,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       if (pick.kind !== 'shot') S.fkDirect = false;
       if (globalThis.__kmP && mates(p).some((m) => m !== p && uOn(m, 'kage'))) globalThis.__kmP.push([+S.t.toFixed(1), pick.kind + (pick.mode ? ':' + pick.mode : '') + (pick.kmCut ? ':KM' : ''), +dGoal.toFixed(0), p.kmWaitT ? +(S.t - p.kmWaitT).toFixed(1) : '-']);
       if (uOn(p, 'aonoouza')) p.aoLastPick = pick.kind + (pick.mode ? ':' + pick.mode : '') + (pick.q ? ':' + (pick.aoSafe || pick.aoLong ? 'safe' : 'norm') : '');
+      if (globalThis.__zDec) { const dG0 = hyp(fx(p.team, L) - fx(p.team, p.x), GOAL_Y - p.y); if (dG0 < 34) globalThis.__zDec.push(['L', pick.kind, dG0 < 16 ? 'near' : dG0 < 24 ? 'mid' : 'far', opts.some((o) => o.kind === 'shot') ? 'shotOpt' : 'noShot']); }
       if (globalThis.__pkDec && fx(p.team, p.x) > L - 16 && Math.abs(p.y - GOAL_Y) > 6 && Math.abs(p.y - GOAL_Y) < 20) globalThis.__pkDec.push(pick.kind + (pick.kind === 'pass' ? (pick.q && fx(p.team, pick.q.x) < fx(p.team, p.x) - 2 ? ':back' : ':fwd') + ((pick.q && pick.q.fRunK === 'm' && (pick.q.fRunT || 0) > S.t) ? ':M' : '') : '') + (opts.some((o) => o.q && o.q.fRunK === 'm' && (o.q.fRunT || 0) > S.t) ? '/有' : '/無'));
       if (globalThis.__strk && p.type === 'ストライカー' && p.position === 'FW' && dGoal < 18) globalThis.__strk.push(pick.kind === 'pass' ? 'pass' + (pick.through ? ':through' : '') + (pick.needle ? ':needle' : '') + (pick.kmPass ? ':km' : '') + (pick.mdPass ? ':md' : '') + (pick.skill ? ':' + pick.skill : '') + ':d' + Math.round(pick.danger || 0) + ':dq' + (pick.q ? Math.round(Math.hypot(L - fx(p.team, pick.q.x), GOAL_Y - pick.q.y)) : 0) + ':me' + Math.round(dGoal) + ':shw' + (opts.find((o) => o.kind === 'shot') ? (opts.find((o) => o.kind === 'shot').ww).toPrecision(2) : 'none') + ':pw' + (+pick.ww).toPrecision(2) + ':jw' + (S.t - (p.wonT ?? -9) < 0.7 ? 1 : 0) + ':sp' + (S.setPiece ? 1 : 0) : pick.kind);
       if (pick.kind === 'shot') shoot(p);
@@ -8113,6 +8116,12 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           kick(p, clamp(b.x + sgn(p.team) * R.range(30, 45), 2, L - 2), clamp(b.y + side * R.range(8, 20), 2, W - 2), 'pass', 'clear', { landFrac: R.range(0.85, 1.0) });
           Object.assign(b, { intended: -1, offside: false, kind: 'loose', lastTeam: p.team, lastPlayer: p.idx, kicker: p.idx, byP: false, hari: false, tsukiP: false, tact: false }); p.touchCd = 0.6; return; }
         if (globalThis.__trapLog && p.team === b.lastTeam && b.intended === p.idx) globalThis.__trapLog.try++;
+        if ((globalThis.__Kdfl ?? 0.35) && !p.gk && p.team !== b.lastTeam && b.kind === 'pass' && !S.setPiece && !uOn(p, 'tetsurou') && !uOn(p, 'kagenui')) {   // 版968：守る側にも能力の差（設計33章）：守備が低い選手は、パスに足を出しても空振りしたり、当てても収められずにこぼしたりする（守備62以上は今のまま）
+          const wk = clamp((62 - p.defense) / 30, 0, 1) * (skZ(p, 'intercept') ? 0.4 : 1);
+          if (globalThis.__dflLog) globalThis.__dflLog.n++;
+          if (wk > 0 && R.next() < wk * (globalThis.__Kdfw ?? 0.3)) { if (globalThis.__dflLog) globalThis.__dflLog.w++; p.touchCd = 0.6; continue; }   // 空振り：ボールはそのまま通っていく
+          prob *= 1 - wk * (globalThis.__Kdfl ?? 0.35);
+        }
         if (globalThis.__tfLog && p.team === b.lastTeam && b.intended === p.idx) globalThis.__tfLog.push({ t: S.t, q: p.idx, prob: +prob.toFixed(3), sp: +sp.toFixed(1), z: +b.z.toFixed(2), tec: p.technique });
         if (R.next() < prob) { const icp = b.kind === 'pass' && b.lastTeam !== p.team && !gkHands && p.sk.has('intercept'); gainBall(p, 'control'); if (icp) { act(p, 'icpt', 0.9);   /* 版846：インターセプトは吹き出しなし（青い輪だけ） */ if (globalThis.__tyDbg) globalThis.__tyDbg.icpt = (globalThis.__tyDbg.icpt || 0) + 1; } if (gkHands && b.z > 1.1) ev('gk', { team: p.team, player: p.name, act: 'claim' }); return; }   // 版838：インターセプトで奪ったら、頭の上に技の名前と青い輪
         p.touchCd = 0.45;
