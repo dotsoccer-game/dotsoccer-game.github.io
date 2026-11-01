@@ -6547,6 +6547,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
 
     function stepBall() {
       const b = S.ball;
+      if ((globalThis.__Kseg ?? 1) && (b.owner >= 0 || S.restart)) { b.px = b.x; b.py = b.y; b.pz = b.z; }   // 版964：持っている間も「1コマ前の位置」を更新（古いままだと、離した瞬間に遠くの選手が触れたことになる）
       let aV = (b.hT != null && !S.restart && S.t - b.hT > DT * 0.5 && S.t - b.hT < DT * 1.5) ? [(b.x - b.hx) / (S.t - b.hT), (b.y - b.hy) / (S.t - b.hT)] : [b.vx, b.vy];   // 版895：前のコマに実際に動いた速さ（置き直し・瞬間的な動きは数えない）
       { const av = hyp(aV[0], aV[1]); if (!(av < 40)) aV = [b.vx, b.vy]; const av2 = hyp(aV[0], aV[1]); if (av2 > 14) aV = [aV[0] * 14 / av2, aV[1] * 14 / av2]; }
       b.hx = b.x; b.hy = b.y; b.hT = S.t; b.rv = aV;
@@ -6756,6 +6757,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
     function bpFoot(p, b) { const k = b.kicker; if (k >= 0 && k !== p.idx && k === b.lastPlayer && b.ftBy === k && b.kickKind !== 'head' && P[k] && P[k].team === p.team) return true;
       const f = b.footBy; return !!(globalThis.__Kbp2 ?? 1) && f != null && f >= 0 && f !== p.idx && f === b.lastPlayer && b.kind !== 'shot' && P[f] && P[f].team === p.team && !P[f].gk; }   // 版929：味方が足で運んで（ドリブルで）離した球も、手で取れない
     function gainBall(p, how) {
+      if (globalThis.__gbFar) { const dd = hyp(S.ball.x - p.x, S.ball.y - p.y); if (dd > 3.5) globalThis.__gbFar.push({ t: +S.t.toFixed(1), p: p.idx, how, dd: +dd.toFixed(1), kind: S.ball.kind, owner: S.ball.owner, st: new Error().stack.split('\n').slice(2, 6).map((x) => x.trim().replace(/^at /, '').replace(/\(.*engine.js:/, '(')).join(' < ') }); }
       if (globalThis.__mdG && p.uniq === 'midori') globalThis.__mdG.push([+fx(p.team, p.x).toFixed(0), how, S.restart ? 1 : 0, S.setPiece ? 1 : 0]);
       for (const q of P) q.aoKeepFast = false;   // 蒼の王座の「抜け出す足」は、打つか離すまで
       const b = S.ball;
@@ -7122,7 +7124,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             // 角度：シュート位置から見えるゴールの幅（ラジアン）。角度がないほど、近くても・1対1でも、GKの正面に来やすい
             let visA = 1; if (b.sx0 != null && b.kind === 'shot' && !b.pkShot) { const ex = Math.abs(fx(p.team, 0) - b.sx0), ey = Math.abs(b.sy0 - GOAL_Y); if (ey > POST) visA = Math.atan2(ey + POST, ex) - Math.atan2(ey - POST, ex); }
             const narrowF = clamp(visA / 0.6, b.shotSkill === 'controlShot' ? 0.55 : 0.15, 1);   // コントロールショットは角度がなくても巻いて隅へ置けるが、真横からは楽ではない
-            let prob = clamp(0.27 + (globalThis.__Kgk ?? 0) + (skill - 50) * 0.0058 + ((globalThis.__Ksh2 ?? 1) ? Math.min(0, skill - 55) * 0.006 : 0) +   /* 版963：下手なGK（総合55未満）は、もっと止められない */ (1 - Math.min(1, off)) * 0.32 + pace + (shotD > 20 ? 0.2 : shotD > 16 ? 0.08 : shotD < 9 ? -0.12 : 0) - corner - trick, 0.08, 0.97);
+            let prob = clamp(0.27 + (globalThis.__Kgk ?? 0) + (skill - 50) * 0.0058 + ((globalThis.__Ksh2 ?? 1) ? Math.min(0, skill - 55) * (globalThis.__Kgkw ?? 0.011) : 0) +   /* 版964：さらに弱く。版963：下手なGK（総合55未満）は、もっと止められない */ (1 - Math.min(1, off)) * 0.32 + pace + (shotD > 20 ? 0.2 : shotD > 16 ? 0.08 : shotD < 9 ? -0.12 : 0) - corner - trick, 0.08, 0.97);
             if (p.diveT > 0) prob -= 0.04;
             prob += p.gkAtk ? -0.04 : 0.025;   // 守備的GKはセービングが高い
             const oneGK = b.oneOnOne && p.sk.has('oneOnOne');
@@ -7157,7 +7159,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             if (b.pkStop) prob = Math.max(prob, 0.82);
             // ミドル・ロング・直接FK：ヒョロヒョロの球は入らない。入るのは「強い球」か「甘くないコース（隅）」だけ
             const gkQ = clamp((skill - 50) / 40, 0, 1) * clamp((shotD - 12) / 6, 0, 1);   // 版790：GKのうまさ×遠さ（遠いほど反応する時間がある）
-            const gLv = (globalThis.__Ksh2 ?? 1) ? 0.55 + 0.45 * clamp((skill - 40) / 40, 0, 1) : 1;   // 版963：下のリーグのGKは、遠めの球でも確実には止められない（遅い球ほど止める、の決まりを、GKのうまさで弱める）
+            const gLv = (globalThis.__Ksh2 ?? 1) ? 0.45 + 0.55 * clamp((skill - 45) / 37, 0, 1) : 1;   // 版963：下のリーグのGKは、遠めの球でも確実には止められない（遅い球ほど止める、の決まりを、GKのうまさで弱める）
             if (shotD > 14 && !b.pkStop) {
               const tight = Math.abs(yAt - GOAL_Y) > POST - 1.1 || (b.z > BAR - 0.7 && Math.abs(yAt - GOAL_Y) > POST - 1.8);   // サイドネットぎりぎり・上の隅
               if (b.csPlace && b.csType === 'ground' && !(b.csGkNear > 0.5)) prob = Math.max(prob, 0.92);   // コロコロ：GKがニア寄りでなければ、構えて止める
@@ -7881,7 +7883,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         const rcvX = !gkHands && b.kind === 'pass' && b.intended === p.idx && p.team === b.lastTeam && b.z < 0.8 && p.technique >= 55 ? ((globalThis.__Kphy ?? 1) ? 0.15 : 0.45) : 0;   // 味方からのパスの受け手：足を伸ばして止める（横を通されて置き去りにしない）   // 味方へのパスは、ほかの味方はまたいで通す。月影の抜け出しのスルーパスは、触れる相手が限られる
         // GKはシュートの通り道（このコマで動いた線分）全体に手が届くかで判定
         // ボールがこのコマで通った線分で判定（速いパスが選手の足元をすり抜けないように）
-        let d = b.px != null && hyp(b.vx, b.vy) > 3 ? segDist(p.x, p.y, b.px, b.py, b.x, b.y).d : hyp(p.x - b.x, p.y - b.y);
+        const segOk = b.px != null && hyp(b.vx, b.vy) > 3 && (!(globalThis.__Kseg ?? 1) || hyp(b.x - b.px, b.y - b.py) < hyp(b.vx, b.vy) * DT * 2 + 0.3);   // 版964：前のコマの位置が古い（持っていた間に更新されていない）時は、線分で見ない。古い位置から今の位置までの長い線に、10m以上離れた選手が「届いた」ことになっていた（ボールが瞬間移動のようにすべる）
+        let d = segOk ? segDist(p.x, p.y, b.px, b.py, b.x, b.y).d : hyp(p.x - b.x, p.y - b.y);
         if ((globalThis.__Kphy ?? 1) && b.px != null && hyp(b.vx, b.vy) > 3 && ((p.x - b.px) * b.vx + (p.y - b.py) * b.vy) < 0) d = hyp(p.x - b.x, p.y - b.y);   // 版908：ボールが遠ざかっていく向きの後ろにいる選手は、今のボールの位置までの距離で見る（蹴った足の後ろから触れない）
         if (gkHands && b.px != null) {   // GKの背中側（ゴール寄り）へ抜けた球には手が届かない（頭上を越えて落ちたドライブ・ループなど）
           const gl0 = fx(p.team, 0), u0 = hyp(b.vx, b.vy) > 3 ? segDist(p.x, p.y, b.px, b.py, b.x, b.y).u : 1, cx0 = b.px + (b.x - b.px) * u0;
