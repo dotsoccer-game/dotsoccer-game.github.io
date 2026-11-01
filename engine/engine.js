@@ -584,7 +584,7 @@
     }
     // 力の差（チームの平均能力の差）：圧倒的に強いチームは、迷わず縦に速く攻めて、打てば入る
     const teamRating = (tm) => tm.players.reduce((a, p) => a + PARAM_KEYS.reduce((x, k) => x + p[k], 0) / PARAM_KEYS.length, 0) / tm.players.length;
-    const DOM = [0, 1].map((ti) => clamp((teamRating(T[ti]) - teamRating(T[1 - ti]) - 12) / 28, 0, 1));
+    const DOM = [0, 1].map((ti) => clamp((teamRating(T[ti]) - teamRating(T[1 - ti]) - ((globalThis.__Kdom ?? 0) ? 4 : 12)) / ((globalThis.__Kdom ?? 0) ? 20 : 28), 0, 1));   // 版965：力の差が出始めるのを、平均12差→4差から（総合が上のチームが、引き分けばかりにならないように）
     // 版840：チームの「つなぐ力」（0〜1）。パスと判断力が高いほど、横・後ろでつないで相手を動かし、空いた瞬間に縦へ入れる（D2はそこそこ、D1は高い）
     //  パス型（短くつなぐ）は高く、縦に速い攻めのチーム・守備的なチームは低い（チームの色は残す）
     for (const tm of T) { const ps = tm.players.filter((q) => !q.gk), vp = ps.reduce((a, q) => a + (q.vision + q.pass) / 2, 0) / Math.max(1, ps.length);
@@ -7124,7 +7124,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             // 角度：シュート位置から見えるゴールの幅（ラジアン）。角度がないほど、近くても・1対1でも、GKの正面に来やすい
             let visA = 1; if (b.sx0 != null && b.kind === 'shot' && !b.pkShot) { const ex = Math.abs(fx(p.team, 0) - b.sx0), ey = Math.abs(b.sy0 - GOAL_Y); if (ey > POST) visA = Math.atan2(ey + POST, ex) - Math.atan2(ey - POST, ex); }
             const narrowF = clamp(visA / 0.6, b.shotSkill === 'controlShot' ? 0.55 : 0.15, 1);   // コントロールショットは角度がなくても巻いて隅へ置けるが、真横からは楽ではない
-            let prob = clamp(0.27 + (globalThis.__Kgk ?? 0) + (skill - 50) * 0.0058 + ((globalThis.__Ksh2 ?? 1) ? Math.min(0, skill - 55) * (globalThis.__Kgkw ?? 0.011) : 0) +   /* 版964：さらに弱く。版963：下手なGK（総合55未満）は、もっと止められない */ (1 - Math.min(1, off)) * 0.32 + pace + (shotD > 20 ? 0.2 : shotD > 16 ? 0.08 : shotD < 9 ? -0.12 : 0) - corner - trick, 0.08, 0.97);
+            let prob = clamp(0.27 + (globalThis.__Kgk ?? 0) + (skill - 50) * 0.0058 + ((globalThis.__Ksh2 ?? 1) ? Math.min(0, skill - (globalThis.__Kgkr0 ?? 70)) * (globalThis.__Kgkw ?? 0.009) : 0) +   /* 版964：さらに弱く。版963：下手なGK（総合55未満）は、もっと止められない */ (1 - Math.min(1, off)) * 0.32 + pace + (shotD > 20 ? 0.2 : shotD > 16 ? 0.08 : shotD < 9 ? -0.12 : 0) - corner - trick, 0.08, 0.97);
             if (p.diveT > 0) prob -= 0.04;
             prob += p.gkAtk ? -0.04 : 0.025;   // 守備的GKはセービングが高い
             const oneGK = b.oneOnOne && p.sk.has('oneOnOne');
@@ -7179,6 +7179,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             if (b.guren && !b.pkShot) prob -= (b.guren >= 2 ? 0.14 : 0.1) * (b.grF ?? 1);   // 紅蓮の牙：正面に来ても、勢いでGKの手をはじく
             if (b.tsukiShot) prob = Math.max(prob, 0) + (b.csPlace ? 0.26 : 0.14);   // 月影の抜け出し（無凸）の後のシュートは、GKも待ち構えて止めやすい（エースのかとうより決定力は下）
             if (globalThis.__gkp && off < 0.2 && shotD > 16) globalThis.__gkp.push({ prob, skill, shotD, sp, corner, pace, trick, kq: P[b.kicker].kick * 0.6 + P[b.kicker].technique * 0.4, base: 0.27 + (skill - 50) * 0.0058 + (1 - Math.min(1, off)) * 0.32, drive: b.drive > 0 && b.driveOn, guren: !!b.guren, kn: !!b.knuckle });
+            if (!ik && !b.pkStop && !rolling && !b.conv) prob *= globalThis.__Kgkm ?? 0.78;   // 版966：GKを全体に少し弱く（引き分けより、勝ったり負けたりする方が面白い）。白亜の城壁・PKストッパー・コロコロ・クロスの処理は別
             return { prob, skill, shotD, oneGK, rolling };
     }
     // カットインの角度：前から内側へ 25°〜90°（真横）の5つから選ぶ（ゲームとカットイン確認画面で同じ計算）

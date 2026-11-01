@@ -683,6 +683,7 @@
     const team = D.beginningTeam();
     if (teamName) { team.name = teamName; team.short = teamName.replace(/FC$/, ''); }
     for (const p of team.players) { D.fillParams(p, 0); p.fatigue = 10; p.cond = 0; p.injury = 0; p.skills = p.skills || []; p.games = 0; }
+    { const DN = globalThis.__Kstart ?? 5; if (DN) for (const p of team.players) { ensureStar(p); for (const k of D.PARAM_KEYS) if (typeof p[k] === 'number') p[k] = Math.max(20, p[k] - DN); delete p.pts; } }   /* ☆（育てられる上限）は、下げる前の能力で決める */   // 版965：スタートのチームを少し弱く（平均約51→約46.7）。地域2部（33〜47）の真ん中より少し上から、育てて上がっていく
     // カルチョビットAと同じく、最初はみんな「バランス」。特訓で動きのくせ（裏パラ）が変わって、タイプが決まっていく
     for (const p of team.players) if (p.position !== 'GK') { p.type = 'バランス'; for (const k of HKEYS) p[k] = D.HIDDEN0[k]; }
     const save = { version: 1, ptsVer: 3, rs: 20261005, season: 1, week: 1, team, history: [], cards: {}, cardsVer: 0, spFound: [] };
