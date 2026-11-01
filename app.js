@@ -2930,12 +2930,12 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
         sad = info.gk ? 0 : Math.abs(p.x - ownGoalX) < 30 ? 2 : 1;   // GKは下の「順に悔しがる」で描く（跳んで倒れている間はそのまま）
       }
       // 失点したGK：決められた瞬間はまだ見送り、間をおいて順に崩れていく（本家の動画）
-      //  ボールを見送る → ゴールの方へ手を伸ばす → 膝が崩れる → 尻もち → 立ち上がってゴールを見つめる
+      //  ボールを見送る → 膝が崩れる（版959：手を横に伸ばす絵は審判のように見えるのでやめた） → 尻もち → 立ち上がってゴールを見つめる
       if (info.gk && celebInfo && team !== celebInfo.team && !((gkCode >= 1 && gkCode <= 4) || gkCode === 13 || gkCode === 14)) {
         const age = simT - celebInfo.t;
         if (age >= 0.2 && age < 6.6) {
           const dived = (stateAt(celebInfo.t).gk || [0, 0])[team] || 0, skip = dived >= 1 && dived <= 4;   // 跳んで倒れていたら、起き上がってすぐ尻もちから
-          const stage = skip ? (age < 2.4 ? 'gkSit' : 'stand') : age < 0.3 ? 'watch' : age < 0.75 ? 'gkReach' : age < 0.95 ? 'gkCrouch' : age < 2.4 ? 'gkSit' : 'stand';
+          const stage = skip ? (age < 2.4 ? 'gkSit' : 'stand') : age < 0.75 ? 'watch' : age < 0.95 ? 'gkCrouch' : age < 2.4 ? 'gkSit' : 'stand';
           const ownGoalX = celebInfo.net ? celebInfo.net.gx : (p.x < 52.5 ? 0 : 105), gq = proj(ownGoalX, 34);   // 決められたゴールの方
           dmFacing = Math.atan2(-Math.abs((gq.y - q.y) / 0.45) - 8, gq.x - q.x);   // ゴールの方を向く（カメラには背中を向けたまま。本家と同じ見え方）
           if (stage === 'watch' || stage === 'stand') r = sprite(q.x, q.y, q.s, info, team, facing, 0, false, false);
@@ -3053,6 +3053,9 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
         if (ac && ac.a === 'heel') { const fw = (Math.sign(proj(p.x + ac.dx, p.y + ac.dy).x - q.x) || facing); facing = fw; view = 'side'; pokePose = ac.u < 0.6 ? 'bigWindup' : null; kp = null; }
         // ノールックパス：顔（体）は別の方向を向いたまま、足だけでパスを出す
         if (ac && ac.a === 'nolook') { const fk = Math.sign(proj(p.x + ac.lx, p.y + ac.ly).x - q.x) || -facing; facing = fk; view = 'side'; pokePose = ac.u < 0.5 ? 'sole' : null; kp = null; }
+        if (ac && ac.a === 'throwgk' && ac.dx != null) {   // 版959：GKのスロー：上手投げ＝前の腕を高く振りかぶる→投げ終わり／下手で転がす＝腰を落として腕を低く
+          const tx2 = proj(p.x + ac.dx, p.y + ac.dy).x - q.x; if (Math.abs(tx2) > 0.1) facing = Math.sign(tx2); view = 'side'; kp = null;
+          pokePose = ac.roll ? (ac.u < 0.7 ? 'lunge' : null) : ac.u < 0.35 ? 'bigWindup' : ac.u < 0.8 ? 'follow' : null; }
         if (ac && ac.a === 'volleyK') { view = 'side'; pokePose = ac.u < 0.7 ? 'kick' : null; lift = 0.12; }
         if (ac && ac.a === 'feint') { dxs = Math.sin(Math.PI * ac.u) * ac.side * 9 * q.s; tilt = -ac.side * 0.2 * Math.sin(Math.PI * ac.u); }
         // ドリブル技の動き（技ごとに違う体の使い方）
