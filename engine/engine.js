@@ -1444,6 +1444,13 @@
         if (ln === 0 && wide) ty = GOAL_Y + Math.sign(sy - GOAL_Y) * Math.max(Math.abs(ty - GOAL_Y), 27);   // SBはタッチライン寄り
         targets[p.idx] = [fx(t, minX), clamp(ty, 2, W - 2)]; urgent[p.idx] = minX - fx(t, p.x) > 5; if (urgent[p.idx]) p.bUrg = S.t;   // 離れていれば走って広がる
       }
+      // 版961：相手は、GKが持ったらゴール前から引き上げる（エリアの外・自分たちの守る形へ）。FWはハーフウェーライン寄りまで戻る
+      if (globalThis.__Kgkh ?? 1) for (const q of T[1 - t].players) {
+        if (q.off || q.gk || !targets[q.idx]) continue;
+        const ln = q.slot ? (q.slot.line ?? 1) : 1, minF = ln >= 2 || q.position === 'FW' ? 34 : ln === 1 ? 28 : 22;   // GKのゴールからの距離（最低）
+        const [tx, ty] = targets[q.idx]; if (fx(t, tx) >= minF) continue;
+        targets[q.idx] = [fx(t, minF), ty]; urgent[q.idx] = false;
+      }
     }
     // 版942：ドリブルで向かってくる相手がエリアの中で近づいたら、GKは前へ出て間合いを詰め（角度を消す）、2m以内なら足・体を投げ出して止めに行く
     // 版958：恐れを突く：相手がロングシュートを怖がって（GKが下がり、DFが前に出て）DFラインとGKの間が空いたら、前の選手がその裏へ走り込む（約3秒ごとに1人）
@@ -5071,6 +5078,9 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
     //  ②GKを経由したサイドチェンジ：戻してきた味方と逆のサイドに空いた味方がいれば、そこへ
     //  ③DFラインを越えるロングキック・前線へ落とすキック：寄せられて近くに出せない時、相手が前から来ている時
     function gkFeet(p) {
+      if (p.rollKick) { const rk = p.rollKick, q = rk.q >= 0 ? P[rk.q] : null;
+        if (S.t < rk.at && fx(p.team, p.x) < 14.5 && nearestOpp(p, p.x, p.y).d > 6) { S.dribbleMode = 'carry'; S.dribbleDir = [sgn(p.team), 0]; S.decision = 0.1; return true; }   // 転がしながら前へ
+        p.rollKick = null; p.recvT = S.t - 3; if (q && !q.off) { act(p, 'gkplay', 1.0, { k: 'gkClear' }); kick(p, q.x + sgn(p.team) * 2, q.y, 'pass', 'high', { landFrac: 0.95 }); const b = S.ball; b.intended = q.idx; b.offside = false; return true; } }
       const press = nearestOpp(p, p.x, p.y).d, held = S.t - (p.recvT ?? S.t), from = p.bpFromY ?? null;
       const freeOf = (m) => nearestOpp(m, m.x, m.y).d, fwd = (m) => fx(p.team, m.x);
       const mts = mates(p).filter((m) => !m.gk && !m.off);
@@ -5111,6 +5121,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         gkRelease(p, counter, dC < (p.sk.has('lowThrow') ? 46 : 32) ? 'throw' : 'punt'); return true;
       }
       if (held < 3.5) { S.decision = 0.3; return true; }     // 味方が上がるのを待つ
+      if (R.next() < (globalThis.__Kgkr2 ?? 0.6) && gkRollKick(p, null)) return true;   // 版961：周りに誰もいなければ、まず足もとに置いて転がす（そこから、空いた味方へつなぐか、大きく蹴る）
       // フリーの味方へスロー（近くに相手がいない、パスコースに相手がいない）
       const safe = mts.filter((m) => { const d = hyp(m.x - p.x, m.y - p.y); if (d < 8 || d > 34 || freeOf(m) < 8) return false; return !opps(p).some((q) => segDist(q.x, q.y, p.x, p.y, m.x, m.y).d < 2.5); }).sort((a, c) => freeOf(c) - freeOf(a));
       if (safe.length && R.next() < 0.9) { gkRelease(p, safe[0], 'throw'); return true; }   /* 版458：フリーの味方がいれば、まずつなぐ */
@@ -5118,11 +5129,21 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         if (sh2.length && R.next() < 0.75) { gkRelease(p, sh2[0], 'throw'); return true; } }   // 少し寄せられていても、コースが空いていれば近くの味方へ
       { const sc = (m) => { const near = (arr, r) => arr.filter((q) => !q.off && !q.gk && hyp(q.x - m.x, q.y - m.y) < r).length; return Math.min(freeOf(m), 12) + (m.jump * 0.6 + m.physical * 0.4) / 30 + near(mts.filter((x) => x !== m), 9) * 1.2 - near(opps(p), 8) * 1.0; };
         const lk = mts.filter((m) => fwd(m) > 38).sort((a, c) => sc(c) - sc(a))[0];
+        if (lk && gkRollKick(p, lk)) return true;
         if (lk) { gkRelease(p, lk, 'kick'); return true; } }   // 蹴る時は、空いていて味方が近くにいる所へ（競り合いになるFWの頭ではなく）
       // ポストプレーが得意なFW（フィジカルが高い）へキック
       const pw = (m) => m.jump * 0.6 + m.physical * 0.4 + m.goal_wait * 0.2 + (skZ(m, 'postPlay') ? 40 : 0);
       const fw = mts.filter((m) => m.slot.last).sort((a, c) => pw(c) - pw(a))[0] || mts[mts.length - 1];
+      if (gkRollKick(p, fw)) return true;
       gkRelease(p, fw, 'kick'); return true;
+    }
+    // 版961：周りに相手がいない（15m以内に誰もいない）時は、ボールを足もとに置いて、エリアの端の方へ少し転がしてから大きく蹴る（現実のGKと同じ）
+    function gkRollKick(p, q) {
+      if (!(globalThis.__Kgkr ?? 1) || S.setPiece || nearestOpp(p, p.x, p.y).d < 15 || fx(p.team, p.x) > 11) return false;
+      const b = S.ball; p.hold = false; p.rollKick = { at: S.t + R.range(1.0, 1.6), q: q ? q.idx : -1 }; if (globalThis.__rkLog) globalThis.__rkLog.push(S.t);
+      Object.assign(b, { owner: p.idx, kind: 'owned', z: 0, vz: 0, vx: 0, vy: 0 }); p.settle = false;
+      S.dribbleMode = 'carry'; S.dribbleDir = [sgn(p.team), (GOAL_Y - p.y) * 0.01]; S.decision = 0.15; act(p, 'gkdrop', 0.4);
+      return true;
     }
     function gkRelease(p, q, how) {
       const b = S.ball;
@@ -8278,7 +8299,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       mdPost();
       shapePost();
       if (!S.nm) { widthPost(); blockPost(); } else if (brainOn()) { brainPost(); gkHoldPost(); gkOwnHoldPost(); ppSupportPost(); gpPost(); gpDefPost(); crashPost(); gkDepthPost(); gkChargePost(); } else newMovePost();
-      if (!brainOn() && (globalThis.__Kgkall ?? 1)) gkChargePost();   // 版952：GKの詰め・1対1の飛び出しは、どの動きの設定でも
+      if (!brainOn() && (globalThis.__Kgkall ?? 1)) { gkOwnHoldPost(); gkChargePost(); }   // 版952：GKの詰め・1対1の飛び出しは、どの動きの設定でも
       dfPressPost();
       fearRunPost();
       urgentPost();
