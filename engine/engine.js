@@ -1450,7 +1450,9 @@
     function fearRunPost() {
       if (!(globalThis.__Kfrn ?? 1) || S.restart || S.setPiece || S.celebrate > 0) return;
       const own = ownerP(); if (!own || own.gk) return;
-      const t = own.team, f = T[1 - t].fear || 0; if (f < 0.2) return;
+      const t = own.team, f = T[1 - t].fear || 0;
+      transRun(own, t);   // 版960：奪った瞬間の、裏への斜めの走り出し
+      if (f < 0.2) { for (const p of T[t].players) if ((p.fRunT || 0) > S.t && p.fRunTo && !p.off && p !== own) { const ol0 = offsideLine(t); targets[p.idx] = [fx(t, Math.min(fx(t, p.fRunTo[0]), ol0 - 0.8)), p.fRunTo[1]]; urgent[p.idx] = true; } return; }
       const oxf = fx(t, own.x); if (oxf < 30 || oxf > 82) return;
       const ol = offsideLine(t), g = opps(own).find((q) => q.gk && !q.off), gap = g ? (L - fx(t, g.x)) - (L - ol) : 0;   // DFラインとGKの間の長さ
       for (const p of T[t].players) if ((p.fRunT || 0) > S.t && p.fRunTo && !p.off && p !== own) { targets[p.idx] = [fx(t, Math.min(fx(t, p.fRunTo[0]), (p.fRunPass ? 99 : ol - 0.8))), p.fRunTo[1]]; urgent[p.idx] = true; }
@@ -1460,8 +1462,21 @@
         const v = (q.position === 'FW' ? 2 : 0) + q.speed * 0.03 + Math.min(8, nearestOpp(q, q.x, q.y).d) * 0.2 - Math.abs(q.y - GOAL_Y) * 0.04; if (v > bs) { bs = v; best = q; } }
       if (!best) return;
       T[t].fRunLast = S.t; const tx = Math.min(ol + Math.min(12, -gap * 0.6), L - 9), ty = clamp(best.y + (GOAL_Y - best.y) * 0.3, 6, W - 6);
-      best.fRunT = S.t + 2.8; best.fRunTo = [fx(t, tx), ty]; best.run = Math.max(best.run || 0, 2.8); best.bRun = { x: fx(t, tx), y: ty, until: S.t + 2.8 };
+      best.fRunT = S.t + 2.8; best.fRunK = 'f'; best.fRunTo = [fx(t, tx), ty]; best.run = Math.max(best.run || 0, 2.8); best.bRun = { x: fx(t, tx), y: ty, until: S.t + 2.8 };
       if (globalThis.__frLog) globalThis.__frLog.push({ t: S.t, f: +f.toFixed(2), gap: +(-gap).toFixed(1) });
+    }
+    // 版960：奪った瞬間（2.5秒以内）、相手のDFラインが高くて裏が空いていたら、前の選手1〜2人が、外から中へ斜めに裏へ走り出す（実際の試合のカウンターの形）
+    function transRun(own, t) {
+      if (!(globalThis.__Ktrn ?? 1)) return;
+      const tm = T[t]; if (S.t - (tm.wonT ?? -9) > 2.5 || tm._trAt === tm.wonT) return;
+      const oxf = fx(t, own.x); if (oxf < 22 || oxf > 78) return;
+      const ol = offsideLine(t), g = opps(own).find((q) => q.gk && !q.off), space = g ? fx(t, g.x) - ol : L - ol; if (space < 14) return;   // DFラインとGKの間が14m以上
+      tm._trAt = tm.wonT; let n = 0;
+      const cands = tm.players.filter((q) => q !== own && !q.gk && !q.off && q.position !== 'DF' && fx(t, q.x) > oxf - 6 && fx(t, q.x) > ol - 18 && fx(t, q.x) < ol - 0.3).sort((a, c) => (c.speed + (c.position === 'FW' ? 15 : 0)) - (a.speed + (a.position === 'FW' ? 15 : 0)));
+      for (const q of cands) { if (n >= 2) break;
+        const tx = Math.min(ol + Math.min(14, space * 0.6), L - 10), ty = clamp(q.y + (GOAL_Y - q.y) * 0.55, 5, W - 5);   // 外から中へ、斜めに
+        q.fRunT = S.t + 3.0; q.fRunK = 't'; q.fRunTo = [fx(t, tx), ty]; q.run = Math.max(q.run || 0, 3); q.bRun = { x: fx(t, tx), y: ty, until: S.t + 3.0 }; n++; }
+      if (n && globalThis.__tr960) globalThis.__tr960.push({ t: S.t, n, space: +space.toFixed(1) });
     }
     // 版957：恐れ：ロングシュートを怖がるGKは、ゴールラインに近い所に立つ（前に出ない）。その分、DFラインとの間が空く
     function fearGkPost() {
@@ -2755,7 +2770,7 @@
         let byp = 0; for (const o of foes) if (!o.gk) { const ox = fx(t, o.x); if (ox > xf + 0.5 && ox < pxf - 0.5) byp++; }
         const zr = xf < 35 ? 3.0 : xf < 70 ? (globalThis.__Bzr2 ?? 2.5) : (globalThis.__Bzr3 ?? 1.7);   // 自陣ほど失うのが怖い
         let v = 0.4 + Math.min(byp, 6) * 0.55 + clamp(adv, -15, 25) * 0.03 + Math.min(recvOpp, 8) * 0.13 - (danger + 1.2 * danger * danger) * zr * (1.0 + Math.max(0, (p.vision || 50) - 50) / 60);
-        if ((globalThis.__Kfrn ?? 1) && (q.fRunT || 0) > S.t && through) v += 1.6 * (T[1 - t].fear || 0) + 0.6;   // 版958：恐れで空いた裏へ走り込む味方へのスルーパスを狙う
+        if ((globalThis.__Kfrn ?? 1) && (q.fRunT || 0) > S.t && through) v += q.fRunK === 't' ? 1.8 + ((p.vision || 60) - 70) * 0.03 : 1.6 * (T[1 - t].fear || 0) + 0.6;   // 版960：奪った瞬間の走り出しへ、早いスルーパス（視野が高いほど気づく）   // 版958：恐れで空いた裏へ走り込む味方へのスルーパスを狙う
         const v0dbg = v;
         if (pxf > L - 18 && Math.abs(py - GOAL_Y) < 12) v += 0.9; else if (pxf > L - 25 && Math.abs(py - GOAL_Y) < 20) v += 0.4;   // エリア1・2、3
         const backPen = !fwOpen ? 0 : adv < -3 ? (pr === 0 ? 1.3 : pr === 1 ? 0.7 : 0.1) : adv < 3 ? (pr === 0 ? 0.5 : pr === 1 ? 0.2 : 0) : 0;   // 後ろ・横は、前が空いている時だけ控える（前が詰まっていれば、横・後ろで回してやり直す＝ボールの循環）
@@ -5495,7 +5510,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         if ((q.uzT || 0) > S.t && teamU(p.team, 'uzushio') && !qOff && danger < 0.8) v += 1.5;   // 渦潮の囮で空いた手前で受ける2列目の味方へ
         if (q.uniq === 'uzushio' && !p.gk) { const one = !opps(q).some((o) => !o.gk && !o.off && fx(q.team, o.x) > fx(q.team, q.x) - 1 && hyp(o.x - q.x, o.y - q.y) < 7); if ((!one || qOff) && uOn(q, 'uzushio')) v -= 3; }   // 渦潮の囮：走っている間は、てらだにはほとんど出さない（完全に1対1の時だけ）
         if (q.uniq === 'aonoouza' && !(q.uCd > S.t) && !(q.uOn > S.t) && !q.off && fx(p.team, q.x) > 55 && fx(p.team, q.x) > xf + 10 && d < 34 && !through && danger < 0.9) v += 2.4;   // 蒼の王座：CBに張りついたくもいへ、縦パスを入れる（落ちてきて受ける）
-        if ((globalThis.__Kfrn ?? 1) && (q.fRunT || 0) > S.t && through && danger < 1.2) v += 1.6 * (T[1 - p.team].fear || 0) + 0.6;   // 版958：恐れで空いた裏へのスルーパス
+        if ((globalThis.__Kfrn ?? 1) && (q.fRunT || 0) > S.t && through && danger < 1.2) v += q.fRunK === 't' ? 1.8 + ((p.vision || 60) - 70) * 0.03 : 1.6 * (T[1 - p.team].fear || 0) + 0.6;   // 版958：恐れで空いた裏へのスルーパス
         if (q.uniq === 'byakuya' && !(q.uCd > S.t) && !q.off && fx(p.team, q.x) < ((globalThis.__Kbyg ?? 1) ? 66 : 60) && danger < ((globalThis.__Kbyg ?? 1) ? 0.6 : 0.5) && recvOpp > ((globalThis.__Kbyg ?? 1) ? 2.5 : 3) && pxf > xf - 25) v += (globalThis.__Kbyg ?? 1) ? 2.0 : 0.8;   // 版957：もっと預ける   // 白夜の視界：レジスタが空いていれば、まず預けて、そこからロングフィード
         if (q.uniq === 'midori' && !q.off && (T[q.team].mdStack || 0) < 4 && fx(q.team, q.x) < 72 && danger < 1.0) v += 4.5 + (S.t > 150 ? 1.5 : 0);   /* 版468：4回たまるまでは、チームで積極的にむらおかへ通す（後半はさらに） */
         else if (q.uniq === 'midori' && !(q.uCd > S.t) && !q.off && !p.gk && pxf < 46 && danger < 0.6 && opps(q).some((o) => !o.off && !o.gk && hyp(o.x - q.x, o.y - q.y) < 26 && fx(q.team, o.x) > pxf - 3)) v += 1.8;
