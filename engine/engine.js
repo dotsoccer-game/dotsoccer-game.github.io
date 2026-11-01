@@ -4383,19 +4383,24 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           if (p.sk.has('calm') && (opt.pk || d < 18)) menF = Math.min(menF, 1) * 0.72;          // 冷静：ゴール前・PKで慌てない
           if (p.sk.has('clutch') && (T[p.team].urg || opt.pk)) menF *= 0.72;                   // 勝負強さ：追いかける終盤・PKで決める
           if (p.sk.has('bigStage') && close) menF *= 0.82; }                                   // 大舞台に強い：接戦の後半
-        ang += menF * Math.max(0.3, 2.1 - p.kick / 55) * (1 - DOM[p.team] * 0.72) * R.gauss() * (opt.calm ? 0.3 + (1 - p.mental / 100) * 0.6 : 1) * (opt.pk ? 0.03 + (1 - p.mental / 100) * 0.03 : 0.065 + d * 0.0032 - p.kick * 0.0004 + pressure * 0.05 + fatigue * 0.04);
+        ang += menF * ((globalThis.__Ksh2 ?? 1) ? Math.max(0.3, 1.7 - p.kick / 70) : Math.max(0.3, 2.1 - p.kick / 55)) *   /* 版963：下のリーグのシュートが枠に飛ばなさすぎた（地域2部で枠内32%） */ (1 - DOM[p.team] * 0.72) * R.gauss() * (opt.calm ? 0.3 + (1 - p.mental / 100) * 0.6 : 1) * (opt.pk ? 0.03 + (1 - p.mental / 100) * 0.03 : 0.065 + d * 0.0032 - p.kick * 0.0004 + pressure * 0.05 + fatigue * 0.04);
         // 版932：能力の差がプレーに出る（設計24章）：シュート。キックが低いほど、向きも高さも大きくぶれる（上手い選手は今のまま）
         const abK = (globalThis.__Kab ?? 1) && !opt.pk && !opt.empty ? 1 + Math.max(0, 85 - p.kick) * (globalThis.__Kab4 ?? 0.025) : 1;
-        if (abK > 1) ang = Math.atan2(dy, dx) + (ang - Math.atan2(dy, dx)) * abK;
+        if (abK > 1) ang = Math.atan2(dy, dx) + (ang - Math.atan2(dy, dx)) * ((globalThis.__Ksh2 ?? 1) ? 1 + (abK - 1) * 0.15 : abK);   // 版963：向きへの上乗せは3割だけ（キックの低さの罰を向きに二重にかけていた）。差は高さ（ふかす）と枠内率で出す
         if (opt.skill === 'superLong' && (globalThis.__Kslg ?? 1)) ang = Math.atan2(dy, dx) + (ang - Math.atan2(dy, dx)) * (globalThis.__Kslg1 ?? 0.65);   // 版957：超ロングシュートは、技として狙って蹴るので、遠さの割に向きのぶれを小さく（枠に飛びやすく）
         if (!opt.pk && !opt.empty && d > 12) ang += R.gauss() * (d - 12) * 0.006 * (1.15 - p.kick / 200) * (opt.fk ? 0.6 : 1);   // 版790：遠くからのシュートは、キックがSでも隅ぴったりには行きにくい（上のリーグでミドル・ロングが入りすぎていた）
         if (opt.empty) ang = Math.atan2(dy, dx) + (ang - Math.atan2(dy, dx)) * 0.12;   // 無人のゴール：ほとんどズレない
+        let skyX = 0;   // 版963：外れる時は「少し外れる（ポストの外1〜4.5m）」か「バーの上へふかす」。コーナーフラッグの方へは飛ばない
+        if ((globalThis.__Ksh2 ?? 1) && !opt.pk && !opt.empty) { const gx = fx(p.team, L), c = Math.cos(ang); if (Math.abs(c) > 0.05 && (gx - p.x) / c > 0) {
+          const yAt = p.y + Math.tan(ang) * (gx - p.x), lim = POST + R.range(1.0, 4.5);
+          if (Math.abs(yAt - GOAL_Y) > lim) { const yN = GOAL_Y + Math.sign(yAt - GOAL_Y) * lim; skyX = Math.min(1, (Math.abs(yAt - GOAL_Y) - lim) / 8); ang = Math.atan2(yN - p.y, gx - p.x); } } }
         // 弾道：低く速いグラウンダーは2割。多くはすねから胸の高さ、時々バーの下ギリギリへズバッと
         {
           // グラウンダー・すね〜胸・頭上〜バーぎりぎりまで幅広く。キックが下手・遠い・寄せられていると上下にもブレる（バーの上へふかす）
           const r0 = R.next();
           let h = opt.pk ? R.range(0.2, 2.0) : r0 < 0.22 ? R.range(0.1, 0.4) : r0 < 0.62 ? R.range(0.5, 1.8) : R.range(1.8, 2.75);
           if (!opt.pk) h += R.gauss() * abK * menF * (0.1 + (1 - p.kick / 100) * 0.6 + pressure * 0.3 + d * 0.008) * (1 - DOM[p.team] * 0.6) * (uOn(p, 'guren') ? Math.max(0.2, 1 - (p.uniqLv >= 2 ? 0.7 : 0.55) * grF(p)) : 1);   // 紅蓮の牙：ふかさない
+          if (skyX > 0 && R.next() < 0.45) h = Math.max(h, 2.6 + skyX * 1.5);   // 版963：大きくずれたシュートの半分くらいは、バーの上へふかす
           h = Math.max(0.05, h);
           if (opt.empty) h = R.range(0.1, 0.7);   // 無人のゴール：低く確実に
           const t = Math.max(0.15, d / speed);
@@ -7117,7 +7122,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             // 角度：シュート位置から見えるゴールの幅（ラジアン）。角度がないほど、近くても・1対1でも、GKの正面に来やすい
             let visA = 1; if (b.sx0 != null && b.kind === 'shot' && !b.pkShot) { const ex = Math.abs(fx(p.team, 0) - b.sx0), ey = Math.abs(b.sy0 - GOAL_Y); if (ey > POST) visA = Math.atan2(ey + POST, ex) - Math.atan2(ey - POST, ex); }
             const narrowF = clamp(visA / 0.6, b.shotSkill === 'controlShot' ? 0.55 : 0.15, 1);   // コントロールショットは角度がなくても巻いて隅へ置けるが、真横からは楽ではない
-            let prob = clamp(0.27 + (globalThis.__Kgk ?? 0) + (skill - 50) * 0.0058 + (1 - Math.min(1, off)) * 0.32 + pace + (shotD > 20 ? 0.2 : shotD > 16 ? 0.08 : shotD < 9 ? -0.12 : 0) - corner - trick, 0.08, 0.97);
+            let prob = clamp(0.27 + (globalThis.__Kgk ?? 0) + (skill - 50) * 0.0058 + ((globalThis.__Ksh2 ?? 1) ? Math.min(0, skill - 55) * 0.006 : 0) +   /* 版963：下手なGK（総合55未満）は、もっと止められない */ (1 - Math.min(1, off)) * 0.32 + pace + (shotD > 20 ? 0.2 : shotD > 16 ? 0.08 : shotD < 9 ? -0.12 : 0) - corner - trick, 0.08, 0.97);
             if (p.diveT > 0) prob -= 0.04;
             prob += p.gkAtk ? -0.04 : 0.025;   // 守備的GKはセービングが高い
             const oneGK = b.oneOnOne && p.sk.has('oneOnOne');
@@ -7152,18 +7157,19 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             if (b.pkStop) prob = Math.max(prob, 0.82);
             // ミドル・ロング・直接FK：ヒョロヒョロの球は入らない。入るのは「強い球」か「甘くないコース（隅）」だけ
             const gkQ = clamp((skill - 50) / 40, 0, 1) * clamp((shotD - 12) / 6, 0, 1);   // 版790：GKのうまさ×遠さ（遠いほど反応する時間がある）
+            const gLv = (globalThis.__Ksh2 ?? 1) ? 0.55 + 0.45 * clamp((skill - 40) / 40, 0, 1) : 1;   // 版963：下のリーグのGKは、遠めの球でも確実には止められない（遅い球ほど止める、の決まりを、GKのうまさで弱める）
             if (shotD > 14 && !b.pkStop) {
               const tight = Math.abs(yAt - GOAL_Y) > POST - 1.1 || (b.z > BAR - 0.7 && Math.abs(yAt - GOAL_Y) > POST - 1.8);   // サイドネットぎりぎり・上の隅
               if (b.csPlace && b.csType === 'ground' && !(b.csGkNear > 0.5)) prob = Math.max(prob, 0.92);   // コロコロ：GKがニア寄りでなければ、構えて止める
               else if (b.csPlace && Math.abs(yAt - GOAL_Y) > POST - 1.6) prob = Math.max(prob, 0.38);   // 置きに行くコントロールショット：隅へ正確に置いた球は止めにくいが、うまいGKなら指先で届くこともある
               else if (b.drive > 0 && b.driveOn) { /* ドライブシュート：バーの上を越えると見せて急に落ちる球は、GKの目測が狂う */ }
-              else if (sp < 16.5 && !b.knuckle) prob = Math.max(prob, tight ? 0.86 : 0.96);
-              else if (sp < 21 && !tight) prob = Math.max(prob, 0.72 + 0.22 * gkQ);
-              else if (!tight) prob = Math.max(prob, 0.5 + 0.4 * gkQ);
+              else if (sp < 16.5 && !b.knuckle) prob = Math.max(prob, (tight ? 0.86 : 0.96) * gLv);
+              else if (sp < 21 && !tight) prob = Math.max(prob, (0.72 + 0.22 * gkQ) * gLv);
+              else if (!tight) prob = Math.max(prob, (0.5 + 0.4 * gkQ) * gLv);
               else prob = Math.max(prob, 0.7 * gkQ);   // 版790：隅ぎりぎりの強い球も、うまいGKは遠めなら反応できる（D1でミドル・ロングが4割近く入っていた）
             }
             // 版934：能力の差がプレーに出る（設計24章）：決定力。同じ所へ飛んだ枠内のシュートでも、キック・テクニックの高い選手ほどGKの届きにくい所へ・叩きつけるように蹴れる
-            if ((globalThis.__Kab ?? 1) && !b.pkShot && P[b.kicker] && sp >= 15 && !rolling) { const kq = P[b.kicker].kick * 0.6 + P[b.kicker].technique * 0.4; prob -= (kq - (globalThis.__Kab6c ?? 82)) * (globalThis.__Kab6 ?? 0.006) * (0.4 + 0.6 * narrowF); }
+            if ((globalThis.__Kab ?? 1) && !b.pkShot && P[b.kicker] && sp >= 15 && !rolling) { const kq = P[b.kicker].kick * 0.6 + P[b.kicker].technique * 0.4; prob -= (kq - ((globalThis.__Ksh2 ?? 1) ? clamp(skill + 4, 45, globalThis.__Kab6c ?? 82) : (globalThis.__Kab6c ?? 82))) * (globalThis.__Kab6 ?? 0.006) * (0.4 + 0.6 * narrowF); }   // 版963：決定力の差は、相手GKとの差で見る（下のリーグ同士で、どのシュートも止まりやすくなっていた）
             if (globalThis.__dpl && b.drive > 0) globalThis.__dpl.push({ t: S.t, prob: +prob.toFixed(2), vz: +b.vz.toFixed(1), on: b.driveOn, sp: +sp.toFixed(1), kind: b.kind });
             if (ik) prob = Math.max(prob, 0.3 * gP(p)) + 0.08 * gkF(p);   // 至近距離の決定機でも、簡単には割らせない
             if (visA < 0.3 && b.shotSkill !== 'controlShot' && !b.pkShot) prob = Math.max(prob, 0.8 + (0.3 - visA));   // ほぼ真横（角度なし）からのシュートは、GKの正面。まず止める
