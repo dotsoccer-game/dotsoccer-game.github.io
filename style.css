@@ -4033,3 +4033,7 @@ img:not([src]),img[src=""]{visibility:hidden}
 .ty-info .ty-list li.on{background:#ffd54a55}
 .ty-info .ty-list .tbadge{flex:0 0 auto;min-width:92px;text-align:center}
 .sq-st .sq-good{display:block;margin-top:3px;color:#9be7b0;font-weight:700;font-size:11px;line-height:1.35}
+/* 版974：リザーブの☆ごとにまとめて選ぶ */
+.s2mu .s2mu-st{display:flex;flex-direction:column;gap:4px}
+.s2mu .s2mu-star{height:30px;background:#3a3f55;border:2px solid #ffd54a;color:#ffe58a;font-size:12px}
+.s2mu .s2mu-star small{margin-left:4px;font-size:10px;color:#fff;opacity:.85}
