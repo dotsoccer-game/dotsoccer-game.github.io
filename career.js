@@ -1908,8 +1908,18 @@
     if (save.post && save.week <= LEAGUE_TO) save.post = null;
   }
   // 古いセーブを新しい育成ポイントとカードへ
+  // 版980：持っている☆5で総合60に届かない選手は、低い能力（Eの所）から順に上げて、総合60にする（1回だけ）
+  function fix980(save) {
+    if (save.fix980) return; save.fix980 = 1;
+    for (const p of [...((save.team && save.team.players) || []), ...(save.reserve || [])]) {
+      if (ensureStar(p) < 5) continue; ensurePts(p);
+      const ov = () => KEYS.reduce((a, k) => a + p[k], 0) / KEYS.length;
+      for (let i = 0; i < 2000 && ov() < 60; i++) { let lo = KEYS[0]; for (const k of KEYS) if (p.pts[k] < p.pts[lo]) lo = k; p.pts[lo] = Math.round((p.pts[lo] + 3) * 10) / 10; p[lo] = toEng(p.pts[lo]); }
+    }
+  }
   function migrate(save) {
     try { gachaFixOld(save); } catch (_) {}
+    try { fix980(save); } catch (_) {}
     try { for (const p of [...((save.team && save.team.players) || []), ...(save.reserve || [])]) if (p.suspend > 0 && !p.susp) p.suspend = 0; syncSuspend(save); } catch (_) {}   // 版835：前の仕組みで残っていた出場停止（年をまたいだものなど）は消す   // 版506：スカウトで来た強い選手を、弱い状態に
     // ランクの幅を変えた（E→Dを短く）：今までの育成ポイントを、同じランクの同じ位置に移しかえる
     if (save.ptsVer !== 3) {
@@ -2017,11 +2027,17 @@
     const used = new Set([...ps, ...save.reserve].map((x) => x.number)); let n = q.no; if (used.has(n)) { n = 12; while (used.has(n)) n++; } p.number = n;   // 版559：控え室（リザーブ）の選手の番号も見る（26番が何人もできていた）
     p.star = pick.star; p.totsu = 0; p.gsrc = pick.tid + '_' + pick.no; p.faceKey = faceKeyOf(pick.tid, q) || undefined;
     { const hc = topHc || (p.faceKey && root.STAR_HAIR && root.STAR_HAIR[p.faceKey]); if (hc != null) p.hairColor = hc; }   // 版555：国内屈指級はその選手だけの髪の色（CPUの時と同じ）
-    p.fatigue = 10; p.cond = 0; p.injury = 0; p.games = 0; p.foot = p.foot || (Math.random() < 0.2 ? 'L' : 'R'); delete p.age; gachaWeak(p);
+    p.fatigue = 10; p.cond = 0; p.injury = 0; p.games = 0; p.foot = p.foot || (Math.random() < 0.2 ? 'L' : 'R'); delete p.age; gachaWeak(p); gachaFloor(p, pick.star);
     if (full) { p.gNew = 1; save.reserve.push(p); } else ps.push(p);   // 版915：リザーブに入った新しい選手は、リザーブの一番上に出す（gNew）
     return { kind: 'new', p, star: pick.star, q, tid: pick.tid, reserve: full };
   }
   // 版506：スカウトで来た選手は、育てる前の弱い状態（能力はE〜C）。得意・不得意の形（どの能力が高いか）はそのまま残す
+  // 版980：☆5（国内屈指）は、入団した時点で総合60くらいある（得意・不得意の形はそのまま、全部の能力を同じだけ上げる）
+  function gachaFloor(p, star) {
+    const tgt = star >= 5 ? 60 : 0; if (!tgt) return; ensurePts(p);
+    const ov = () => KEYS.reduce((a, k) => a + p[k], 0) / KEYS.length;
+    for (let i = 0; i < 400 && ov() < tgt; i++) for (const k of KEYS) { p.pts[k] = Math.round((p.pts[k] + 2) * 10) / 10; p[k] = toEng(p.pts[k]); }
+  }
   function gachaWeak(p) {
     if (p.gweak >= 2) return; if (p.gweak) { p.skills = []; p.gweak = 2; return; } ensurePts(p);
     const v = KEYS.map((k) => p.pts[k]), lo = Math.min(...v), hi = Math.max(...v), A = RANK[0][1] + 2, B = RANK[2][2] - 1;
