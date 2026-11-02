@@ -44,6 +44,7 @@
   const hyp = Math.hypot;
 
   // ---------- チームデータ ----------
+  const LEFTY_UNIQ = ['harinoana', 'aonoouza', 'tsukikage'];
   const HIDDEN0 = { zone_man: 0, press: 10, support: 10, overlap: 10, run_space: 10, goal_wait: 10 };
   const TYPE_HIDDEN = {
     'ゴールキーパー': {},
@@ -480,6 +481,7 @@
       if (!q.gk) slotPos(q);   // 版920：置いた場所で動きを決める
       q.gkAtk = q.gk && (q.sk.has('rushOut') || q.type === 'スイーパーキーパー');   // スイーパーキーパーは飛び出し型
       // 利き足（なければ名前から決める：右6割・左4割）
+      if (LEFTY_UNIQ.includes(q.uniq)) q.foot = 'L';   // 版984：きのした（針の穴通し）・くもい（蒼の王座）・にしの（月影の抜け出し）は左利き
       if (q.foot !== 'L' && q.foot !== 'R') { let h = 7; for (const ch of String(q.name || '') + (q.number || '')) h = (h * 31 + ch.charCodeAt(0)) >>> 0; q.foot = ((h >>> 3) % 10) < 6 ? 'R' : 'L'; }
       if (q.sk.has('oneTwo')) q.sk.add('wallPass');            // ワンツーの名手：壁パスの効果＋走り込みが速い
       if (q.sk.has('overlap')) q.overlap = Math.max(q.overlap, 80);   // オーバーラップ：SBが積極的に前線へ
@@ -8587,5 +8589,5 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
     if (t < h || h >= e) { const H = lt(Math.min(h, e)); return H > 0 ? (lt(t) / H) * nh * (Math.min(h, e) / (m.nominalHalf || HALF)) : t * cs; }
     const a = lt(h), z = lt(e); return nh + (z > a ? ((lt(t) - a) / (z - a)) * nh * ((e - h) / (m.nominalHalf || HALF)) : (t - h) * cs);
   }
-  root.DotSoccer = { gameSec, uniqStrength, UNIQ_LG, UNIQ, UNIQ_BY_TOP, PASSIVE, simulateMatch, buildSlots, beginningTeam, presetTeam, atLevel, PRESET_NAMES, PARAMS, PARAM_KEYS, SKILLS, TYPE_HIDDEN, HIDDEN0, grade, fillParams, CONST: { L, W, GOAL_Y, POST, BAR, HALF, CLOCK_SCALE } };
+  root.DotSoccer = { LEFTY_UNIQ, gameSec, uniqStrength, UNIQ_LG, UNIQ, UNIQ_BY_TOP, PASSIVE, simulateMatch, buildSlots, beginningTeam, presetTeam, atLevel, PRESET_NAMES, PARAMS, PARAM_KEYS, SKILLS, TYPE_HIDDEN, HIDDEN0, grade, fillParams, CONST: { L, W, GOAL_Y, POST, BAR, HALF, CLOCK_SCALE } };
 })(typeof globalThis !== 'undefined' ? globalThis : window);

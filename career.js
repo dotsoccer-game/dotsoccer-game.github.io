@@ -1920,6 +1920,7 @@
   function migrate(save) {
     try { gachaFixOld(save); } catch (_) {}
     try { fix980(save); } catch (_) {}
+    try { for (const p of [...((save.team && save.team.players) || []), ...(save.reserve || [])]) if ((D.LEFTY_UNIQ || []).includes(p.uniq)) p.foot = 'L'; } catch (_) {}   // 版984：左利きの国内屈指
     try { for (const p of [...((save.team && save.team.players) || []), ...(save.reserve || [])]) if (p.suspend > 0 && !p.susp) p.suspend = 0; syncSuspend(save); } catch (_) {}   // 版835：前の仕組みで残っていた出場停止（年をまたいだものなど）は消す   // 版506：スカウトで来た強い選手を、弱い状態に
     // ランクの幅を変えた（E→Dを短く）：今までの育成ポイントを、同じランクの同じ位置に移しかえる
     if (save.ptsVer !== 3) {
@@ -2036,7 +2037,7 @@
     const used = new Set([...ps, ...save.reserve].map((x) => x.number)); let n = q.no; if (used.has(n)) { n = 12; while (used.has(n)) n++; } p.number = n;   // 版559：控え室（リザーブ）の選手の番号も見る（26番が何人もできていた）
     p.star = pick.star; p.totsu = 0; p.gsrc = pick.tid + '_' + pick.no; p.faceKey = faceKeyOf(pick.tid, q) || undefined;
     { const hc = topHc || (p.faceKey && root.STAR_HAIR && root.STAR_HAIR[p.faceKey]); if (hc != null) p.hairColor = hc; }   // 版555：国内屈指級はその選手だけの髪の色（CPUの時と同じ）
-    p.fatigue = 10; p.cond = 0; p.injury = 0; p.games = 0; p.foot = p.foot || (Math.random() < 0.2 ? 'L' : 'R'); delete p.age; gachaWeak(p); gachaFloor(p, pick.star);
+    p.fatigue = 10; p.cond = 0; p.injury = 0; p.games = 0; p.foot = (D.LEFTY_UNIQ || []).includes(p.uniq) ? 'L' : p.foot || (Math.random() < 0.2 ? 'L' : 'R'); delete p.age; gachaWeak(p); gachaFloor(p, pick.star);
     if (full) { p.gNew = 1; save.reserve.push(p); } else ps.push(p);   // 版915：リザーブに入った新しい選手は、リザーブの一番上に出す（gNew）
     return { kind: 'new', p, star: pick.star, q, tid: pick.tid, reserve: full };
   }
