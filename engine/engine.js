@@ -13,7 +13,9 @@
   // 15文字＝縦5（自陣ゴール前・自陣・中盤・敵陣・敵ゴール前）×横3（左サイド・中央・右サイド。攻める向きで見る）。0＝使わない 1＝普通 2＝積極的
   const ZONE_RULES = {"break":"000101111222222","carry":"111111111111111","pace":"000111111222111","speedDribble":"000000212222111","scissors":"000000111222111","bodyFeint":"000000111222222","doubleTouch":"000000111222111","roulette":"000000111222111","elastico":"000000111222111","nutmeg":"000000111222222","cutIn":"000000101202212","heelLift":"000000000202101","kickFeint":"000000000121222","driveShot":"000000000020020","powerMid":"000000000121111","superLong":"000000010121111","controlShot":"000000000111222","nearPost":"000000000111222","toeKick":"000000000111222","lob":"000000000111222","volley":"000000000111222","direct":"000000000111222","divingHeader":"000000000000222","bicycle":"000000000000222","throughPass":"000111222222111","loftedThrough":"000111222222111","longFeed":"111222111000000","switchPlay":"000111222111000","earlyCross":"000000000202101","pinpointCross":"000000000101202","oneTouchPass":"000111111222222","noLook":"000111111222222","heelPass":"000000111222222","wallPass":"000000111222222","slide":"000222111111111","intercept":"111111222111111","manMark":"222222111111111","cover":"222222111000000","shoulder":"111111111111111","aerial":"222111111111222","shotBlock":"222111000000000","pressMonster":"111111222222222","recovery":"222222111111111","behindRun":"000000111222222","postPlay":"000000111121111","nearRun":"000000000000222","farWait":"000000000000222","overlap":"000101202202101","looseBall":"111111111111222","oneTwo":"000000111222222"};
   const FAT_KEYS = ['kick', 'technique', 'dribble', 'pass', 'dash', 'physical', 'jump', 'defense', 'vision', 'mental'];   /* 疲れで下がる能力（スピードは別の計算） */
-  const STAM_K = 3.5;   // スタミナの減り（本家に合わせて、終盤はしっかり疲れる）
+  const STAM_K = 3.5;
+  // 版971：見た目のスタミナ（電池）は大きく減る（本家：Sでも終わりには赤）。プレーへの影響は、前の減り方と同じ（下のリーグで点が入らなくなったため）
+  const curE = (p) => 100 - (100 - p.cur) * Math.min(1, (globalThis.__Kstme ?? 1) / (globalThis.__Kstm ?? 3.6));   // スタミナの減り（本家に合わせて、終盤はしっかり疲れる）
   const HALF_REST = 10;
   const KICKOUT_WAIT = 12;               // 交代を待つ時間（実時間の秒。12秒＝試合時間で約2分半）がこれを超えたら、外へ蹴り出す
   const OUT_CLEAR = 0.5, POKE_EDGE = 12, POKE_OUT = 0.5;   // ボールが外に出る頻度（蹴り出すクリア・タッチライン際でつつき出したボール）                  // ハーフタイムの回復
@@ -973,7 +975,7 @@
     const mates = (p) => T[p.team].players;
     const opps = (p) => T[1 - p.team].players;
     function maxSpeed(p) {
-      const st = 0.7 + 0.3 * (p.cur / 100);
+      const st = 0.7 + 0.3 * (curE(p) / 100);
       return (4.4 + p.speed * 0.047) * st * ((T[p.team].capBuff || 0) > S.t ? 1.04 : 1) * ((p.recUntil || 0) > S.t ? 1.1 : 1) * ((p.ovUntil || 0) > S.t ? 1.06 : 1) * ((p.ctRun || 0) > S.t ? 1.07 : 1) * (p.stun > 0 ? 0.45 : 1) * ((p.mtSlow || 0) > S.t ? 0.8 : 1) * (p.uniq && p.uOn > S.t ? uSpd(p) : 1) * (p.mtCharge && p.uOn > S.t ? 1.15 : 1) * ((p.mtHeld || 0) > S.t ? 0.25 : 1) * ((p.kgPin || 0) > S.t ? 0.08 : 1) * ((p.kgSlow || 0) > S.t ? 0.65 : 1) * ((p.hariT || 0) > S.t ? 1.22 : 1) * ((p.byT || 0) > S.t ? (p.byLv >= 2 ? 1.12 : 1.06) : 1) * ((p.byRunT || 0) > S.t ? (p.byRunLv >= 2 ? 1.2 : 1.15) : 1) * ((p.uzT || 0) > S.t ? 1.15 : 1) * ((p.aoFast || 0) > S.t || (p.aoKeepFast && S.ball.owner === p.idx) ? 1.15 : 1) * ((p.aoShield || 0) > S.t ? 0.3 : 1) * (S.lcStep && S.lcStep.mode === 'up' && S.lcStep.team === p.team && S.lcStep.until > S.t && p.position === 'DF' ? (S.lcStep.trap ? 1.55 : 1.2) : 1);   // オフサイドトラップ：一斉に鋭く押し上げる   // S（90台）は約8.7m/s、E（40台）は約6.4m/s
     }
     // 固有スキルが出ている間の速さ
@@ -4163,8 +4165,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             const sd = Math.sign(p.y - GOAL_Y) || 1, nx = sgn(p.team) * 0.35, ny = sd * 0.94, nl = hyp(nx, ny); S.dribbleDir = [nx / nl, ny / nl]; }
           if ((uOn(p, 'shiden') || (p.hariT || 0) > S.t || (p.finT || 0) > S.t)) S.dribbleDir = sdFwd(p, S.dribbleDir[0], S.dribbleDir[1]);
           // ゴール前（30m以内）を運んでいる時、外へ流れていたら少しずつゴールの方へ向き直す（コントロールショットを持つ選手は、外へ流れて巻くのもあり）
-          if (!skZ(p, 'controlShot') && fx(p.team, p.x) > L - 30 && Math.abs(p.y - GOAL_Y) > 3 && Math.sign(S.dribbleDir[1]) === Math.sign(p.y - GOAL_Y)) {
-            const gx = fx(p.team, L) - p.x, gy = GOAL_Y - p.y, gl = hyp(gx, gy) || 1, k = 0.12;
+          if (!skZ(p, 'controlShot') && fx(p.team, p.x) > L - ((globalThis.__Kdin ?? 1) ? 50 : 30) && Math.abs(p.y - GOAL_Y) > 3 && Math.sign(S.dribbleDir[1]) === Math.sign(p.y - GOAL_Y)) {   // 版971：50m以内から
+            const gx = fx(p.team, L) - p.x, gy = GOAL_Y - p.y, gl = hyp(gx, gy) || 1, k = fx(p.team, p.x) > L - 30 ? 0.12 : 0.06;
             const nx = S.dribbleDir[0] * (1 - k) + gx / gl * k, ny = S.dribbleDir[1] * (1 - k) + gy / gl * k, nl = hyp(nx, ny) || 1; S.dribbleDir = [nx / nl, ny / nl]; }
           vmax *= 0.8 + p.dribble * 0.0016 - ((globalThis.__Kab ?? 1) ? Math.max(0, 85 - p.dribble) * (globalThis.__Kab9 ?? 0.004) : 0);   // 版935：ドリブルが85より低いと、ボールを持つと遅くなる（60で約8割・40で約7割）   // ドリブルが上手いほど速く運べる（S 約0.94、E 約0.86。全力疾走より少し遅い）
           if (S.dribbleMode === 'carry') {
@@ -4244,11 +4246,11 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         // スタミナ：走るほど減り、ゆっくりなら少し回復
         const frac = sp / (5.4 + p.speed * 0.034);
         const minute = S.t * CLOCK_SCALE / 60;
-        const drain = (0.012 + frac * frac * 0.16) * STAM_K * Math.max(0.4, 1.3 - p.stamina / 120) * (skZ(p, 'pressMonster') || skZ(p, 'recovery') ? 0.85 : 1) * T[p.team].stamMul * ((T[p.team].capBuff || 0) > S.t ? 0.75 : 1) * (T[p.team].sitTire || 1) * (p.sk.has('ironMan') ? 0.65 : 1) * (p.sk.has('lateGrit') && minute >= 70 ? 0.55 : 1) * ((p.sdOn || 0) > S.t ? 2.2 : 1) * (uOn(p, 'kinshachi') ? 1 - 0.85 * Math.min(1, uP(p)) : 1) * (1 - 0.1 * aura(p, 'runBack')) * (p.uniq !== 'kinshachi' && ksTeam(p.team) ? 0.85 : 1) * DT;   // 金鯱の心臓：かいがいると、チーム全体の走りが整って疲れにくい   // 鉄人・終盤の粘り・金鯱の心臓・走る背中
+        const drain = (0.012 + frac * frac * 0.16) * STAM_K * (globalThis.__Kstm ?? 3.6) * Math.max(0.4, 1.3 - p.stamina / 120)   /* 版971：スタミナはもっと減る（本家：Sでも試合の終わりには残り1つ・赤） */ * (skZ(p, 'pressMonster') || skZ(p, 'recovery') ? 0.85 : 1) * T[p.team].stamMul * ((T[p.team].capBuff || 0) > S.t ? 0.75 : 1) * (T[p.team].sitTire || 1) * (p.sk.has('ironMan') ? 0.65 : 1) * (p.sk.has('lateGrit') && minute >= 70 ? 0.55 : 1) * ((p.sdOn || 0) > S.t ? 2.2 : 1) * (uOn(p, 'kinshachi') ? 1 - 0.85 * Math.min(1, uP(p)) : 1) * (1 - 0.1 * aura(p, 'runBack')) * (p.uniq !== 'kinshachi' && ksTeam(p.team) ? 0.85 : 1) * DT;   // 金鯱の心臓：かいがいると、チーム全体の走りが整って疲れにくい   // 鉄人・終盤の粘り・金鯱の心臓・走る背中
         p.cur = clamp(p.cur - drain * (p.uniq === 'kinshachi' ? (p.uniqLv >= 2 ? 0.25 : 0.35) : 1) + (sp < 1.5 ? 0.025 * DT : 0), 0, 100);   // 金鯱の心臓：そもそもスタミナがほとんど減らない
         /* v740 スタミナ：元気が70を切ると、全部の能力が下がっていく（元気0で2割減。スピードは最高速の計算で下がる） */
         if (!p.base0) p.base0 = Object.fromEntries(FAT_KEYS.map((k) => [k, p[k]]));
-        { const ff = 1 - Math.max(0, 70 - p.cur) / 70 * 0.2; if (Math.abs(ff - (p.ffLast ?? 1)) > 0.005) { for (const k of FAT_KEYS) p[k] = Math.round(p.base0[k] * ff); p.ffLast = ff; } }
+        { const ff = 1 - Math.max(0, 70 - curE(p)) / 70 * 0.2; if (Math.abs(ff - (p.ffLast ?? 1)) > 0.005) { for (const k of FAT_KEYS) p[k] = Math.round(p.base0[k] * ff); p.ffLast = ff; } }
         // 走り込みのタイマー
         if (p.uniq === 'uzushio' && !p.off && S.poss === p.team && own && own.team === p.team && own !== p && !own.gk && own.position !== 'DF' && !S.setPiece && !S.restart && fx(p.team, p.x) > 60 && fx(p.team, own.x) > 55 && fx(p.team, own.x) < 92 && Math.abs(own.y - GOAL_Y) < 28 && fx(p.team, own.x) < fx(p.team, p.x) - 2) uFire(p, p.uniq);   /* 渦潮の囮：相手陣内（相手ゴールから約50m以内）で、2列目の味方が自分より後ろで持ったら（走っている途中でも） */
         if (p.run > 0) { p.run -= DT; if (p.run <= 0) p.runCd = R.range(2, 4); }
@@ -4413,7 +4415,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       if (globalThis.__shLog && kind === 'shot' && !(opt && opt.pk)) globalThis.__shLog.push({ t: S.t, team: p.team, pr: pressure, d: hyp(fx(p.team, L) - p.x, GOAL_Y - p.y) });
       if (uOn(p, 'byakuya') || uOn(p, 'midori')) pressure = 0;                  // 白夜の視界・翠の起点：プレスを受けても落ち着いて蹴れる
       else if (pressure) { const a = aura(p, 'calmness'); if (a) pressure *= 1 - 0.3 * a; }   // 落ち着き（レジスタのサポートパッシブ）
-      const fatigue = 1 - (p.sk.has('lateGrit') && S.t * CLOCK_SCALE / 60 >= 70 ? Math.max(p.cur, 60) : p.cur) / 100;   // 終盤の粘り：疲れてもプレーが落ちない
+      const fatigue = 1 - (p.sk.has('lateGrit') && S.t * CLOCK_SCALE / 60 >= 70 ? Math.max(curE(p), 60) : curE(p)) / 100;   // 終盤の粘り：疲れてもプレーが落ちない
       const maxV = 12 + p.kick * 0.28;                      // キック力 50 → 26m/s、80 → 34m/s
       let csGkNear = 0, driveG = 0, driveUp = 0, driveOn = false, csPlace = false, csType = '', ang = Math.atan2(dy, dx), speed, vz = 0, spin = 0, knuckle = false, bs = -0.4, aimCurve = false;
       if (kind === 'shot') {
@@ -5231,8 +5233,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       if (how === 'throw' && p.sk.has('lowThrow') && hyp(q.x - p.x, q.y - p.y) > 22) {
         // 低弾道スロー：頭くらいの高さで一直線に、遠くまで
         const tx = q.x + q.vx * 0.8, ty = q.y + q.vy * 0.8, d = hyp(tx - p.x, ty - p.y) || 1;
-        const v = clamp(15 + d * 0.3, 18, 27), t = d / v;
-        Object.assign(b, { owner: -1, kind: 'pass', style: 'drive', z: 2.0, vx: ((tx - p.x) / d) * v, vy: ((ty - p.y) / d) * v, vz: clamp((4.9 * t * t - 0.6) / t, 0.5, 6), spin: 0, bs: 0, knuckle: false, lastTeam: p.team, lastPlayer: p.idx, kicker: p.idx, intended: q.idx, offside: false });
+        const v = (globalThis.__Klt ?? 1) ? clamp(12 + d * 0.16, 14, 20) * (0.95 + p.technique * 0.0008) : clamp(15 + d * 0.3, 18, 27), t = d / v;   /* 版971：投げる球は、蹴る球より遅い（時速70km前後まで）。前は時速97kmまで出ていた */
+        Object.assign(b, { owner: -1, kind: 'pass', style: 'drive', z: 2.0, vx: ((tx - p.x) / d) * v, vy: ((ty - p.y) / d) * v, vz: clamp((4.9 * t * t - 0.6) / t, 0.5, 6), spin: 0, bs: (globalThis.__Klt ?? 1) ? 0.15 : 0, knuckle: false, lastTeam: p.team, lastPlayer: p.idx, kicker: p.idx, intended: q.idx, offside: false });   // 版971：手から離れる時に逆回転がかかる（無回転にしない）
         p.touchCd = 0.6; act(p, 'throwgk', 0.5, { dx: (tx - p.x) / d, dy: (ty - p.y) / d, roll: 0 }); act(p, 'skill', 1.3, { k: 'lowThrow' });
       } else if (how === 'lowPunt') {
         // 低弾道パントキック：頭くらいの弾道で、ポップアップしながら相手DFラインの裏へ
@@ -5711,6 +5713,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         for (const q of opps(p)) { const dd = hyp(q.x - p.x, q.y - p.y); if (dd < 7) bend += (p.y - q.y) / (dd * dd + 1); }
         let dy2 = dir[1] + clamp(bend * 3, -0.9, 0.9);
         if ((p.y < 4 && dy2 < 0) || (p.y > W - 4 && dy2 > 0)) dy2 = -dy2 * 0.3;   // タッチライン際では外へ向かわない
+        if ((globalThis.__Kdin ?? 1) && xf > L / 2 - 10 && Math.abs(p.y - GOAL_Y) > 6 && Math.sign(dy2) === Math.sign(p.y - GOAL_Y)) dy2 = Math.sign(dy2) * Math.min(Math.abs(dy2), 0.3);   // 版971：相手陣でゴールから外へ流れない（外へ逃げるのは少しだけ。ゴールの方が空いていれば、そちらへ切り込む）
         // ゴール前（約28m以内）で外へ流れると、自分でシュートの角度を消してしまう。コントロールショットを持たない選手は、外へは流れずゴールへ向かう
         if (xf > L - 28 && !skZ(p, 'controlShot') && Math.abs(p.y - GOAL_Y) > 4 && Math.sign(dy2) === Math.sign(p.y - GOAL_Y)) dy2 = Math.sign(dy2) * Math.min(Math.abs(dy2) * 0.25, Math.abs(dir[1]) * 0.3) + (GOAL_Y - p.y) / (Math.abs(p.y - GOAL_Y) || 1) * 0.15;
         // 相手のバイタルエリアで前が空いていれば、どんどん仕掛ける
@@ -5745,7 +5748,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
 
       // 自陣で囲まれたらクリア
       if (((xf < 30 && pressure >= 1) || p.gk) && !(S.setPiece && !p.gk)) {
-        opts.push({ kind: 'clear', w: p.gk ? 0.6 : 0.9 + pressure * 0.5 });
+        opts.push({ kind: 'clear', w: (p.gk ? 0.6 : 0.9 + pressure * 0.5) * (!p.gk && (globalThis.__Kclr ?? 1) ? (xf < 18 ? 3 : xf < 25 && pressure >= 2 ? 2 : 1) : 1) });   // 版971：自陣のゴール前（18m以内）で寄せられたら、つながずに大きくクリア
       }
 
       // 選ぶ（うまい選手ほど良い選択に寄る）
@@ -7202,7 +7205,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
               if (ey > POST && vis < 0.45) prob += (0.45 - vis) * (b.shotSkill === 'controlShot' ? 0.6 : 2.0);   // 角度が狭いほど止めやすい（真横に近いほど大きく上がる）
             }
             // 蹴った選手のうまさ（キック・テクニック）：Sの選手が打てば、弱いGKではまず止められない
-            { const kq = P[b.kicker]; prob -= Math.max(0, (kq.kick * 0.6 + kq.technique * 0.4) - skill) * 0.022 * Math.min(1, 0.45 + off * 1.6) * (0.4 + 0.6 * narrowF); }
+            { const kq = P[b.kicker]; if (kq) prob -= Math.max(0, (kq.kick * 0.6 + kq.technique * 0.4) - skill) * 0.022 * Math.min(1, 0.45 + off * 1.6) * (0.4 + 0.6 * narrowF); }
             // ゴール前（PA内）の近いシュートは決まりやすく：崩して打った近距離シュートは、GKもなかなか止められない
             if ((globalThis.__Kgkd ?? 1) && !ik) prob -= 0.13 * clamp((21 - shotD) / 9, 0, 1);   // 版959：ペナルティエリアの中（20m以内）のシュートは、白亜の城壁でもない限り、そんなに止められない
             if (shotD < 16) prob -= CLOSE_FINISH * (1 - shotD / 22) * clamp(1.4 - skill / 100, 0.35, 1) * narrowF;   // うまいGKほど至近距離でも反応できる

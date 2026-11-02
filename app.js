@@ -1095,6 +1095,28 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
   // ボールがゴールのそばにある時は、カメラからボールへの視線をさえぎる面だけをボールの手前に描く（柱やネットの向こうにボールが見えないように）
   let goalDefer = null;   // { gx, before: [ボールより先に描く手前の面], after: [ボールの後に描く奥の面] }
   const GOAL_DEP = 2.6;
+  // 版970：選手（体の高さ0.3〜1.4m）とカメラの間にある、ゴールの面（手前・奥の横ネット、後ろのネット、天井、柱とバー）を調べる
+  function playerGoalOcc(px, py) {
+    const GP = D.CONST.POST, h = D.CONST.BAR, hb = h * 0.92;
+    const gx = px < 52.5 ? 0 : 105, d = gx === 0 ? -1 : 1, behind = (px - gx) * d;
+    if (behind < -2.5 || behind > GOAL_DEP + 2.5 || Math.abs(py - 34) > GP + 3) return null;
+    const C = [B.cx, B.cy, B.cz], hit = {};
+    const roofZ = (x) => h + (hb - h) * Math.max(0, Math.min(1, (x - gx) * d / GOAL_DEP));
+    const inDepth = (x) => { const b = (x - gx) * d; return b > 0 && b < GOAL_DEP; };
+    const yNear = 34 + GP * Math.sign(C[1] - 34 || 1), yFar = 34 - GP * Math.sign(C[1] - 34 || 1);
+    for (const z of [0.3, 0.9, 1.4]) {
+      const V = [px - C[0], py - C[1], z - C[2]], at = (t) => [C[0] + V[0] * t, C[1] + V[1] * t, C[2] + V[2] * t];
+      const tPlane = (k, val) => { const t = (val - C[k]) / (V[k] || 1e-9); return t > 0 && t < 0.999 ? t : null; };
+      { const t = tPlane(1, yNear); if (t != null) { const q = at(t); if (inDepth(q[0]) && q[2] < roofZ(q[0])) hit.near = 1; } }
+      { const t = tPlane(1, yFar); if (t != null) { const q = at(t); if (inDepth(q[0]) && q[2] < roofZ(q[0])) hit.far = 1; } }
+      { const t = tPlane(0, gx + d * GOAL_DEP); if (t != null) { const q = at(t); if (Math.abs(q[1] - 34) < GP && q[2] < hb) hit.back = 1; } }
+      { const f = (t) => { const q = at(t); return q[2] - roofZ(q[0]); }, f0 = f(0), f1 = f(0.999); if ((f0 > 0) !== (f1 > 0)) { const t = f0 / (f0 - f1) * 0.999, q = at(t); if (inDepth(q[0]) && Math.abs(q[1] - 34) < GP) hit.roof = 1; } }
+    }
+    const parts = ['far', 'back', 'roof', 'near'].filter((k) => hit[k]);
+    if (behind > 0.05) parts.push('frame');   // ゴールラインより奥にいる選手には、柱・バーが手前に来る
+    const minF = Math.min(proj(gx, 34).f, proj(gx, 34 - GP).f, proj(gx, 34 + GP).f) - 0.06;
+    return { gx, parts, minF };
+  }
   function goalOcclusion(bx, by, bz) {
     const GP = D.CONST.POST, h = D.CONST.BAR, hb = h * 0.92;
     const gx = bx < 52.5 ? 0 : 105, d = gx === 0 ? -1 : 1, behind = (bx - gx) * d;
@@ -1121,8 +1143,8 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       hit.frame = fr; }
     // ゴールの口を通って中に入った球は、柱・バーの向こうには描かない。手前の横ネットも、入った直後（奥へ0.6m未満）はボールの奥に描く
     //  （ドット絵のボールは実際より大きいので、厳密な視線の計算だと「柱の向こう」に見えてしまう）
-    if (Math.abs(by - 34) < GP && (bz || 0) < h) { hit.frame = false; if (behind < 0.6) hit.near = false; }
-    if (behind > 0 && behind < GOAL_DEP && Math.abs(by - 34) < GP && (bz || 0) < roofZ(bx) + 0.05) { hit.frame = false; if (hit.roof) hit.roofIn = true; }   // ゴールの中のボールは、天井のネットの下（見下ろすカメラからは、天井の網ごしに見える）
+    if (Math.abs(by - 34) < GP && (bz || 0) < h && behind < 0.3) { hit.frame = false; hit.near = false; }   // 版970：口を通っている最中（奥へ0.3m未満）だけ。中に入った球は、本当の視線で柱・横ネットの向こうに描く（ポストの外に転がって見えた）
+    if (behind > 0 && behind < GOAL_DEP && Math.abs(by - 34) < GP && (bz || 0) < roofZ(bx) + 0.05) { if (behind < 0.3) hit.frame = false; if (hit.roof) hit.roofIn = true; }   // ゴールの中のボールは、天井のネットの下（見下ろすカメラからは、天井の網ごしに見える）
     const before = ['near', 'frame'].filter((k) => !hit[k]), after = ['far', 'back', 'roof'].filter((k) => hit[k]);
     return { gx, before, after };
   }
@@ -1131,7 +1153,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     return [0, 105].flatMap((gx) => {
       const g = goalDefer && goalDefer.gx === gx ? goalDefer : null;
       const back = ['far', 'back', 'roof'].filter((k) => !(g && g.after.includes(k))), front = ['near', 'frame'].filter((k) => !(g && g.before.includes(k)));
-      if (!front.includes('frame')) return [{ f: proj(gx, 34).f + 1.5, draw: () => goalDraw(gx, back) }, { f: proj(gx, 34).f - 0.05, draw: () => goalDraw(gx, front) }];
+      if (g || !front.includes('frame')) return [{ f: proj(gx, 34).f + 1.5, draw: () => goalDraw(gx, back) }, { f: proj(gx, 34).f - 0.05, draw: () => goalDraw(gx, front) }];
       // 版970：柱は1本ずつ、その柱の場所の奥行きで描く（ゴール全体を真ん中の奥行きで描くと、柱のそばの選手に柱が重なって、挟まって見えた）
       const GP = D.CONST.POST, fr = front.filter((k) => k !== 'frame');
       return [{ f: proj(gx, 34).f + 1.5, draw: () => goalDraw(gx, back) }, { f: proj(gx, 34).f - 0.05, draw: () => goalDraw(gx, fr.concat(['bar'])) },
@@ -2736,9 +2758,12 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     }
     // 奥から順に：選手・ボール・ゴールの柱
     // 選手とゴール：ゴールの中の選手は「奥のネットより手前・柱と手前のネットより奥」、ゴールの横の外にいる選手は、奥側ならネットの奥・手前側ならネットの手前に描く
+    const pOcc = [];   // 版970：ゴールのそばの選手：カメラからの視線で、選手より手前にあるゴールの部分（ネット・柱）だけを、選手の上に描き直す
     const items = st.players.map((p, i) => {
       let f = proj(p.x, p.y).f;
       const gxN = p.x < 52.5 ? 0 : 105, behind = (p.x - gxN) * (gxN ? 1 : -1);
+      const po = playerGoalOcc(p.x, p.y);
+      if (po) { const f2 = po.minF - 0.02 + 0.0019 * Math.max(-1, Math.min(1, (f - proj(po.gx, 34).f) / 6)); pOcc.push({ f: f2 - 1e-7, goal: () => { if (po.parts.length) goalDraw(po.gx, po.parts); } }); return { f: f2, i }; }   // 選手どうしの前後は、そのまま残す
       if (behind > 0 && behind < GOAL_DEP + 2) {
         const gF = proj(gxN, 34).f, GP = D.CONST.POST;
         if (Math.abs(p.y - 34) < GP && behind < GOAL_DEP) f = Math.max(gF - 0.03, Math.min(gF + 1.45, f));
@@ -2753,6 +2778,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       const bf0 = proj(st.ball.x, st.ball.y).f - 0.05;
       items.push({ f: goalDefer ? Math.max(gF - 0.04, Math.min(gF + 1.45, bf0)) : bf0, ball: true }); }   // ゴールの奥の網と手前の柱の間に置き、前後は視線で決めた面ごとに描く
     for (const g of goalParts()) items.push({ f: g.f, goal: g.draw });
+    for (const g of pOcc) items.push(g);
     for (const g of cornerFlags()) items.push({ f: g.f, goal: g.draw });
     if (st.ref) {
       const rvx = st.ref.vx;
