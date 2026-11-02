@@ -4035,5 +4035,5 @@ img:not([src]),img[src=""]{visibility:hidden}
 .sq-st .sq-good{display:block;margin-top:3px;color:#9be7b0;font-weight:700;font-size:11px;line-height:1.35}
 /* 版974：リザーブの☆ごとにまとめて選ぶ */
 .s2mu .s2mu-st{display:flex;flex-direction:column;gap:4px}
-.s2mu .s2mu-star{height:30px;background:#3a3f55;border:2px solid #ffd54a;color:#ffe58a;font-size:12px}
-.s2mu .s2mu-star small{margin-left:4px;font-size:10px;color:#fff;opacity:.85}
+.s2mu .s2mu-star{height:30px;padding:0 6px;background:#3a3f55;border:2px solid #ffd54a;color:#ffe58a;font-size:12px;letter-spacing:-.02em;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:3px}
+.s2mu .s2mu-star small{font-size:10px;color:#fff;opacity:.85}
