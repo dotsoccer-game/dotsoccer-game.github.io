@@ -1608,7 +1608,7 @@
         <div class="s2pitch" style="left:${PX0}px;top:${PY0}px;width:${PW}px;height:${PH}px"><i class="s2gk" style="top:${R * CH}px;height:${CH * 2}px"></i><i class="s2box" style="left:${PW * 0.22}px;width:${PW * 0.56}px;top:${R * CH - CH * 0.15}px;height:${CH * 2.15}px"></i><i class="s2box2" style="left:${PW * 0.34}px;width:${PW * 0.32}px;top:${R * CH + CH * 0.85}px;height:${CH * 1.15}px"></i></div>
         ${grid}${zl}
         <div class="s2bench"${benchCss[0]}><b class="s2bh">ベンチ入り</b></div><div class="s2bench g"${benchCss[1]}><b class="s2bh">ベンチ外</b></div>
-        ${Array.from({ length: C.BENCH_N }, (_, k) => `<i class="s2e" style="left:${BX1}px;top:${BY0 + k * BDY}px"></i><i class="s2e" style="left:${BX2}px;top:${BY0 + k * BDY}px"></i>`).join('')}${dots}${Object.keys(occ).map((k) => { const [r, c] = k.split(':').map(Number); return `<i class="s2occ" style="left:${PX0 + c * CW}px;top:${PY0 + (R - 1 - r) * CH}px;width:${CW}px;height:${CH}px"></i>`; }).join('')}${col(b1, 11, BX1, false)}${col(b2, 11 + C.BENCH_N, BX2, true)}
+        ${Array.from({ length: C.BENCH_N }, (_, k) => `<i class="s2e" style="left:${BX1}px;top:${BY0 + k * BDY}px"></i><i class="s2e" style="left:${BX2}px;top:${BY0 + k * BDY}px"></i>`).join('')}${dots}${col(b1, 11, BX1, false)}${col(b2, 11 + C.BENCH_N, BX2, true)}
         ${pop}</div>
       <button class="s2btn s2nb" data-a="note"><span>${formMini(tac.formation === 'custom' ? '4-4-2' : tac.formation)}</span><b>フォーメーション</b></button>
       <button class="s2btn s2db" data-a="show" title="表示の切りかえ（名前・調子／タイプ／星）"><span><img class="s2chg" src="icons/ui_change.png" alt="切りかえ"></span></button>
