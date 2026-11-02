@@ -3568,12 +3568,12 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
               if (gInBox && !p.diveT && !p.downT && !p.svPrep && tG < 0.5 && Math.abs(gap) > 0.5 && Math.abs(gap) < 2.2 && b.z < 0.35 && Math.abs(b.vz || 0) < 1.5 && kD < 11 && R.next() < 0.75) p.svPrep = { t: b.shotT, k: 'footsave', dir: Math.sign(gap) };   // 版864：至近距離のグラウンダーだけ
               /* 版865：体を広げて止めるは取りやめ（至近距離は足を伸ばして止めるに集約） */   // 版864：至近距離の浮き球：体を大きくして、体のどこかに当ててはじく
               if (p.svPrep && p.svPrep.t !== b.shotT) p.svPrep = null;
-              if (gInBox && !passedGk && b.z > 0.7 && !p.svPrep && !p.diveT && !p.downT && !p.lateDive && tG < 0.32 && Math.abs(gap) > 0.35 && Math.abs(gap) <= 0.8 && kD > 11 && onFrame) startDive(p, Math.sign(gap), Math.max(0.7, Math.abs(gap)), Math.max(0.12, tG));   // 版868：PKの位置より遠いシュートが体の少し横に来る：ボールが来る前に、体を横に倒しはじめる（はじいた後に倒れない）
+              if (gInBox && !passedGk && b.z > 0.7 && !p.svPrep && !p.diveT && !p.downT && !p.lateDive && tG < 0.32 && Math.abs(gap) > 0.35 && Math.abs(gap) <= 0.8 && kD > 11 && onFrame) { if (globalThis.__Kgkst ?? 1) p.svPrep = { t: b.shotT, k: 'stand', dir: Math.sign(gap) || 1 }; else startDive(p, Math.sign(gap), Math.max(0.7, Math.abs(gap)), Math.max(0.12, tG)); }   // 版970：体のすぐ横（0.8m以内）に来る球は、横っ跳びせず、立ったまま一歩寄って取る（正面なのに横へ飛んでよけて見えた）   // 版868：PKの位置より遠いシュートが体の少し横に来る：ボールが来る前に、体を横に倒しはじめる（はじいた後に倒れない）
               else if (gInBox && passedGk && onFrame && fx(tm.ti, p.x) < 3.5 && !p.diveT && !p.downT && !p.lateDive && fx(tm.ti, b.x) > 0.4 && Math.abs(yc - p.y) > 0.7 && Math.abs(yc - p.y) < gkDiveMax(p) + 2.5) startDive(p, Math.sign(yc - p.y), Math.abs(yc - p.y), 0.15);   // 版877：反応が遅れた：もう間に合わないが、ゴールに入る所（ゴールラインを割る所）へ遅れて飛び込む（見送らない）
               else if (gInBox && !passedGk && !p.svPrep && !p.diveT && !p.downT && !p.lateDive && tG < 0.5 && Math.abs(gap) > 0.8 && (Math.abs(gap) < gkDiveMax(p) + 1 || onFrame)) {   /* 版460：飛び方は版457に戻した */
                 // 飛ぶ瞬間に「届くかどうか」を決めておく：届かない時は手前で落ち、届く時はしっかり触る（見た目と結果をそろえる）
                 const r0 = R.next(), g0 = gkSaveProb(p, b, 0.1, yG, Math.max(5, hyp(b.vx, b.vy) - 4)), est = g0.prob + 0.04 + 0.5 * clamp((g0.skill - 45) / 40, 0, 1), miss = r0 >= est;   // 版790：上手なGK（D2・D1級）ほど、飛ぶ向きと間合いを外さない   // 届く頃の球の速さで見積もる
-                p.preSave = { t: b.shotT, r: r0, miss, est, sp: hyp(b.vx, b.vy), d: hyp(P[b.kicker].x - p.x, P[b.kicker].y - p.y) };
+                p.preSave = { t: b.shotT, r: r0, miss, est, sp: hyp(b.vx, b.vy), d: hyp(P[b.kicker].x - p.x, P[b.kicker].y - p.y) }; if (globalThis.__preLog) globalThis.__preLog.push({ st: b.shotT, miss, est: +est.toFixed(2), prob: +g0.prob.toFixed(2), r0: +r0.toFixed(2), sp: +hyp(b.vx, b.vy).toFixed(1), gap: +gap.toFixed(2), tG: +tG.toFixed(2), z: +b.z.toFixed(2) });
                 if (miss) missDive(p, gap, tG, b.csPlace && b.csType === 'ground');   // 版781：届かない時は、伸ばした手（絵）もボールに重ならない所まで
                 else startDive(p, Math.sign(gap), Math.abs(gap), tG);
               }
@@ -4028,15 +4028,43 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       if ((globalThis.__Knar ?? 1) && p.gk && S.ball.kind === 'shot' && p.narT != null && p.narT === S.ball.shotT) return;   // 版951：角度のない所からの、体の近くに来るシュートには、触る瞬間も飛ばない（立ったまま止める・はじく）
       { const bb = S.ball; let zAt = zKnown; if (zAt == null) { let z = bb.z || 0, vz = bb.vz || 0, vx = bb.vx || 0, vy = bb.vy || 0; const bs = bb.bs || 0; for (let tt = 0; tt < tHit; tt += 0.02) { const h = hyp(vx, vy), v = Math.hypot(h, vz); vx -= AIR * v * vx * 0.02; vy -= AIR * v * vy * 0.02; vz -= (9.8 + AIR * v * vz - LIFT * bs * h) * 0.02; z += vz * 0.02; if (z < 0) { z = 0; vz = Math.abs(vz) * 0.4; } } zAt = z; }   // 版876：届く頃の高さは、空気・回転（ドライブで落ちる）も入れて見積もる
         p.hiDiveT = zAt > 1.8 && (bb.z || 0) > 0.9 ? S.t + 1.0 : 0; }   // 版871：高い球へ飛ぶ時は、高く飛ぶ横っ跳び（絵は13・14）
+      if ((globalThis.__Kgk2d ?? 1) && p.gk && S.ball.kind === 'shot' && S.ball.shotT != null) { if (p.dvShot === S.ball.shotT) return; p.dvShot = S.ball.shotT; }   // 版970：同じシュートに2回飛ばない（2段で飛んで見えた）
       p.diveT = 0.7; p.diveDir = dir;
       dist = Math.min(dist, gkDiveMax(p));
       const v = clamp(dist / Math.max(tHit, 0.18), 3, 5.2 + p.speed * 0.015 + p.jump * 0.025);
       p.vy = dir * v; p.vx *= 0.3;
     }
     // 選手はゴールのネットをすり抜けない：ゴールの中に入っても奥のネットの手前まで、外から横のネットを通り抜けて中へは入れない
+    // 版970：ゴールポストは障害物：まっすぐ当たりそうなら横へよけて回り込み、体（0.55m）はポストに重ならない（すり抜けない・挟まらない）
+    function postAvoid(p) {
+      const RB = 0.6;
+      for (const gl of [0, L]) for (const sy of [-1, 1]) {
+        const px0 = gl, py0 = GOAL_Y + sy * POST;
+        let dx = p.x - px0, dy = p.y - py0; const dd = Math.hypot(dx, dy);
+        if (dd > 4) continue;
+        // よける：進む向きの先（2m以内）にポストがあり、横の間が体の幅より狭い
+        const v = Math.hypot(p.vx, p.vy);
+        if (v > 0.5 && !(p.diveT > 0) && !(p.downT > 0)) {
+          const ux = p.vx / v, uy = p.vy / v, ahead = -(dx * ux + dy * uy), side = -dx * uy + dy * ux;   // ahead：進む向きにポストまで何m、side：ポストが進む向きの左右どちらに何m
+          if (ahead > 0 && ahead < 2 && Math.abs(side) < RB + 0.25) {
+            const s0 = side >= 0 ? -1 : 1, k = clamp((RB + 0.25 - Math.abs(side)) / (RB + 0.25), 0, 1) * clamp(1.2 - ahead / 2, 0.3, 1);   // ポストと反対の横へ
+            const nx = ux + (-uy * s0) * k * 1.4, ny = uy + (ux * s0) * k * 1.4, nl = Math.hypot(nx, ny) || 1;
+            p.vx = nx / nl * v; p.vy = ny / nl * v;
+          }
+        }
+        // 横っ跳び・倒れているGK：体（頭から足まで約1.8m）がポストをまたがない。ゴールラインの近く（1.5m以内）では、ポストから0.9m離れた所で止まる
+        if (p.gk && Math.abs(p.x - px0) < 1.5) { const ay = Math.abs(p.y - GOAL_Y), dP = Math.abs(ay - POST), lim = p.diveT > 0 || p.downT > 0 ? 1.0 : 0.8;
+          if (dP < lim) { const inside = ay < POST; p.y = GOAL_Y + Math.sign(p.y - GOAL_Y || sy) * (inside ? POST - lim : POST + lim); if (p.vy * Math.sign(p.y - GOAL_Y) * (inside ? 1 : -1) > 0) p.vy = 0; } }
+        // ぶつかる：体がポストに重なったら、外へ押し出す（向かう速さは止める）
+        dx = p.x - px0; dy = p.y - py0; const d2 = Math.hypot(dx, dy);
+        if (d2 < RB) { const ux = d2 > 0.01 ? dx / d2 : (gl === 0 ? 1 : -1), uy = d2 > 0.01 ? dy / d2 : 0;
+          p.x = px0 + ux * RB; p.y = py0 + uy * RB; const vn = p.vx * ux + p.vy * uy; if (vn < 0) { p.vx -= vn * ux; p.vy -= vn * uy; } }
+      }
+    }
     function movePlayers() {
       for (const p of P) { p.ppx = p.x; p.ppy = p.y; }
       movePlayers0();
+      if (globalThis.__Kpost ?? 1) for (const p of P) { if (p.off) continue; postAvoid(p); }
       for (const p of P) {
         if (p.off) continue;
         // 流れの中では、選手はタッチラインの外へ出ない（ライン際でパスを受ける・運ぶ時に、外にいて球を出してしまわない）
@@ -7945,8 +7973,10 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             const tipIn = () => { if (dGk > 1.3 || p.downT > 0) return false; { const gl = fx(p.team, 0), tl = Math.abs(b.vx) > 0.5 ? (gl - b.x) / b.vx : -1, yc = b.y + b.vy * tl; if (!(tl > 0 && Math.abs(yc - GOAL_Y) < POST - 0.2 && b.z < 2.3)) return false; }   /* 枠に向かっている球だけ（外れる球をゴールに入れない） */ ev('gk', { team: p.team, player: p.name, act: 'tip' }); p.touchCd = 1.2; if (!p.diveT && Math.abs(yAt - p.y) > 0.4) startDive(p, Math.sign(yAt - p.y), Math.abs(yAt - p.y), 0.12);   /* 吹き出しなしでも分かるように：手をボールまで伸ばして触る */
               const gl = fx(p.team, 0), side = Math.sign(yAt - p.y) || 1, ty2 = clamp(yAt + side * R.range(0.9, 1.7), GOAL_Y - POST + 0.5, GOAL_Y + POST - 0.5), dxg = gl - b.x || -sgn(p.team) * 0.5, tt = Math.max(0.12, Math.abs(dxg) / Math.max(7, sp * 0.5));   /* 版781：はじいた球は、はっきり向きと勢いが変わって（ふわっと浮いて）入る */
               Object.assign(b, { vx: dxg / tt, vy: (ty2 - b.y) / tt, vz: R.range(1.6, 3.2), z: Math.min(b.z, 1.8), spin: 0, curveAll: false, knuckle: false, wobW: null }); return true; };
-            if (pre && pre.miss) { if (tipIn()) continue; p.touchCd = 1.2; continue; }   // 届かないと決まった横っ跳び：手はボールの手前
-            const gkRoll = pre ? pre.r : R.next();
+            const tipL = () => { const r = tipIn(); if (r && globalThis.__tipLog) globalThis.__tipLog.push({ d: +(b.shotFrom || 0).toFixed(1), off: +off.toFixed(2), sp: +sp.toFixed(1), prob: +prob.toFixed(2), miss: !!(pre && pre.miss), dive: p.diveT > 0 ? 1 : 0 }); return r; };
+            const coreHit = (globalThis.__Kgktip ?? 1) && off < 0.7 && sp < 22 && !b.knuckle && dGk < 1.3 && !(p.downT > 0);   // 版970：手・体の真ん中に来たゆるい球は、すり抜けて入らない（必ずどこかで止める・はじく）
+            if (pre && pre.miss && !coreHit) { if (tipL()) continue; p.touchCd = 1.2; continue; }   // 届かないと決まった横っ跳び：手はボールの手前
+            const gkRoll = pre ? pre.r : R.next(); if (globalThis.__gkTry) globalThis.__gkTry.push({ st: b.shotT, prob: +prob.toFixed(2), roll: +gkRoll.toFixed(2), off: +off.toFixed(2), dGk: +dGk.toFixed(2), sp: +sp.toFixed(1), z: +b.z.toFixed(2), pre: pre ? (pre.miss ? 'miss' : 'try') : 'none', dive: p.diveT > 0 ? 1 : 0 });
             // 超反応：決まったと思った瞬間に指先で触る／1対1の鬼：体を投げ出して、体のどこかに当てる
             const reflex = gkRoll >= prob && p.sk.has('superReflex') && shotD < 17 && R.next() < 0.12 + p.technique * 0.0015;
             const block1 = gkRoll >= prob && !reflex && oneGK && R.next() < 0.3;
@@ -7956,7 +7986,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
               Object.assign(b, { vx: sgn(p.team) * (out ? -R.range(2, 5) : R.range(1, 4)), vy: side * R.range(4, 8), vz: R.range(2, 4), z: Math.max(b.z, 0.5), kind: 'loose', lastTeam: p.team, lastPlayer: p.idx, spin: 0, knuckle: false }); capOut(b, sp);
               p.touchCd = 0.8; return; }
             // GKの体の正面（手が届くど真ん中）に来た球は、止められなくても必ずどこかに当たる（「今の止めてたでしょ」をなくす）
-            const bodyHit = (off < (shotD < 12 ? 0.28 : 0.42) || (pre && off < 0.85)) && !b.knuckle && !b.csPlace;   // 置きに行くコントロールショットは、GKの手がぎりぎり届かない隅へ置く   // 至近距離は体の正面でも反応が間に合わないことがある   // 届くと決まった横っ跳びも、必ず触る
+            const bodyHit = ((off < (shotD < 12 ? 0.28 : 0.42) || (pre && off < 0.85)) && !b.knuckle && !b.csPlace) || coreHit;   // 置きに行くコントロールショットは、GKの手がぎりぎり届かない隅へ置く   // 至近距離は体の正面でも反応が間に合わないことがある   // 届くと決まった横っ跳びも、必ず触る
             if (gkRoll < prob || bodyHit) {
               { const hr = p.diveT > 0 ? 1.1 : 0.8, dy0 = yAt - p.y;   // 版866：触った瞬間、ボールはGKの手の先（体からhrの所まで）にそろえる
                 if (b.z < 1.95 && !((globalThis.__Kgkc2 ?? 1) && b.px != null)) { b.x = p.x + sgn(p.team) * 0.3; b.y = p.y + clamp(dy0, -hr, hr); } else if (b.px != null) {   /* 版912：低い球も、ボールが通った線の上で手に当たる（手の所へ飛び移らない） */ const u0 = segDist(p.x, p.y, b.px, b.py, b.x, b.y).u; b.x = b.px + (b.x - b.px) * u0; b.y = b.py + (b.y - b.py) * u0; if (b.pz != null) b.z = b.pz + (b.z - b.pz) * u0; } /* 版869・870：頭より高い球は手の位置へ動かさず、このコマで通った線の上の、手にいちばん近い所（本当に触れた所）にそろえる */ b.bs = 0; b.drive = 0; b.driveOn = false; b.driveUp = 0; b.curveAll = false; b.wobW = null; }   // 版866：GKが触ったら、シュートの回転（ドライブの落ちる力など）は消える
@@ -8061,7 +8091,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
               p.touchCd = 0.8;
               return;
             }
-            if (tipIn()) continue;
+            if (tipL()) continue;
             p.touchCd = 1.2;
             // 止められなかった：正面でも体を投げ出して手を伸ばす（GKも頑張ったが届かなかった、と見えるように）
             // 届かなかったように見せる：飛ぶのが少し遅れて、手はボールの手前までしか届かない

@@ -1131,7 +1131,11 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     return [0, 105].flatMap((gx) => {
       const g = goalDefer && goalDefer.gx === gx ? goalDefer : null;
       const back = ['far', 'back', 'roof'].filter((k) => !(g && g.after.includes(k))), front = ['near', 'frame'].filter((k) => !(g && g.before.includes(k)));
-      return [{ f: proj(gx, 34).f + 1.5, draw: () => goalDraw(gx, back) }, { f: proj(gx, 34).f - 0.05, draw: () => goalDraw(gx, front) }];
+      if (!front.includes('frame')) return [{ f: proj(gx, 34).f + 1.5, draw: () => goalDraw(gx, back) }, { f: proj(gx, 34).f - 0.05, draw: () => goalDraw(gx, front) }];
+      // 版970：柱は1本ずつ、その柱の場所の奥行きで描く（ゴール全体を真ん中の奥行きで描くと、柱のそばの選手に柱が重なって、挟まって見えた）
+      const GP = D.CONST.POST, fr = front.filter((k) => k !== 'frame');
+      return [{ f: proj(gx, 34).f + 1.5, draw: () => goalDraw(gx, back) }, { f: proj(gx, 34).f - 0.05, draw: () => goalDraw(gx, fr.concat(['bar'])) },
+        { f: proj(gx, 34 - GP).f - 0.05, draw: () => goalDraw(gx, ['postA']) }, { f: proj(gx, 34 + GP).f - 0.05, draw: () => goalDraw(gx, ['postB']) }];
     });
   }
   function goalDraw(gx, parts) {
@@ -1188,11 +1192,12 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       }
     }
     if (has('near')) sideNet(camNear);   // 手前（カメラ側）の横のネット
-    if (has('frame')) {
+    if (has('frame') || has('postA') || has('postB') || has('bar')) {
       // ゴールの柱とバー：太く、影の側を濃いグレー・光の側を明るいグレーで立体的に
       const pw = Math.max(4, 5.6 * s0);
       ctx.lineCap = 'round';
-      const frame = () => { ctx.beginPath(); seg(P3(gx, y0, 0), P3(gx, y0, h)); seg(P3(gx, y1, 0), P3(gx, y1, h)); seg(P3(gx, y0, h), P3(gx, y1, h)); };
+      const fA = has('frame') || has('postA'), fB = has('frame') || has('postB'), fC = has('frame') || has('bar');
+      const frame = () => { ctx.beginPath(); if (fA) seg(P3(gx, y0, 0), P3(gx, y0, h)); if (fB) seg(P3(gx, y1, 0), P3(gx, y1, h)); if (fC) seg(P3(gx, y0, h), P3(gx, y1, h)); };
       ctx.strokeStyle = '#6e6e7a'; ctx.lineWidth = pw + 2; frame(); ctx.stroke();
       ctx.strokeStyle = '#c9c9d3'; ctx.lineWidth = pw; frame(); ctx.stroke();
       ctx.save(); ctx.translate(-pw * 0.18, -pw * 0.18); ctx.strokeStyle = '#f4f4f8'; ctx.lineWidth = pw * 0.4; frame(); ctx.stroke(); ctx.restore();
@@ -1899,7 +1904,11 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
   }
   let kpBall = { x: 52.5, y: 34 };   // 版866：GKの絵をボールに向けるための、いまのボールの位置（drawKeeper の中からは st が見えない）
   let hiDv = false; const hiCache = [];
+  // 版970：GKはボールの方を向く。止める姿勢（片足・片手を伸ばす）のままボールが後ろ（ゴールの中）へ抜けたら、姿勢をやめて普通に立ち、振り返ってボールを見る（伸ばした手足がゴールを指さして見えた）
+  function kpFace(p) { return proj(kpBall.x, kpBall.y); }
+  const kpBehind = (p) => (kpBall.x - p.x) * (p.x < 52.5 ? 1 : -1) < -0.3;
   function drawKeeper(q, p, info, team, facing, frame, code, gi) {
+    if ((code === 8 || code === 9 || code === 10 || code === 11 || code === 12) && kpBehind(p)) { const bq0 = kpFace(p); dmFacing = Math.atan2((bq0.y - q.y) / 0.45, bq0.x - q.x); const r0 = sprite(q.x, q.y, q.s, info, team, facing, 0, false, false); dmFacing = null; return r0; }
     if (code === 13 || code === 14) code = code === 13 ? 1 : 3;   // 版871：高い所へ飛ぶ横っ跳び
     hiDv = false;
     if (code === 1 || code === 3) {   // 版876：高く飛ぶかどうかは、記録の先を見て、ボールがGKのそばを通る時の本当の高さで決める（低い球に高く飛ばない）
@@ -1951,7 +1960,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       if (simT - (highStart[gi] ?? -9) > jT + 0.3 || simT < (highStart[gi] ?? -9)) highStart[gi] = simT;
       const u = Math.min(1, (simT - highStart[gi]) / jT), h = Math.sin(Math.PI * u) * (0.55 + jp * 0.0085), lifted = P3(p.x, p.y, h), px = Math.max(1.4, 2.5 * q.s);
       ctx.fillStyle = 'rgba(0,30,0,0.3)'; ctx.beginPath(); ctx.ellipse(q.x, q.y - px * 0.2, (5.2 - h * 1.6) * px, (1.7 - h * 0.5) * px, 0, 0, Math.PI * 2); ctx.fill();
-      { const bq0 = proj(kpBall.x, kpBall.y); dmFacing = Math.atan2((bq0.y - q.y) / 0.45, bq0.x - q.x); } const r7 = sprite(lifted.x, lifted.y, q.s, info, team, facing, 1, false, true, true, null, 0, 'front'); dmFacing = null; return r7;   // 版865：ボールに正対して跳ぶ
+      { const bq0 = kpFace(p); dmFacing = Math.atan2((bq0.y - q.y) / 0.45, bq0.x - q.x); } const r7 = sprite(lifted.x, lifted.y, q.s, info, team, facing, 1, false, true, true, null, 0, 'front'); dmFacing = null; return r7;   // 版865：ボールに正対して跳ぶ
     }
     if (code === 6) {
       // パンチング：飛び上がって片手のこぶしで突き上げる
@@ -1979,12 +1988,12 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       const u = Math.min(1, (simT - highStart[gi]) / 0.6), h = Math.sin(Math.PI * u) * 1.1, lifted = P3(p.x, p.y, h), px = Math.max(1.4, 2.5 * q.s), H = 18 * px;
       ctx.fillStyle = 'rgba(0,30,0,0.3)'; ctx.beginPath(); ctx.ellipse(q.x, q.y - px * 0.2, (5.2 - h * 1.6) * px, (1.7 - h * 0.5) * px, 0, 0, Math.PI * 2); ctx.fill();
       const gx = proj(kpBall.x, kpBall.y).x - q.x, lean = (Math.sign(gx) || 1) * 0.3 * Math.min(1, u * 2);   // 版870：ボールの方へ体を伸ばす
-      { const bq0 = proj(kpBall.x, kpBall.y); dmFacing = Math.atan2((bq0.y - q.y) / 0.45, bq0.x - q.x); }   // 版870：横向きにしない：ボールに正対して、両手を上へ伸ばす
+      { const bq0 = kpFace(p); dmFacing = Math.atan2((bq0.y - q.y) / 0.45, bq0.x - q.x); }   // 版870：横向きにしない：ボールに正対して、両手を上へ伸ばす
       ctx.save(); ctx.translate(lifted.x, lifted.y); ctx.rotate(lean * 0.5); const r8 = sprite(0, 0, q.s, info, team, facing, 1, false, true, true, null, 0, 'front'); ctx.restore(); dmFacing = null;
       return { top: lifted.y - H * 0.7, px: (r8 && r8.px) || px };
     }
     if (code === 9 || code === 10) {   // 足を伸ばして止める（スライディングのように片足を投げ出す）
-      { const bq0 = proj(kpBall.x, kpBall.y); dmFacing = Math.atan2((bq0.y - q.y) / 0.45, bq0.x - q.x); }   // 版865：ボールに正対して、片足を伸ばす（背中を向けない）  版864：踏み込んで、ボールの来た方へ片足を大きく伸ばす（スライディングではなく、立ったまま足を出す）
+      { const bq0 = kpFace(p); dmFacing = Math.atan2((bq0.y - q.y) / 0.45, bq0.x - q.x); }   // 版865：ボールに正対して、片足を伸ばす（背中を向けない）  版864：踏み込んで、ボールの来た方へ片足を大きく伸ばす（スライディングではなく、立ったまま足を出す）
       const r9 = sprite(q.x, q.y, q.s, info, team, facing, 0, false, false, false, 'lunge', 0, 'front'); dmFacing = null; return r9;
     }
     if (code === 11) {   // 1対1：両手両足を大きく広げて、体ごと壁になる
@@ -2934,11 +2943,14 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       if (info.gk && celebInfo && team !== celebInfo.team && !((gkCode >= 1 && gkCode <= 4) || gkCode === 13 || gkCode === 14)) {
         const age = simT - celebInfo.t;
         if (age >= 0.2 && age < 6.6) {
-          const dived = (stateAt(celebInfo.t).gk || [0, 0])[team] || 0, skip = dived >= 1 && dived <= 4;   // 跳んで倒れていたら、起き上がってすぐ尻もちから
-          const stage = skip ? (age < 2.4 ? 'gkSit' : 'stand') : age < 0.75 ? 'watch' : age < 0.95 ? 'gkCrouch' : age < 2.4 ? 'gkSit' : 'stand';
+          const dived = (stateAt(celebInfo.t).gk || [0, 0])[team] || 0, skip = dived >= 1 && dived <= 4;   // 跳んで倒れていたら、起き上がってすぐ悔しがる
+          const prone = Math.abs(Math.sin(celebInfo.t * 12.9898) * 43758.5453) % 1 < 0.5;   // 版970：悔しがり方は2通り：尻もち／うつ伏せに倒れ込む（ゴールごとに決まる）
+          const down = prone ? 'fall2' : 'gkSit';
+          const stage = skip ? (age < (prone ? 2.6 : 2.4) ? down : 'stand') : age < 0.8 ? 'watch' : age < 1.0 ? 'gkCrouch' : age < (prone ? 2.8 : 2.6) ? down : 'stand';   // 版970：少し見送ってから、膝が崩れて悔しがる
           const ownGoalX = celebInfo.net ? celebInfo.net.gx : (p.x < 52.5 ? 0 : 105), gq = proj(ownGoalX, 34);   // 決められたゴールの方
           dmFacing = Math.atan2(-Math.abs((gq.y - q.y) / 0.45) - 8, gq.x - q.x);   // ゴールの方を向く（カメラには背中を向けたまま。本家と同じ見え方）
           if (stage === 'watch' || stage === 'stand') r = sprite(q.x, q.y, q.s, info, team, facing, 0, false, false);
+          else if (stage === 'fall2') { dmFacing = Math.atan2(0, (gq.x - q.x) || 1); r = sprite(q.x, q.y, q.s, info, team, facing, 0, false, false, true, 'fall2', 0, 'side'); }   // うつ伏せに倒れ込む（ゴールの方へ）
           else r = sprite(q.x, q.y, q.s, info, team, facing, 0, false, false, false, stage, 0, 'back');
           sad = -1;
         }
