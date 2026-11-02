@@ -12,10 +12,11 @@
   // ---------- スキル・動きを使うエリア（「スキルのエリア設定」ページで決めた表）----------
   // 15文字＝縦5（自陣ゴール前・自陣・中盤・敵陣・敵ゴール前）×横3（左サイド・中央・右サイド。攻める向きで見る）。0＝使わない 1＝普通 2＝積極的
   const ZONE_RULES = {"break":"000101111222222","carry":"111111111111111","pace":"000111111222111","speedDribble":"000000212222111","scissors":"000000111222111","bodyFeint":"000000111222222","doubleTouch":"000000111222111","roulette":"000000111222111","elastico":"000000111222111","nutmeg":"000000111222222","cutIn":"000000101202212","heelLift":"000000000202101","kickFeint":"000000000121222","driveShot":"000000000020020","powerMid":"000000000121111","superLong":"000000010121111","controlShot":"000000000111222","nearPost":"000000000111222","toeKick":"000000000111222","lob":"000000000111222","volley":"000000000111222","direct":"000000000111222","divingHeader":"000000000000222","bicycle":"000000000000222","throughPass":"000111222222111","loftedThrough":"000111222222111","longFeed":"111222111000000","switchPlay":"000111222111000","earlyCross":"000000000202101","pinpointCross":"000000000101202","oneTouchPass":"000111111222222","noLook":"000111111222222","heelPass":"000000111222222","wallPass":"000000111222222","slide":"000222111111111","intercept":"111111222111111","manMark":"222222111111111","cover":"222222111000000","shoulder":"111111111111111","aerial":"222111111111222","shotBlock":"222111000000000","pressMonster":"111111222222222","recovery":"222222111111111","behindRun":"000000111222222","postPlay":"000000111121111","nearRun":"000000000000222","farWait":"000000000000222","overlap":"000101202202101","looseBall":"111111111111222","oneTwo":"000000111222222"};
+  const FAT_W = { defense: 1.7, vision: 1.3, mental: 1.1, physical: 1.0, dash: 1.0, jump: 0.8, dribble: 0.6, pass: 0.6, kick: 0.4, technique: 0.4 };
   const FAT_KEYS = ['kick', 'technique', 'dribble', 'pass', 'dash', 'physical', 'jump', 'defense', 'vision', 'mental'];   /* 疲れで下がる能力（スピードは別の計算） */
   const STAM_K = 3.5;
   // 版971：見た目のスタミナ（電池）は大きく減る（本家：Sでも終わりには赤）。プレーへの影響は、前の減り方と同じ（下のリーグで点が入らなくなったため）
-  const curE = (p) => 100 - (100 - p.cur) * Math.min(1, (globalThis.__Kstme ?? 1) / (globalThis.__Kstm ?? 3.6));   // スタミナの減り（本家に合わせて、終盤はしっかり疲れる）
+  const curE = (p) => (globalThis.__Kstmv ?? 1) ? (p.curV ?? p.cur) : Math.max(p.cur, 72);   // 版985：プレーへの疲れは、見た目の電池と同じ（電池が減ると、走る速さ・キックの正確さなどが落ちる。元気70を切ると全部の能力が下がり、0で2割減）   // スタミナの減り（本家に合わせて、終盤はしっかり疲れる）
   const HALF_REST = 10;
   const KICKOUT_WAIT = 12;               // 交代を待つ時間（実時間の秒。12秒＝試合時間で約2分半）がこれを超えたら、外へ蹴り出す
   const OUT_CLEAR = 0.5, POKE_EDGE = 12, POKE_OUT = 0.5;   // ボールが外に出る頻度（蹴り出すクリア・タッチライン際でつつき出したボール）                  // ハーフタイムの回復
@@ -537,8 +538,8 @@
       let k = -1, worst = 1e9;
       tm.players.forEach((p, i) => {
         if (p.gk) return;
-        if (p.uniq === 'midori' && (tm.mdStack || 0) < 4 && p.cur > 18) return;   // 翠の起点：4段たまるまでは替えない（へとへとなら替える）
-        let sc = p.cur;
+        if (p.uniq === 'midori' && (tm.mdStack || 0) < 4 && (p.curV ?? p.cur) > 18) return;   // 翠の起点：4段たまるまでは替えない（へとへとなら替える）
+        let sc = p.curV ?? p.cur;   // 版985：交代は見た目のスタミナ（電池）で決める
         if (want === 'FW' && p.position === 'DF') sc -= 6;      // 攻めたいときは守りの選手から外す
         if (want === 'DF' && p.position === 'FW') sc -= 6;
         if (sc < worst) { worst = sc; k = i; }
@@ -977,7 +978,7 @@
     const mates = (p) => T[p.team].players;
     const opps = (p) => T[1 - p.team].players;
     function maxSpeed(p) {
-      const st = 0.7 + 0.3 * (curE(p) / 100);
+      const st = (globalThis.__Kfw ?? 1) ? 0.84 + 0.16 * (curE(p) / 100) : 0.7 + 0.3 * (curE(p) / 100);   // 版985：へとへとでも、走る速さは最大16%減（30%減だと終盤に試合が止まった）
       return (4.4 + p.speed * 0.047) * st * ((T[p.team].capBuff || 0) > S.t ? 1.04 : 1) * ((p.recUntil || 0) > S.t ? 1.1 : 1) * ((p.ovUntil || 0) > S.t ? 1.06 : 1) * ((p.ctRun || 0) > S.t ? 1.07 : 1) * (p.stun > 0 ? 0.45 : 1) * ((p.mtSlow || 0) > S.t ? 0.8 : 1) * (p.uniq && p.uOn > S.t ? uSpd(p) : 1) * (p.mtCharge && p.uOn > S.t ? 1.15 : 1) * ((p.mtHeld || 0) > S.t ? 0.25 : 1) * ((p.kgPin || 0) > S.t ? 0.08 : 1) * ((p.kgSlow || 0) > S.t ? 0.65 : 1) * ((p.hariT || 0) > S.t ? 1.22 : 1) * ((p.byT || 0) > S.t ? (p.byLv >= 2 ? 1.12 : 1.06) : 1) * ((p.byRunT || 0) > S.t ? (p.byRunLv >= 2 ? 1.2 : 1.15) : 1) * ((p.uzT || 0) > S.t ? 1.15 : 1) * ((p.aoFast || 0) > S.t || (p.aoKeepFast && S.ball.owner === p.idx) ? 1.15 : 1) * ((p.aoShield || 0) > S.t ? 0.3 : 1) * (S.lcStep && S.lcStep.mode === 'up' && S.lcStep.team === p.team && S.lcStep.until > S.t && p.position === 'DF' ? (S.lcStep.trap ? 1.55 : 1.2) : 1);   // オフサイドトラップ：一斉に鋭く押し上げる   // S（90台）は約8.7m/s、E（40台）は約6.4m/s
     }
     // 固有スキルが出ている間の速さ
@@ -4263,11 +4264,12 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         // スタミナ：走るほど減り、ゆっくりなら少し回復
         const frac = sp / (5.4 + p.speed * 0.034);
         const minute = S.t * CLOCK_SCALE / 60;
-        const drain = (0.012 + frac * frac * 0.16) * STAM_K * (globalThis.__Kstm ?? 3.6) * Math.max(0.4, 1.3 - p.stamina / 120)   /* 版971：スタミナはもっと減る（本家：Sでも試合の終わりには残り1つ・赤） */ * (skZ(p, 'pressMonster') || skZ(p, 'recovery') ? 0.85 : 1) * T[p.team].stamMul * ((T[p.team].capBuff || 0) > S.t ? 0.75 : 1) * (T[p.team].sitTire || 1) * (p.sk.has('ironMan') ? 0.65 : 1) * (p.sk.has('lateGrit') && minute >= 70 ? 0.55 : 1) * ((p.sdOn || 0) > S.t ? 2.2 : 1) * (uOn(p, 'kinshachi') ? 1 - 0.85 * Math.min(1, uP(p)) : 1) * (1 - 0.1 * aura(p, 'runBack')) * (p.uniq !== 'kinshachi' && ksTeam(p.team) ? 0.85 : 1) * DT;   // 金鯱の心臓：かいがいると、チーム全体の走りが整って疲れにくい   // 鉄人・終盤の粘り・金鯱の心臓・走る背中
-        p.cur = clamp(p.cur - drain * (p.uniq === 'kinshachi' ? (p.uniqLv >= 2 ? 0.25 : 0.35) : 1) + (sp < 1.5 ? 0.025 * DT : 0), 0, 100);   // 金鯱の心臓：そもそもスタミナがほとんど減らない
+        const drain = (0.012 + frac * frac * 0.16) * STAM_K * Math.max(0.4, 1.3 - p.stamina / 120)   /* 版971：スタミナはもっと減る（本家：Sでも試合の終わりには残り1つ・赤） */ * (skZ(p, 'pressMonster') || skZ(p, 'recovery') ? 0.85 : 1) * T[p.team].stamMul * ((T[p.team].capBuff || 0) > S.t ? 0.75 : 1) * (T[p.team].sitTire || 1) * (p.sk.has('ironMan') ? 0.65 : 1) * (p.sk.has('lateGrit') && minute >= 70 ? 0.55 : 1) * ((p.sdOn || 0) > S.t ? 2.2 : 1) * (uOn(p, 'kinshachi') ? 1 - 0.85 * Math.min(1, uP(p)) : 1) * (1 - 0.1 * aura(p, 'runBack')) * (p.uniq !== 'kinshachi' && ksTeam(p.team) ? 0.85 : 1) * DT;   // 金鯱の心臓：かいがいると、チーム全体の走りが整って疲れにくい   // 鉄人・終盤の粘り・金鯱の心臓・走る背中
+        p.cur = clamp(p.cur - drain * (p.uniq === 'kinshachi' ? (p.uniqLv >= 2 ? 0.25 : 0.35) : 1) + (sp < 1.5 ? 0.025 * DT : 0), 0, 100);
+        { const dk = drain * (p.uniq === 'kinshachi' ? (p.uniqLv >= 2 ? 0.25 : 0.35) : 1); if (p.curV == null) p.curV = p.cur; p.curV = clamp(p.curV - dk * (globalThis.__Kstm ?? 2.4) * (0.35 + 1.3 * Math.min(1, minute / 90)) + (sp < 1.5 ? 0.025 * DT : 0), 0, 100); }   // 版985：見た目のスタミナ（電池）：試合の後半ほど大きく減る（本家：Sでも終わりには残り1つ）。プレーへの影響は p.cur（前と同じ減り方）   // 金鯱の心臓：そもそもスタミナがほとんど減らない
         /* v740 スタミナ：元気が70を切ると、全部の能力が下がっていく（元気0で2割減。スピードは最高速の計算で下がる） */
         if (!p.base0) p.base0 = Object.fromEntries(FAT_KEYS.map((k) => [k, p[k]]));
-        { const ff = 1 - Math.max(0, 70 - curE(p)) / 70 * 0.2; if (Math.abs(ff - (p.ffLast ?? 1)) > 0.005) { for (const k of FAT_KEYS) p[k] = Math.round(p.base0[k] * ff); p.ffLast = ff; } }
+        { const ff = 1 - Math.max(0, 70 - curE(p)) / 70 * 0.2; if (Math.abs(ff - (p.ffLast ?? 1)) > 0.005) { for (const k of FAT_KEYS) p[k] = Math.round(p.base0[k] * (1 - (1 - ff) * ((globalThis.__Kfw ?? 1) ? FAT_W[k] : 1))); p.ffLast = ff; } }   // 版985：疲れると、守備・判断が大きく落ち（終盤は守りにすき間ができる）、キック・技術はあまり落ちない
         // 走り込みのタイマー
         if (p.uniq === 'uzushio' && !p.off && S.poss === p.team && own && own.team === p.team && own !== p && !own.gk && own.position !== 'DF' && !S.setPiece && !S.restart && fx(p.team, p.x) > 60 && fx(p.team, own.x) > 55 && fx(p.team, own.x) < 92 && Math.abs(own.y - GOAL_Y) < 28 && fx(p.team, own.x) < fx(p.team, p.x) - 2) uFire(p, p.uniq);   /* 渦潮の囮：相手陣内（相手ゴールから約50m以内）で、2列目の味方が自分より後ろで持ったら（走っている途中でも） */
         if (p.run > 0) { p.run -= DT; if (p.run <= 0) p.runCd = R.range(2, 4); }
@@ -4432,12 +4434,13 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       if (globalThis.__shLog && kind === 'shot' && !(opt && opt.pk)) globalThis.__shLog.push({ t: S.t, team: p.team, pr: pressure, d: hyp(fx(p.team, L) - p.x, GOAL_Y - p.y) });
       if (uOn(p, 'byakuya') || uOn(p, 'midori')) pressure = 0;                  // 白夜の視界・翠の起点：プレスを受けても落ち着いて蹴れる
       else if (pressure) { const a = aura(p, 'calmness'); if (a) pressure *= 1 - 0.3 * a; }   // 落ち着き（レジスタのサポートパッシブ）
-      const fatigue = 1 - (p.sk.has('lateGrit') && S.t * CLOCK_SCALE / 60 >= 70 ? Math.max(curE(p), 60) : curE(p)) / 100;   // 終盤の粘り：疲れてもプレーが落ちない
+      const fatigue = 1 - (p.sk.has('lateGrit') && S.t * CLOCK_SCALE / 60 >= 70 ? Math.max(curE(p), 60) : curE(p)) / 100;   // 版985：キックへの疲れの影響は4割に（へとへとでもシュートは打てる。落ちるのは守備・判断・走り）
+      const fatigueK = (globalThis.__Kfw ?? 1) ? fatigue * 0.4 : fatigue;   // 終盤の粘り：疲れてもプレーが落ちない
       const maxV = 12 + p.kick * 0.28;                      // キック力 50 → 26m/s、80 → 34m/s
       let csGkNear = 0, driveG = 0, driveUp = 0, driveOn = false, csPlace = false, csType = '', ang = Math.atan2(dy, dx), speed, vz = 0, spin = 0, knuckle = false, bs = -0.4, aimCurve = false;
       if (kind === 'shot') {
         // 目で追える速さ（カルチョビットA程度）。強い選手ほど速いが、最速でも70km/h台
-        speed = clamp((15.5 + p.kick * 0.1 + (p.physical - 50) * 0.03) * (0.93 + R.next() * 0.12) * (1 - fatigue * 0.1), 14, 27);   // 時速50〜95km（入りそうな強さ）
+        speed = clamp((15.5 + p.kick * 0.1 + (p.physical - 50) * 0.03) * (0.93 + R.next() * 0.12) * (1 - fatigueK * 0.1), 14, 27);   // 時速50〜95km（入りそうな強さ）
         if (opt.calm) speed *= 0.88;   // 1対1は流し込む
         const SPD = { powerMid: 1.22, toeKick: 1.0, volley: 1.12, bicycle: 1.02, nearPost: 1.12, direct: 1.04, divingHeader: 0.85 };
         if (opt.skill && SPD[opt.skill]) speed *= SPD[opt.skill];
@@ -4460,7 +4463,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           if (p.sk.has('calm') && (opt.pk || d < 18)) menF = Math.min(menF, 1) * 0.72;          // 冷静：ゴール前・PKで慌てない
           if (p.sk.has('clutch') && (T[p.team].urg || opt.pk)) menF *= 0.72;                   // 勝負強さ：追いかける終盤・PKで決める
           if (p.sk.has('bigStage') && close) menF *= 0.82; }                                   // 大舞台に強い：接戦の後半
-        ang += menF * ((globalThis.__Ksh2 ?? 1) ? Math.max(0.3, 1.7 - p.kick / 70) : Math.max(0.3, 2.1 - p.kick / 55)) *   /* 版963：下のリーグのシュートが枠に飛ばなさすぎた（地域2部で枠内32%） */ (1 - DOM[p.team] * 0.72) * R.gauss() * (opt.calm ? 0.3 + (1 - p.mental / 100) * 0.6 : 1) * (opt.pk ? 0.03 + (1 - p.mental / 100) * 0.03 : 0.065 + d * 0.0032 - p.kick * 0.0004 + pressure * 0.05 + fatigue * 0.04);
+        ang += menF * ((globalThis.__Ksh2 ?? 1) ? Math.max(0.3, 1.7 - p.kick / 70) : Math.max(0.3, 2.1 - p.kick / 55)) *   /* 版963：下のリーグのシュートが枠に飛ばなさすぎた（地域2部で枠内32%） */ (1 - DOM[p.team] * 0.72) * R.gauss() * (opt.calm ? 0.3 + (1 - p.mental / 100) * 0.6 : 1) * (opt.pk ? 0.03 + (1 - p.mental / 100) * 0.03 : 0.065 + d * 0.0032 - p.kick * 0.0004 + pressure * 0.05 + fatigueK * 0.04);
         // 版932：能力の差がプレーに出る（設計24章）：シュート。キックが低いほど、向きも高さも大きくぶれる（上手い選手は今のまま）
         const abK = (globalThis.__Kab ?? 1) && !opt.pk && !opt.empty ? 1 + Math.max(0, 85 - p.kick) * (globalThis.__Kab4 ?? 0.025) : 1;
         if (abK > 1) ang = Math.atan2(dy, dx) + (ang - Math.atan2(dy, dx)) * ((globalThis.__Ksh2 ?? 1) ? 1 + (abK - 1) * 0.15 : abK);   // 版963：向きへの上乗せは3割だけ（キックの低さの罰を向きに二重にかけていた）。差は高さ（ふかす）と枠内率で出す
@@ -4574,7 +4577,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         }
         const v3 = solve((v) => flightDist(v, elev, bs), 4, maxV * 1.05, land) * (1 + (opt.acc ?? 1) * R.gauss() * 0.045 * (1.4 - p.pass / 100));
         speed = v3 * Math.cos(elev); vz = v3 * Math.sin(elev);
-        ang += (opt.acc ?? 1) * R.gauss() * clamp(0.06 - p.pass * 0.0006 + pressure * 0.04 + fatigue * 0.03 + d * 0.0005, 0.01, 0.2);
+        ang += (opt.acc ?? 1) * R.gauss() * clamp(0.06 - p.pass * 0.0006 + pressure * 0.04 + fatigueK * 0.03 + d * 0.0005, 0.01, 0.2);
       } else {
         const vEnd = (opt.vEnd || (3.5 + d * 0.1 + p.pass * 0.065) * (1 + DOM[p.team] * 0.2)) * (kind === 'pass' && T[p.team].mdStack && !globalThis.__mdNoSpd ? Math.min(1.12, Math.pow(1.03, T[p.team].mdStack)) : 1);   /* 版451 翠の起点の積み重ね：パスの速さ（1回ごとに1.08倍・最大1.4倍。速すぎるとトラップが難しくなるので控えめ） */   // 格上はテンポよく強いパス   // うまい選手ほど強く正確なパス（相手に追いつかれにくい）
         speed = solve((v) => rollEnd(v, d), 4, 40, vEnd);
@@ -4582,13 +4585,13 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           let lo = 4, hi = maxV; for (let k = 0; k < 20; k++) { const m = (lo + hi) / 2; if (rt(m) > opt.arriveT) lo = m; else hi = m; } speed = Math.max(speed * 0.8, (lo + hi) / 2); }   // 月影の抜け出し：走り込む本人と同時に着く強さ
         speed = clamp(speed * (1 + R.gauss() * (0.02 + (1 - p.pass / 100) * 0.1 + (1 - p.vision / 100) * 0.08) * (opt.arriveT ? 0.5 : 1) * Math.min(1, (opt.acc ?? 1) * 2)), 6, maxV);   // 下手だと強すぎ・弱すぎ
         if (opt.spinSign != null && kind === 'pass') { spin = opt.spinSign * (0.1 + p.pass * 0.005); aimCurve = true; }   /* v741 巻いたグラウンダー：パスが上手いほど強く・狙いどおりに曲げられる */
-        ang += (opt.acc ?? 1) * (S.oneTouch ? Math.max(0.4, 2.2 - (p.pass + p.vision) / 80) * (S.oneTouchBoost ? 0.55 : 1) : 1) * R.gauss() * clamp(0.12 - p.pass * 0.0013 + pressure * 0.045 * clamp(1.6 - p.pass / 100, 0.5, 1.2) + fatigue * 0.035 + d * 0.0006, 0.008, 0.2);
+        ang += (opt.acc ?? 1) * (S.oneTouch ? Math.max(0.4, 2.2 - (p.pass + p.vision) / 80) * (S.oneTouchBoost ? 0.55 : 1) : 1) * R.gauss() * clamp(0.12 - p.pass * 0.0013 + pressure * 0.045 * clamp(1.6 - p.pass / 100, 0.5, 1.2) + fatigueK * 0.035 + d * 0.0006, 0.008, 0.2);
       }
       // 版932：能力の差がプレーに出る（設計24章）：パスの「ミスキック」。パスが下手なほど、寄せられているほど、遠いほど起きやすい。
       //  起きると、向きが大きくずれる・強すぎる／弱すぎる。上手い選手はほとんど起きない
       if ((globalThis.__Kab ?? 1) && kind === 'pass' && !opt.pk && !(p.uniq && uOn(p, p.uniq)) && !opt.arriveT) {
         const q = clamp(((globalThis.__KabT ?? 85) - (p.pass * 0.8 + p.technique * 0.2)) / 60, 0, 1), pr = Math.min(1, pressure);
-        const pBad = clamp((q * q * (globalThis.__Kab0 ?? 0.8) + pr * q * (globalThis.__Kab1 ?? 0.6) + Math.max(0, d - 22) * q * 0.006 + fatigue * q * 0.15) * (opt.acc != null ? clamp(opt.acc, 0.5, 1.2) : 1) * ((globalThis.__Kmk ?? 1) ? 0.6 : 1), 0, (globalThis.__Kmk ?? 1) ? 0.12 : 0.2);   // 版967：ミスキックを少なく（最大2割→1.2割）。下のリーグで中盤のパスがつながらず、ゴール前まで行けなかった
+        const pBad = clamp((q * q * (globalThis.__Kab0 ?? 0.8) + pr * q * (globalThis.__Kab1 ?? 0.6) + Math.max(0, d - 22) * q * 0.006 + fatigueK * q * 0.15) * (opt.acc != null ? clamp(opt.acc, 0.5, 1.2) : 1) * ((globalThis.__Kmk ?? 1) ? 0.6 : 1), 0, (globalThis.__Kmk ?? 1) ? 0.12 : 0.2);   // 版967：ミスキックを少なく（最大2割→1.2割）。下のリーグで中盤のパスがつながらず、ゴール前まで行けなかった
         if (R.next() < pBad) { const sg = R.next() < 0.5 ? -1 : 1, big = R.range(0.17, 0.38) * (0.6 + q) * (globalThis.__Kab2 ?? 1);
           ang += sg * big; speed *= R.next() < 0.5 ? R.range(0.55, 0.75) : R.range(1.25, 1.5); if (vz) vz *= R.range(0.85, 1.15);
           S.ball.missK = S.t; if (globalThis.__abLog) globalThis.__abLog.push({ t: S.t, i: p.idx, pass: p.pass, pr, d: +d.toFixed(1) }); }
@@ -6196,7 +6199,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
     function checkIssues() {
       for (const tm of T) {
         const ti = tm.ti, s = stats[ti];
-        if (tm.players.some((p) => !p.gk && p.cur < 30)) issue(ti, 'running');
+        if (tm.players.some((p) => !p.gk && (p.curV ?? p.cur) < 30)) issue(ti, 'running');
         if (s.failed_passes >= 10) issue(ti, 'pass');
         if (s.off_target >= 4) issue(ti, 'shoot');
         { const pa = s.possession || 0, pb = stats[1 - ti].possession || 0; if (S.t > 120 && pa + pb > 0 && pb / (pa + pb) > 0.58) issue(ti, 'video'); }   // ボールを持たれ続けている
@@ -6218,7 +6221,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         const minute = S.t * CLOCK_SCALE / 60 + (S.half === 2 ? 0 : 0);
         const diff = S.score[ti] - S.score[1 - ti];
         const oppTeam = T[1 - ti];
-        const avgSt = tm.players.filter((p) => !p.gk).reduce((a, p) => a + p.cur, 0) / 10;
+        const avgSt = tm.players.filter((p) => !p.gk).reduce((a, p) => a + (p.curV ?? p.cur), 0) / 10;
         // 70分を過ぎて負け・引き分け：縦へ急ぎ、前から全体でプレス
         if (tm.situ) {
           // 状況別の作戦（プレイヤーが決める）：残り時間になったら、勝っている／引き分け／負けているで動きを変える
@@ -8268,7 +8271,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       const r = S.restart;
       const held = r && r.stage === 'held' ? r.taker : -1;
       const f = [S.t, S.ball.x, S.ball.y, S.ball.z, held >= 0 ? held : S.ball.owner, S.score[0], S.score[1]];
-      for (const p of P) f.push(+p.x.toFixed(2), +p.y.toFixed(2), Math.round(p.cur));
+      for (const p of P) f.push(+p.x.toFixed(2), +p.y.toFixed(2), Math.round(p.curV ?? p.cur));
       f.push(r ? (r.offside ? 8 : RESTART_CODE[r.type]) : S.celebrate > 0 ? 6 : 0, held, S.ball.drive && S.ball.kind === 'shot' && S.ball.z > 0.1 ? 4 : S.ball.knuckle && S.ball.z > 0.1 ? 1 : Math.abs(S.ball.spin || 0) > 0.3 && S.ball.z > 0.1 ? (S.ball.spin > 0 ? 2 : 3) : 0);
       // 審判・副審・カード・GKの姿勢・退場者
       const gkCode = (g) => (g.saveT > 0 && (g.saveK === 9 || g.saveK === 10) && !(g.diveT > 0) ? g.saveK : g.diveT > 0 ? ((g.hiDiveT || 0) > S.t ? (g.diveDir > 0 ? 13 : 14) : g.diveDir > 0 ? 1 : 3) : g.downT > 0 ? (g.diveDir > 0 ? 2 : 4) : g.saveT > 0 && g.saveK ? g.saveK : g.highT > 0 ? (g.hiPunch ? 6 : 7) : g.punchT > 0 ? 6 : g.hold && S.ball.owner === g.idx ? 5 : 0);   // 版834   // 版862：8＝指先でバーの上へ 9・10＝足で止める（右・左） 11＝体を広げて止める 12＝腰を落として抱える：7＝ハイボールに跳んでいる
@@ -8373,7 +8376,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         ev('half', {});
         for (let k = 0; k < 2; k++) if (S.score[k] <= S.score[1 - k]) capRally(k);   // 版838：後半の始まり（勝っていなければ）
         for (const p of P) p.cdRem = 0;   // 港の指揮者の残りの秒数は、前半で終わり
-        for (const p of P) p.cur = Math.min(100, p.cur + HALF_REST);   // ハーフタイムで少し回復
+        for (const p of P) { p.cur = Math.min(100, p.cur + HALF_REST); if (p.curV != null) p.curV = Math.min(100, p.curV + HALF_REST); }   // ハーフタイムで少し回復
         // ハーフタイムの指示と、前半のうちに出したのにプレーが切れなかった指示
         for (const ch of (opts.changes || []).filter((c) => c.at == null)) applyHalfChange(ch);
         while (pendingCh.length && pendingCh[0].at < S.t + 1) applyHalfChange(pendingCh.shift());
@@ -8528,7 +8531,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           if (!tm.autoSubs || !tm.subPlan || 3 - tm.subsLeft >= tm.subPlan) continue;
           // 予定の時間になった・へとへとの選手がいる・残り時間が少ない、のどれかで交代（必ず予定の人数は替える）
           const left = tm.subPlan - (3 - tm.subsLeft);
-          const spent = minute >= 50 && tm.players.some((p) => !p.gk && p.cur < 28);
+          const spent = minute >= 50 && tm.players.some((p) => !p.gk && (p.curV ?? p.cur) < 28);
           if (minute >= tm.subNext || spent || minute >= 80 - left * 6) {
             // プレーが切れた時にまとめて替える（終盤は残りの人数をいっぺんに）
             const n = minute >= 74 ? left : Math.min(left, R.next() < 0.35 ? 2 : 1);
