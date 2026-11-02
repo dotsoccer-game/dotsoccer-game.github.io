@@ -1198,11 +1198,11 @@
   ];
   // サッカーを知らなくても選べる「戦い方」：選ぶと全部の項目がそろう
   const STYLES = [
-    { id: 'balance', name: 'バランス', desc: '攻守のバランスがよい、基本の戦い方', formation: '4-4-2', t: { line: 3, width: 3, compact: 2, attitude: 'balanced', press: 0, pass: 0, side: 0 } },
-    { id: 'counter', name: '堅守速攻', desc: '深く守って、奪ったら一気に前へ', formation: '4-5-1', t: { line: 2, width: 2, compact: 3, attitude: 'defensive', press: -1, pass: 1, side: 0 } },
-    { id: 'possession', name: 'ポゼッション', desc: 'パスをつないでボールを持ち続ける', formation: '4-3-3', t: { line: 4, width: 4, compact: 2, attitude: 'balanced', press: 0, pass: -1, side: -1 } },
-    { id: 'highpress', name: 'ハイプレス', desc: '前からどんどん奪いに行く（疲れやすい）', formation: '4-4-2', t: { line: 5, width: 3, compact: 3, attitude: 'attacking', press: 1, pass: 1, side: 0 } },
-    { id: 'wing', name: 'サイド攻撃', desc: 'サイドを広く使って、クロスで勝負', formation: '4-3-3', t: { line: 3, width: 5, compact: 2, attitude: 'balanced', press: 0, pass: 0, side: 1 } },
+    { id: 'balance', good: 'どの相手にも大きく崩れない。点の取り方はふつう', name: 'バランス', desc: '攻守のバランスがよい、基本の戦い方', formation: '4-4-2', t: { line: 3, width: 3, compact: 2, attitude: 'balanced', press: 0, pass: 0, side: 0 } },
+    { id: 'counter', good: 'ゴール前を固め、奪ったら前の選手が一斉に裏へ。点は少なめで引き分けやすい。格上の相手向き', name: '堅守速攻', desc: '深く守って、奪ったら一気に前へ', formation: '4-5-1', t: { line: 2, width: 2, compact: 3, attitude: 'defensive', press: -1, pass: 1, side: 0 } },
+    { id: 'possession', good: 'シュートまで行きやすいが、奪われると裏を取られて失点も増えやすい', name: 'ポゼッション', desc: 'パスをつないでボールを持ち続ける', formation: '4-3-3', t: { line: 4, width: 4, compact: 2, attitude: 'balanced', press: 0, pass: -1, side: -1 } },
+    { id: 'highpress', good: '点も失点も多い、点の取り合いになりやすい。技術の低い相手に強い。疲れやすい', name: 'ハイプレス', desc: '前からどんどん奪いに行く（疲れやすい）', formation: '4-4-2', t: { line: 5, width: 3, compact: 3, attitude: 'attacking', press: 1, pass: 1, side: 0 } },
+    { id: 'wing', good: 'クロスとゴール前への走り込みで、点を取りやすい', name: 'サイド攻撃', desc: 'サイドを広く使って、クロスで勝負', formation: '4-3-3', t: { line: 3, width: 5, compact: 2, attitude: 'balanced', press: 0, pass: 0, side: 1 } },
   ];
   // マス目：縦10マス（行0〜2 DF・3〜6 MF・7〜9 FW）×横15マス。代表的なフォーメーションは最初の形の見本
   const GRID_R = 10, GRID_C = 15;

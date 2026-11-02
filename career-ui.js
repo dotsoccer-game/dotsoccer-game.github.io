@@ -924,6 +924,41 @@
   // ☆（レア度）の表示：★の数＋凸の印。cap＝育てられる上限のランク
   const starHTML = (n, totsu, cls) => { const t = Math.min(totsu || 0, 3); let h = ''; for (let k = 0; k < n; k++) h += `<i class="tz tz${t}">★</i>`;   /* 版476：無凸＝白、1凸＝銀、2凸＝金、完凸＝虹 */   /* 版467：凸の数で星全部の色が変わる（無凸＝黄、1凸＝青、2凸＝紫、完凸＝虹） */ return `<span class="stars s${n}${t ? ' t' + t : ''} ${cls || ''}" title="☆${n}${t >= 3 ? '・凸MAX' : t ? '・' + t + '凸' : ''}">${h}</span>`; };   // 版456：凸した分だけ、星に色がつく（1凸＝青、2凸＝紫、3凸＝虹）
   const capBadge = (g) => `<span class="capb">上限<b class="rk rk-${g}">${g}</b></span>`;
+  // 版972：タイプの説明（選手の札のタイプをタップすると出る）。役わり・動き方・なり方（どの練習で近づくか）
+  const TYPE_INFO = {
+    'バランス': ['決まった動きのくせがない、なんでもこなす選手', ['まわりに合わせて、攻めも守りもふつうにこなす', '新しく入った選手は、最初はみんなバランス'], '特訓のカードの組み合わせで「動きのくせ（裏の能力）」が変わり、いちばん近いタイプに変わる'],
+    'スイーパー': ['DFラインの後ろで、こぼれ球や裏のボールを掃除する', ['人にはつかず、ラインの後ろのスペースを守る', '抜け出してきた相手を、カバーして止める'], '「スイーパー養成」。ふだんの練習なら「ラインコントロール」が多めで、「プレス」は少なめ'],
+    'ストッパー': ['前に出て、相手FWに激しく寄せてつぶす', ['ラインから前へ出て、ボールを持った相手に強く当たる', '1対1に強い'], '「ストッパー養成」。ふだんの練習なら「マンツーマン」「プレス」「スライディング」'],
+    'マンマーカー': ['決めた相手に、ぴったり付いて離れない', ['エースや危ない相手を、マンツーマンで消す', 'ボールから遠い相手には付いていかず、中を固める'], '「マンマーカー養成」。ふだんの練習なら「マンツーマン」'],
+    'ラインコントローラー': ['DFラインの上げ下げを指示する、守備のリーダー', ['ラインを高く保ち、オフサイドを取る', 'いると、DFライン全体がそろって動く'], '「ラインコントローラー養成」。ふだんの練習なら「ラインコントロール」に「プレス」を少し'],
+    'ビルドアップ型': ['後ろからパスで攻撃を組み立てるDF', ['DFラインからつなぐパスがうまい', '前が空いていれば、自分で持ち上がる'], 'ふだんの練習で「ラインコントロール」と「パス」を多めに'],
+    'レジスタ': ['低い位置から、試合のリズムを作る司令塔', ['DFの間まで下りて受け、前へ配る', 'まわりの味方が、慌てずに蹴れるようになる'], '「レジスタ養成」。ふだんの練習なら「パス」「ビデオ研究」'],
+    'ダイナモ': ['運動量で、ピッチを上下に走り回る', ['攻めでは前へ走り込み、守りでは広い範囲からボールを奪いに行く', 'スタミナが大事'], '「ダイナモ養成」。ふだんの練習なら「ランニング」「ダッシュ」'],
+    'ゲームメイカー': ['ボールを持ってタメを作り、決定的なパスを出す', ['持って相手を引きつけ、空いた味方へ出す', '攻めの中心になる'], '「ゲームメイカー養成」。ふだんの練習なら「パス」「ミニゲーム」'],
+    'パサー': ['正確なスルーパスで、ゴール前のチャンスを作る', ['GKとDFの間へ、スルーパスを通す', 'パスの成功率が高い'], '「パサー養成」。ふだんの練習なら「パス」に「ランニング」「ダッシュ」を少し'],
+    'ファンタジスタ': ['自分で仕掛けて、ひらめきで違いを作る', ['相手陣の狭い所でも、ドリブルで1人かわしに行く', 'パスもシュートもこなす'], 'ふだんの練習で「パス」「ドリブル」「シュート」をまんべんなく'],
+    'シャドー': ['FWの後ろから、ゴール前へ飛び出していく', ['2列目から裏へ走り込み、点を取りに行く', '守備では高い位置に残る'], 'ふだんの練習で「ダッシュ」「ドリブル」と「シュート」を多めに'],
+    'アンカー': ['中盤の底で、守備に専念する', ['DFラインの前で相手の攻めを止める', '攻めでも上がらず、後ろに残る'], 'ふだんの練習で「プレス」を多めに、「マンツーマン」を少し。攻めの練習は少なめ'],
+    'ストライカー': ['ゴール前で待ち、点を取ることに集中する', ['打てる所では迷わず打つ', 'ゴール前で、いい位置を取って待つ'], '「ストライカー養成」。ふだんの練習なら「シュート」「ヘディング」「セットプレー」'],
+    'アタッカー': ['スピードで裏やサイドのスペースへ走り込む', ['DFラインの裏をねらって走る', 'ドリブルで仕掛けて、ゴールへ向かう'], '「アタッカー養成」。ふだんの練習なら「ダッシュ」「ドリブル」「カウンター」'],
+    '偽9番': ['FWなのに中盤へ下りて、組み立てに加わる', ['下りて相手DFを引き出し、空いた所へ味方を走らせる', 'パスがうまいFW'], '「偽9番養成」。ふだんの練習なら「パス」「ビデオ研究」'],
+    'デコイラン': ['裏へ走り続けて、味方のためのスペースを作る', ['相手DFを引きつける「おとり」の走り', '自分が点を取るより、味方を生かす'], 'ふだんの練習で「ダッシュ」「カウンター」をたくさん'],
+    'ゴールキーパー': ['ゴール前で構えて、シュートを止める', ['ゴールラインの近くで守る'], 'GKの基本のタイプ'],
+    'スイーパーキーパー': ['前に出て、裏へのボールを処理するGK', ['ふだんから高い位置に立つ', '抜け出してきた相手に、飛び出して詰める'], 'ふだんの練習で「ダッシュ」など、前へ出る練習を多めに'],
+  };
+  const TYPE_ORDER = { DF: ['スイーパー', 'ストッパー', 'マンマーカー', 'ラインコントローラー', 'ビルドアップ型'], MF: ['レジスタ', 'ダイナモ', 'ゲームメイカー', 'パサー', 'ファンタジスタ', 'シャドー', 'アンカー'], FW: ['ストライカー', 'アタッカー', '偽9番', 'デコイラン'], GK: ['ゴールキーパー', 'スイーパーキーパー'] };
+  async function showTypeInfo(t, pos) {
+    t = t || 'バランス'; const inf = TYPE_INFO[t] || [t, [], ''];
+    const list = (TYPE_ORDER[pos] || []).map((k) => `<li class="${k === t ? 'on' : ''}"><span data-ty="${esc(k)}" data-pos="${esc(pos)}" class="tbadge ${TYPE_CLS[k] || 'ty-bal'}" style="--tl:${k.length}">${esc(k)}</span>${esc((TYPE_INFO[k] || [''])[0])}</li>`).join('');
+    const html = `<div class="ty-info"><h2><span class="tbadge ${TYPE_CLS[t] || 'ty-bal'}" style="--tl:${t.length}">${esc(t)}</span></h2>
+      <p class="ty-role">${esc(inf[0])}</p><ul class="ty-mv">${inf[1].map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
+      <p class="ty-how"><b>なり方</b>${esc(inf[2])}</p>
+      ${t === 'バランス' ? '' : `<p class="ty-note">最初はみんな「バランス」。特訓で動きのくせ（裏の能力）が変わり、いちばん近いタイプに変わります。国内屈指の選手のタイプは変わりません。</p>`}
+      ${list ? `<h4>${esc(pos)}のタイプ</h4><ul class="ty-list">${list}</ul>` : ''}</div>`;
+    const m = $('#crModal'); const z = m.style.zIndex; m.style.zIndex = 90;
+    await modal(html, [{ label: '閉じる', value: 0 }]); m.style.zIndex = z;
+  }
+  document.addEventListener('click', (e) => { let b = e.target.closest && e.target.closest('.tbadge[data-ty], .ty-q'); if (b && b.classList.contains('ty-q')) b = b.parentElement.querySelector('.tbadge[data-ty]'); if (!b) return; e.stopPropagation(); showTypeInfo(b.dataset.ty, b.dataset.pos); }, true);
   const typeBadge = (t, cls) => `<span class="tbadge ${TYPE_CLS[t] || 'ty-bal'} ${cls || ''}" style="--tl:${String(t || '').length || 1}">${esc(t)}</span>`;   // 版700：--tl＝文字数（長いタイプ名は文字を小さく）
   // 版514：調子（ポテンシャルの代わり）：本家と同じ5段階の矢印（↑絶好調・↗好調・→普通・↘不調・↓絶不調）
   const COND_UI = { 2: ['絶好調', -90, '#ff3d2e'], 1: ['好調', -45, '#ff9a1a'], 0: ['普通', 0, '#e8c21a'], '-1': ['不調', 45, '#3a9cff'], '-2': ['絶不調', 90, '#7a5cff'] };
@@ -1010,7 +1045,7 @@
         <div class="pc-left">
           <div class="pc-photo">${facePic(p, '', i >= 11)}<div class="pc-rare">${starHTML(C.ensureStar(p), p.totsu)}${capBadge(C.capGrade(p))}</div></div>
           <b class="pc-num">${p.number}</b>
-          <div class="pc-meta"><span>タイプ</span>${typeBadge(p.type)}</div>
+          <div class="pc-meta"><span>タイプ</span>${typeBadge(p.type).replace('<span class="tbadge', `<span data-ty="${esc(p.type || 'バランス')}" data-pos="${esc(p.position)}" title="タップで説明" class="tbadge ty-tap`)}<b class="ty-q">?</b></div>
           <div class="pc-meta"><span>調子</span>${condGauge(p)}</div>
         </div>
         <div class="pc-right">
@@ -1721,8 +1756,8 @@
       <h4>役割</h4><p class="sq-roles">${Object.keys(ROLE_NAME).map((k) => `<span><i class="rt rt-${k}">${ROLE_TAG[k]}</i>${ROLE_NAME[k]}：${tac.roles[k] ? esc(tac.roles[k]) : '<em>おまかせ</em>'}</span>`).join('')}</p>
       <h4>控え</h4><div class="sq-benches">${bench}</div>`;
     const styleNow = C.STYLES.find((x) => x.id === tac.style);
-    const tacTab = `<h4>戦い方　<small>${styleNow ? '' : '（カスタム）'}</small></h4><div class="sq-styles">${C.STYLES.map((st) => `<button class="sq-st${st.id === tac.style ? ' on' : ''}" data-st="${st.id}"><b>${esc(st.name)}</b><small>${esc(st.desc)}</small></button>`).join('')}</div>
-      <p class="hintp">戦い方を選ぶと、下の項目がそろいます（選手の配置は変わりません）。そこから好きに変えてもOK。</p>
+    const tacTab = `<h4>戦い方　<small>${styleNow ? '' : '（カスタム）'}</small></h4><div class="sq-styles">${C.STYLES.map((st) => `<button class="sq-st${st.id === tac.style ? ' on' : ''}" data-st="${st.id}"><b>${esc(st.name)}</b><small>${esc(st.desc)}</small>${st.good ? `<small class="sq-good">${esc(st.good)}</small>` : ''}</button>`).join('')}</div>
+      <p class="hintp">戦い方によって、点の取り方・失点のしかたが変わります。戦い方を選ぶと、下の項目がそろいます（選手の配置は変わりません）。そこから好きに変えてもOK。</p>
       <div class="sq-items">${C.TACTIC_ITEMS.map((it) => `<div class="sq-it"><span class="sq-in">${esc(it.name)}</span><span class="sq-seg">${it.opts.map(([v, nm]) => `<button data-k="${it.key}" data-v="${v}" class="${String(tac[it.key]) === String(v) ? 'on' : ''}">${esc(nm)}</button>`).join('')}</span><small>${esc(it.desc)}</small></div>`).join('')}</div>`;
     $('#clubLayer').innerHTML = `<div class="dpanel sq"><h2>スタメン・戦術　<small>${esc(label)}・${esc(styleNow ? styleNow.name : 'カスタム')}</small></h2><div class="sq-grid">${pitch}<div class="sq-side"><div class="sq-tabs"><button data-t="pos" class="${sqTab === 'pos' ? 'on' : ''}">配置・役割</button><button data-t="tac" class="${sqTab === 'tac' ? 'on' : ''}">チーム戦術</button><button data-t="sit" class="${sqTab === 'sit' ? 'on' : ''}">試合中の作戦</button></div>${sqTab === 'pos' ? posTab : sqTab === 'tac' ? tacTab : situHtml(tac.situ)}</div></div></div>`;
     const L = $('#clubLayer');
@@ -3240,7 +3275,7 @@
         <div class="pc-left">
           <div class="pc-photo">${cpuFace(tid, q, ro.kit.shirt)}<div class="pc-rare">${starHTML(C.starOf(tid, q), C.totsuOf(tid, q))}${capBadge(C.GRADES[C.capIdx(C.starOf(tid, q), C.totsuOf(tid, q))])}</div></div>
           <b class="pc-num">${q.no}</b>
-          <div class="pc-meta"><span>タイプ</span>${typeBadge(q.type)}</div>
+          <div class="pc-meta"><span>タイプ</span>${typeBadge(q.type).replace('<span class="tbadge', `<span data-ty="${esc(q.type || 'バランス')}" data-pos="${esc(q.pos || q.position || '')}" title="タップで説明" class="tbadge ty-tap`)}<b class="ty-q">?</b></div>
           ${role ? `<div class="pc-ttl${tt ? ' top' : q.role === 'ace' ? ' ace' : ''}"><i>${tt ? '♛' : q.role === 'ace' ? '★' : '◆'}</i><span>称号</span><b>${esc(role)}</b></div>` : ''}   <!-- 版470：役割ではなく「称号」 -->
         </div>
         <div class="pc-right">

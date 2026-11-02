@@ -4015,3 +4015,21 @@ img:not([src]),img[src=""]{visibility:hidden}
 .sk2-c.lock b{font-size:10px;filter:grayscale(1);opacity:.7}
 .pc-embed .sk2{gap:4px}.pc-embed .sk2-g{padding:2px 3px}.pc-embed .sk2-g .sk2-h{margin:0 1px 2px}.pc-embed .sk2-g .sk2-h b{font-size:11px}.pc-embed .sk2-g .sk2-h span{font-size:10px;line-height:14px}.pc-embed .sk2-g .sk2-h small{display:none}
 .pc-embed .sk2-c,.pc-embed .pc-skb.sk2-c{min-height:17px;font-size:10px;padding:0 3px}.pc-embed .sk2-c.lock{font-size:8px}.pc-embed .pc-skb.sk2-c i{width:12px;height:12px;font-size:8px}.pc-embed .sk2-l{gap:2px}
+/* 版972：タイプの説明 */
+.tbadge.ty-tap{cursor:pointer;position:relative}
+.ty-q{display:inline-block;margin-left:6px;width:18px;height:18px;border-radius:50%;background:#fff;color:#2a5;font-size:12px;line-height:18px;text-align:center;font-weight:900;cursor:pointer;box-shadow:0 0 0 1px #0002;vertical-align:middle}
+.ty-info{text-align:left;max-width:560px}
+.ty-info h2{margin:0 0 6px}
+.ty-info h2 .tbadge{font-size:18px;padding:4px 12px}
+.ty-info .ty-role{font-weight:800;font-size:16px;margin:4px 0 6px}
+.ty-info .ty-mv{margin:0 0 8px;padding-left:1.2em}
+.ty-info .ty-mv li{margin:2px 0}
+.ty-info .ty-how{margin:6px 0;background:#0000000d;border-radius:8px;padding:6px 10px}
+.ty-info .ty-how b{display:inline-block;margin-right:8px;color:#b06a00}
+.ty-info .ty-note{font-size:12px;opacity:.75;margin:6px 0 10px}
+.ty-info h4{margin:8px 0 4px}
+.ty-info .ty-list{list-style:none;margin:0;padding:0;max-height:34vh;overflow:auto}
+.ty-info .ty-list li{display:flex;align-items:center;gap:8px;padding:3px 4px;font-size:13px;border-radius:6px}
+.ty-info .ty-list li.on{background:#ffd54a55}
+.ty-info .ty-list .tbadge{flex:0 0 auto;min-width:92px;text-align:center}
+.sq-st .sq-good{display:block;margin-top:3px;color:#9be7b0;font-weight:700;font-size:11px;line-height:1.35}
