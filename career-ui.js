@@ -3977,27 +3977,45 @@
       const cc = ['#c8141e', '#ffd23a', '#ffe45a'];
       box.innerHTML = `<div class="gc gc2 gc3 gc4" style="--c0:${cc[0]};--c1:${cc[1]};--c2:${cc[2]}">
         <div class="gc2-bg"></div>
-        <img class="gc4-art" src="img/scout_all_43.jpg" alt="国内屈指の18人">
+        <img class="gc4-art gc5-dim" src="img/scout_all_43.jpg" alt="国内屈指の18人">${puPanel()}
         <div class="gc3-ttl"><b>スカウト</b></div>
         <div class="gc3-pills"><span class="gc3-coin">${COIN}<b>${(save.coins || 0).toLocaleString()}</b></span>
         <span class="gc3-kk"><img class="kk-ico" src="icons/kakera.png" alt="カケラ" draggable="false">覚醒のカケラ<b>${(save.kakera || 0).toLocaleString()}</b></span></div>
         <button class="std-back gc-back gc3-back" title="もどる"><i class="bk-ico" aria-hidden="true"></i></button>
-        <div class="gc4-head"><i>★★★★★</i><b>国内屈指 全員集合</b><small>☆5は国内屈指の18人のだれか</small></div>
+
         <div class="gc3-side">
-          <div class="gc3-pity"><span>☆5確定まで</span><b>あと<em>${left}</em>回</b><i><s style="width:${Math.max(4, Math.round((1 - left / C.GACHA_PITY) * 100))}%"></s></i></div>
+          <div class="gc3-pity"><span>ピックアップ確定まで</span><b>あと<em>${left}</em>回</b><i><s style="width:${Math.max(4, Math.round((1 - left / C.GACHA_PITY) * 100))}%"></s></i></div>
           <button class="gc2-btn gc3-btn ten" data-n="10"><b>10回スカウト</b><span>${COIN}${C.GACHA_COST.ten.toLocaleString()}</span><small>★3以上 1人確定</small></button>
           <button class="gc2-btn gc3-btn one" data-n="1"><b>1回スカウト</b><span>${COIN}${C.GACHA_COST.one}</span></button>
           <button class="gc-rate gc3-sb s1">出る確率<em>›</em></button><button class="gc-rule gc3-sb s2">獲得ルール<em>›</em></button><button class="gc-auto gc3-sb s3${g.auto ? ' on' : ''}"><span>自動放出<small>${['しない', '★1', '★2以下', '★3以下'][g.auto || 0]}</small></span><i class="gc2-sw"></i></button>
         </div></div>`;
       wire({ chip: cc, all: true });
     };
+    // 版981：ピックアップ（国内屈指18人から、自分で4人を選ぶ）
+    const puInfo = (x) => { const U = D.UNIQ[x.key] || {}, q = C.rosterAt(x.tid, 1).players.find((y) => y.no === x.no) || {}, own = [...save.team.players, ...(save.reserve || [])].find((p) => p.gsrc === x.tid + '_' + x.no); return { U, q, own }; };
+    const puPanel = () => { const L = C.gachaUniqList(), pk = C.gachaPick(save);
+      const slots = Array.from({ length: C.GACHA_PU_N }, (_, i) => { const x = L.find((y) => y.key === pk[i]); if (!x) return `<button class="gc5-slot empty" data-pu="1"><b>＋</b><small>選ぶ</small></button>`;
+        const { U, q, own } = puInfo(x); return `<button class="gc5-slot" data-pu="1">${gcFace(x.tid, q, 'gc5-face')}<b class="gc5-nm">${esc(U.who || q.name || '')}</b><span class="gc5-ps"><i>${esc(q.pos || '')}</i>${esc(U.type || q.type || '')}</span><span class="gc5-sk">${esc(U.name || '')}</span>${own ? `<em class="gc5-own">所持 ${own.totsu || 0}凸</em>` : ''}</button>`; }).join('');
+      return `<div class="gc5-pu"><div class="gc5-h"><i>★★★★★</i><b>ピックアップ</b><small>☆5が出たら75%でこの4人のだれか（25%はほかの国内屈指）。天井の${C.GACHA_PITY}回目は必ずこの4人から</small></div><div class="gc5-row">${slots}</div><button class="gc5-edit" data-pu="1">${pk.length === C.GACHA_PU_N ? 'ピックアップを選び直す' : 'ピックアップを4人選ぶ'}</button></div>`; };
+    const puPick = () => new Promise((done) => {
+      const L = C.gachaUniqList(); let sel = C.gachaPick(save).slice();
+      const ov = document.createElement('div'); ov.className = 'gc5-ov'; box.querySelector('.gc').appendChild(ov);
+      const paint = () => { ov.innerHTML = `<div class="gc5-pk"><div class="gc5-pkh"><b>ピックアップを${C.GACHA_PU_N}人選ぶ</b><span>あと<em>${C.GACHA_PU_N - sel.length}</em>人</span></div>
+        <div class="gc5-grid">${L.map((x) => { const { U, q, own } = puInfo(x), on = sel.includes(x.key); return `<button class="gc5-c${on ? ' on' : ''}" data-k="${x.key}">${gcFace(x.tid, q, 'gc5-cf')}<b>${esc(U.who || q.name || '')}</b><span><i>${esc(q.pos || '')}</i>${esc(U.type || q.type || '')}</span><small>${esc(U.name || '')}</small>${own ? `<em>所持 ${own.totsu || 0}凸</em>` : ''}${on ? `<s>${sel.indexOf(x.key) + 1}</s>` : ''}</button>`; }).join('')}</div>
+        <div class="gc5-pkb"><button class="gc5-cancel">やめる</button><button class="gc5-ok"${sel.length === C.GACHA_PU_N ? '' : ' disabled'}>決定</button></div></div>`;
+        ov.querySelectorAll('.gc5-c').forEach((b) => b.onclick = () => { const k = b.dataset.k; if (sel.includes(k)) sel = sel.filter((y) => y !== k); else if (sel.length < C.GACHA_PU_N) sel.push(k); paint(); });
+        ov.querySelector('.gc5-cancel').onclick = () => { ov.remove(); done(false); };
+        ov.querySelector('.gc5-ok').onclick = () => { if (sel.length !== C.GACHA_PU_N) return; C.setGachaPick(save, sel); store(); ov.remove(); done(true); }; };
+      paint(); });
     const wire = (U) => {
+      box.querySelectorAll('[data-pu]').forEach((b) => b.onclick = async () => { if (await puPick()) draw(); });
       { const bgEl = box.querySelector('.gc2-bg'); gcBgFor(U.chip, (u) => { bgEl.style.backgroundImage = `url(${u})`; bgEl.classList.add('on'); }); }
       box.querySelector('.gc-rule').onclick = () => coachAsk('<b>獲得ルール</b><br><small>同じ選手が出たら凸（最大3凸）。完凸のあとは覚醒のカケラになります。<br>自動放出をオンにすると、はじめて出た選手のうち、その★以下はカケラになります（持っている選手は凸）。<br>チームが25人の時は、リザーブ（控え室）に入ります。</small>', [{ label: 'とじる', value: true }], 'sec');
       box.querySelector('.gc-back').onclick = () => { el.hidden = true; go('home'); };
       box.querySelector('.gc-auto').onclick = () => { g.auto = ((g.auto || 0) + 1) % 4;   /* 版979：★3以下も */ store(); draw(); };
-      box.querySelector('.gc-rate').onclick = () => U.all ? coachAsk(`<b>出る確率</b><br>${C.GACHA_RATE.map(([st, pc]) => `☆${st}：${pc}%`).join('　')}<br><small>☆5は国内屈指の18人のだれか（1人あたり約${(C.GACHA_RATE[0][1] / 18).toFixed(3)}%）。<br>${C.GACHA_PITY}回引くまでに☆5が出なければ、${C.GACHA_PITY}回目で☆5が確定（☆5が出たら数え直し）。<br>10回スカウトは、☆3以上が1人確定。</small>`, [{ label: 'とじる', value: true }], 'sec') : coachAsk(`<b>出る確率</b><br>${C.GACHA_RATE.map(([st, pc]) => `☆${st}：${pc}%`).join('　')}<br><small>☆5は今月のピックアップの${esc(U.who)}だけ。<br>このスカウトで${C.GACHA_PITY}回引くと、${esc(U.who)}が確定（出たら数え直し）。<br>10回スカウトは、☆3以上が1人確定。</small>`, [{ label: 'とじる', value: true }], 'sec');
+      box.querySelector('.gc-rate').onclick = () => U.all ? coachAsk(`<b>出る確率</b><br>${C.GACHA_RATE.map(([st, pc]) => `☆${st}：${pc}%`).join('　')}<br><small>☆5が出たら、${Math.round(C.GACHA_PU_RATE * 100)}%で選んだピックアップ${C.GACHA_PU_N}人のだれか（1人あたり約${(C.GACHA_RATE[0][1] * C.GACHA_PU_RATE / C.GACHA_PU_N).toFixed(3)}%）、${Math.round((1 - C.GACHA_PU_RATE) * 100)}%でそれ以外の国内屈指${C.gachaUniqList().length - C.GACHA_PU_N}人のだれか（1人あたり約${(C.GACHA_RATE[0][1] * (1 - C.GACHA_PU_RATE) / (C.gachaUniqList().length - C.GACHA_PU_N)).toFixed(3)}%）。<br>${C.GACHA_PITY}回引くまでにピックアップの☆5が出なければ、${C.GACHA_PITY}回目でピックアップの☆5が確定（ピックアップの☆5が出たら数え直し。ピックアップ外の☆5では数え直さない）。<br>10回スカウトは、☆3以上が1人確定。</small>`, [{ label: 'とじる', value: true }], 'sec') : coachAsk(`<b>出る確率</b><br>${C.GACHA_RATE.map(([st, pc]) => `☆${st}：${pc}%`).join('　')}<br><small>☆5は今月のピックアップの${esc(U.who)}だけ。<br>このスカウトで${C.GACHA_PITY}回引くと、${esc(U.who)}が確定（出たら数え直し）。<br>10回スカウトは、☆3以上が1人確定。</small>`, [{ label: 'とじる', value: true }], 'sec');
       box.querySelectorAll('.gc2-btn').forEach((b) => b.onclick = async () => {
+        if (!C.gachaReady(save)) { await coachAsk('先にピックアップを4人選んでね。<br>☆5が出たら、選んだ4人のだれかが出やすくなります。', [{ label: '選ぶ', value: true }], 'sec'); if (await puPick()) draw(); return; }
         const n = +b.dataset.n, res = C.gachaPull(save, n);
         if (!res) { coachAsk('コインが足りません。<br>カップ戦で勝つと、コインがもらえますよ。', [{ label: 'OK', value: true }], 'sec'); return; }
         store(); await gachaShow(el, res); draw();
@@ -4012,7 +4030,7 @@
   //  10回：ふつうの選手はテンポよくめくり、☆4・☆5だけ真ん中で大きく見せる。最後に10人の一覧。いつでも「スキップ」
   // 版816：スカウトの演出の確認ページ（gachalab.html）用：コインやセーブを使わずに、決めた☆の結果で演出だけ見る
   function gachaDemo(stars, promo, fx) {
-    const clone = save ? JSON.parse(JSON.stringify(save)) : C.newCareer('テストFC'); clone.coins = 1e12; C.ensureGacha(clone);   // 版819：保存が使えない所（確認ページ）でも動く
+    const clone = save ? JSON.parse(JSON.stringify(save)) : C.newCareer('テストFC'); clone.coins = 1e12; C.ensureGacha(clone); if (!C.gachaReady(clone)) C.setGachaPick(clone, C.gachaUniqList().slice(0, C.GACHA_PU_N).map((x) => x.key));   // 版819：保存が使えない所（確認ページ）でも動く
     const results = stars.map((st) => { for (let k = 0; k < 6000; k++) { const r0 = C.gachaPull(clone, 1); const r = r0 && r0.results[0]; if (r && r.star === st) return r; } return null; }).filter(Boolean);
     const el = fullScreen('gachaScreen', 'std-wrap gc-wrap'); el.style.zIndex = 9000; el.hidden = false; el._fit();   // 確認ページ：ほかの画面（クラブ設定など）より上に出す
     return gachaShow(el, { results, promo, fx }).then(() => { el.hidden = true; });
@@ -4034,7 +4052,7 @@
       const tierOf = (r) => (r.star >= 5 ? 'red' : r.star >= 4 ? 'gold' : 'blue');
       // 昇格するか：☆5は半分、☆4は3枚に1枚くらい（結果は変わらない。見せ方だけ）
       const promo = rs.map((r) => (r.star < 3 ? false : res.promo != null ? !!res.promo : r.star >= 5 ? Math.random() < 0.5 : r.star >= 4 ? Math.random() < 0.35 : Math.random() < 0.2));   // res.promo：確認ページで「昇格あり／なし」を決める時だけ
-      const badgeOf = (r) => (r.kind === 'new' ? (r.reserve ? '<em class="b-res">NEW・リザーブへ</em>' : '<em class="b-new">NEW</em>') : r.kind === 'totsu' ? `<em class="b-tz">凸UP ${r.from}→${r.to}</em>` : r.kind === 'auto' ? `<em class="b-auto">放出・カケラ +${r.kakera}</em>` : `<em class="b-kk">カケラ +${r.kakera}</em>`);
+      const badgeOf = (r) => (r.off ? '<em class="b-off">ピックアップ外</em>' : '') + (r.kind === 'new' ? (r.reserve ? '<em class="b-res">NEW・リザーブへ</em>' : '<em class="b-new">NEW</em>') : r.kind === 'totsu' ? `<em class="b-tz">凸UP ${r.from}→${r.to}</em>` : r.kind === 'auto' ? `<em class="b-auto">放出・カケラ +${r.kakera}</em>` : `<em class="b-kk">カケラ +${r.kakera}</em>`);
       const faceHTML = (r) => { const tz = r.kind === 'totsu' ? r.to : r.p ? r.p.totsu || 0 : 0; return `${gcFace(r.tid, r.q, 'gcc-face')}<div class="gcc-st">${starHTML(r.star, tz)}</div><b>${esc(r.q.name)}</b><small>${esc(gcTeamShort(r.tid))}・${esc(r.q.pos)}</small>${badgeOf(r)}`; };
       const cardHTML = (r, i, back) => `<div class="gx-c s${r.star}" data-i="${i}"><div class="gx-in"><div class="gx-b ${back}"><i class="gx-crk"></i></div><div class="gx-f">${faceHTML(r)}</div></div></div>`;
       const burst = (host, n, col) => { const w = document.createElement('div'); w.className = 'gx-burst'; w.style.setProperty('--pc', col); let h = ''; for (let k = 0; k < n; k++) { const a = Math.random() * Math.PI * 2, d = 120 + Math.random() * 260; h += `<i style="--dx:${(Math.cos(a) * d).toFixed(0)}px;--dy:${(Math.sin(a) * d).toFixed(0)}px;--s:${(0.5 + Math.random()).toFixed(2)};animation-delay:${(Math.random() * 0.12).toFixed(2)}s"></i>`; } w.innerHTML = h; host.appendChild(w); setTimeout(() => w.remove(), 1400); };

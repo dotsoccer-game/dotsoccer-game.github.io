@@ -1994,6 +1994,11 @@
     const [tid, no] = U.face.split('_'), end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
     return { id: (d.getFullYear() * 100 + d.getMonth() + 1) + ':' + key, key, uniq: U, tid, no: +no, until: `${end.getMonth() + 1}月${end.getDate()}日` };
   }
+  // 版981：ピックアップ：プレイヤーが国内屈指18人から4人を選ぶ
+  const GACHA_PU_N = 4, GACHA_PU_RATE = 0.75;
+  function gachaPick(save) { const g = ensureGacha(save), keys = new Set(gachaUniqList().map((x) => x.key)); return (g.pick || []).filter((k) => keys.has(k)).slice(0, GACHA_PU_N); }
+  function setGachaPick(save, keys) { const ok = new Set(gachaUniqList().map((x) => x.key)); const a = [...new Set(keys)].filter((k) => ok.has(k)).slice(0, GACHA_PU_N); ensureGacha(save).pick = a; return a; }
+  function gachaReady(save) { return gachaPick(save).length === GACHA_PU_N; }
   function gachaQ(tid, no) { return rosterAt(tid, 1).players.find((q) => q.no === no); }
   function ensureGacha(save) { if (!save.gacha) save.gacha = { pity: {}, total: 0 }; if (GACHA_ALL && save.gacha.pity && save.gacha.pity.all == null) { const d = new Date(), k = (d.getFullYear() * 100 + d.getMonth() + 1) + ':'; let c = 0; for (const id in save.gacha.pity) if (id.startsWith(k)) c = Math.max(c, save.gacha.pity[id] || 0); save.gacha.pity.all = c; }   /* 版910：今月のピックアップの天井の回数を、そのまま引き継ぐ */ if (save.kakera == null) save.kakera = 0; gachaFixOld(save); return save.gacha; }
   function gachaOne(save, bn, r, minStar) {
@@ -2003,7 +2008,11 @@
     let pick;
     if (g.pity[bn.id] >= GACHA_PITY) star = 5;   // 天井：200回で☆5確定
     if (bn.all) {
-      if (star === 5) { const L = bn.list, u5 = L[Math.floor(r() * L.length)]; pick = { tid: u5.tid, no: u5.no }; g.pity[bn.id] = 0; }   // 版910：☆5は18人のだれか。☆5が出たら天井の数え直し
+      if (star === 5) {   // 版981：☆5は、自分で選んだピックアップ4人のだれか（75%）か、それ以外の14人のだれか（すり抜け25%）。天井は必ずピックアップ。ピックアップが出たら天井の数え直し（すり抜けでは数え直さない）
+        const L = bn.list, pk = gachaPick(save), inP = L.filter((x) => pk.includes(x.key)), outP = L.filter((x) => !pk.includes(x.key));
+        const pity = g.pity[bn.id] >= GACHA_PITY, usePk = inP.length && (pity || !outP.length || r() < GACHA_PU_RATE);
+        const arr = usePk ? inP : outP.length ? outP : L, u5 = arr[Math.floor(r() * arr.length)];
+        pick = { tid: u5.tid, no: u5.no, off: !usePk && inP.length > 0 }; if (usePk || !inP.length) g.pity[bn.id] = 0; }
       else { const L = gachaPoolAll()[star]; pick = L[Math.floor(r() * L.length)]; }
     } else {
       if (star === 5) pick = { tid: bn.tid, no: bn.no };   // 版553：☆5は今月のピックアップの選手だけ
@@ -2065,10 +2074,11 @@
     } catch (_) {} for (const p of [...save.team.players, ...(save.reserve || [])]) { if (p.gsrc && (p.gweak || 0) < 2) gachaWeak(p); if (p.gsrc && p.uniq && D.UNIQ[p.uniq] && D.UNIQ[p.uniq].hair) p.hairColor = D.UNIQ[p.uniq].hair; } }   // 版555：前に来た国内屈指級の髪の色も直す
   function gachaPull(save, n, r) {
     r = r || Math.random; const bn = gachaBanner(), cost = n >= 10 ? GACHA_COST.ten : GACHA_COST.one * n;
+    if (bn.all && !gachaReady(save)) return null;   // 版981：ピックアップを4人選ぶまでは引けない
     if ((save.coins || 0) < cost) return null;
     save.coins -= cost; save.earned = earnedOf(save); ensureGacha(save).total += n;   /* スカウトは、課金のコインから先に使う */
     const picks = []; for (let i = 0; i < n; i++) picks.push(gachaOne(save, bn, r, n >= 10 && i === n - 1 && !picks.some((x) => x.star >= 3) ? 3 : 0));   // 10連は☆3以上を1人確定
-    return { banner: bn, results: picks.map((pk) => gachaApply(save, pk)) };
+    return { banner: bn, results: picks.map((pk) => { const res = gachaApply(save, pk); if (pk.off) res.off = true; return res; }) };
   }
-  root.DotCareer = { cpuSkills, skKind, slotsOf, skillsOf, syncSuspend, PREFS, prefRegion, setHometown, earnCoins, earnedOf, homeTier, myNextLg, PREM, premOn, cardMax, awaken, awakeCost, AWAKE_COST, registerGuest, guestCode, GUESTS, champPeek, CARD_MAX, noSkillLg, gachaBanner, gachaPull, gachaPoolAll, ensureGacha, GACHA_RATE, GACHA_COST, GACHA_PITY, KAKERA_OF, oppKits, BENCH_N, kitsPair, d1Round, pinWatch, faceKeyOf, cpuTeam, ensureStar, starOf, totsuOf, capGrade, capPts, capIdx, GRADES, rosterAt, lvlAt, retiredAt, titleOf, ensureTitles, evalTitles, CUP_LABELS, cupIn, ensureClub, renameClub, kitsFor, KIT_DEFAULT, EMB_DEFAULT, TEAMS, TEAM_BY_ID, ROSTERS, rosterOfTeam, leagueTable, prevOrder, goalRank, recordGoals, CUP_WEEKS_ALL: CUP_WEEKS, leagueWeeksOf: leagueWeeks, POST_WEEKS, CARDS, CAT_NAME, SP, findSpecial, previewCards, trainCards, trainOne, weekTick, GRID_R, GRID_C, zoneOf, cellsFor, formationLabel, FORMATIONS, TACTIC_ITEMS, STYLES, SITU_DEFAULT, SITU_ACTS, SITU_ROWS, SITU_FROM, ensureTactics, slotRoles, applyTactics, skillRate, endWeek, SEASON_WEEKS, INJURIES, TYPE_TUNE, COND_NAME, condOf, trainedThisWeek, trainsDone, trainLimit, trainMult, campState, campAdvance, CAMP, slotInfo, SLOT_MAX, SKILL_RATE, rewardCards, newLeague, newCup, playFixture, peekRound, afterOfficial, playPractice, practiceOpponent, practiceOptions, teamLook, recordStats, teamLevel, findTeam, CUP_WEEKS, CAMPS, LG, rankInfo, PMAX, PRICE, buyCard, buyPack, toEng, toPts, migrate, ensurePts, TEAM_MENUS: TEAM_PTS, MENUS, SPECIAL, LEAGUES, PNAME, newCareer, menusFor, train, learnSkill, slots, skillChance, nextFixture, finishRound, standings, endSeason, opponentTeam, matchTeam, avgParam, decideType, TYPES_BY_POS };
+  root.DotCareer = { gachaPick, setGachaPick, gachaReady, GACHA_PU_N, GACHA_PU_RATE, gachaUniqList, cpuSkills, skKind, slotsOf, skillsOf, syncSuspend, PREFS, prefRegion, setHometown, earnCoins, earnedOf, homeTier, myNextLg, PREM, premOn, cardMax, awaken, awakeCost, AWAKE_COST, registerGuest, guestCode, GUESTS, champPeek, CARD_MAX, noSkillLg, gachaBanner, gachaPull, gachaPoolAll, ensureGacha, GACHA_RATE, GACHA_COST, GACHA_PITY, KAKERA_OF, oppKits, BENCH_N, kitsPair, d1Round, pinWatch, faceKeyOf, cpuTeam, ensureStar, starOf, totsuOf, capGrade, capPts, capIdx, GRADES, rosterAt, lvlAt, retiredAt, titleOf, ensureTitles, evalTitles, CUP_LABELS, cupIn, ensureClub, renameClub, kitsFor, KIT_DEFAULT, EMB_DEFAULT, TEAMS, TEAM_BY_ID, ROSTERS, rosterOfTeam, leagueTable, prevOrder, goalRank, recordGoals, CUP_WEEKS_ALL: CUP_WEEKS, leagueWeeksOf: leagueWeeks, POST_WEEKS, CARDS, CAT_NAME, SP, findSpecial, previewCards, trainCards, trainOne, weekTick, GRID_R, GRID_C, zoneOf, cellsFor, formationLabel, FORMATIONS, TACTIC_ITEMS, STYLES, SITU_DEFAULT, SITU_ACTS, SITU_ROWS, SITU_FROM, ensureTactics, slotRoles, applyTactics, skillRate, endWeek, SEASON_WEEKS, INJURIES, TYPE_TUNE, COND_NAME, condOf, trainedThisWeek, trainsDone, trainLimit, trainMult, campState, campAdvance, CAMP, slotInfo, SLOT_MAX, SKILL_RATE, rewardCards, newLeague, newCup, playFixture, peekRound, afterOfficial, playPractice, practiceOpponent, practiceOptions, teamLook, recordStats, teamLevel, findTeam, CUP_WEEKS, CAMPS, LG, rankInfo, PMAX, PRICE, buyCard, buyPack, toEng, toPts, migrate, ensurePts, TEAM_MENUS: TEAM_PTS, MENUS, SPECIAL, LEAGUES, PNAME, newCareer, menusFor, train, learnSkill, slots, skillChance, nextFixture, finishRound, standings, endSeason, opponentTeam, matchTeam, avgParam, decideType, TYPES_BY_POS };
 })(typeof window !== 'undefined' ? window : globalThis);
