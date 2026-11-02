@@ -4037,3 +4037,6 @@ img:not([src]),img[src=""]{visibility:hidden}
 .s2mu .s2mu-st{display:flex;flex-direction:column;gap:4px}
 .s2mu .s2mu-star{height:30px;padding:0 6px;background:#3a3f55;border:2px solid #ffd54a;color:#ffe58a;font-size:12px;letter-spacing:-.02em;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:3px}
 .s2mu .s2mu-star small{font-size:10px;color:#fff;opacity:.85}
+/* 版976：選手がいるマスを、白い枠と明るい色で見せる（どのマスに置いたか分かるように） */
+.s2c.occ{filter:brightness(1.28) saturate(1.1);box-shadow:inset 0 0 0 3px #fff,inset 0 0 0 5px rgba(0,0,0,.25);z-index:1}
+.s2occ{position:absolute;pointer-events:none;box-shadow:inset 0 0 0 2px #fff,0 0 0 1px rgba(0,0,0,.35);border-radius:3px;z-index:3}
