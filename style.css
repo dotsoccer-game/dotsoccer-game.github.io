@@ -4078,3 +4078,21 @@ img:not([src]),img[src=""]{visibility:hidden}
 .gc5-cancel{background:#fff;color:#223}.gc5-ok{background:linear-gradient(#ffcf3a,#e89a10);color:#3a2000}.gc5-ok[disabled]{opacity:.4;cursor:default}
 .b-off{font-style:normal;background:#555;color:#fff;border-radius:4px;padding:0 4px;margin-right:3px;font-size:.85em}
 .gc5-ps{white-space:nowrap;font-size:12px;letter-spacing:-.03em}
+/* 版982：スカウト：集合絵の下に「選択中のピックアップ」の帯 */
+.gc6-pu{position:absolute;left:34px;top:530px;width:800px;height:154px;border-radius:0 0 14px 14px;background:linear-gradient(rgba(6,12,34,.82),rgba(4,8,24,.96));border-top:2px solid #e8b52a;padding:6px 12px 4px;box-sizing:border-box;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif}
+.gc6-h{display:flex;justify-content:space-between;align-items:center;height:30px}
+.gc6-h b{font-size:20px;font-weight:900;color:#ffd23a;letter-spacing:1px;text-shadow:0 1px 0 #000}
+.gc6-edit{height:28px;padding:0 16px;border-radius:999px;border:2px solid #ffd23a;background:rgba(0,0,0,.4);color:#fff;font:900 15px/1 "Hiragino Kaku Gothic ProN",sans-serif;cursor:pointer}
+.gc6-row{display:flex;gap:8px;margin-top:6px}
+.gc6-card{flex:1;position:relative;height:72px;display:flex;align-items:center;gap:6px;padding:0 6px 0 0;border-radius:8px;border:2px solid #e8b52a;background:linear-gradient(#18285c,#0b1438);color:#fff;cursor:pointer;overflow:hidden;text-align:left}
+.gc6-card.empty{justify-content:center;border-style:dashed;border-color:#fff8;background:rgba(10,16,40,.6)}
+.gc6-card.empty b{font-size:30px;line-height:1}.gc6-card.empty span{font-size:14px;font-weight:900;margin-left:6px}
+.gc6-fw{width:72px;height:72px;flex:none;overflow:hidden;display:flex;align-items:flex-start;justify-content:center}
+.gc6-face{width:84px;height:84px;object-fit:contain;margin-top:-2px}
+.gc6-tx{display:flex;flex-direction:column;gap:4px;min-width:0}
+.gc6-tx b{font-size:19px;font-weight:900;white-space:nowrap}
+.gc6-tx span{font-size:12px;font-weight:800;white-space:nowrap;display:flex;gap:5px;align-items:center;letter-spacing:-.03em}
+.gc6-tx span i{font-style:normal;background:#ffd23a;color:#222;border-radius:4px;padding:1px 5px;font-size:11px}
+.gc6-own{position:absolute;right:4px;top:3px;font-style:normal;font-size:10px;font-weight:900;background:#2a8a3a;border-radius:4px;padding:0 4px}
+.gc6-note{margin:4px 0 0;text-align:center;font-size:12px;font-weight:800;color:#fff;text-shadow:0 1px 0 #000}
+.gc6-tx span.lng{font-size:9.5px;letter-spacing:-.06em}

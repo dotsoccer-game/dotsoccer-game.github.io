@@ -3977,7 +3977,7 @@
       const cc = ['#c8141e', '#ffd23a', '#ffe45a'];
       box.innerHTML = `<div class="gc gc2 gc3 gc4" style="--c0:${cc[0]};--c1:${cc[1]};--c2:${cc[2]}">
         <div class="gc2-bg"></div>
-        <img class="gc4-art gc5-dim" src="img/scout_all_43.jpg" alt="国内屈指の18人">${puPanel()}
+        <img class="gc4-art" src="img/scout_all_43.jpg" alt="国内屈指の18人">${puPanel()}
         <div class="gc3-ttl"><b>スカウト</b></div>
         <div class="gc3-pills"><span class="gc3-coin">${COIN}<b>${(save.coins || 0).toLocaleString()}</b></span>
         <span class="gc3-kk"><img class="kk-ico" src="icons/kakera.png" alt="カケラ" draggable="false">覚醒のカケラ<b>${(save.kakera || 0).toLocaleString()}</b></span></div>
@@ -3993,10 +3993,10 @@
     };
     // 版981：ピックアップ（国内屈指18人から、自分で4人を選ぶ）
     const puInfo = (x) => { const U = D.UNIQ[x.key] || {}, q = C.rosterAt(x.tid, 1).players.find((y) => y.no === x.no) || {}, own = [...save.team.players, ...(save.reserve || [])].find((p) => p.gsrc === x.tid + '_' + x.no); return { U, q, own }; };
-    const puPanel = () => { const L = C.gachaUniqList(), pk = C.gachaPick(save);
-      const slots = Array.from({ length: C.GACHA_PU_N }, (_, i) => { const x = L.find((y) => y.key === pk[i]); if (!x) return `<button class="gc5-slot empty" data-pu="1"><b>＋</b><small>選ぶ</small></button>`;
-        const { U, q, own } = puInfo(x); return `<button class="gc5-slot" data-pu="1">${gcFace(x.tid, q, 'gc5-face')}<b class="gc5-nm">${esc(U.who || q.name || '')}</b><span class="gc5-ps"><i>${esc(q.pos || '')}</i>${esc(U.type || q.type || '')}</span><span class="gc5-sk">${esc(U.name || '')}</span>${own ? `<em class="gc5-own">所持 ${own.totsu || 0}凸</em>` : ''}</button>`; }).join('');
-      return `<div class="gc5-pu"><div class="gc5-h"><i>★★★★★</i><b>ピックアップ</b><small>☆5が出たら75%でこの4人のだれか（25%はほかの国内屈指）。天井の${C.GACHA_PITY}回目は必ずこの4人から</small></div><div class="gc5-row">${slots}</div><button class="gc5-edit" data-pu="1">${pk.length === C.GACHA_PU_N ? 'ピックアップを選び直す' : 'ピックアップを4人選ぶ'}</button></div>`; };
+    const puPanel = () => { const L = C.gachaUniqList(), pk = C.gachaPick(save);   // 版982：集合絵はそのまま、下に「選択中のピックアップ」の帯（4人の札と変更ボタン）
+      const slots = Array.from({ length: C.GACHA_PU_N }, (_, i) => { const x = L.find((y) => y.key === pk[i]); if (!x) return `<button class="gc6-card empty" data-pu="1"><b>＋</b><span>選ぶ</span></button>`;
+        const { U, q, own } = puInfo(x); return `<button class="gc6-card" data-pu="1"><span class="gc6-fw">${gcFace(x.tid, q, 'gc6-face')}</span><span class="gc6-tx"><b>${esc(U.who || q.name || '')}</b><span class="${(U.type || q.type || '').length > 7 ? 'lng' : ''}"><i>${esc(q.pos || '')}</i>${esc(U.type || q.type || '')}</span></span>${own ? `<em class="gc6-own">${own.totsu || 0}凸</em>` : ''}</button>`; }).join('');
+      return `<div class="gc6-pu"><div class="gc6-h"><b>選択中のピックアップ</b><button class="gc6-edit" data-pu="1">✎ ${pk.length === C.GACHA_PU_N ? '変更' : '選ぶ'}</button></div><div class="gc6-row">${slots}</div><p class="gc6-note">☆5当選時、選んだ4人のいずれかが${Math.round(C.GACHA_PU_RATE * 100)}%（天井の${C.GACHA_PITY}回目は必ずこの4人から）</p></div>`; };
     const puPick = () => new Promise((done) => {
       const L = C.gachaUniqList(); let sel = C.gachaPick(save).slice();
       const ov = document.createElement('div'); ov.className = 'gc5-ov'; box.querySelector('.gc').appendChild(ov);
