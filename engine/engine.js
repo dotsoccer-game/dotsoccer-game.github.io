@@ -1593,18 +1593,21 @@
         const cover = mates(g).some((m) => !m.gk && !m.off && !(m.downT > 0) && fx(t, m.x) < oxf - 0.5 && segDist(m.x, m.y, own.x, own.y, gx0, GOAL_Y).d < 2.5);
         const d0 = hyp(g.x - own.x, g.y - own.y);
         if (!cover && d0 > 8) { const k = clamp(dG * ((globalThis.__Kgko3 ?? 0) ? (globalThis.__Kgko3f ?? 0.42) : 0.42), 3, Math.min((globalThis.__Kgko3 ?? 0) ? (globalThis.__Kgko3k ?? 7) : 11, dG - 3)); targets[g.idx] = [gx0 + (own.x - gx0) / dG * k, GOAL_Y + (own.y - GOAL_Y) / dG * k]; if (fx(t, targets[g.idx][0]) > 15.5) targets[g.idx][0] = fx(t, 15.5); urgent[g.idx] = true; return; } }
-      if (oxf > 16.5 || Math.abs(own.y - GOAL_Y) > 18 || !gkInFront(g, own)) return;
-      const d = hyp(g.x - own.x, g.y - own.y); if (d > 8) return;
+      const gOut = (globalThis.__Kgk1v ?? 1) && fx(t, g.x) > 11;   // 版1017：エリアの外まで出ているGKは、そこでも1対1に応じる（足で）
+      const dG0 = hyp(g.x - own.x, g.y - own.y), front = gkInFront(g, own), late = (globalThis.__Kgk1v ?? 1) && !front && dG0 < 1.9 && fx(t, own.x) > fx(t, g.x) - 1.5;   // 横を抜けられかけた：最後に足を出す
+      if (oxf > (gOut ? 23 : 16.5) || Math.abs(own.y - GOAL_Y) > 18 || (!front && !late)) return;
+      const d = dG0; if (d > 8) return;
       const gx0 = fx(t, 0), dl = hyp(gx0 - own.x, GOAL_Y - own.y) || 1, k = d > 3.5 ? 2.6 : 0.6;
       targets[g.idx] = [own.x + (gx0 - own.x) / dl * k + own.vx * 0.15, own.y + (GOAL_Y - own.y) / dl * k + own.vy * 0.15]; urgent[g.idx] = true;
-      if (d < (globalThis.__Kgkc2 ?? 2.0) && !((g.smCd || 0) > S.t)) {   // 足を伸ばして（体ごと）止めに行く
+      if (d < (globalThis.__Kgkc2 ?? ((globalThis.__Kgk1v ?? 1) ? 2.4 : 2.0)) && !((g.smCd || 0) > S.t)) {   // 足を伸ばして（体ごと）止めに行く
         g.smCd = S.t + 2.5;
         const gq = (g.vision + g.dash + g.technique + g.jump) / 4, aq = (own.dribble + own.technique) / 2;
         const pS = clamp(0.42 + (gq - aq) * 0.006 + (g.sk.has('oneOnOne') ? 0.15 : 0) + (uOn(g, 'sutemi') ? 0.3 : 0) + (uOn(g, 'ikari') ? 0.15 : 0) - (uOn(own, 'shiden') ? 0.25 : 0), 0.15, 0.8);
+        const pS2 = late ? pS * 0.6 : pS;   // 横・後ろからの最後の一歩は、止められる見込みが下がる
         const bodyB = d < 1.2 || R.next() < 0.4;   // 版945：足を伸ばして止める／体を大きく広げて止める（体に当てる）
         g.saveT = 0.75; g.saveK = own.y - g.y > 0 ? 9 : 10;   /* 版952：絵はいつも片足を伸ばす形（当たる所が足か体か） */ g.vx *= 0.3; g.vy *= 0.3; g.touchCd = Math.max(g.touchCd || 0, 0.5);   // 版943：グラウンダーを足で止める絵（片足を伸ばす）で止めに行く
         if (globalThis.__gkcLog) globalThis.__gkcLog.push({ t: S.t, block: 1, pS });
-        if (R.next() < pS) { stats[t].saves++; ev('gkblock', { team: t, player: g.name, shooter: own.name, atkTeam: own.team, how: bodyB ? 'body' : 'foot' });   // 版944：試合中の文字は出さない（ダイジェストでファインセーブとして流す）   // 足・体に当てて、ボールがこぼれる
+        if (R.next() < pS2) { stats[t].saves++; ev('gkblock', { team: t, player: g.name, shooter: own.name, atkTeam: own.team, how: bodyB ? 'body' : 'foot' });   // 版944：試合中の文字は出さない（ダイジェストでファインセーブとして流す）   // 足・体に当てて、ボールがこぼれる
           const b = S.ball, a0 = Math.atan2(own.y - g.y, own.x - g.x) + R.range(-0.9, 0.9), v0 = R.range(3, 6);
           Object.assign(b, { owner: -1, kind: 'loose', vx: Math.cos(a0) * v0, vy: Math.sin(a0) * v0, vz: R.range(0, 1.5), z: 0.1, lastTeam: t, lastPlayer: g.idx, intended: -1 });
           own.touchCd = 0.6; own.settle = false; S.dribbleDir = null; act(own, 'lose', 0.6, { o: g.idx }); }
@@ -3330,7 +3333,7 @@
             const rcvR = (globalThis.__Kphy ?? 1) && !p.gk && b.kind === 'pass' && b.intended === p.idx && b.lastTeam === tm.ti;   // 版908：パスを待っている受け手は、出た瞬間に動き出せる
             const lookR = oppBall && !p.gk && (p.lookManT || 0) > S.t ? 0.15 : 0;   // 版908：背中の相手を見ていた一瞬は、ボールへの反応が少し遅れる
             let react = lookR + (rcvR ? 0.1 : swR ? 0.0 : baitR ? 0.02 : icR ? 0.04 : blindR ? 0.12 : fakeR ? 0.16 : gc ? 0.05 : p.gk ? Math.max(0.04, 0.22 + (1 - p.vision / 100) * 0.35 - (isSK ? 0.12 : 0) - (sut ? 0.08 : 0) - ((p.skRead || 0) > S.t ? 0.2 : 0)) : skZ(p, 'looseBall') ? 0.1 : 0.35);
-            if (p.gk && (globalThis.__Kgkr2 ?? 1)) react = Math.max(0.03, react - (S.t - (S.bChgT ?? -9)));   // 版1013：GKの反応の遅れは、ボールの向きが変わった瞬間から数える（毎回遅れ直していたので、近くを通るはね返りに手が出なかった）
+            if (p.gk && (globalThis.__Kgkr2 ?? 1) && (toOwnG || oppToG)) react = Math.max(0.03, react - (S.t - (S.bChgT ?? -9)));   // 版1017：ゴールへ向かってくる球の時だけ   // 版1013：GKの反応の遅れは、ボールの向きが変わった瞬間から数える（毎回遅れ直していたので、近くを通るはね返りに手が出なかった）
             for (let k = 0; k < path.length; k++) {
               const tt = (k + 1) * 0.1;
               if (path[k][2] > (p.gk ? (fx(tm.ti, path[k][0]) < 16.5 && Math.abs(path[k][1] - GOAL_Y) < 20.2 ? gkReachZ(p) : 1.9) : 2.6)) continue;   // ペナルティエリアの外では手が使えない：頭を越える浮き球には飛び出さない   // 頭より高いうちは触れない（GKはジャンプして手が届く高さまで）
@@ -5211,7 +5214,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       let power = null;
       if (brainOn() && !S.pk && !S.fkDirect && !skill && !chip && !emptyNet && !oneOnOne && !aimY) { const prs = nearestOpp(p, p.x, p.y).d < 2.5 ? 1 : 0; power = R.next() < clamp(0.15 + (60 - (p.mental || 50)) * 0.008 + prs * 0.15, 0.08, 0.6); if (power) aim = GOAL_Y + (aim - GOAL_Y) * 0.6; }
       kick(p, gx, chip && !emptyNet ? GOAL_Y + R.gauss() * 1.2 : aim, 'shot', false, { pk: S.pk, fk: S.fkDirect, chip: chip && !emptyNet, calm: oneOnOne || emptyNet, skill, dShot, empty: emptyNet, power });
-      if (globalThis.__labPost && !S.pk && !S.fkDirect) { const b9 = S.ball, gl9 = fx(p.team, L), sd9 = b9.y < GOAL_Y ? -1 : 1, tY = GOAL_Y + sd9 * (POST - 0.145), t9 = (gl9 - b9.x) / (b9.vx || 1e-6); if (t9 > 0.05) { b9.vy = (tY - b9.y) / t9; b9.spin = 0; b9.curveAll = false; b9.curlP = 0; b9.knuckle = false; b9.aimY = tY; } }   // 確認画面だけ：シュートをポストの内側へ（ポストに当たって入る場面を見るため）
+      if (globalThis.__labPost && !S.pk && !S.fkDirect) { const b9 = S.ball, gl9 = fx(p.team, L), sd9 = b9.y < GOAL_Y ? -1 : 1, tY = GOAL_Y + sd9 * (POST - 0.145), t9 = (gl9 - b9.x) / (b9.vx || 1e-6); if (t9 > 0.05) { b9.vy = (tY - b9.y) / t9; { const hZ = R.range(0.3, 1.5); b9.vz = (hZ - (b9.z || 0) + 4.9 * t9 * t9) / t9; } b9.spin = 0; b9.curveAll = false; b9.curlP = 0; b9.knuckle = false; b9.aimY = tY; } }   // 確認画面だけ：シュートをポストの内側へ（ポストに当たって入る場面を見るため）
       if (power != null && globalThis.__shIntent) globalThis.__shIntent.push({ t: S.t, k: power ? 'power' : 'place' });
       const fkMaster = S.fkDirect && p.sk.has('fk');
       S.ball.gkPen = (SHOT_GK_PEN[skill] || 0) + (dShot ? SHOT_GK_PEN.dribbleShot : 0) + (fkMaster ? 0.4 : 0) + (S.ball.csPlace ? 0.04 : 0);   // 置きに行くコントロールショット：遅くても、GKの届かない隅へ正確に置くので止めにくい
@@ -6884,7 +6887,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             if (vn > -0.3 * sp && R.next() < 0.4) continue;   // かすっただけ（ほぼ真横に当たる）：そのまま通り過ぎることもある
             vn = Math.min(vn, -(globalThis.__Kpst ?? 0.45) * sp);   // 当たったら、向きがはっきり変わる（物理的にも、柱に当たれば大きく曲がる）
             if (vn < 0) { const e = R.range(0.5, 0.7), tvx = b.vx - vn * nx, tvy = b.vy - vn * ny; b.vx = tvx * 0.8 - e * vn * nx; b.vy = tvy * 0.8 - e * vn * ny; }
-            if (b.vz) b.vz *= 0.7;
+            if (b.vz) b.vz = Math.min(b.vz * 0.5, 0.5);   // 版1017：ポストに当たったら勢いが落ちる。上へ浮き上がり続けない（ネットの上の方をふわふわ進んでいた）
             b.x = gx + inward * Math.max(0.03, Math.abs(nx) * (r + 0.03)); b.y = py + ny * (r + 0.03); b.px = b.x; b.py = b.y; if (b.z != null) b.pz = b.z;   // いつもピッチ側に置き直す（次の動きでゴールラインを越えるかで判定）
             b.curveAll = false; b.spin = 0; b.knuckle = false; b.postT = S.t; b.postIn = S.t;
             const intoG = (globalThis.__Kpin ?? 1) && b.vx * inward < 0 && (() => { const t1 = Math.abs((gx - b.x) / (b.vx || 1e-6)); const y1 = b.y + b.vy * t1; return Math.abs(y1 - GOAL_Y) < POST - 0.05; })();
