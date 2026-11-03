@@ -4173,4 +4173,3 @@ img:not([src]),img[src=""]{visibility:hidden}
 .tyg-fl b{display:block;font-size:18px;font-weight:900}.tyg-fl span{display:inline-block;margin-top:3px;background:#fff6c8;border-radius:12px;padding:2px 10px;font-size:12px;font-weight:700}
 .tyg-foot p{flex:1;margin:0;font-size:14px;border-left:2px solid #b7c6de;padding-left:14px;line-height:1.5}
 .tyg-close{width:200px;height:52px;border-radius:12px;border:3px solid #0d2a6a;background:linear-gradient(#2f6fe0,#1747b0);color:#fff;font-size:22px;font-weight:900;cursor:pointer;box-shadow:0 3px 0 #0d2a6a}
-#mSheet .st-rec .st-sw{width:auto;min-width:130px;background:#e8eefc;border-color:#13306b;display:flex;align-items:center;justify-content:center}#mSheet .st-rec .st-sw::after{display:none}#mSheet .st-rec .st-sw em{color:#13233f;margin:0 10px!important;text-shadow:none;white-space:nowrap}

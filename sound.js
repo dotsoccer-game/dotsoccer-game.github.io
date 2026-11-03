@@ -1,27 +1,17 @@
 // 版499：サウンド（効果音とBGM）。音のファイルは使わず、ファミコン風の音をその場で作る
 (function () {
   let AC = null, master = null, sfxG = null, bgmG = null, crowdNode = null, crowdGain = null;
-  const pref = { sfx: true, bgm: true, vol: 0.8, rec: 0 }; const BOOST = 1.8;
+  const pref = { sfx: true, bgm: true, vol: 0.8 }; const BOOST = 1.8;
   try { const v = JSON.parse(localStorage.getItem('dotSound') || '{}'); Object.assign(pref, v); } catch (_) {}
   const save = () => { try { localStorage.setItem('dotSound', JSON.stringify(pref)); } catch (_) {} };
-  let recEl = null;
   function ctx() {
     if (AC) return AC;
     const C = window.AudioContext || window.webkitAudioContext; if (!C) return null;
-    // 版1005：画面録画中は、端末が一度に1024個分の音をまとめて要求するのに、こちらは少ししか渡せず、残りが無音になって「ブブブ」と鳴っていた（録画を解析：21msごとに4msだけ音・残り無音）
-    //   音を作る単位を大きくする（latencyHint）と合うかを実機で試す。設定の「録画用の音」で切り替え
-    //   0 標準 ／ 1 大きめ（playback） ／ 2 さらに大きめ（0.2秒） ／ 3 大きめ＋再生モード
-    const rm = pref.rec | 0;
-    try { if (navigator.audioSession) navigator.audioSession.type = rm === 3 ? 'playback' : 'auto'; } catch (_) {}
-    const lh = rm === 1 || rm === 3 ? 'playback' : rm === 2 ? 0.2 : null;
-    try { AC = lh != null ? new C({ latencyHint: lh }) : new C(); } catch (_) { AC = new C(); }
+    AC = new C();   // 版1006：画面録画の雑音はiPhone側（Safari系の画面すべて・動画でも同じ）の問題と分かったので、音の出し方は標準のまま
     AC.onstatechange = () => { if (!AC) return; if (AC.state === 'interrupted') needRebuild = true; else if (AC.state === 'running') setTimeout(() => { if (AC && AC.state === 'running' && want && !cur) bgm(want); }, 0); };   // 版560：電話・画面収録などで音が止められた
     // 版728：全体の音を大きく（約1.8倍）。大きい音が割れないように、最後に「リミッター」を通す
     master = AC.createGain(); master.gain.value = pref.vol * BOOST;
-    let out = AC.destination;
-    if (rm === 99 && AC.createMediaStreamDestination) { try { const md = AC.createMediaStreamDestination(); if (!recEl) { recEl = document.createElement('audio'); recEl.setAttribute('playsinline', ''); recEl.autoplay = true; recEl.style.display = 'none'; document.body.appendChild(recEl); } recEl.srcObject = md.stream; out = md; } catch (_) { out = AC.destination; } }
-    else if (recEl) { try { recEl.pause(); recEl.srcObject = null; } catch (_) {} }
-    try { const lim = AC.createDynamicsCompressor(); lim.threshold.value = -8; lim.knee.value = 6; lim.ratio.value = 12; lim.attack.value = 0.003; lim.release.value = 0.25; master.connect(lim); lim.connect(out); } catch (_) { master.connect(out); }
+    try { const lim = AC.createDynamicsCompressor(); lim.threshold.value = -8; lim.knee.value = 6; lim.ratio.value = 12; lim.attack.value = 0.003; lim.release.value = 0.25; master.connect(lim); lim.connect(AC.destination); } catch (_) { master.connect(AC.destination); }
     sfxG = AC.createGain(); sfxG.gain.value = pref.sfx ? 1 : 0; sfxG.connect(master);
     bgmG = AC.createGain(); bgmG.gain.value = pref.bgm ? 0.55 : 0; bgmG.connect(master);
     clockA = null; setTimeout(prerenderAll, 0); setTimeout(loadFiles, 0);
@@ -52,16 +42,8 @@
   // iPhoneは、画面にさわった時でないと音が出せない：最初のタッチで音を使えるようにする
   // 版561：resume は少し待ってから動き出すので、動き出してから曲を始める（前は最初のタッチで曲が始まらず、しばらく無音だった）
   const startWant = () => { if (AC && AC.state === 'running' && want && !cur) bgm(want); };
-  const unlock = () => { srCheck(); if (needRebuild) rebuild(); const a = ctx(); if (!a) return; if (recEl && recEl.srcObject && recEl.paused) { try { const pp = recEl.play(); if (pp && pp.catch) pp.catch(() => {}); } catch (_) {} } if (a.state !== 'running') { try { const pr = a.resume(); if (pr && pr.then) pr.then(startWant, () => {}); } catch (_) {} setTimeout(startWant, 120); setTimeout(startWant, 500); } else startWant(); };
+  const unlock = () => { if (needRebuild) rebuild(); const a = ctx(); if (!a) return; if (a.state !== 'running') { try { const pr = a.resume(); if (pr && pr.then) pr.then(startWant, () => {}); } catch (_) {} setTimeout(startWant, 120); setTimeout(startWant, 500); } else startWant(); };
   ['pointerdown', 'touchstart', 'touchend', 'pointerup', 'click', 'keydown'].forEach((e) => addEventListener(e, unlock, { passive: true, capture: true }));   // 版561：iPhoneは指を離した時（touchend）でないと音を始められないことがある
-  // 版1003：画面録画を始めると、端末の音の周波数（サンプルレート）が変わり、今の音の仕組みのままだと雑音しか出なくなる。
-  // 新しく作った時の周波数と今の周波数が違っていたら、音の仕組みごと作り直す（画面を触った時に確認。数秒おきに確認すると、確認自体が音の邪魔をするおそれがあるのでしない）
-  let srChkT = 0;
-  function srCheck() {
-    if (!AC || needRebuild) return; const now = Date.now(); if (now - srChkT < 2500) return; srChkT = now;
-    const C = window.AudioContext || window.webkitAudioContext; let pr = null;
-    try { pr = new C(); const sr = pr.sampleRate; if (sr && AC && sr !== AC.sampleRate) { needRebuild = true; rebuild(); } } catch (_) {} finally { try { pr && pr.close(); } catch (_) {} }
-  }
   document.addEventListener('visibilitychange', () => { if (!AC) return; if (document.hidden) { try { AC.suspend(); } catch (_) {} needRebuild = true; } else { try { AC.resume(); } catch (_) {} } });   // 版560：戻ってきたら作り直す（一瞬閉じると音がずれていた）
   addEventListener('pageshow', (e) => { if (e.persisted && AC) { needRebuild = true; try { AC.resume(); } catch (_) {} } });
 
@@ -456,7 +438,6 @@
     if (k === 'sfx') sfxG.gain.value = v ? 1 : 0;
     if (k === 'bgm') { bgmG.gain.value = v ? 0.55 : 0; }
     if (k === 'vol') master.gain.value = v * BOOST;
-    if (k === 'rec' && AC) { needRebuild = true; rebuild(); unlock(); }
   }
   window.DotSound = { get info() { return AC ? { sr: AC.sampleRate, st: AC.state, bl: Math.round((AC.baseLatency || 0) * 1000), ol: Math.round((AC.outputLatency || 0) * 1000) } : null; }, play, bgm, bgmIn, crowd, goal, excite, chant, set, __render, get __bufs() { return { PRE, FILE }; }, get state() { return { bgm: cur, want, crowd: crowdMix ? +crowdMix.gain.value.toFixed(2) : 0, hp: crowdHp ? Math.round(crowdHp.frequency.value) : 0, pre: Object.keys(PRE).join(',') }; }, get pref() { return { ...pref }; } };
 })();

@@ -5339,7 +5339,7 @@
   // 版892：設定「新しい動き（試作）」：ONにすると、この端末の試合（育成モード・フリー試合）が新しい動きになる
   const nmLabel = () => { const b = $('#mNm'); if (!b) return; const on = !!globalThis.__newMove; b.classList.toggle('on', on); const em = b.querySelector('.st-sw em'); if (em) em.textContent = on ? 'ON' : 'OFF'; };
   nmLabel();
-  const sndLabel = () => { const P = window.DotSound ? DotSound.pref : { sfx: true, bgm: true }; for (const [id, on] of [['#mSfx', P.sfx], ['#mBgm', P.bgm]]) { const b = $(id); if (!b) continue; b.classList.toggle('on', !!on); const em = b.querySelector('.st-sw em'); if (em) em.textContent = on ? 'ON' : 'OFF'; }  const rb = $('#mRec'); if (rb && window.DotSound) { const RN = ['標準', '大きめ', 'さらに大きめ', '大きめ＋再生'], inf = DotSound.info; rb.querySelector('em').textContent = RN[DotSound.pref.rec | 0] + (inf ? ` ${inf.sr / 1000}k ${inf.bl}ms` : ''); } };   // 版679：スイッチの見た目
+  const sndLabel = () => { const P = window.DotSound ? DotSound.pref : { sfx: true, bgm: true }; for (const [id, on] of [['#mSfx', P.sfx], ['#mBgm', P.bgm]]) { const b = $(id); if (!b) continue; b.classList.toggle('on', !!on); const em = b.querySelector('.st-sw em'); if (em) em.textContent = on ? 'ON' : 'OFF'; } };   // 版679：スイッチの見た目
   // 版678：アカウントID（＝フレンドID・8けた）を設定に出す。テスト用のボタンは、開発用のアカウントだけに出す
   const DEV_IDS = ['11111111', '99995139', '84539075'];   // ここに開発用のアカウントID（8けた）を入れる
   let acctFid = null;
@@ -5364,7 +5364,6 @@
     else if (m === 'testcoin') { const sv = window.__career.save; sv.coins = (sv.coins || 0) + 10000; window.__career.store(); sheet.hidden = true; try { window.__career.renderHome(); } catch (_) {} return; }   // 版552：演出のテスト用
     else if (m === 'tut') { if (window.__tut) { const of = $('#officeScreen'); if (of) { of.hidden = true; try { window.__career.go('home'); } catch (_) {} } if ($('#career').hidden) window.__career.open(); setTimeout(() => window.__tut.replay(), 300); } }
     else if (m === 'nm') { globalThis.__newMove = !globalThis.__newMove; try { localStorage.setItem('dotNewMove', globalThis.__newMove ? '1' : '0'); } catch (_) {} nmLabel(); sheet.hidden = false; return; }
-    else if (m === 'rec') { if (window.DotSound) DotSound.set('rec', ((DotSound.pref.rec | 0) + 1) % 4); sndLabel(); sheet.hidden = false; return; }
     else if (m === 'sfx' || m === 'bgm') { if (window.DotSound) DotSound.set(m, !DotSound.pref[m]); sndLabel(); sheet.hidden = false; return; }
     else if (m === 'gap') { topGap = topGap ? 0 : 1; try { localStorage.setItem('dotTopGap', String(topGap)); } catch (_) {} refit(); }
     else if (m === 'tab') { try { window.open(location.href, '_blank'); } catch (_) {} }
