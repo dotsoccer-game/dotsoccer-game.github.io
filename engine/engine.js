@@ -3583,14 +3583,14 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
               /* 版865：体を広げて止めるは取りやめ（至近距離は足を伸ばして止めるに集約） */   // 版864：至近距離の浮き球：体を大きくして、体のどこかに当ててはじく
               if (p.svPrep && p.svPrep.t !== b.shotT) p.svPrep = null;
               if (gInBox && !passedGk && b.z > 0.7 && !p.svPrep && !p.diveT && !p.downT && !p.lateDive && tG < 0.32 && Math.abs(gap) > 0.35 && Math.abs(gap) <= 0.8 && kD > 11 && onFrame) { if (globalThis.__Kgkst ?? 1) p.svPrep = { t: b.shotT, k: 'stand', dir: Math.sign(gap) || 1 }; else startDive(p, Math.sign(gap), Math.max(0.7, Math.abs(gap)), Math.max(0.12, tG)); }   // 版970：体のすぐ横（0.8m以内）に来る球は、横っ跳びせず、立ったまま一歩寄って取る（正面なのに横へ飛んでよけて見えた）   // 版868：PKの位置より遠いシュートが体の少し横に来る：ボールが来る前に、体を横に倒しはじめる（はじいた後に倒れない）
+              else if (gInBox && passedGk && onFrame && fx(tm.ti, p.x) < 3.5 && !p.diveT && !p.downT && !p.lateDive && !p.wf && fx(tm.ti, b.x) > 0.4 && Math.abs(yc - p.y) > 0.7 && Math.abs(yc - p.y) < gkDiveMax(p) + 2.5 && (globalThis.__Kwf2 ?? 1)) wrongFoot(p, yc - p.y, 0.1);   // 版989：通り過ぎてから飛ぶ（遅れて見えた）のをやめ、逆を突かれて崩れる
               else if (gInBox && passedGk && onFrame && fx(tm.ti, p.x) < 3.5 && !p.diveT && !p.downT && !p.lateDive && fx(tm.ti, b.x) > 0.4 && Math.abs(yc - p.y) > 0.7 && Math.abs(yc - p.y) < gkDiveMax(p) + 2.5) startDive(p, Math.sign(yc - p.y), Math.abs(yc - p.y), 0.15);   // 版877：反応が遅れた：もう間に合わないが、ゴールに入る所（ゴールラインを割る所）へ遅れて飛び込む（見送らない）
               else if (gInBox && !passedGk && !p.svPrep && !p.diveT && !p.downT && !p.lateDive && tG < 0.5 && Math.abs(gap) > 0.8 && (Math.abs(gap) < gkDiveMax(p) + 1 || onFrame)) {   /* 版460：飛び方は版457に戻した */
                 // 飛ぶ瞬間に「届くかどうか」を決めておく：届かない時は手前で落ち、届く時はしっかり触る（見た目と結果をそろえる）
                 const r0 = R.next(), g0 = gkSaveProb(p, b, 0.1, yG, Math.max(5, hyp(b.vx, b.vy) - 4)), est = g0.prob + 0.04 + 0.5 * clamp((g0.skill - 45) / 40, 0, 1), miss = r0 >= est;   // 版790：上手なGK（D2・D1級）ほど、飛ぶ向きと間合いを外さない   // 届く頃の球の速さで見積もる
                 p.preSave = { t: b.shotT, r: r0, miss, est, sp: hyp(b.vx, b.vy), d: hyp(P[b.kicker].x - p.x, P[b.kicker].y - p.y) }; if (globalThis.__preLog) globalThis.__preLog.push({ st: b.shotT, miss, est: +est.toFixed(2), prob: +g0.prob.toFixed(2), r0: +r0.toFixed(2), sp: +hyp(b.vx, b.vy).toFixed(1), gap: +gap.toFixed(2), tG: +tG.toFixed(2), z: +b.z.toFixed(2) });
-                const kk = P[b.kicker], wfP = (globalThis.__Kwf ?? 0.35) + (b.csPlace ? 0.2 : 0) + clamp(((kk ? kk.technique : 60) - 60) / 100, 0, 0.2);   // 版986：逆を突かれる：シュートの瞬間に逆へ重心が乗り「あ、逆か！」と戻ろうとして崩れる（届かない球の一部。決まる・決まらないは変えない）
-                if (miss && (globalThis.__Kwf ?? 0.35) > 0 && tG > 0.2 && Math.abs(gap) > 1.2 && !p.wf && R.next() < wfP) { const t1 = Math.min(0.26, tG * 0.55), gd = Math.sign(gap) || 1;
-                  p.wf = { dir: -gd, gd, t1: S.t + t1, t2: S.t + t1 + 0.3, end: S.t + t1 + 0.3 + 1.6, shot: b.shotT }; act(p, 'lose', t1 + 0.32, { dx: 0, dy: -gd, o: p.idx, wf: 1 }); if (rec) actions.push({ t: +(S.t + t1 + 0.3).toFixed(2), i: p.idx, a: 'fall', d: 1.5, dx: 0, dy: gd, wf: 1 }); p.vx *= 0.2; p.vy *= 0.2; }   /* 倒れる絵は先に予約しておく（すぐ決まって試合が止まっても、倒れるところまで見せる） */
+                const wfOn = (globalThis.__Kwf2 ?? 1) ? (Math.abs(gap) < 2.6 || R.next() < 0.5) : R.next() < (globalThis.__Kwf ?? 0.35) + (b.csPlace ? 0.2 : 0);   // 版989：届かない球は、ほとんど「逆を突かれた」で見せる（手前で落ちる横っ跳び・逆へ飛んだように見える場面をなくす）。遠い隅は半分、いっぱいに伸ばした横っ跳び
+                if (miss && (globalThis.__Kwf ?? 0.35) > 0 && Math.abs(gap) > 1.0 && wfOn && wrongFoot(p, gap, tG)) {}
                 else if (miss) missDive(p, gap, tG, b.csPlace && b.csType === 'ground');   // 版781：届かない時は、伸ばした手（絵）もボールに重ならない所まで
                 else startDive(p, Math.sign(gap), Math.abs(gap), tG);
               }
@@ -4043,6 +4043,10 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
     const gkReachZ = (p) => 2.1 + p.jump * 0.011;          // ジャンプ50で約2.65m、95で約3.15mまで手が届く
     const gkDiveMax = (p) => 2.6 + p.jump * 0.028;          // 横っ跳びの最大距離：ジャンプ50で約4m、95で約5.3m
     // 版782：止められないシュートは、GKの反応を遅らせる。ボールが横を抜けるまで構えたまま動けず、抜けたあとに遅れて飛ぶ（明らかに触っていないと見えるように）
+    // 版989：逆を突かれる（決められる時の見せ方）：逆へ重心が乗る → 崩れる → 尻もち。tG：ボールが横を通るまでの時間
+    function wrongFoot(p, gap, tG) { const b = S.ball; if (p.wf || p.diveT > 0 || p.downT > 0) return false;
+      const t1 = clamp(tG * 0.55, 0.1, 0.26), gd = Math.sign(gap) || 1;
+      p.wf = { dir: -gd, gd, t1: S.t + t1, t2: S.t + t1 + 0.3, end: S.t + t1 + 0.3 + 1.6, shot: b.shotT }; act(p, 'lose', t1 + 0.32, { dx: 0, dy: -gd, o: p.idx, wf: 1 }); if (rec) actions.push({ t: +(S.t + t1 + 0.3).toFixed(2), i: p.idx, a: 'fall', d: 1.5, dx: 0, dy: gd, wf: 1 }); p.vx *= 0.2; p.vy *= 0.2; p.lateDive = null; return true; }
     // 版988：止めた瞬間、GKの手（絵）がボールに届いているようにする：離れていたら、GKの体をボールの方へ伸ばす（触っていないのに止めて見えた）
     function gkReachTo(p, b) { if (!(globalThis.__Kgkr ?? 1)) return; const lim = p.diveT > 0 ? 1.3 : 0.85, dx = b.x - p.x, dy = b.y - p.y, dd = hyp(dx, dy); if (dd <= lim) return; const k = Math.min(1.1, dd - lim) / dd; p.x += dx * k; p.y += dy * k; if (globalThis.__reachLog) globalThis.__reachLog.push(+(dd - lim).toFixed(2)); }
     function missDive(p, gap, tHit, roll) {
@@ -8000,6 +8004,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         const gkHands = p.gk && inBox && !bpFoot(p, b);   // 版861：バックパス（味方が足で蹴った球・スローインを直接）は手で取れない。ヘディング・胸、相手や味方に当たったはね返りは手で取れる
         const reach = gkHands ? (p.svPrep && p.svPrep.t === b.shotT && b.kind === 'shot' ? (p.svPrep.k === 'footsave' ? 0.7 : 0.45) : 0) + (uOn(p, 'ikari') ? 0.35 * gP(p) : 0) + (p.diveT > 0 ? 1.4 + (p.jump * 0.7 + p.technique * 0.3) * 0.012 + Math.max(0, p.jump * 0.7 + p.technique * 0.3 - 70) * 0.02 : b.kind === 'shot' ? 1.15 + p.technique * 0.005 + p.jump * 0.004 + Math.max(0, p.jump * 0.7 + p.technique * 0.3 - 70) * 0.012 : 1.3 + p.jump * 0.004) : b.kind === 'shot' && p.team !== b.lastTeam ? 0.55 - (b.guren ? 0.45 * Math.min(1, b.grF ?? 1) : 0) + p.technique * 0.002 + (skZ(p, 'shotBlock') ? 0.4 : 0) + ((globalThis.__Kdsb ?? 0.25) && T[p.team].attitude === 'defensive' && fx(p.team, b.x) < 25 ? (globalThis.__Kdsb ?? 0.25) + ((b.shotFrom || 0) >= 14 && T[p.team].players.filter((q) => !q.gk && !q.off && fx(p.team, q.x) < 22).length >= 5 ? (globalThis.__Kdsl ?? 0.35) : 0) : 0) + (uOn(p, 'miyabi') ? 0.9 * uP(p) : 0) + (uOn(p, 'matsuri') ? 0.6 * uP(p) * mtF(p) : 0) + (uOn(p, 'kagenui') && b.kicker === p.kgT ? 0.6 : 0) + ((p.b5 || -9) > S.t - 0.5 && fx(p.team, b.x) < 25 ? 0.15 : 0) + (fx(p.team, b.x) < 7 && Math.abs(b.y - GOAL_Y) < POST + 2 ? 0.9 : 0) : (p.team !== b.lastTeam && b.kind === 'pass' && skZ(p, 'intercept') ? 0.4 : 0) - (p.team !== b.lastTeam && b.kind === 'pass' ? (b.uSafe || 0) * 0.5 : 0) + (uOn(p, 'tetsurou') && p.team !== b.lastTeam ? 0.5 : 0) + ((p.sw5 || -9) > S.t - 0.5 && p.team !== b.lastTeam && b.kind === 'pass' ? 0.7 : 0) + (uOn(p, 'kagenui') && p.team !== b.lastTeam && b.kind === 'pass' ? (b.intended === p.kgT ? 1.3 : 0.35) : 0) + (uOn(p, 'miyabi') && b.kind === 'loose' ? 0.5 : 0) + ((globalThis.__Kreb ?? 0.4) && b.kind === 'loose' && p.team === b.lastTeam && !p.gk && P[b.lastPlayer] && P[b.lastPlayer].gk && T[p.team].attitude === 'defensive' && fx(p.team, b.x) < 16 ? (globalThis.__Kreb ?? 0.4) : 0) + (uOn(p, 'sutemi') && !gkHands ? 0.6 : 0) + ((globalThis.__Kphy ?? 1) ? (b.kind === 'loose' || hyp(b.vx, b.vy) < 5 ? 0.65 : b.kind === 'pass' && b.intended === p.idx ? 0.82 : 0.6) : (b.kind === 'loose' || hyp(b.vx, b.vy) < 5 ? 0.8 : b.kind === 'pass' && b.intended === p.idx ? 1.25 : 0.75)) + (p.team === b.lastTeam ? p.technique : p.defense) * ((globalThis.__Kphy ?? 1) ? 0.0025 : 0.003)   /* 版908：足が届くのは0.9m前後まで（設計一覧14章） */ + (p.team !== b.lastTeam ? DOM[p.team] * 0.45 : 0);   // ダイレクトのワンツーは読まれにくい
         const gkShot = gkHands && b.kind === 'shot' && b.lastTeam !== p.team;   // 版863：シュートには、キャッチできる範囲より少し遠く・高くまで、指先・こぶしで触れる（はじく・かき出す・パンチングだけ）
+        if (p.gk && p.wf && b.kind === 'shot' && b.shotT === p.wf.shot && S.t < p.wf.end) continue;   // 版989：逆を突かれたGKは、そのシュートに触れない（届かないと決まった球。崩れながら戻る途中で触って、止めてしまっていた）
         if (b.z > (gkHands ? gkReachZ(p) + (gkShot ? 0.3 : 0) : 1.9)) continue;
         if (gkHands && p.downT > 0 && !(p.diveT > 0) && b.z > 0.8) continue;   // 版867：倒れているGKは、高い球に手が届かない
         if (!passOk(p, b)) continue;
@@ -8158,7 +8163,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             // 止められなかった：正面でも体を投げ出して手を伸ばす（GKも頑張ったが届かなかった、と見えるように）
             // 届かなかったように見せる：飛ぶのが少し遅れて、手はボールの手前までしか届かない
             if (p.svPrep && p.svPrep.t === b.shotT && p.svPrep.k !== 'stand') { p.saveT = 0.7; p.saveK = p.svPrep.k === 'block' ? 11 : (yAt - p.y > 0 ? 9 : 10); p.svPrep = null; }   // 版862：足・体で止めに行ったが届かなかった
-            else if (!p.diveT && !p.downT && !p.lateDive && Math.abs(yAt - p.y) > 1.0) missDive(p, yAt - p.y, 0.12, false);   // 正面は飛ばない
+            else if (!p.diveT && !p.downT && !p.lateDive && Math.abs(yAt - p.y) > 1.0) { if (!((globalThis.__Kwf2 ?? 1) && wrongFoot(p, yAt - p.y, 0.12))) missDive(p, yAt - p.y, 0.12, false); }   // 版989：逆を突かれて崩れる   // 正面は飛ばない
             continue;
           }
           // ゴールライン際：ゴールに向かう球に、スライディングで足を伸ばしてかき出す（ゴールを割らせないことが第一）
