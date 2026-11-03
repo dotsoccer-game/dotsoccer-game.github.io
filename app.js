@@ -1599,7 +1599,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       }   // シュートは手で描いたフォーム（踏み込み→振りかぶり→インパクト→振り抜き）。横・手前・奥の絵を向きで選ぶ
       else { o.pose = 'passA'; o.art = true; if (kn.foot) o.foot = kn.foot; }   // パスは手で描いたフォーム＝シュートの小さいバージョン（踏み込み→小さく振りかぶる→インパクト→小さく振り抜く）。8方向・右足／左足
     } else if (armsUp) o.pose = 'cheer';   // バンザイ・GKのパンチング／ダイブ・転倒（倒した絵として使う）
-    else if (/^(shotA|passA|trapI|trapC|stumble|fall|getup|scisB|scis|bfStep|bfPush|bicycle|dhead|headS|volleyS|lobS|toeK|ctrlS)\d[RL]?$/.test(pose || '')) { const m = pose.match(/^([a-zA-Z]+?)(\d)([RL]?)$/); o.pose = m[1]; o.frame = +m[2]; o.art = true; if (m[3]) o.foot = m[3]; }   // 手で描いた絵。最後の R/L＝使う足   // 手で描いたシュートフォーム・シザース
+    else if (/^(shotA|passA|trapI|trapC|stumble|fall|getup|scisB|scis|bfStep|bfPush|bicycle|dhead|headS|volleyS|lobS|toeK|ctrlS|gkwf)\d[RL]?$/.test(pose || '')) { const m = pose.match(/^([a-zA-Z]+?)(\d)([RL]?)$/); o.pose = m[1]; o.frame = +m[2]; o.art = true; if (m[3]) o.foot = m[3]; }   // 手で描いた絵。最後の R/L＝使う足   // 手で描いたシュートフォーム・シザース
     else if (pose === 'lie') { o.pose = 'lie'; o.art = true; }   // あお向けの大の字
     else if (pose === 'gkReach' || pose === 'gkCrouch' || pose === 'gkSit' || pose === 'slide' || pose === 'slideF' || pose === 'slideB' || pose === 'hurdle') { o.pose = pose; o.art = true; }   // 失点したGKの悔しがり
     else if (pose === 'jump' || pose === 'lunge' || pose === 'sole' || pose === 'crouch') o.pose = pose;
@@ -1929,6 +1929,15 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
   // 版970：GKはボールの方を向く。止める姿勢（片足・片手を伸ばす）のままボールが後ろ（ゴールの中）へ抜けたら、姿勢をやめて普通に立ち、振り返ってボールを見る（伸ばした手足がゴールを指さして見えた）
   function kpFace(p) { return proj(kpBall.x, kpBall.y); }
   const kpBehind = (p) => (kpBall.x - p.x) * (p.x < 52.5 ? 1 : -1) < -0.3;
+  // 版988：逆を突かれたGK：ピッチの方（シュートが来た方）を向いた正面／背中の絵。lean＝最初に重心が乗った向き（世界のy）。画面で右へ流れるか左へ流れるかで絵を裏返す
+  function drawWrongFoot(q, p, info, team, facing, fr, lean) {
+    const gx = p.x < 52.5 ? 0 : 105, fwd = proj(p.x + (gx === 0 ? 1 : -1), p.y), toward = fwd.y > q.y;   // ピッチの方が画面の手前なら正面の絵
+    const ls = proj(p.x, p.y + (lean || 1)), right = ls.x >= q.x;
+    const px = Math.max(1.4, 2.5 * q.s); ctx.fillStyle = 'rgba(0,30,0,0.3)'; ctx.beginPath(); ctx.ellipse(q.x, q.y - px * 0.3, (fr >= 2 ? 8 : 6.5) * px, 2 * px, 0, 0, 7); ctx.fill();
+    dmFacing = toward ? Math.PI / 2 : -Math.PI / 2;
+    const r = sprite(q.x, q.y, q.s, info, team, facing, 0, false, false, true, 'gkwf' + fr + (right ? 'L' : 'R'), 0, toward ? 'front' : 'back');
+    dmFacing = null; return { top: q.y - (fr >= 2 ? 16 : 22) * px, px: r ? r.px : px };
+  }
   function drawKeeper(q, p, info, team, facing, frame, code, gi) {
     if ((code === 8 || code === 9 || code === 10 || code === 11 || code === 12) && kpBehind(p)) { const bq0 = kpFace(p); dmFacing = Math.atan2((bq0.y - q.y) / 0.45, bq0.x - q.x); const r0 = sprite(q.x, q.y, q.s, info, team, facing, 0, false, false); dmFacing = null; return r0; }
     if (code === 13 || code === 14) code = code === 13 ? 1 : 3;   // 版871：高い所へ飛ぶ横っ跳び
@@ -2966,17 +2975,18 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       }
       // 失点したGK：決められた瞬間はまだ見送り、間をおいて順に崩れていく（本家の動画）
       //  ボールを見送る → 膝が崩れる（版959：手を横に伸ばす絵は審判のように見えるのでやめた） → 尻もち → 立ち上がってゴールを見つめる
-      if (info.gk && celebInfo && team !== celebInfo.team && !((gkCode >= 1 && gkCode <= 4) || gkCode === 13 || gkCode === 14) && !(ac && ac.wf && (ac.a === 'lose' || (ac.a === 'fall' && ac.u < 0.6)))) {   // 版987：逆を突かれて崩れている途中は、その絵のまま
+      if (info.gk && celebInfo && team !== celebInfo.team && !((gkCode >= 1 && gkCode <= 4) || gkCode === 13 || gkCode === 14) && !(ac && ac.wf && ac.a === 'lose')) {   // 版987：逆へ重心が乗って戻ろうとしている途中は、その絵のまま
         const age = simT - celebInfo.t;
         if (age >= 0.2 && age < 6.6) {
           const wfA = (actsOf[i] || []).some((a) => a.wf && a.a === 'fall' && Math.abs(a.t - celebInfo.t) < 1.5);   // 版986：逆を突かれて倒れたGK：倒れたまま悔しがる（いったん立ち上がって見えないように）
           const dived = (stateAt(celebInfo.t).gk || [0, 0])[team] || 0, skip = (dived >= 1 && dived <= 4) || wfA;   // 跳んで倒れていたら、起き上がってすぐ悔しがる
-          const prone = wfA || Math.abs(Math.sin(celebInfo.t * 12.9898) * 43758.5453) % 1 < 0.5;   // 版970：悔しがり方は2通り：尻もち／うつ伏せに倒れ込む（ゴールごとに決まる）
+          const prone = Math.abs(Math.sin(celebInfo.t * 12.9898) * 43758.5453) % 1 < 0.5;   // 版970：悔しがり方は2通り：尻もち／うつ伏せに倒れ込む（ゴールごとに決まる）
           const down = prone ? 'fall2' : 'gkSit';
           const stage = skip ? (age < (prone ? 2.6 : 2.4) ? down : 'stand') : age < 0.8 ? 'watch' : age < 1.0 ? 'gkCrouch' : age < (prone ? 2.8 : 2.6) ? down : 'stand';   // 版970：少し見送ってから、膝が崩れて悔しがる
           const ownGoalX = celebInfo.net ? celebInfo.net.gx : (p.x < 52.5 ? 0 : 105), gq = proj(ownGoalX, 34);   // 決められたゴールの方
           dmFacing = Math.atan2(-Math.abs((gq.y - q.y) / 0.45) - 8, gq.x - q.x);   // ゴールの方を向く（カメラには背中を向けたまま。本家と同じ見え方）
-          if (stage === 'watch' || stage === 'stand') r = sprite(q.x, q.y, q.s, info, team, facing, 0, false, false);
+          if (wfA && age < 2.6) { const wa = (actsOf[i] || []).find((a) => a.wf && a.a === 'lose' && Math.abs(a.t - celebInfo.t) < 2.5); r = drawWrongFoot(q, p, info, team, facing, 4, wa ? wa.dy : 1); }   // 版988：逆を突かれて尻もちをついたまま悔しがる
+          else if (stage === 'watch' || stage === 'stand') r = sprite(q.x, q.y, q.s, info, team, facing, 0, false, false);
           else if (stage === 'fall2') { dmFacing = Math.atan2(0, (gq.x - q.x) || 1); r = sprite(q.x, q.y, q.s, info, team, facing, 0, false, false, true, 'fall2', 0, 'side'); }   // うつ伏せに倒れ込む（ゴールの方へ）
           else r = sprite(q.x, q.y, q.s, info, team, facing, 0, false, false, false, stage, 0, 'back');
           sad = -1;
@@ -3001,6 +3011,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
         const bq = proj(st.ball.x, st.ball.y); dmFacing = Math.atan2((bq.y - q.y) / 0.45, bq.x - q.x);
         r = sprite(q.x, q.y, q.s, info, team, facing, 0, false, false, false, 'crouch', 0, 'front'); dmFacing = null;
       }
+      else if (info.gk && ac && ac.wf && (ac.a === 'lose' || ac.a === 'fall')) { r = drawWrongFoot(q, p, info, team, facing, ac.a === 'lose' ? (ac.u < 0.5 ? 0 : 1) : ac.u < 0.1 ? 2 : ac.u < 0.22 ? 3 : 4, ac.a === 'lose' ? ac.dy : -ac.dy); }   // 版988：逆を突かれたGK（手で描いた絵：①逆へ重心 ②戻ろうとする ③尻もち）
       else if (ac && ac.a === 'lose' && ac.u < 0.9) {
         // 球際で負けた・抜かれた：押された向きへよろける（手で描いた絵・8方向）。①体が流れて片足で踏ん張る → ②両腕を広げてバランスを取る
         const o = st.players[ac.o] || p; let ux = ac.dx, uy = ac.dy;
