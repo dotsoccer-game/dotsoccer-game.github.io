@@ -425,9 +425,9 @@
   }
 
   // 確認用：音を画面の外で作って、波の形を返す（スピーカーは使わない）
-  async function __render(fn, secs = 3) {
+  async function __render(fn, secs = 3, SR = 22050) {
     const OC = window.OfflineAudioContext || window.webkitOfflineAudioContext; const keep = { AC, master, sfxG, bgmG, noiseBuf, crowdParts, crowdGain, crowdHp, crowdMix };
-    const oc = new OC(1, Math.ceil(secs * 22050), 22050); AC = oc; master = oc.createGain(); master.gain.value = 1; master.connect(oc.destination); sfxG = oc.createGain(); sfxG.connect(master); bgmG = oc.createGain(); bgmG.gain.value = 0.55; bgmG.connect(master); noiseBuf = null; crowdParts = []; crowdGain = null;
+    const oc = new OC(1, Math.ceil(secs * SR), SR); AC = oc; master = oc.createGain(); master.gain.value = 1; master.connect(oc.destination); sfxG = oc.createGain(); sfxG.connect(master); bgmG = oc.createGain(); bgmG.gain.value = 0.55; bgmG.connect(master); noiseBuf = null; crowdParts = []; crowdGain = null;
     const song = (name) => { const kp = [cur, parsed, step, nextT]; const S = SONGS[name]; parsed = { mel: parse(S.mel), bass: parse(S.bass), drum: S.drum, sp: 60 / S.bpm / 2 }; cur = '__r'; step = 0; nextT = 0.05; const end = secs - 0.3; while (nextT < end) sched2(); [cur, parsed, step, nextT] = kp; };
     const sched2 = () => { const sp = parsed.sp, t0 = nextT; const m = noteAt(parsed.mel, step); if (m) lead(m.f, m.len * sp * 0.92, t0); const b = noteAt(parsed.bass, step); if (b) bassV(b.f, b.len * sp * 0.9, t0); if (parsed.drum) { const d = parsed.drum[step % parsed.drum.length]; if (d === 'k') { tone(150, 0.12, 'sine', 0.32, t0, 48, bgmG); noise(0.01, 0.04, 'highpass', 3000, t0, bgmG); } else if (d === 's') { noise(0.13, 0.11, 'bandpass', 1900, t0, bgmG, 0.002); tone(190, 0.07, 'triangle', 0.08, t0, 150, bgmG); } else if (d === 'h') noise(0.035, 0.03, 'highpass', 7000, t0, bgmG, 0.001); } step++; nextT += sp; };
     let buf; try { fn({ SFX, crowd, tone, noise, whistle, song, oc }); buf = await oc.startRendering(); } finally { ({ AC, master, sfxG, bgmG, noiseBuf, crowdParts, crowdGain, crowdHp, crowdMix } = keep); }
@@ -439,7 +439,7 @@
     if (k === 'bgm') { bgmG.gain.value = v ? 0.55 : 0; }
     if (k === 'vol') master.gain.value = v * BOOST;
   }
-  window.DotSound = { get info() { return AC ? { sr: AC.sampleRate, st: AC.state, bl: Math.round((AC.baseLatency || 0) * 1000), ol: Math.round((AC.outputLatency || 0) * 1000) } : null; }, play, bgm, bgmIn, crowd, goal, excite, chant, set, __render, get __bufs() { return { PRE, FILE }; }, get state() { return { bgm: cur, want, crowd: crowdMix ? +crowdMix.gain.value.toFixed(2) : 0, hp: crowdHp ? Math.round(crowdHp.frequency.value) : 0, pre: Object.keys(PRE).join(',') }; }, get pref() { return { ...pref }; } };
+  window.DotSound = { get info() { return AC ? { sr: AC.sampleRate, st: AC.state, bl: Math.round((AC.baseLatency || 0) * 1000), ol: Math.round((AC.outputLatency || 0) * 1000) } : null; }, play, bgm, bgmIn, crowd, goal, excite, chant, set, __render, __songLen: (n) => { const S = SONGS[n]; return S ? parse(S.mel).length * 60 / S.bpm / 2 : 0; }, get __songs() { return Object.keys(SONGS); }, get __sfx() { return Object.keys(SFX); }, get __bufs() { return { PRE, FILE }; }, get state() { return { bgm: cur, want, crowd: crowdMix ? +crowdMix.gain.value.toFixed(2) : 0, hp: crowdHp ? Math.round(crowdHp.frequency.value) : 0, pre: Object.keys(PRE).join(',') }; }, get pref() { return { ...pref }; } };
 })();
 // ボタンを押した時の音（戻るボタンは別の音）
 document.addEventListener('click', (e) => {
