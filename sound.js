@@ -7,7 +7,7 @@
   function ctx() {
     if (AC) return AC;
     const C = window.AudioContext || window.webkitAudioContext; if (!C) return null;
-    try { AC = new C({ latencyHint: 'balanced' });   /* 版997：音の処理に少し余裕を持たせる（画面録画などで端末が重い時に、音がぶつぶつ切れていた） */ } catch (_) { AC = new C(); }
+    AC = new C();   // 版1003：latencyHintの指定をやめて標準に戻す（版997の'balanced'は、画面録画で雑音になる疑い）
     AC.onstatechange = () => { if (!AC) return; if (AC.state === 'interrupted') needRebuild = true; else if (AC.state === 'running') setTimeout(() => { if (AC && AC.state === 'running' && want && !cur) bgm(want); }, 0); };   // 版560：電話・画面収録などで音が止められた
     // 版728：全体の音を大きく（約1.8倍）。大きい音が割れないように、最後に「リミッター」を通す
     master = AC.createGain(); master.gain.value = pref.vol * BOOST;
@@ -42,8 +42,16 @@
   // iPhoneは、画面にさわった時でないと音が出せない：最初のタッチで音を使えるようにする
   // 版561：resume は少し待ってから動き出すので、動き出してから曲を始める（前は最初のタッチで曲が始まらず、しばらく無音だった）
   const startWant = () => { if (AC && AC.state === 'running' && want && !cur) bgm(want); };
-  const unlock = () => { if (needRebuild) rebuild(); const a = ctx(); if (!a) return; if (a.state !== 'running') { try { const pr = a.resume(); if (pr && pr.then) pr.then(startWant, () => {}); } catch (_) {} setTimeout(startWant, 120); setTimeout(startWant, 500); } else startWant(); };
+  const unlock = () => { srCheck(); if (needRebuild) rebuild(); const a = ctx(); if (!a) return; if (a.state !== 'running') { try { const pr = a.resume(); if (pr && pr.then) pr.then(startWant, () => {}); } catch (_) {} setTimeout(startWant, 120); setTimeout(startWant, 500); } else startWant(); };
   ['pointerdown', 'touchstart', 'touchend', 'pointerup', 'click', 'keydown'].forEach((e) => addEventListener(e, unlock, { passive: true, capture: true }));   // 版561：iPhoneは指を離した時（touchend）でないと音を始められないことがある
+  // 版1003：画面録画を始めると、端末の音の周波数（サンプルレート）が変わり、今の音の仕組みのままだと雑音しか出なくなる。
+  // 新しく作った時の周波数と今の周波数が違っていたら、音の仕組みごと作り直す（画面を触った時に確認。数秒おきに確認すると、確認自体が音の邪魔をするおそれがあるのでしない）
+  let srChkT = 0;
+  function srCheck() {
+    if (!AC || needRebuild) return; const now = Date.now(); if (now - srChkT < 2500) return; srChkT = now;
+    const C = window.AudioContext || window.webkitAudioContext; let pr = null;
+    try { pr = new C(); const sr = pr.sampleRate; if (sr && AC && sr !== AC.sampleRate) { needRebuild = true; rebuild(); } } catch (_) {} finally { try { pr && pr.close(); } catch (_) {} }
+  }
   document.addEventListener('visibilitychange', () => { if (!AC) return; if (document.hidden) { try { AC.suspend(); } catch (_) {} needRebuild = true; } else { try { AC.resume(); } catch (_) {} } });   // 版560：戻ってきたら作り直す（一瞬閉じると音がずれていた）
   addEventListener('pageshow', (e) => { if (e.persisted && AC) { needRebuild = true; try { AC.resume(); } catch (_) {} } });
 
