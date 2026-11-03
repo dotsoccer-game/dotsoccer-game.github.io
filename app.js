@@ -362,7 +362,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
 
   // 版502：試合の音（キック・ドリブル・リプレイ中のゴールの歓声）。ふつうの試合中とリプレイ中だけ鳴らす
   let sndPrevT = 0;
-  const sndLive = () => !show || ['replay', 'jreplay'].includes(show.phase);
+  const sndLive = () => !show || ['replay', 'jreplay', 'digest'].includes(show.phase);   // 版1013：試合後のダイジェストでも、蹴る音・ポストの音・歓声を鳴らす
   function sndTick() {
     const t0 = sndPrevT, t1 = simT; sndPrevT = t1;
     if (!(t1 > t0 && t1 - t0 < 0.6) || speed >= 4 || !sndLive() || $('#match').hidden) { dribOwner = -1; if (!goalSnd) SND().excite(0); return; }   // 版532：試合の画面が隠れている時は鳴らさない
@@ -382,6 +382,13 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
         if ((close || still) && SND().chant && SND().chant(true)) { chantOn = true; chantUntil = nowR + 30000 + Math.random() * 15000; } else chantNext = nowR + 8000; } }   // 版730：30〜45秒続ける
     // 版724：チャンスの盛り上がり：ボールを持った選手が相手ゴールに近づくほど（30m以内）、観客の歓声をだんだん上げる
     if (!goalSnd) { let ex = 0; if (sd.owner >= 0) { const pl = sd.players[sd.owner], tm = sd.owner < 11 ? 0 : 1, gx = (tm === 0) === (sd.side > 0) ? 105 : 0; if (pl) { const d = Math.hypot(pl.x - gx, pl.y - 34); if (d < 30) ex = Math.min(1, (30 - d) / 16); } } SND().excite(ex); }
+    // 版1013：リプレイ・ダイジェストでも、試合と同じようにシュート・ポスト／バーの音、ゴールの歓声を鳴らす（試合中はイベントの処理の所で鳴らしている）
+    if (show && ['replay', 'jreplay', 'digest'].includes(show.phase) && match.events) {
+      const E = match.events; let lo2 = 0, hi2 = E.length; while (lo2 < hi2) { const m = (lo2 + hi2) >> 1; if (E[m].t <= t0) lo2 = m + 1; else hi2 = m; }
+      for (; lo2 < E.length && E[lo2].t <= t1; lo2++) { const e = E[lo2];
+        if (e.type === 'shot') SND().play('shot');
+        else if (e.type === 'post' || e.type === 'barin') { const gK = e.sp != null ? 0.4 + 1.8 * Math.max(0, Math.min(1, (e.sp - 10) / 20)) : 1; SND().play(e.bar || e.type === 'barin' ? 'bar' : 'post', gK); if (e.type === 'post' && !e.into) setTimeout(() => SND().play('ooh'), 250); }
+        else if (e.type === 'goal' && show.phase === 'digest') { SND().play('cheer'); } } }
     // リプレイの中で、ボールがゴールに入る瞬間に歓声
     if (show && show.phase === 'replay' && show.goal && t0 < show.goal.t && t1 >= show.goal.t && !goalSnd) SND().play('cheer');   // 版723：ゴールの歓声が続いている時は重ねない
   }
@@ -3871,7 +3878,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       // 版721：「おぉー」は本当に惜しい時だけ（ポスト・バー、1対1や近くからのシュートが外れた・止められた時）。ふつうのキャッチでは鳴らさない
       if (e.type === 'shot') { lastShotEv = e; lastShotSimT = e.t; }
       if (e.type === 'shot' && speed < 16) { SND().play('shot'); if (!e.on && (e.one || e.d < 11)) oohT = e.t + 0.45; }
-      if ((e.type === 'post' || e.type === 'barin') && speed < 16) { const gK = e.sp != null ? 0.4 + 1.8 * Math.max(0, Math.min(1, (e.sp - 10) / 20)) : 1;   /* 版1012：強いボールはもっと大きく（30m/s以上で2.2倍） */ SND().play(e.bar || e.type === 'barin' ? 'bar' : 'post', gK); if (e.type === 'post') oohT = e.t + 0.25; }   // 版1007：ポスト・バーに当たった音　版1010：シュートの強さで音の大きさを変える（弱い0.4倍〜強い1.3倍）。バーに当たって中に落ちた時も鳴らす
+      if ((e.type === 'post' || e.type === 'barin') && speed < 16) { const gK = e.sp != null ? 0.4 + 1.8 * Math.max(0, Math.min(1, (e.sp - 10) / 20)) : 1;   /* 版1012：強いボールはもっと大きく（30m/s以上で2.2倍） */ SND().play(e.bar || e.type === 'barin' ? 'bar' : 'post', gK); if (e.type === 'post' && !e.into) oohT = e.t + 0.25; }   // 版1007：ポスト・バーに当たった音　版1010：シュートの強さで音の大きさを変える（弱い0.4倍〜強い1.3倍）。バーに当たって中に落ちた時も鳴らす
       if (e.type === 'save' && speed < 16 && lastShotEv && e.t - lastShotEv.t < 2 && (lastShotEv.one || lastShotEv.d < 11)) oohT = e.t + 0.25;
       if (e.type === 'card' && speed < 16) SND().play('card');
       if (e.type === 'gk' && e.act === 'tip' && speed < 16) SND().play('parry');   /* 指先に当たった「パンッ」 */
