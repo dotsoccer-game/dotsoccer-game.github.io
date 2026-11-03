@@ -671,7 +671,7 @@
       if (k === 'miyabi') { const r = miyabiTarget(p), own0 = ownerP(); if ((own0 && own0.team === p.team) || !r) return false; const dr = hyp(r.x - p.x, r.y - p.y); if (dr > 25) return false; if (dr > 14 && T[p.team].players.filter((m) => m !== p && !m.gk && !m.off && hyp(r.x - m.x, r.y - m.y) < dr).length >= 3) return false; }   // 雅の後始末：守備の時だけ。奪いに行ける距離・近い順で2番目までの時だけ（持ち場を捨てて遠くへは行かない）   // 雅の後始末：守備の時だけ。遠すぎる所へは行かない（近くの味方に任せる）
       const u = UNIQ[k], lv2 = p.uniqLv >= 2;
       if (R.next() > Math.min(1, u.ch * (chMul ?? 1) * (lv2 ? 1.25 : 1) * (0.5 + 0.5 * uEF(p)) * Math.sqrt(uLgF(p)))) {   /* 版850：総合力が低いほど発動しにくい（版851：下のリーグほど） */ p.uCd = S.t + 1.5; return false; }
-      p.uOn = S.t + u.dur * (lv2 ? 1.25 : 1); p.uCd = p.uOn + (lv2 && u.cd2 != null ? u.cd2 : u.cd * (lv2 ? 0.8 : 1)) * (k === 'kage' && (globalThis.__Ku22 ?? 1) ? 0.7 : 1);   /* 版922：影の一刺しは間隔を短く */
+      p.uOn = S.t + u.dur * (lv2 ? 1.25 : 1); p.uCd = p.uOn + (lv2 && u.cd2 != null ? u.cd2 : u.cd * (lv2 ? 0.8 : 1)) * (k === 'kage' && (globalThis.__Ku22 ?? 1) ? 0.7 : 1) * (k === 'byakuya' && (globalThis.__Kby4 ?? 1) ? 0.7 : 1);   /* 版986：白夜の視界のロングフィードをもう少し多く */   /* 版922：影の一刺しは間隔を短く */
       if (k === 'midori' && (T[p.team].mdStack || 0) < 3) p.uCd = p.uOn + 4;   /* 版468：積み重ねが4回になるまでは、間隔を短く */
       if (!(k === 'kinshachi' && p.ksShownT && S.t - p.ksShownT < 60)) { p.ksShownT = k === 'kinshachi' ? S.t : p.ksShownT; act(p, 'uniq', 2.2, { k, lv: p.uniqLv || 1 }); } /* 金鯱の心臓は何度も出るので、吹き出しは1分に1回だけ */ ev('uniq', { team: p.team, player: p.name, number: p.number, k, name: u.name, lv: p.uniqLv || 1, face: u.face, gk: p.gk ? 1 : 0 });
       uniqLog.push({ t: +S.t.toFixed(2), i: p.idx, team: p.team, k });
@@ -1555,7 +1555,7 @@
     function dfPressPost() {
       if (!(globalThis.__Kdfp ?? 1) || S.restart || S.setPiece || S.celebrate > 0) return;
       const own = ownerP(); if (!own || own.gk) return;
-      const t = 1 - own.team, oxf = fx(t, own.x), fr = (globalThis.__Kfear ?? 1) ? (T[t].fear || 0) : 0; if (oxf > 30 + 10 * fr || Math.abs(own.y - GOAL_Y) > 20 + 4 * fr) return;   // 版957：恐れ：ロングシュートが怖いと、もっと遠く（最大40m）から寄せに行く
+      const t = 1 - own.team, oxf = fx(t, own.x), fr = (globalThis.__Kfear ?? 1) ? (T[t].fear || 0) : 0, dpx = (globalThis.__Kdpp ?? 1) && T[t].attitude === 'defensive' ? 12 : 0; if (oxf > 30 + dpx + 10 * fr || Math.abs(own.y - GOAL_Y) > 20 + 4 * fr) return;   // 版957：恐れ：ロングシュートが怖いと、もっと遠く（最大40m）から寄せに行く
       const defs = opps(own).filter((m) => !m.gk && !m.off && !(m.downT > 0) && !(m.slideT > 0));
       if (defs.some((m) => hyp(m.x - own.x, m.y - own.y) < 2.8)) return;   // もう誰かが寄せている
       let best = null, bd = 1e9; for (const m of defs) { if (fx(t, m.x) > oxf + 1.5) continue; const d = hyp(m.x - own.x, m.y - own.y); if (d < bd) { bd = d; best = m; } }
@@ -1571,11 +1571,11 @@
       const g = opps(own).find((q) => q.gk && !q.off); if (!g || g.downT > 0 || g.diveT > 0) return;
       const t = g.team, oxf = fx(t, own.x);
       // 版952：1対1（ゴールとの間に味方のDFがいない）で運び込まれてくる：ゴールラインに残らず、前へ出て角度を消す（エリアの中まで来たら、ゴールから相手までの4割ほどの所まで）
-      if ((globalThis.__Kgko2 ?? 1) && oxf < 24 && oxf > 6 && Math.abs(own.y - GOAL_Y) < 16 && !S.setPiece) {
+      if ((globalThis.__Kgko2 ?? 1) && oxf < ((globalThis.__Kgko3 ?? 0) ? (globalThis.__Kgko3l ?? 17) : 24) && oxf > 6 && Math.abs(own.y - GOAL_Y) < 16 && !S.setPiece) {   /* 版986：前へ出て角度を消すのは、相手がエリアに入ってから（25m近くから出ると、遠くから打たれて頭を越された・逆を突かれた） */
         const gx0 = fx(t, 0), dG = hyp(gx0 - own.x, GOAL_Y - own.y) || 1;
         const cover = mates(g).some((m) => !m.gk && !m.off && !(m.downT > 0) && fx(t, m.x) < oxf - 0.5 && segDist(m.x, m.y, own.x, own.y, gx0, GOAL_Y).d < 2.5);
         const d0 = hyp(g.x - own.x, g.y - own.y);
-        if (!cover && d0 > 8) { const k = clamp(dG * 0.42, 3, Math.min(11, dG - 3)); targets[g.idx] = [gx0 + (own.x - gx0) / dG * k, GOAL_Y + (own.y - GOAL_Y) / dG * k]; if (fx(t, targets[g.idx][0]) > 15.5) targets[g.idx][0] = fx(t, 15.5); urgent[g.idx] = true; return; } }
+        if (!cover && d0 > 8) { const k = clamp(dG * ((globalThis.__Kgko3 ?? 0) ? (globalThis.__Kgko3f ?? 0.42) : 0.42), 3, Math.min((globalThis.__Kgko3 ?? 0) ? (globalThis.__Kgko3k ?? 7) : 11, dG - 3)); targets[g.idx] = [gx0 + (own.x - gx0) / dG * k, GOAL_Y + (own.y - GOAL_Y) / dG * k]; if (fx(t, targets[g.idx][0]) > 15.5) targets[g.idx][0] = fx(t, 15.5); urgent[g.idx] = true; return; } }
       if (oxf > 16.5 || Math.abs(own.y - GOAL_Y) > 18 || !gkInFront(g, own)) return;
       const d = hyp(g.x - own.x, g.y - own.y); if (d > 8) return;
       const gx0 = fx(t, 0), dl = hyp(gx0 - own.x, GOAL_Y - own.y) || 1, k = d > 3.5 ? 2.6 : 0.6;
@@ -3566,7 +3566,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
               if ((globalThis.__Kgka ?? 1) && b.spin && (b.curveAll || b.curlP || b.z > 0.15)) { yG = curveYAt(b, p.x); yc = curveYAt(b, gx); }   // 版973：巻いて曲がる球は、本当に曲がる道すじを先読みして、その通り道へ（狙った所を当てにしない。正面に来る球に横っ跳びしていた）
               else if (!(globalThis.__Kgka ?? 1) && b.curveAll && b.aimY != null) { yc = b.aimY; yG = b.aimY; }   // 版973：巻いて曲がる先を読むのは、蹴った球がそのまま来ている時だけ（当たってコースが変わった球・曲がらない球は、今の向きで読む。正面の球に横っ跳びしていた）
               else { const sdN = segDist(p.x, p.y, b.x, b.y, gx, yc); yG = b.y + (yc - b.y) * sdN.u; }
-              if (Math.sign(yG - p.y) !== Math.sign(yc - p.y) && Math.abs(yc - p.y) > 0.5 && Math.abs(yc - GOAL_Y) < POST + 0.6) yG = yc;   // 版873：体の前と後ろで通る側が入れかわる球（ななめのシュート）は、ゴールに入る側へ飛ぶ   // 版873：ななめに通るシュートは、GKの体にいちばん近づく所へ飛ぶ（自分の深さを通る所ではなく。そこへ飛ぶと、ボールが背中側からゴールラインを割り、逆に飛んだように見えていた）
+              if (Math.sign(yG - p.y) !== Math.sign(yc - p.y) && Math.abs(yc - p.y) > 0.5 && Math.abs(yc - GOAL_Y) < POST + 0.6 && (!(globalThis.__Kgkx ?? 1) || fx(tm.ti, p.x) < 3 || Math.abs(yG - p.y) < 0.6)) yG = yc;   /* 版986：前へ出ている時は、自分の前を通る側へ飛ぶ（ゴールラインで入る側へ飛ぶと、目の前を通る球と逆に飛んだように見えた） */   // 版873：体の前と後ろで通る側が入れかわる球（ななめのシュート）は、ゴールに入る側へ飛ぶ   // 版873：ななめに通るシュートは、GKの体にいちばん近づく所へ飛ぶ（自分の深さを通る所ではなく。そこへ飛ぶと、ボールが背中側からゴールラインを割り、逆に飛んだように見えていた）
               ty = clamp(tG < 0.7 ? yG : yc, GOAL_Y - POST - 0.8, GOAL_Y + POST + 0.8);
               tx = tG < 0.7 ? fx(tm.ti, p.x) : 0.8; u = true;      // 迫ってきたら下がらずにその場で構える
               const gap = yG - p.y;
@@ -4970,14 +4970,27 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       if (skill === 'pinpointCross') { uSafe = Math.max(uSafe, 0.45); q.ppShot = S.t + 3; }   // 版838：ピンポイントクロス：相手に触られにくく、受けた選手のシュートも正確に
       const accP = (PASS_ACC[skill] ?? 1) * (p.type === 'パサー' && (through || skill === 'throughPass' || skill === 'loftedThrough') ? 0.72 : 1) * uAcc;   // パサーのスルーパスは正確
       if (hrNow && !style && (globalThis.__Khrl ?? 1) && opps(p).some((o) => { if (o.gk || o.off) return false; const sd = segDist(o.x, o.y, p.x, p.y, tx, ty); return sd.u > 0.04 && sd.u < 0.95 && sd.d < 1.4; })) style = 'drive';   // 版942：針の穴通し：グラウンダーのコースのすぐそばにDFがいるなら、足もとを抜かずに浮かせて越える
-      if (hrNow && style && style !== 'cross') { let best = null; for (const o of opps(p)) { if (o.gk) continue; const sd = segDist(o.x, o.y, p.x, p.y, tx, ty); if (sd.u > 0.1 && sd.u < 0.9 && (!best || sd.d < best.d)) best = { d: sd.d, o }; }
+      let hrBack = false, hrDead = false;   // 版986：針の穴通しは多彩に：生きたグラウンダー／死んだボール（受け手の前で勢いが消える）／インで巻く・アウトで曲げる／浮き玉スルー／浮かせてバックスピン
+      if (hrNow && (globalThis.__Khrv ?? 1) && style !== 'cross') { const dd0 = hyp(tx - p.x, ty - p.y), rv = R.next(), inS = p.foot === 'L' ? 1 : -1;   // インで巻いた時の回転の向き（左利きと右利きで逆）
+        if (style) { if (rv < 0.45 && dd0 > 10) { style = 'lob'; hrBack = true; } }   // 間に相手がいる：曲げて速いボールで抜く／ふわりと越えてバックスピンで止める
+        else if (rv < 0.25) spinSign = R.next() < 0.55 ? inS : -inS;   // グラウンダーで曲げる：インで巻く／アウトで外へ曲げる
+        else if (rv < 0.45 && dd0 > 12) { style = 'lob'; hrBack = true; }   // 浮かせてバックスピン（受け手の前でぴたりと止まる）
+        else if (rv < 0.6 && dd0 > 14) style = 'lob';   // 浮き玉のスルーパス
+        else if (rv < 0.8) {   // 死んだボール（やさしいスルーパス）：受け手が走り込む先で、ちょうど止まる。転がり続けないので、DFもGKもボールへ寄せにくい
+          const sq = maxSpeed(q); let best = null;
+          for (let f = 1; f >= 0.35; f -= 0.08) { const sx = q.x + (tx - q.x) * f, sy = q.y + (ty - q.y) * f, tR = hyp(sx - q.x, sy - q.y) / sq;
+            const tO = Math.min(...opps(p).filter((o) => !o.off && !(o.downT > 0)).map((o) => Math.max(0, hyp(sx - o.x, sy - o.y) - 1.2) / Math.max(1, maxSpeed(o) * (o.gk ? 0.9 : 1))));
+            if (tR + 0.35 < tO && hyp(sx - p.x, sy - p.y) > 8) { best = [sx, sy]; break; } }
+          if (best) { [tx, ty] = best; hrDead = true; } }   // 取られない止まる所がなければ、生きたグラウンダーで
+        if (hrBack) spinSign = null; }
+      if (hrNow && style && style !== 'cross' && !hrBack) { let best = null; for (const o of opps(p)) { if (o.gk) continue; const sd = segDist(o.x, o.y, p.x, p.y, tx, ty); if (sd.u > 0.1 && sd.u < 0.9 && (!best || sd.d < best.d)) best = { d: sd.d, o }; }
         if (best) { const cr = (tx - p.x) * (best.o.y - p.y) - (ty - p.y) * (best.o.x - p.x); spinSign = cr > 0 ? -1 : 1; } }   // 針の穴通し：浮かせる1本は、間にいるDFをよけるように曲げる
       /* v740 判断：浮き球のコースに相手がいたら、よけるように曲げる（判断が高いほど気づく） */
       /* v741 回転のコントロール：コースに相手の足があれば、逃げるように巻く。気づくのは判断、蹴れるのはパスの能力 */
-      if (spinSign == null && !(byNow && (globalThis.__Kby3 ?? 1)) && style !== 'cross' && d > (style ? 14 : 8) && R.next() < clamp((p.vision - 45) / 55, 0, 0.85) * clamp((p.pass - 40) / 40, 0, 1)) {
+      if (spinSign == null && !(byNow && (globalThis.__Kby3 ?? 1)) && !hrBack && style !== 'cross' && d > (style ? 14 : 8) && R.next() < clamp((p.vision - 45) / 55, 0, 0.85) * clamp((p.pass - 40) / 40, 0, 1)) {
         let bo = null, bd = style ? 3 : 2.6; for (const o of opps(p)) { if (o.gk || o.off) continue; const sd = segDist(o.x, o.y, p.x, p.y, tx, ty); if (sd.d < bd && sd.u > 0.2 && sd.u < 0.85) { bd = sd.d; bo = o; } }
         if (bo) { const cr = (tx - p.x) * (bo.y - p.y) - (ty - p.y) * (bo.x - p.x); spinSign = cr > 0 ? -1 : 1; } }
-      kick(p, tx, ty, 'pass', style, { vEnd: !style ? aoVEnd : null, spinSign, pureBack: byNow && (globalThis.__Kby3 ?? 1), spinMul: hrNow ? 0.9 : undefined, landFrac, acc: accP, arriveT: (tsukiPass || hrNow || byNow) && !style ? Math.max(0.5, (hyp(tx - q.x, ty - q.y) + 0.3) / (maxSpeed(q) * 0.97)) : 0 });
+      kick(p, tx, ty, 'pass', style, { vEnd: !style ? (hrDead ? 0.6 : aoVEnd) : null, spinSign, pureBack: (byNow && (globalThis.__Kby3 ?? 1)) || hrBack, spinMul: hrNow ? 0.9 : undefined, landFrac, acc: accP, arriveT: (tsukiPass || (hrNow && !hrDead) || byNow) && !style ? Math.max(0.5, (hyp(tx - q.x, ty - q.y) + 0.3) / (maxSpeed(q) * 0.97)) : 0 });
       if (tsukiPass) { const mt = tsukiMeet(q); q.uMeet = { x: mt.x, y: mt.y, at: S.t + mt.t }; }
       if (S.gpPassNow) { uSafe = Math.max(uSafe, globalThis.__Kgps ?? 0.45); S.gpPassNow = false; }   // 版925：グループの約束どおりの1本は、受け手が先に動いているので通りやすい
       b.uSafe = Math.min(condLv(p.team) || uOn(p, 'aonoouza') ? 0.93 : 0.85, uSafe); b.trapP = trapRel && off; b.tsukiP = tsukiPass; b.tsukiDef = tsukiDef; b.landX = tsukiPass ? tx : null; b.landY = tsukiPass ? ty : null;   // 月影の抜け出しのスルーパス（DFの足に当たらず、走り込む本人に届く）
@@ -5874,7 +5887,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           const v = qf * 0.2 - Math.abs(q.y - GOAL_Y) * 0.05 + (q.position === 'FW' ? 2 : 0) + Math.min(8, nearestOpp(q, q.x, q.y).d) * 0.3; if (v > bs) { bs = v; best = q; } }
         if (best) { p.byPreT = S.t; best.byRunT = S.t + 2.6; best.byRunLv = p.uniqLv || 1; best.byRunTo = [fx(p.team, Math.min(ol + 10, L - 11)), clamp(best.y + (GOAL_Y - best.y) * 0.35, 6, W - 6)]; best.run = Math.max(best.run || 0, 2.6); p.byRunner = best.idx; } }
       if (p.uniq === 'byakuya' && !p.gk && !S.setPiece && xf < 66 && (uOn(p, 'byakuya') || !(p.uCd > S.t))) { const olB = offsideLine(p.team);
-        const longOk = (o) => o.kind === 'pass' && o.q && o.q.position !== 'DF' && (o.d ?? 0) >= (U21() ? 28 : 35) && fx(p.team, o.q.x) < olB - 0.3 && fx(p.team, o.q.x) > L / 2 - (U21() ? 10 : 5);
+        const longOk = (o) => o.kind === 'pass' && o.q && o.q.position !== 'DF' && (o.d ?? 0) >= ((globalThis.__Kby4 ?? 1) ? 25 : U21() ? 28 : 35) && fx(p.team, o.q.x) < olB - 0.3 && fx(p.team, o.q.x) > L / 2 - ((globalThis.__Kby4 ?? 1) ? 12 : U21() ? 10 : 5);   /* 版986：25m以上・ハーフウェーの12m手前の味方へも */
         const cand = opts.filter(longOk), nearLine = cand.filter((o) => fx(p.team, o.q.x) > olB - 18);
         if (globalThis.__byCnt) { const c = globalThis.__byCnt; c.dec++; if (cand.length) c.cand++; if (p.uCd > S.t) c.cd++; }
         if (cand.length && (uOn(p, 'byakuya') || uFire(p, 'byakuya'))) {
@@ -5893,7 +5906,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       // 針の穴通しの1本を受けた味方：裏へ抜けたら、GKとの距離を詰めてから打つ（前が空いている間は運ぶ。GKが出てきた・前をふさがれた・ゴール目の前で打つ）
       if (((p.hariT || 0) > S.t || (p.finT || 0) > S.t) && !sdCtx && !p.gk) { const best2 = (k, f) => Math.max(0, ...opts.filter((o) => o.kind === k && (!f || f(o))).map((o) => o.ww));
         const gq = opps(p).find((q) => q.gk); let spF = 9; for (const q of opps(p)) { if (q.gk) continue; const rx = q.x - p.x, ry = q.y - p.y, dd = hyp(rx, ry); if (dd < 9 && (rx * dir[0] + ry * dir[1]) / (dd || 1) > 0.45) spF = Math.min(spF, dd); }
-        const gkD = gq ? hyp(gq.x - p.x, gq.y - p.y) : 99, kIn = p.aoKeepFast && p.aoCutBy != null && P[p.aoCutBy] && (P[p.aoCutBy].aoCutT || 0) > S.t && !P[p.aoCutBy].off && hyp(P[p.aoCutBy].x - p.x, P[p.aoCutBy].y - p.y) < 15 && Math.abs(P[p.aoCutBy].y - GOAL_Y) + 4 < Math.abs(p.y - GOAL_Y), laneO = (globalThis.__Khrs ?? 1) && !opps(p).some((o) => { if (o.gk || o.off) return false; const sd = segDist(o.x, o.y, p.x, p.y, fx(p.team, L), GOAL_Y); return sd.u > 0.03 && sd.d < 1.4; }), shootNow = p.aoKeepFast ? (dGoal < 18 || gkD < 5) && !(kIn && Math.abs(p.y - GOAL_Y) > 7 && dGoal > 8 && gkD > 3) : (dGoal < ((globalThis.__Khrs ?? 1) ? (globalThis.__Khrd ?? 19) : 16) || gkD < 5 || (dGoal < 24 && spF < ((globalThis.__Khrs ?? 1) ? 3.2 : 2.0)) || (dGoal < 23 && laneO && Math.abs(p.y - GOAL_Y) < 12)),   /* 版929：針の穴の1本を受けたら、ゴール前でコースが空いていれば迷わず打つ（ドリブルで相手の中へ入っていかない） */   /* 蒼の王座の1本を受けた味方は、18m以内に入るまで遠くから打たない */ s0 = best2('shot'), d0 = best2('dribble', (o) => o.mode === 'break');
+        const gkD = gq ? hyp(gq.x - p.x, gq.y - p.y) : 99, kIn = p.aoKeepFast && p.aoCutBy != null && P[p.aoCutBy] && (P[p.aoCutBy].aoCutT || 0) > S.t && !P[p.aoCutBy].off && hyp(P[p.aoCutBy].x - p.x, P[p.aoCutBy].y - p.y) < 15 && Math.abs(P[p.aoCutBy].y - GOAL_Y) + 4 < Math.abs(p.y - GOAL_Y), laneO = (globalThis.__Khrs ?? 1) && !opps(p).some((o) => { if (o.gk || o.off) return false; const sd = segDist(o.x, o.y, p.x, p.y, fx(p.team, L), GOAL_Y); return sd.u > 0.03 && sd.d < 1.4; }), shootNow = p.aoKeepFast ? (dGoal < 18 || gkD < 5) && !(kIn && Math.abs(p.y - GOAL_Y) > 7 && dGoal > 8 && gkD > 3) : (dGoal < ((globalThis.__Khrs ?? 1) ? (globalThis.__Khrd ?? 22) : 16) || gkD < ((globalThis.__Khrd ?? 22) > 19 ? 9 : 5) || (dGoal < 24 && spF < ((globalThis.__Khrs ?? 1) ? 3.2 : 2.0)) || (dGoal < 23 && laneO && Math.abs(p.y - GOAL_Y) < 12)),   /* 版929：針の穴の1本を受けたら、ゴール前でコースが空いていれば迷わず打つ（ドリブルで相手の中へ入っていかない） */   /* 蒼の王座の1本を受けた味方は、18m以内に入るまで遠くから打たない */ s0 = best2('shot'), d0 = best2('dribble', (o) => o.mode === 'break');
         if (shootNow && s0 > 0) { for (const o of opts) if (o.kind !== 'shot') o.ww = Math.min(o.ww, s0 * 0.08); }
         else if (d0 > 0 && dGoal < 45 && !((globalThis.__Khrs ?? 1) && dGoal < 23 && s0 > 0)) { for (const o of opts) if (o.kind === 'shot' || (o.kind === 'pass' && !(o.danger < 0.3 && o.q && hyp(L - fx(p.team, o.q.x), GOAL_Y - o.q.y) < dGoal - 8))) o.ww = Math.min(o.ww, d0 * 0.05); } }
       // 蒼の王座の1本を受けた味方：パス＆ゴーでゴール正面に入ってきたくもいが空いていれば、ダイレクトで折り返す（くもいが決める）
