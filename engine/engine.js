@@ -671,7 +671,7 @@
       if (k === 'miyabi') { const r = miyabiTarget(p), own0 = ownerP(); if ((own0 && own0.team === p.team) || !r) return false; const dr = hyp(r.x - p.x, r.y - p.y); if (dr > 25) return false; if (dr > 14 && T[p.team].players.filter((m) => m !== p && !m.gk && !m.off && hyp(r.x - m.x, r.y - m.y) < dr).length >= 3) return false; }   // 雅の後始末：守備の時だけ。奪いに行ける距離・近い順で2番目までの時だけ（持ち場を捨てて遠くへは行かない）   // 雅の後始末：守備の時だけ。遠すぎる所へは行かない（近くの味方に任せる）
       const u = UNIQ[k], lv2 = p.uniqLv >= 2;
       if (R.next() > Math.min(1, u.ch * (chMul ?? 1) * (lv2 ? 1.25 : 1) * (0.5 + 0.5 * uEF(p)) * Math.sqrt(uLgF(p)))) {   /* 版850：総合力が低いほど発動しにくい（版851：下のリーグほど） */ p.uCd = S.t + 1.5; return false; }
-      p.uOn = S.t + u.dur * (lv2 ? 1.25 : 1); p.uCd = p.uOn + (lv2 && u.cd2 != null ? u.cd2 : u.cd * (lv2 ? 0.8 : 1)) * (k === 'kage' && (globalThis.__Ku22 ?? 1) ? 0.7 : 1) * (k === 'byakuya' && (globalThis.__Kby4 ?? 1) ? 0.7 : 1);   /* 版986：白夜の視界のロングフィードをもう少し多く */   /* 版922：影の一刺しは間隔を短く */
+      p.uOn = S.t + u.dur * (lv2 ? 1.25 : 1); p.uCd = p.uOn + (lv2 && u.cd2 != null ? u.cd2 : u.cd * (lv2 ? 0.8 : 1)) * (k === 'kage' && (globalThis.__Ku22 ?? 1) ? 0.7 : 1) * (k === 'byakuya' && (globalThis.__Kby4 ?? 1) ? 0.7 : 1) * (k === 'harinoana' && (globalThis.__Khr3 ?? 1) ? 0.75 : 1);   /* 版986：白夜の視界のロングフィードをもう少し多く */   /* 版922：影の一刺しは間隔を短く */
       if (k === 'midori' && (T[p.team].mdStack || 0) < 3) p.uCd = p.uOn + 4;   /* 版468：積み重ねが4回になるまでは、間隔を短く */
       if (!(k === 'kinshachi' && p.ksShownT && S.t - p.ksShownT < 60)) { p.ksShownT = k === 'kinshachi' ? S.t : p.ksShownT; act(p, 'uniq', 2.2, { k, lv: p.uniqLv || 1 }); } /* 金鯱の心臓は何度も出るので、吹き出しは1分に1回だけ */ ev('uniq', { team: p.team, player: p.name, number: p.number, k, name: u.name, lv: p.uniqLv || 1, face: u.face, gk: p.gk ? 1 : 0 });
       uniqLog.push({ t: +S.t.toFixed(2), i: p.idx, team: p.team, k });
@@ -2902,15 +2902,18 @@
         if (globalThis.__Ku22 ?? 1) {   // 版922：固有スキルの選手へ預ける（新しい動きでも）。影の一刺し・蒼の王座（設計一覧22章）
           const KB = globalThis.__Ku22v ?? 1.6;
           if (q.uniq === 'kage' && !(q.uCd > S.t) && !q.off && pxf > L / 2 - 4 && pxf < L - 9 && adv > -6 && danger < 0.9 && mates(p).some((m) => m !== q && m !== p && !m.off && !m.gk && m.position === 'FW' && fx(t, m.x) > pxf + 2)) v += KB;
+          if ((globalThis.__Khr3 ?? 1) && q.uniq === 'harinoana' && !(q.uCd > S.t) && !q.off && pxf > L / 2 - 10 && pxf < L - 12 && adv > -8 && danger < 0.9 && recvOpp > 2) v += KB * (globalThis.__Khr3f ?? 3.2);   // 版995：針の穴通しの出し手（きのした）へ預ける：前を向いて持たせる
           if (q.uniq === 'aonoouza' && !(q.uOn > S.t) && !(q.uCd > S.t) && !q.off && !through && pxf > 42 && pxf < 92 && adv > 1.5 && d < 40 && danger < 0.9) v += KB * 1.2;
           if ((globalThis.__Kbyg ?? 1) && q.uniq === 'byakuya' && !(q.uOn > S.t) && !(q.uCd > S.t) && !q.off && pxf > 15 && pxf < 66 && danger < 0.7 && pxf > xf - 25) v += KB * 1.6;   // 版957：白夜の視界：空いているレジスタ（ことう）に、まず預ける
         }
         if ((globalThis.__Kgz ?? 1) && ((xf < 28 && pxf < 30) || (xf < 32 && near.d < 3.5 && d < 25)) && !p.gk && !q.gk && !through) {   // 版992：原理原則：自分のゴール前（28m以内）では、ゴール前に残るパス（横・後ろ・短い縦）でつながない。取られたら即失点。相手が近い・受け手に相手が近い・通り道が危ないほど強く嫌う
           const risk = clamp((6 - Math.min(near.d, 6)) / 4, 0, 1) * 0.6 + clamp((5 - Math.min(recvOpp, 5)) / 4, 0, 1) * 0.6 + Math.min(1.5, danger) * 0.8 + (Math.abs(py - GOAL_Y) < 16 && pxf < 22 ? 0.5 : 0);
           v -= (globalThis.__Kgz1 ?? 1.8) * risk; if (globalThis.__gzc) { globalThis.__gzc.n++; globalThis.__gzc.r += risk; } }
+        let hrN = false;   // 版995：針の穴通し（きのした）：相手陣で前を向いたら、ゴール前へ抜ける味方への決定的な1本をいつも狙う（ボールを持ったら怖い存在に）
+        if ((globalThis.__Khr2 ?? 1) && p.uniq === 'harinoana' && !(p.uCd > S.t) && !p.off && !S.setPiece && xf > L / 2 - 8 && !q.gk && fx(t, q.x) > L - 42 && fx(t, q.x) < offL - 0.3 && pxf > L - 40 && pxf > xf + 2 && danger < 2.4) { hrN = true; v += (globalThis.__Khr2v ?? 2.6) + (pxf > L - 30 ? 1.0 : 0) + (through ? 0.5 : 0); }
         if (danger < 0.4) bestSafe = Math.max(bestSafe, v);
         if (globalThis.__gpV && gpG && ((gpG.k === 'sh' && p.idx === gpG.a && q.idx === gpG.c) || (gpG.k === 'dc' && gpG.ph === 1 && p.idx === gpG.b && q.idx === gpG.c))) globalThis.__gpV.push([gpG.k, +v0dbg.toFixed(1), +v.toFixed(1), +danger.toFixed(2), ph, +adv.toFixed(0), +d.toFixed(0), through ? 1 : 0, +xf.toFixed(0)]);
-        opts.push({ kind: 'pass', q, through, v, danger, d, space: thrSpot, minus: isMinus });
+        opts.push({ kind: 'pass', q, through, v, danger, d, space: thrSpot, minus: isMinus, needle: hrN });
         if (through && globalThis.__thDbg) globalThis.__thDbg.push([+danger.toFixed(2), +v.toFixed(2), byp, +d.toFixed(0)]);
         if (danger > 0.8 && d > 10 && d < 30 && recvOpp > 3) opts.push({ kind: 'pass', q, through, chip: true, v: v + danger * zr * 0.7 - 0.9, danger: 0.5, d });   // 相手の頭越し
       }
@@ -3017,7 +3020,7 @@
       }
       if (pick.kind === 'pass') {
         S.spaceSpot = pick.space ? { q: pick.q.idx, x: pick.space[0], y: pick.space[1] } : null;
-        startPass(p, pick.q, pick.through, pick.chip, null); b.predD = pick.danger ?? -1; b.predLen = pick.d ?? -1;
+        S.hrWant = !!pick.needle; startPass(p, pick.q, pick.through, pick.chip, null); S.hrWant = false; b.predD = pick.danger ?? -1; b.predLen = pick.d ?? -1;
         if (Math.abs(pick.q.y - p.y) > 22) T[t]._bSw = { t: S.t, s: Math.sign(pick.q.y - p.y) };
         if ((globalThis.__Kpm ?? 1) && !p.gk && pick.q.team === t && !(p.slot.line === 0 && ph === 'cast') && !bTy(p, 'アンカー') && !((p.brushT || 0) > S.t)) {   // 版924：ブラッシングで走り込む時は、そちらを優先   // パス＆ムーブ（版906：アンカーは上がらない）
           // 出した後は、受け手から12m以上離れた前の空いている所へ（受け手に寄っていかない：団子にしない）
@@ -5558,7 +5561,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       // 縦への意識：堅守型も奪ったら縦へ。負け・引き分けの終盤は全チームが縦へ急ぐ
       const vert = (tm.attitude === 'defensive' ? 0.035 : 0) + tm.urg * 0.05 + (p.type === 'ゲームメイカー' ? 0.03 : 0) + (p.type === 'パサー' ? 0.065 : 0) + (p.type === 'ビルドアップ型' ? 0.05 : 0) + (p.type === '偽9番' ? 0.02 : 0) + tm.tac.vert;
       // 針の穴通し（きのした）：相手陣内で前を向いたら、ふつうは見えない「すき間の1本」が見える
-      const hrReady = p.uniq === 'harinoana' && !(p.uCd > S.t) && !p.off && xf > L / 2 - 6 && !S.setPiece;
+      const hrReady = p.uniq === 'harinoana' && !(p.uCd > S.t) && !p.off && xf > L / 2 - ((globalThis.__Khr3 ?? 1) ? 10 : 6) && !S.setPiece;
       for (const q of mates(p)) {
         if (q === p) continue;
         if (q.gk && !(pressure >= 1 && xf < 35)) continue;
@@ -5673,7 +5676,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         let b842 = 0; if ((q.pgRun || 0) > S.t && q.run > 0 && pxf > xf + 2 && !qOff) { const tmB = p.tmFor && p.tmFor.i === q.idx && S.t - p.tmFor.t < 3 && danger < 0.8 ? 0.8 + Math.max(0, p.vision - 50) / 50 : 0; v += 1.5 + (through ? 0.5 : 0) + tmB; b842 = tmB + ((q.ctRun || 0) > S.t ? 1.5 : 0); }   // 版842：3人目：自分が受けた時に走り出した味方へ（判断が高いほど見逃さない）   // パス＆ゴー・3人目の動き：走り直した味方へ
         if (through) v += 0.9 + (tm.mods.through + tm.tac.through) / 50 + Math.max(0, p.vision - 55) / 30;   // 版840：スルーパスの上乗せを下げた（1.6→0.9）
         if (isPasser && through) v += 0.7 + (pxf > L - 32 ? 0.35 : 0);   // パサー：決定的なパスを狙う
-        if (needle) v += 1.5 + (pxf > L - 30 ? 1.0 : 0);   // 針の穴通し：決定的な1本を狙う
+        if (needle) v += ((globalThis.__Khr3 ?? 1) ? 2.6 : 1.5) + (pxf > L - 30 ? 1.0 : 0);   // 版995：もっと狙う   // 針の穴通し：決定的な1本を狙う
         // 固有スキルで選びやすくなるパス
         if (p.uniq && p.uOn > S.t) {
           if (p.uniq === 'byakuya' && d > 22) v += 1.2 * uP(p);                     // 白夜の視界：遠くの味方へ
