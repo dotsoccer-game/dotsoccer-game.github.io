@@ -2966,11 +2966,12 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       }
       // 失点したGK：決められた瞬間はまだ見送り、間をおいて順に崩れていく（本家の動画）
       //  ボールを見送る → 膝が崩れる（版959：手を横に伸ばす絵は審判のように見えるのでやめた） → 尻もち → 立ち上がってゴールを見つめる
-      if (info.gk && celebInfo && team !== celebInfo.team && !((gkCode >= 1 && gkCode <= 4) || gkCode === 13 || gkCode === 14)) {
+      if (info.gk && celebInfo && team !== celebInfo.team && !((gkCode >= 1 && gkCode <= 4) || gkCode === 13 || gkCode === 14) && !(ac && ac.wf && (ac.a === 'lose' || (ac.a === 'fall' && ac.u < 0.6)))) {   // 版987：逆を突かれて崩れている途中は、その絵のまま
         const age = simT - celebInfo.t;
         if (age >= 0.2 && age < 6.6) {
-          const dived = (stateAt(celebInfo.t).gk || [0, 0])[team] || 0, skip = dived >= 1 && dived <= 4;   // 跳んで倒れていたら、起き上がってすぐ悔しがる
-          const prone = Math.abs(Math.sin(celebInfo.t * 12.9898) * 43758.5453) % 1 < 0.5;   // 版970：悔しがり方は2通り：尻もち／うつ伏せに倒れ込む（ゴールごとに決まる）
+          const wfA = (actsOf[i] || []).some((a) => a.wf && a.a === 'fall' && Math.abs(a.t - celebInfo.t) < 1.5);   // 版986：逆を突かれて倒れたGK：倒れたまま悔しがる（いったん立ち上がって見えないように）
+          const dived = (stateAt(celebInfo.t).gk || [0, 0])[team] || 0, skip = (dived >= 1 && dived <= 4) || wfA;   // 跳んで倒れていたら、起き上がってすぐ悔しがる
+          const prone = wfA || Math.abs(Math.sin(celebInfo.t * 12.9898) * 43758.5453) % 1 < 0.5;   // 版970：悔しがり方は2通り：尻もち／うつ伏せに倒れ込む（ゴールごとに決まる）
           const down = prone ? 'fall2' : 'gkSit';
           const stage = skip ? (age < (prone ? 2.6 : 2.4) ? down : 'stand') : age < 0.8 ? 'watch' : age < 1.0 ? 'gkCrouch' : age < (prone ? 2.8 : 2.6) ? down : 'stand';   // 版970：少し見送ってから、膝が崩れて悔しがる
           const ownGoalX = celebInfo.net ? celebInfo.net.gx : (p.x < 52.5 ? 0 : 105), gq = proj(ownGoalX, 34);   // 決められたゴールの方

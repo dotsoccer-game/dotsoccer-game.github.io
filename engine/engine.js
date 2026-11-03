@@ -3588,10 +3588,19 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
                 // 飛ぶ瞬間に「届くかどうか」を決めておく：届かない時は手前で落ち、届く時はしっかり触る（見た目と結果をそろえる）
                 const r0 = R.next(), g0 = gkSaveProb(p, b, 0.1, yG, Math.max(5, hyp(b.vx, b.vy) - 4)), est = g0.prob + 0.04 + 0.5 * clamp((g0.skill - 45) / 40, 0, 1), miss = r0 >= est;   // 版790：上手なGK（D2・D1級）ほど、飛ぶ向きと間合いを外さない   // 届く頃の球の速さで見積もる
                 p.preSave = { t: b.shotT, r: r0, miss, est, sp: hyp(b.vx, b.vy), d: hyp(P[b.kicker].x - p.x, P[b.kicker].y - p.y) }; if (globalThis.__preLog) globalThis.__preLog.push({ st: b.shotT, miss, est: +est.toFixed(2), prob: +g0.prob.toFixed(2), r0: +r0.toFixed(2), sp: +hyp(b.vx, b.vy).toFixed(1), gap: +gap.toFixed(2), tG: +tG.toFixed(2), z: +b.z.toFixed(2) });
-                if (miss) missDive(p, gap, tG, b.csPlace && b.csType === 'ground');   // 版781：届かない時は、伸ばした手（絵）もボールに重ならない所まで
+                const kk = P[b.kicker], wfP = (globalThis.__Kwf ?? 0.35) + (b.csPlace ? 0.2 : 0) + clamp(((kk ? kk.technique : 60) - 60) / 100, 0, 0.2);   // 版986：逆を突かれる：シュートの瞬間に逆へ重心が乗り「あ、逆か！」と戻ろうとして崩れる（届かない球の一部。決まる・決まらないは変えない）
+                if (miss && (globalThis.__Kwf ?? 0.35) > 0 && tG > 0.2 && Math.abs(gap) > 1.2 && !p.wf && R.next() < wfP) { const t1 = Math.min(0.26, tG * 0.55), gd = Math.sign(gap) || 1;
+                  p.wf = { dir: -gd, gd, t1: S.t + t1, t2: S.t + t1 + 0.3, end: S.t + t1 + 0.3 + 1.6, shot: b.shotT }; act(p, 'lose', t1 + 0.32, { dx: 0, dy: -gd, o: p.idx, wf: 1 }); if (rec) actions.push({ t: +(S.t + t1 + 0.3).toFixed(2), i: p.idx, a: 'fall', d: 1.5, dx: 0, dy: gd, wf: 1 }); p.vx *= 0.2; p.vy *= 0.2; }   /* 倒れる絵は先に予約しておく（すぐ決まって試合が止まっても、倒れるところまで見せる） */
+                else if (miss) missDive(p, gap, tG, b.csPlace && b.csType === 'ground');   // 版781：届かない時は、伸ばした手（絵）もボールに重ならない所まで
                 else startDive(p, Math.sign(gap), Math.abs(gap), tG);
               }
             }
+            if (p.wf) { const w = p.wf;   // 版986：逆を突かれた：①逆へ重心が乗る → ②あわてて戻ろうとする → ③崩れて倒れる（その間は飛ばない）
+              if (S.t > w.end || S.restart || (S.t > w.t2 + 0.4 && b.owner >= 0)) p.wf = null;
+              else { u = false; tx = fx(tm.ti, p.x);
+                if (S.t < w.t1) { ty = p.y + w.dir * 2; p.vx *= 0.3; p.vy = w.dir * 2.2; }
+                else if (S.t < w.t2) { ty = p.y + w.gd * 2; p.vx *= 0.3; p.vy = w.gd * 1.5; }
+                else { ty = p.y; p.vx = 0; p.vy = 0; } } }
             if (p.lateDive) {   // 版782：反応が遅れて、その場で固まっている
               if (S.t > p.lateDive.until || S.restart) p.lateDive = null;
               else { tx = fx(tm.ti, p.x); ty = p.y; u = false; p.vx *= 0.5; p.vy *= 0.5; if (S.t >= p.lateDive.at) { const ld = p.lateDive; p.lateDive = null; if (!p.diveT && !p.downT) startDive(p, ld.dir, ld.dist, 0.3); } }
@@ -4042,6 +4051,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       if ((globalThis.__Knar ?? 1) && p.gk && S.ball.kind === 'shot' && p.narT != null && p.narT === S.ball.shotT) return;   // 版951：角度のない所からの、体の近くに来るシュートには、触る瞬間も飛ばない（立ったまま止める・はじく）
       { const bb = S.ball; let zAt = zKnown; if (zAt == null) { let z = bb.z || 0, vz = bb.vz || 0, vx = bb.vx || 0, vy = bb.vy || 0; const bs = bb.bs || 0; for (let tt = 0; tt < tHit; tt += 0.02) { const h = hyp(vx, vy), v = Math.hypot(h, vz); vx -= AIR * v * vx * 0.02; vy -= AIR * v * vy * 0.02; vz -= (9.8 + AIR * v * vz - LIFT * bs * h) * 0.02; z += vz * 0.02; if (z < 0) { z = 0; vz = Math.abs(vz) * 0.4; } } zAt = z; }   // 版876：届く頃の高さは、空気・回転（ドライブで落ちる）も入れて見積もる
         p.hiDiveT = zAt > 1.8 && (bb.z || 0) > 0.9 ? S.t + 1.0 : 0; }   // 版871：高い球へ飛ぶ時は、高く飛ぶ横っ跳び（絵は13・14）
+      if (p.gk && p.wf && S.t < p.wf.end) return;   // 版986：逆を突かれて崩れている間は飛ばない
       if ((globalThis.__Kgk2d ?? 1) && p.gk && S.ball.kind === 'shot' && S.ball.shotT != null) { if (p.dvShot === S.ball.shotT) return; p.dvShot = S.ball.shotT; }   // 版970：同じシュートに2回飛ばない（2段で飛んで見えた）
       p.diveT = 0.7; p.diveDir = dir;
       dist = Math.min(dist, gkDiveMax(p));
