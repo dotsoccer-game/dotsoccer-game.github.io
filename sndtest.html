@@ -13,19 +13,23 @@ button.on{background:#2d6fe0;color:#fff}
 <button id="b1">① ゲームと同じ方式（Web Audio）で鳴らす</button>
 <button id="b2">② 動画と同じ方式（audio要素）で鳴らす</button>
 <button id="b3">③ Web Audioで作って、audio要素で鳴らす</button>
+<button id="b4">④ 音のファイル（m4a）をaudio要素で鳴らす</button>
+<button id="b5">⑤ 動画（mp4）として鳴らす（YouTubeと同じ形）</button>
+<video id="vd" src="sound/test/mel.mp4" playsinline loop controls style="width:100%;max-width:320px;display:block;margin:0 0 10px"></video>
+<button id="b6">⑥ ①に「再生モード」を付けて鳴らす</button>
 <div id="st">状態：まだ鳴らしていません</div>
 <script>
 // ドレミの音（0.25秒ずつ）をくり返す、簡単なメロディ
 const NOTES = [523, 587, 659, 698, 784, 698, 659, 587];
 const st = document.getElementById('st');
 let ac = null, timer = null, nextT = 0, i = 0, mode = 0, el = null, msd = null;
-function info(msg) { st.textContent = msg + (ac ? `\n周波数 ${ac.sampleRate} ／ 状態 ${ac.state} ／ 遅れ ${Math.round((ac.baseLatency || 0) * 1000)}ms` : ''); }
-function stopAll() {
+function info(msg) { st.textContent = msg + '\n開き方：' + (navigator.standalone || matchMedia('(display-mode: standalone)').matches ? 'ホーム画面のアプリ' : 'Safariなど') + (ac ? `\n周波数 ${ac.sampleRate} ／ 状態 ${ac.state} ／ 遅れ ${Math.round((ac.baseLatency || 0) * 1000)}ms` : ''); }
+var stopAll = function () {
   clearInterval(timer); timer = null;
   if (ac) { try { ac.close(); } catch (_) {} ac = null; }
   if (el) { try { el.pause(); el.srcObject = null; el.removeAttribute('src'); el.load(); } catch (_) {} }
   mode = 0; document.querySelectorAll('button').forEach((b) => b.classList.remove('on'));
-}
+};
 function webAudio(toEl) {
   const C = window.AudioContext || window.webkitAudioContext; ac = new C();
   let out = ac.destination;
@@ -37,7 +41,7 @@ function webAudio(toEl) {
       g.gain.setValueAtTime(0.0001, nextT); g.gain.exponentialRampToValueAtTime(0.15, nextT + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, nextT + 0.22);
       o.connect(g); g.connect(out); o.start(nextT); o.stop(nextT + 0.24); nextT += 0.25;
     }
-    info(toEl ? '③ 鳴らしています' : '① 鳴らしています');
+    info((['', '①', '', '③', '', '', '⑥'][mode] || '') + ' 鳴らしています');
   }, 50);
 }
 function wavUrl() {   // 同じメロディを、音のファイル（wav）にして作る
@@ -48,6 +52,12 @@ function wavUrl() {   // 同じメロディを、音のファイル（wav）に�
   new Int16Array(buf, 44).set(d); return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
 }
 let wurl = null;
+const vd = document.getElementById('vd');
+const _stop = stopAll; stopAll = function () { try { vd.pause(); } catch (_) {} try { if (navigator.audioSession) navigator.audioSession.type = 'auto'; } catch (_) {} _stop(); };
+document.getElementById('b4').onclick = (e) => { const was = mode === 4; stopAll(); if (was) return info('止めました'); mode = 4; e.target.classList.add('on'); el = el || document.createElement('audio'); el.setAttribute('playsinline', ''); el.src = 'sound/test/mel.m4a'; el.loop = true; el.play().then(() => info('④ 鳴らしています'), (er) => info('④ 鳴らせませんでした：' + er.message)); };
+document.getElementById('b5').onclick = (e) => { const was = mode === 5; stopAll(); if (was) return info('止めました'); mode = 5; e.target.classList.add('on'); vd.currentTime = 0; vd.play().then(() => info('⑤ 鳴らしています'), (er) => info('⑤ 鳴らせませんでした：' + er.message)); };
+document.getElementById('b6').onclick = (e) => { const was = mode === 6; stopAll(); if (was) return info('止めました'); mode = 6; e.target.classList.add('on'); let ok = false; try { if (navigator.audioSession) { navigator.audioSession.type = 'playback'; ok = true; } } catch (_) {} webAudio(false); setTimeout(() => info('⑥ 鳴らしています（再生モード ' + (ok ? 'あり' : 'この端末では使えない') + '）'), 200); };
+st.textContent += '\n開き方：' + (navigator.standalone || matchMedia('(display-mode: standalone)').matches ? 'ホーム画面のアプリ' : 'Safariなど');
 document.getElementById('b1').onclick = (e) => { const was = mode === 1; stopAll(); if (was) return info('止めました'); mode = 1; e.target.classList.add('on'); webAudio(false); };
 document.getElementById('b3').onclick = (e) => { const was = mode === 3; stopAll(); if (was) return info('止めました'); mode = 3; e.target.classList.add('on'); webAudio(true); };
 document.getElementById('b2').onclick = (e) => { const was = mode === 2; stopAll(); if (was) return info('止めました'); mode = 2; e.target.classList.add('on'); wurl = wurl || wavUrl(); el = el || document.createElement('audio'); el.setAttribute('playsinline', ''); el.src = wurl; el.loop = true; el.play().then(() => info('② 鳴らしています'), (er) => info('② 鳴らせませんでした：' + er.message)); };
