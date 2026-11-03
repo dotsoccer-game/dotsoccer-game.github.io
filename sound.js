@@ -144,6 +144,9 @@
   }
   function oohLive() { crowdVoices(2.2, 0.8, 0, { n: 22, lo: 110, hi: 260, att: 0.3, rel: 0.9, spread: 0.25, endBend: -0.12, vowel: [[480, 4, 1], [850, 5, 0.6], [2400, 6, 0.12]] }); fanWhistle(0.8, 420, 1900, 0.18, 0.07); }
 
+  // 版1010：ポスト・バーに当たった音。g＝シュートの強さで音量（弱い0.4倍〜強い1.3倍）
+  function postSnd(k, g = 1) { if (FILE.post) return playBuf(FILE.post, FILE_VOL.post * g * (k < 1 ? 0.95 : 1));   // 版1009：ポストの音は、送ってもらった録音（sound/post.mp3）。読み込み前だけ作った音
+ tone(95 * k, 0.4, 'sine', 0.38, 0, 68); tone(60 * k, 0.3, 'sine', 0.16); tone(88 * k, 0.25, 'sine', 0.12, 0.12, 70); noise(0.1, 0.12, 'lowpass', 3500); noise(0.03, 0.1, 'bandpass', 2500); [[645, 0.7, 0.06], [620, 0.5, 0.015], [701, 0.45, 0.015], [324, 0.4, 0.012], [1004, 0.3, 0.008], [1590, 0.2, 0.006]].forEach(([f, d, v]) => tone(f * k, d, 'sine', v)); }
   const SFX = {
     // 版558：本家のタップ音は「カチッ」と短く高い音（5300Hzあたり、0.015秒）
     tap() { noise(0.018, 0.22, 'bandpass', 5300, 0, null, 0.001); tone(5300, 0.012, 'sine', 0.05); },
@@ -155,9 +158,8 @@
     header() { noise(0.07, 0.25, 'bandpass', 700); tone(260, 0.1, 'sine', 0.3, 0, 120); },   // ボン（頭）
     catch() { noise(0.12, 0.3, 'lowpass', 500); tone(95, 0.14, 'sine', 0.4, 0, 60); noise(0.06, 0.16, 'bandpass', 1300, 0, null, 0.003); noise(0.04, 0.1, 'highpass', 3000, 0.01); },   // バシッ（両手で抱える）
     // 版1008：ポスト・バーの音を、送ってもらった手本（「Donk」）の測定に合わせて作り直し：低い「ドン」（90〜100Hz）＋当たった瞬間の「ザッ」＋645Hzあたりの「ウォーン」という響き（約0.45秒）。高い金属音は入れない
-    post(k = 1) { if (FILE.post) return playBuf(FILE.post, FILE_VOL.post * (k < 1 ? 0.95 : 1));   // 版1009：ポストの音は、送ってもらった録音（sound/post.mp3）。読み込み前だけ作った音
- tone(95 * k, 0.4, 'sine', 0.38, 0, 68); tone(60 * k, 0.3, 'sine', 0.16); tone(88 * k, 0.25, 'sine', 0.12, 0.12, 70); noise(0.1, 0.12, 'lowpass', 3500); noise(0.03, 0.1, 'bandpass', 2500); [[645, 0.7, 0.06], [620, 0.5, 0.015], [701, 0.45, 0.015], [324, 0.4, 0.012], [1004, 0.3, 0.008], [1590, 0.2, 0.006]].forEach(([f, d, v]) => tone(f * k, d, 'sine', v)); },
-    bar() { SFX.post(0.88); },   // バーは少し長い棒なので、少し低い音
+    post(g) { postSnd(1, g); },
+    bar(g) { postSnd(0.88, g); },   // バーは少し長い棒なので、少し低い音
     parry() { noise(0.06, 0.32, 'bandpass', 1800); tone(320, 0.07, 'square', 0.08, 0, 160); },   // パンッ（はじく）
     // 版558：本家のキックは低く短い「ドッ」（210Hzから130Hzへ、0.04秒）。高い音はほとんどない
     kick() { tone(210, 0.05, 'sine', 0.6, 0, 125); tone(105, 0.045, 'triangle', 0.26, 0, 70); tone(640, 0.04, 'triangle', 0.2, 0, 380); noise(0.025, 0.12, 'bandpass', 2000, 0, null, 0.002); noise(0.012, 0.06, 'highpass', 5000); },
@@ -231,10 +233,10 @@
     draw() { [['E5', 0], ['G5', 0.18], ['E5', 0.36], ['D5', 0.54]].forEach(([n, t]) => tone(N(n), t === 0.54 ? 0.5 : 0.15, 'square', 0.1, t)); },
   };
   let lastAt = {};
-  function play(name) {
+  function play(name, arg) {
     if (!pref.sfx) return; const a = ctx(); if (!a) return; if (a.state !== 'running') { try { a.resume(); } catch (_) {} return; }
     const now = performance.now(); if (lastAt[name] && now - lastAt[name] < (name === 'kick' ? 70 : name === 'ooh' ? 4000 : 40)) return; lastAt[name] = now; if (window.__sndLog) window.__sndLog.push([name, Math.round(now)]);   // 同じ音が重なりすぎないように
-    try { (SFX[name] || (() => {}))(); } catch (_) {}
+    try { (SFX[name] || (() => {}))(arg); } catch (_) {}
   }
 
   // ---- 観客の声（試合中ずっと）：版558 本家を測って合わせた — 600〜750Hzに山（ほかより+6dB）、100〜500Hzは平ら、1000Hzから上はなだらかに下がる ----

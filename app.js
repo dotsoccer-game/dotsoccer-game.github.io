@@ -3871,7 +3871,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       // 版721：「おぉー」は本当に惜しい時だけ（ポスト・バー、1対1や近くからのシュートが外れた・止められた時）。ふつうのキャッチでは鳴らさない
       if (e.type === 'shot') { lastShotEv = e; lastShotSimT = e.t; }
       if (e.type === 'shot' && speed < 16) { SND().play('shot'); if (!e.on && (e.one || e.d < 11)) oohT = e.t + 0.45; }
-      if (e.type === 'post' && speed < 16) { SND().play(e.bar ? 'bar' : 'post'); oohT = e.t + 0.25; }   // 版1007：ポスト・バーに当たった音
+      if ((e.type === 'post' || e.type === 'barin') && speed < 16) { const gK = e.sp != null ? 0.4 + 0.9 * Math.max(0, Math.min(1, (e.sp - 10) / 20)) : 1; SND().play(e.bar || e.type === 'barin' ? 'bar' : 'post', gK); if (e.type === 'post') oohT = e.t + 0.25; }   // 版1007：ポスト・バーに当たった音　版1010：シュートの強さで音の大きさを変える（弱い0.4倍〜強い1.3倍）。バーに当たって中に落ちた時も鳴らす
       if (e.type === 'save' && speed < 16 && lastShotEv && e.t - lastShotEv.t < 2 && (lastShotEv.one || lastShotEv.d < 11)) oohT = e.t + 0.25;
       if (e.type === 'card' && speed < 16) SND().play('card');
       if (e.type === 'gk' && e.act === 'tip' && speed < 16) SND().play('parry');   /* 指先に当たった「パンッ」 */

@@ -6851,17 +6851,18 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             b.x = gx + inward * 0.05; b.y = py + side * (r + 0.02);
             b.vx = inward * Math.abs(b.vx) * R.range(0.3, 0.6); b.vy = side * sp * R.range(0.25, 0.5) + b.vy * 0.3;
             b.kind = 'loose'; b.curveAll = false; b.spin = 0; b.knuckle = false; b.postT = S.t;
-            ev('post', { team: b.lastTeam });
+            ev('post', { team: b.lastTeam, sp: +hyp(sp, b.vz || 0).toFixed(1) });
             return;
           }
         }
         if (Math.abs(yc - GOAL_Y) < POST && Math.abs(zc - BAR) < 0.18) {
           if (globalThis.__barLog) globalThis.__barLog.push({ t: S.t, zc: +zc.toFixed(2), sk: b.shotSkill || '' });
           // クロスバー：上に当たれば外へ、下に当たれば中へ落ちるか跳ね返る
-          if (zc < BAR && R.next() < 0.5) { b.vz = -Math.abs(b.vz) * 0.4 - 2; b.postT = S.t; return; }   // 下に当たって中へ落ちる
+          const spB = +Math.hypot(b.vx, b.vy, b.vz || 0).toFixed(1);   // 版1010：当たった時の強さ（音の大きさに使う）
+          if (zc < BAR && R.next() < 0.5) { b.vz = -Math.abs(b.vz) * 0.4 - 2; b.postT = S.t; ev('barin', { team: b.lastTeam, sp: spB }); return; }   // 下に当たって中へ落ちる（版1010：この時もバーの音）
           b.x = gx + inward * 0.05; b.vx = inward * Math.abs(b.vx) * R.range(0.3, 0.5); b.vz = Math.abs(b.vz) * 0.5 + 1.5;
           b.kind = 'loose'; b.curveAll = false; b.spin = 0; b.postT = S.t;
-          ev('post', { team: b.lastTeam, bar: true });
+          ev('post', { team: b.lastTeam, bar: true, sp: spB });
           return;
         }
       }
