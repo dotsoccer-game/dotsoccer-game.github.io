@@ -962,9 +962,9 @@
   const typeBadge = (t, cls) => `<span class="tbadge ${TYPE_CLS[t] || 'ty-bal'} ${cls || ''}" style="--tl:${String(t || '').length || 1}">${esc(t)}</span>`;   // 版700：--tl＝文字数（長いタイプ名は文字を小さく）
   // 版514：調子（ポテンシャルの代わり）：本家と同じ5段階の矢印（↑絶好調・↗好調・→普通・↘不調・↓絶不調）
   const COND_UI = { 2: ['絶好調', -90, '#ff3d2e'], 1: ['好調', -45, '#ff9a1a'], 0: ['普通', 0, '#e8c21a'], '-1': ['不調', 45, '#3a9cff'], '-2': ['絶不調', 90, '#7a5cff'] };
-  function condArrow(p, size) { const [, deg, col] = COND_UI[C.condOf(p)]; const z = size || 22;
+  function condArrow(p, size) { return '';   /* 版998：調子（矢印）はなくした */ const [, deg, col] = COND_UI[C.condOf(p)]; const z = size || 22;
     return `<svg class="cnd-a" viewBox="0 0 24 24" width="${z}" height="${z}" style="transform:rotate(${deg}deg)"><path d="M3 9h10V3l9 9-9 9v-6H3z" fill="${col}" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>`; }
-  function condGauge(p, cls) { const [nm] = COND_UI[C.condOf(p)]; return `<span class="cnd ${cls || ''}" title="調子">${condArrow(p, cls === 'sm' ? 20 : 26)}<b>${nm}</b></span>`; }
+  function condGauge(p, cls) { const f = Math.round(p.fatigue || 0); return `<span class="cnd ${cls || ''}" title="疲労度"><i class="cdot ${condDot(p)}"><em class="cdn">${f}</em></i><b>${f <= 45 ? '元気' : f <= 70 ? '疲れ気味' : 'へとへと'}</b></span>`; }   // 版998：調子の代わりに疲労度
   // ================= 選手データ =================
   const POSC = { GK: 'pos-gk', DF: 'pos-df', MF: 'pos-mf', FW: 'pos-fw' };
   const condDot = (p) => (p.injury > 0 ? 'cd-inj' : p.fatigue > 70 ? 'cd-red' : p.fatigue > 45 ? 'cd-yel' : 'cd-blue');
@@ -1001,7 +1001,7 @@
   // ================= 選手データ（カルチョビットAの一覧表のように、詰めて見やすく） =================
   function renderData() {
     const head = D.PARAMS.map((q) => `<th title="${q.name}" class="th-ico">${ico(q.k)}</th>`).join('');
-    const rows = save.team.players.map((p, i) => { C.ensurePts(p); return `<tr data-i="${i}" class="${i >= 11 ? 'sub' : ''}"><td><span class="pos ${POSC[p.position]}">${p.position}</span></td><td class="no">${p.number}</td><td class="s-nm">${esc(p.name)}${starHTML(C.ensureStar(p), p.totsu, 'sm')}</td><td><i class="cdot ${condDot(p)}"></i></td>${D.PARAMS.map((q) => { const ri = C.rankInfo(p.pts[q.k]); return `<td class="gd" title="${q.name} ${Math.floor(p.pts[q.k])}（次のランクまであと${Math.max(0, Math.ceil(ri.next - p.pts[q.k]))}）"><b class="rk rk-${ri.g}">${ri.g}</b></td>`; }).join('')}<td>${typeBadge(p.type)}</td><td>${condGauge(p, 'sm')}</td></tr>`; }).join('');
+    const rows = save.team.players.map((p, i) => { C.ensurePts(p); return `<tr data-i="${i}" class="${i >= 11 ? 'sub' : ''}"><td><span class="pos ${POSC[p.position]}">${p.position}</span></td><td class="no">${p.number}</td><td class="s-nm">${esc(p.name)}${starHTML(C.ensureStar(p), p.totsu, 'sm')}</td><td><i class="cdot ${condDot(p)}"><em class="cdn">${Math.round(p.fatigue || 0)}</em></i></td>${D.PARAMS.map((q) => { const ri = C.rankInfo(p.pts[q.k]); return `<td class="gd" title="${q.name} ${Math.floor(p.pts[q.k])}（次のランクまであと${Math.max(0, Math.ceil(ri.next - p.pts[q.k]))}）"><b class="rk rk-${ri.g}">${ri.g}</b></td>`; }).join('')}<td>${typeBadge(p.type)}</td><td>${condGauge(p, 'sm')}</td></tr>`; }).join('');
     $('#clubLayer').innerHTML = `<div class="dpanel dp2"><h2><img class="emb" src="${emblemURL(save.team.name, 48)}" alt="">${esc(save.team.name)}　［${lgBadge(save.league.id)}］</h2><div class="dscroll"><table class="dtbl dtbl2"><thead><tr><th>Pos.</th><th>No.</th><th colspan="2">所属選手</th>${head}<th>タイプ</th><th>調子</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
     $('#clubLayer').querySelectorAll('tr[data-i]').forEach((tr) => tr.onclick = () => playerDetail(+tr.dataset.i, { club: true }));
   }
@@ -1025,7 +1025,7 @@
       const recs = Object.entries(p.rec || {}).sort((a, b) => +b[0] - +a[0]).slice(0, 5);
       const fat = Math.round(p.fatigue || 0);
       const hist = [0, 1, 2, 3].map((k) => { const c = (p.trainHist || [])[k]; return c && C.CARDS[c] ? `<img class="hc" src="cards/${c}.jpg" title="${esc(C.CARDS[c].name)}" alt="">` : '<i class="hc empty"></i>'; }).join('<s>›</s>');
-      body = `<div class="pc-st"><span class="pc-chip">疲労度<i class="cdot ${condDot(p)}"></i><small>${fat}%</small></span><span class="pc-chip">利き足${footSVG(p.foot)}<small>${p.foot === 'L' ? '左' : '右'}</small></span><span class="pc-chip">${p.injury > 0 ? `<b class="inj">ケガ　あと${p.injury}週</b>` : '<b class="ok">ケガなし</b>'}</span><span class="pc-chip hist">特訓履歴 ${hist}</span></div>
+      body = `<div class="pc-st"><span class="pc-chip">疲労度<i class="cdot ${condDot(p)}"><em class="cdn">${Math.round(p.fatigue || 0)}</em></i><small>${fat}%</small></span><span class="pc-chip">利き足${footSVG(p.foot)}<small>${p.foot === 'L' ? '左' : '右'}</small></span><span class="pc-chip">${p.injury > 0 ? `<b class="inj">ケガ　あと${p.injury}週</b>` : '<b class="ok">ケガなし</b>'}</span><span class="pc-chip hist">特訓履歴 ${hist}</span></div>
         <div class="pc-car"><span>キャリア</span><b>${save.season}年目</b><span>出場</span><b>${p.games || 0}</b><span>得点</span><b>${recs.reduce((a, [, r]) => a + r.G, 0)}</b><span>アシスト</span><b>${recs.reduce((a, [, r]) => a + r.A, 0)}</b></div>
         <table class="pc-rec"><tr><th>シーズン</th><th>所属クラブ</th><th>P</th><th>G</th><th>A</th><th><i class="ycd"></i></th><th><i class="rcd"></i></th></tr>${recs.length ? recs.map(([sn, r]) => `<tr><td>${sn}年目</td><td>${esc(r.club)}</td><td>${r.P}</td><td>${r.G}</td><td>${r.A}</td><td>${r.Y}</td><td>${r.R}</td></tr>`).join('') : '<tr><td colspan="7" class="none">まだ公式戦の記録はありません</td></tr>'}</table>`;
     } else if (pcPage === 1) {
@@ -1046,7 +1046,7 @@
           <div class="pc-photo">${facePic(p, '', i >= 11)}<div class="pc-rare">${starHTML(C.ensureStar(p), p.totsu)}${capBadge(C.capGrade(p))}</div></div>
           <b class="pc-num">${p.number}</b>
           <div class="pc-meta"><span>タイプ</span>${typeBadge(p.type).replace('<span class="tbadge', `<span data-ty="${esc(p.type || 'バランス')}" data-pos="${esc(p.position)}" title="タップで説明" class="tbadge ty-tap`)}<b class="ty-q">?</b></div>
-          <div class="pc-meta"><span>調子</span>${condGauge(p)}</div>
+          <div class="pc-meta"><span>疲労度</span>${condGauge(p)}</div>
         </div>
         <div class="pc-right">
           <div class="pc-icons">${icons}</div>
@@ -1539,7 +1539,7 @@
   }
   addEventListener('stagefit', () => { const L = $('#clubLayer'); if (L && L.querySelector('.sq2') && !$('#cv-club').hidden && !sqDrag && !document.querySelector('.s2drag')) renderLineup2(); });   // 版531：ドラッグ中は組み直さない
   // 版516：名前の札の中身を、表示の切りかえ（名前・調子／タイプ／星）で変える。長いタイプ名は横に縮めて1行に
-  const SQ_SHOW = ['cond', 'type', 'star'], SQ_SHOW_NAME = { cond: '名前・調子', type: 'タイプ', star: 'レア度（星）' };
+  const SQ_SHOW = ['cond', 'type', 'star'], SQ_SHOW_NAME = { cond: '名前・疲労度', type: 'タイプ', star: 'レア度（星）' };
   function sqTag(q) {
     if (sqShow === 'type') { const t = q.type || 'バランス', k = Math.min(1, 6 / Math.max(1, t.length)); return `<b class="s2n s2n-ty tbadge ${TYPE_CLS[t] || 'ty-bal'}" style="--sx:${k.toFixed(2)}">${esc(t)}</b>`; }
     if (sqShow === 'star') return `<b class="s2n s2n-st">${starHTML(C.ensureStar(q), q.totsu)}</b>`;
@@ -1576,8 +1576,8 @@
     const badge = (q) => {
       if (q.injury > 0) return '<i class="s2b inj">＋</i>';
       if (q.suspend > 0) return '<i class="s2b sus"></i>';
-      if (sqShow !== 'cond') return `<i class="s2b cdot ${condDot(q)}"></i>`;
-      return `<i class="s2b cdot ${condDot(q)}"></i><span class="s2ca">${condArrow(q, 22)}</span>`;
+      if (sqShow !== 'cond') return `<i class="s2b cdot ${condDot(q)}"><em class="cdn">${Math.round(q.fatigue || 0)}</em></i>`;
+      return `<i class="s2b cdot ${condDot(q)}"><em class="cdn">${Math.round(q.fatigue || 0)}</em></i><span class="s2ca">${condArrow(q, 22)}</span>`;
     };
     const chip = (q, i, x, y, cls) => `<div class="s2p ${cls || ''}${i === pick ? ' sel' : ''}${q.injury > 0 ? ' inj' : ''}" data-i="${i}" style="left:${x}px;top:${y}px">${sqTag(q)}<span class="s2tags">${tagsOf(q)}</span>${facePic(q, 's2f', i >= 11)}${badge(q)}${ovrTag(q, 's2ov')}${i > 0 && i < 11 && q.position !== roles[i] && q.position !== 'GK' ? '<em class="s2mis" title="本来のポジションとちがう">!</em>' : ''}</div>`;
     let dots = chip(ps[0], 0, PX0 + PW / 2, PY0 + R * CH + CH * 1.05, 'gk');
@@ -1594,7 +1594,7 @@
     if (sel) { C.ensurePts(sel); const rk = PK.map((k) => C.rankInfo(sel.pts[k]).g);
       pop = `<div class="s2pop" style="${sqPop < 11 && sqPop > 0 && cells[sqPop] ? `left:${Math.min(560, Math.max(30, cx(cells[sqPop].c) - 170))}px;top:${Math.max(70, cy(cells[sqPop].r) - 150)}px` : sqPop === 0 ? `left:${PX0 + PW / 2 - 170}px;top:${PY0 + R * CH - 120}px` : (PHN ? `left:${BX1 - 400}px;top:${BY0 - 60 + ((sqPop - 11) % C.BENCH_N) * BDY}px` : `left:560px;top:${Math.min(470, 60 + (sqPop - 11) * 75)}px`)}"><div class="s2ph"><i class="pos ${POSC[sel.position]}">${sel.position}</i><b>${sel.number}</b><span>${esc(sel.name)}</span>${starHTML(C.ensureStar(sel), sel.totsu)}<button class="s2px xbtn"><img class="xbtn-img" src="icons/ui_close.png" alt="×" draggable="false"></button></div>
         <div class="s2pr">${PK.map((k, j) => `<span title="${esc(D.PARAMS[j].name)}">${ico(k)}<i class="rk2 g-${rk[j]}">${rk[j]}</i></span>`).join('')}</div>
-        <div class="s2pt"><span class="tbadge ${TYPE_CLS[sel.type] || 'ty-bal'}">${esc(sel.type || '')}</span><i class="cdot ${condDot(sel)}"></i><small>疲労 ${Math.round(sel.fatigue || 0)}%</small><span class="s2ft">利き足${footSVG(sel.foot)}<b>${sel.foot === 'L' ? '左' : '右'}</b></span></div>
+        <div class="s2pt"><span class="tbadge ${TYPE_CLS[sel.type] || 'ty-bal'}">${esc(sel.type || '')}</span><i class="cdot ${condDot(sel)}"><em class="cdn">${Math.round(sel.fatigue || 0)}</em></i><small>疲労 ${Math.round(sel.fatigue || 0)}%</small><span class="s2ft">利き足${footSVG(sel.foot)}<b>${sel.foot === 'L' ? '左' : '右'}</b></span></div>
         <div class="s2rl">${Object.keys(ROLE_NAME).map((k) => `<button data-role="${k}" class="${tac.roles[k] === sel.name ? 'on' : ''}"><i class="s2rt rt-${k}">${ROLE_TAG[k]}</i>${ROLE_NAME[k]}</button>`).join('')}</div>
         <button class="s2pd" data-pd="${sqPop}">選手データを見る</button></div>`; }
     // 版517：リザーブの選手を選んだら、その選手の能力も見せる（下に重ねても、その下の選手はタップできる）
@@ -1611,7 +1611,7 @@
         ${Array.from({ length: C.BENCH_N }, (_, k) => `<i class="s2e" style="left:${BX1}px;top:${BY0 + k * BDY}px"></i><i class="s2e" style="left:${BX2}px;top:${BY0 + k * BDY}px"></i>`).join('')}${dots}${col(b1, 11, BX1, false)}${col(b2, 11 + C.BENCH_N, BX2, true)}
         ${pop}</div>
       <button class="s2btn s2nb" data-a="note"><span>${formMini(tac.formation === 'custom' ? '4-4-2' : tac.formation)}</span><b>フォーメーション</b></button>
-      <button class="s2btn s2db" data-a="show" title="表示の切りかえ（名前・調子／タイプ／星）"><span><img class="s2chg" src="icons/ui_change.png" alt="切りかえ"></span></button>
+      <button class="s2btn s2db" data-a="show" title="表示の切りかえ（名前・疲労度／タイプ／星）"><span><img class="s2chg" src="icons/ui_change.png" alt="切りかえ"></span></button>
       <button class="s2btn s2tb" data-a="tac"><span>${RB_TAC_SVG}</span><b>戦術</b></button>
       ${(save.reserve || []).length ? `<button class="s2btn s2rb" data-a="res"><span>${(save.reserve || []).length}</span><b>リザーブ</b></button>` : ''}
       ${sqResOpen && (save.reserve || []).length ? `<div class="s2strip"><div class="s2st-h"><b>リザーブ</b><button class="s2res-x xbtn" title="とじる"><img class="xbtn-img" src="icons/ui_close.png" alt="×" draggable="false"></button></div><div class="s2st-l">${save.reserve.map((q, k) => `<div class="s2sc${k === sqRes ? ' on' : ''}${sqMulti && sqMulti.has(q) ? ' chk' : ''}" data-r="${k}">${facePic(q, 's2sf')}${ovrTag(q, 's2pw')}${sqMulti ? `<i class="s2ck">${sqMulti.has(q) ? '✓' : ''}</i>` : ''}${sqTag(q)}</div>`).join('')}</div>${sqMulti ? `<div class="s2mu"><span class="s2mu-st">${[1, 2, 3].map((st) => { const n = save.reserve.filter((q) => C.ensureStar(q) === st).length; return n ? `<button class="s2mu-star" data-st="${st}" title="☆${st}の選手をぜんぶ選ぶ">☆${st}全員<small>${n}人</small></button>` : ''; }).join('')}</span><button class="s2mu-go"${sqMulti.size ? '' : ' disabled'}>${sqMulti.size}人を放出</button><button class="s2mu-x">やめる</button></div>` : (sqRes < 0 ? '<div class="s2mu"><button class="s2mu-on">まとめて放出</button></div>' : '') + (sqRes >= 0 ? `<button class="s2rel s2rel2" data-rel="${sqRes}" title="放出"><img src="icons/pc_release.png" alt="放出"></button>` : '<p class="s2st-hint">タップ→チームの選手をタップ／横に引っぱって置く</p>')}</div>` : ''}
@@ -1748,7 +1748,7 @@
     let dots = pl(ps[0], 0, PW / 2, TOP + C.GRID_R * CH + CH);
     for (let i = 1; i < 11; i++) { const c = cells[i]; dots += pl(ps[i], i, cx(c.c), cy(c.r)); }
     const pitch = `<div class="sq-pitch grid" style="width:${PW}px;height:${PH}px">${grid}<i class="gk-area"></i><i class="gk-box"></i>${zl}${dots}</div>`;
-    const bench = ps.slice(11).map((q, k) => { const i = k + 11; return `<div class="sq-bench${i === pick ? ' sel' : ''}${q.injury > 0 ? ' inj' : ''}" data-i="${i}">${portrait(q)}<span><b><i class="pos ${POSC[q.position]}">${q.position}</i>${q.number} ${esc(q.name)}${tagsOf(q)}</b><small>${esc(q.type)}　<i class="cdot ${condDot(q)}"></i>${q.injury > 0 ? ` ケガ あと${q.injury}週` : ''}</small></span></div>`; }).join('');
+    const bench = ps.slice(11).map((q, k) => { const i = k + 11; return `<div class="sq-bench${i === pick ? ' sel' : ''}${q.injury > 0 ? ' inj' : ''}" data-i="${i}">${portrait(q)}<span><b><i class="pos ${POSC[q.position]}">${q.position}</i>${q.number} ${esc(q.name)}${tagsOf(q)}</b><small>${esc(q.type)}　<i class="cdot ${condDot(q)}"><em class="cdn">${Math.round(q.fatigue || 0)}</em></i>${q.injury > 0 ? ` ケガ あと${q.injury}週` : ''}</small></span></div>`; }).join('');
     const sel = pick >= 0 ? ps[pick] : null;
     const roleBox = sel ? `<div class="sq-adj"><span>${esc(sel.name)}を</span>${Object.keys(ROLE_NAME).map((k) => `<button data-role="${k}" class="${tac.roles[k] === sel.name ? 'on' : ''}">${ROLE_NAME[k]}${tac.roles[k] === sel.name ? '✓' : ''}</button>`).join('')}<small>${pick > 0 && pick < 11 ? 'ピッチの空いているマスをタップすると移動します' : pick === 0 ? 'GKはゴール前から動かせません' : 'ピッチの選手をタップすると入れ替わります'}</small></div>`
       : '<p class="hintp">選手をタップして、空いているマスをタップすると移動。選手どうしをタップすると入れ替わります（控えとも）。マスの色（FW・MF・DF）で役割が決まるので、0-10のような形も自由に組めます。</p>';
@@ -3882,9 +3882,9 @@
       let head, row;
       if (mode === 'st') { head = th('P', '試合') + th('G', '得点') + th('A', 'アシスト') + th('Y', '<i class="ob-y"></i>') + th('X', '<i class="ob-x">×</i>'); row = (o) => { const r = rec(o.p); return `<td>${r.P}</td><td>${r.G}</td><td>${r.A}</td><td>${r.Y + r.R}</td><td>${o.p.injury > 0 ? o.p.injury + '週' : '0'}</td>`; }; }
       else if (mode === 'ab') { head = PK.map((k, j) => th(k, ico(k), 'ic')).join('') + '<th>タイプ</th>'; row = (o) => { C.ensurePts(o.p); return PK.map((k) => { const g = C.rankInfo(o.p.pts[k]).g; return `<td><i class="rk2 g-${g}">${g}</i></td>`; }).join('') + `<td><span class="tbadge ${TYPE_CLS[o.p.type] || 'ty-bal'}">${esc(o.p.type || '')}</span></td>`; }; }
-      else { head = th('star', 'レア度') + '<th>上限</th>' + th('fat', '疲労'); row = (o) => `<td>${starHTML(C.ensureStar(o.p), o.p.totsu)}</td><td>${capBadge(C.capGrade(o.p))}</td><td><i class="cdot ${condDot(o.p)}"></i> ${Math.round(o.p.fatigue || 0)}%</td>`; }
+      else { head = th('star', 'レア度') + '<th>上限</th>' + th('fat', '疲労'); row = (o) => `<td>${starHTML(C.ensureStar(o.p), o.p.totsu)}</td><td>${capBadge(C.capGrade(o.p))}</td><td><i class="cdot ${condDot(o.p)}"><em class="cdn">${Math.round(o.p.fatigue || 0)}</em></i> ${Math.round(o.p.fatigue || 0)}%</td>`; }
       return `<div class="of-p of-team"><div class="ot-h">${esc(save.team.name)}　チーム編成<span>${['成績', '能力', '状態'][['st', 'ab', 'cd'].indexOf(mode)]}</span></div><div class="ot-sc"><table class="ot ${mode}"><tr>${th('pos', 'Pos.')}${th('no', 'No.')}<th class="nm${sortK === 'order' ? ' on' : ''}" data-s="order" title="スタメン順にもどす">選手</th><th></th>${head}</tr>
-        ${ps.map((o) => `<tr data-i="${o.i}" class="${o.i < 11 ? '' : o.i < 11 + C.BENCH_N ? 'sub' : 'sub out'}${sortK === 'order' && (o.i === 11 || o.i === 11 + C.BENCH_N) ? ' sep' : ''}"><td><i class="pos ${POSC[o.p.position]}">${o.p.position}</i></td><td class="no">${o.p.number}</td><td class="nm">${esc(o.p.name)}</td><td><i class="cdot ${condDot(o.p)}"></i></td>${row(o)}</tr>`).join('')}</table></div>
+        ${ps.map((o) => `<tr data-i="${o.i}" class="${o.i < 11 ? '' : o.i < 11 + C.BENCH_N ? 'sub' : 'sub out'}${sortK === 'order' && (o.i === 11 || o.i === 11 + C.BENCH_N) ? ' sep' : ''}"><td><i class="pos ${POSC[o.p.position]}">${o.p.position}</i></td><td class="no">${o.p.number}</td><td class="nm">${esc(o.p.name)}</td><td><i class="cdot ${condDot(o.p)}"><em class="cdn">${Math.round(o.p.fatigue || 0)}</em></i></td>${row(o)}</tr>`).join('')}</table></div>
         <button class="ot-mode ui-img" title="表示を切りかえる"><img src="icons/ui_change.png" alt="切りかえ"></button><p class="ot-hint">見出しをタップで並べかえ。右下のボタンで「成績・能力・状態」を切りかえ</p></div>`;
     };
     const draw = () => {

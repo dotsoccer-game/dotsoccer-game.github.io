@@ -380,7 +380,7 @@
     await sleep(500);
     const b = (g) => document.querySelector(`#cv-club .rbtns button[data-go="${g}"]`);
     await say('coach', `${MGR()}、ここはクラブハウスの練習グラウンドです。<br>全体練習は毎週、自動で行われます。`);
-    await say('coach', '「選手データ」では、選手の能力やタイプ、調子が見られます。', { spot: () => b('data') });
+    await say('coach', '「選手データ」では、選手の能力やタイプ、疲労度が見られます。', { spot: () => b('data') });
     await say('coach', '「スタメン」では、先発メンバーとポジションを決めます。<br>選手をドラッグして入れ替えられます。', { spot: () => b('lineup') });
     await say('coach', '「戦術」では、攻め方・守り方の指示を出せます。', { spot: () => b('tactic') });
     await say('coach', 'それでは「特訓」を見てみましょう。', { spot: () => b('train'), tap: true });

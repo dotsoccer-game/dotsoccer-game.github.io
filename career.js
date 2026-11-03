@@ -116,8 +116,7 @@
   function grow(p, k, base, r, out) {
     const v = p[k];
     let g = base * 0.5 * clamp((100 - v) / 50, 0.1, 1.1) * (0.75 + r() * 0.5);   // 1シーズンで主な能力が+8〜12くらい
-    g *= p.fatigue > 70 ? 0.5 : p.fatigue > 50 ? 0.8 : 1;
-    g *= 1 + (p.cond || 0) * 0.1;
+    g *= trainMul(p);   // 版998：調子はなくし、伸びは疲労度だけで決まる
     const nv = clamp(v + g, 1, 99);
     p[k] = Math.round(nv * 10) / 10;
     if (g > 0.05) out.ups[k] = (out.ups[k] || 0) + g;
@@ -195,7 +194,6 @@
       p.fatigue = clamp(p.fatigue + fat - 26, 0, 100);   // 週の自然回復を差し引く
       // 疲れすぎていると、ケガをすることがある
       if (p.fatigue > 75 && r() < (p.fatigue - 70) * 0.006 * injMul(p)) { p.injury = 1 + Math.floor(r() * 3); out.injured = true; }
-      condTick(p, r);
       const nt = decideType(p); if (nt !== p.type) { out.typeTo = nt; p.type = nt; }
       report.push(out);
     });
@@ -737,7 +735,7 @@
     const d = myScore[0] - myScore[1];
     // 版515：公式戦に勝つと、試合に出た選手の調子が1段上がる（PK戦で勝ち上がった時も）
     const won = d > 0 || (d === 0 && res && res.win === true), condUp = [];
-    if (won) (played || []).forEach((i) => { const q = ps[i]; if (q && condOf(q) < 2) { q.cond = condOf(q) + 1; condUp.push(q.name); } });
+    /* 版998：調子はなくした（勝っても上がらない） */ void won; void played;
     delete save.support;   // 版559：支持率はなくした
     return { reds, served, condUp };
   }
@@ -1278,7 +1276,7 @@
       }
     }
     // 疲れている選手は能力が少し落ちる
-    for (const p of ps) { p.startCur = 100 - (p.fatigue || 0) * 0.5; const f = p.fatigue > 70 ? 0.92 : p.fatigue > 50 ? 0.96 : 1; for (const k of KEYS) p[k] = Math.round(p[k] * f * (1 + (p.cond || 0) * 0.015)); }
+    for (const p of ps) { p.startCur = 100 - (p.fatigue || 0) * 0.5; const f = perfMul(p); for (const k of KEYS) p[k] = Math.round(p[k] * f); }   // 版998：疲労度だけで（調子はなくした）
     // 凸の効果：サポートパッシブ（☆2は3凸で付与、☆3は2凸で付与・3凸で強化、☆4は1凸で付与・2凸で強化・3凸で範囲拡大、☆5は2凸で付与・3凸で強化）と、固有スキルの覚醒（☆5の1凸から）
     for (const p of ps) { const st = ensureStar(p), tz = p.totsu || 0; p.passive = st === 2 ? (tz >= 3 ? 1 : 0) : st === 3 ? (tz >= 3 ? 2 : tz >= 2 ? 1 : 0) : st === 4 ? Math.min(3, tz) : st >= 5 ? (tz >= 3 ? 2 : tz >= 2 ? 1 : 0) : 0; if (p.uniq) p.uniqLv = st >= 5 && tz >= 1 ? 2 : 1; }
     const tac = ensureTactics(save);
@@ -1674,13 +1672,17 @@
     let u = r(), it = INJURIES[INJURIES.length - 1];
     for (const x of INJURIES) { if (u < x.p) { it = x; break; } u -= x.p; }
     const weeks = it.w[0] + Math.floor(r() * (it.w[1] - it.w[0] + 1));
-    p.injury = weeks; p.cond = clamp(condOf(p) - 1, -2, 2);
+    p.injury = weeks;
     if (weeks >= 8) { for (let k = 0; k < 3; k++) addPts(p, KEYS[Math.floor(r() * KEYS.length)], -(4 + Math.floor(r() * 6))); }   // 長いケガは能力も少し落ちる
     const n = { name: p.name, number: p.number, kind: it.name, weeks, where };
     save.news = save.news || []; save.news.push(n);
     return n;
   }
-  const condMul = (p) => (p.fatigue > 75 ? 0.6 : p.fatigue > 55 ? 0.85 : 1) * (1 + condOf(p) * 0.2);   // 絶不調0.6倍〜絶好調1.4倍
+  // 版998：調子（矢印）はなくし、疲労度（青・黄・赤の丸）を基準にする。特訓の効き：疲労0%で1.3倍 → 45%で1.0倍（ここまで青）→ 100%で0.6倍
+  const trainMul = (p) => { const f = clamp(p.fatigue || 0, 0, 100); return f <= 45 ? 1.3 - 0.3 * f / 45 : 1.0 - 0.4 * (f - 45) / 55; };
+  // 試合の能力：疲労が少ない（青）ほど、ふだん以上の力（最大＋3%）。黄色から赤へ、なだらかに下がる（70%で約−4%、100%で−10%）
+  const perfMul = (p) => { const f = clamp(p.fatigue || 0, 0, 100); return f <= 45 ? 1 + 0.03 * (1 - f / 45) : 1 - 0.10 * Math.pow((f - 45) / 55, 1.2); };
+  const condMul = trainMul;
   // セットしたカードで、どの能力が何ポイント上がるか（予想）
   function previewCards(p, cards, mult) {
     ensurePts(p);
@@ -1763,8 +1765,7 @@
       else { for (const k of KEYS) addPts(p, k, teamAll || TEAM_AUTO.all); p.fatigue = clamp(p.fatigue + TEAM_AUTO.fat - 30, 0, 100); }
       if (!(p.injury > 0) && p.fatigue > 70 && r() < (p.fatigue - 65) * 0.004 * injMul(p)) injure(save, p, r, 'practice');
       // 調子が良いと、試合に出なくても少し伸びる（好調10%・絶好調20%で、どれか1つが少しだけ）
-      if (condOf(p) >= 1 && !(p.injury > 0) && r() < 0.1 * condOf(p)) { addPts(p, KEYS[Math.floor(r() * KEYS.length)], 1); out.natural = true; }
-      condTick(p, r);
+      if ((p.fatigue || 0) <= 45 && !(p.injury > 0) && r() < 0.1) { addPts(p, KEYS[Math.floor(r() * KEYS.length)], 1); out.natural = true; }   // 版998：疲労が少ない（青）と、試合に出なくても少し伸びる
       const nt = decideType(p); if (nt !== p.type) { out.typeTo = nt; p.type = nt; }
       report.push(out);
     });
