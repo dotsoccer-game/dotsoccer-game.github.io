@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>音のテスト</title>
+<style>
+body{margin:0;padding:16px;font-family:-apple-system,"Hiragino Sans",sans-serif;background:#f4efe2;color:#1d2a40}
+h1{font-size:20px;margin:0 0 6px}p{margin:4px 0 12px;font-size:14px;line-height:1.6}
+button{display:block;width:100%;margin:0 0 10px;padding:16px;font-size:18px;font-weight:800;border:3px solid #13306b;border-radius:14px;background:#fff;color:#13306b}
+button.on{background:#2d6fe0;color:#fff}
+#st{font-size:13px;background:#fff;border-radius:10px;padding:8px;white-space:pre-wrap}
+</style></head><body>
+<h1>音のテスト（画面録画の雑音しらべ）</h1>
+<p>画面録画を始めてから、ボタンを1つずつ押して（もう一度押すと止まる）、本体からちゃんと聞こえるか、ブブブになるかを確かめてください。</p>
+<button id="b1">① ゲームと同じ方式（Web Audio）で鳴らす</button>
+<button id="b2">② 動画と同じ方式（audio要素）で鳴らす</button>
+<button id="b3">③ Web Audioで作って、audio要素で鳴らす</button>
+<div id="st">状態：まだ鳴らしていません</div>
+<script>
+// ドレミの音（0.25秒ずつ）をくり返す、簡単なメロディ
+const NOTES = [523, 587, 659, 698, 784, 698, 659, 587];
+const st = document.getElementById('st');
+let ac = null, timer = null, nextT = 0, i = 0, mode = 0, el = null, msd = null;
+function info(msg) { st.textContent = msg + (ac ? `\n周波数 ${ac.sampleRate} ／ 状態 ${ac.state} ／ 遅れ ${Math.round((ac.baseLatency || 0) * 1000)}ms` : ''); }
+function stopAll() {
+  clearInterval(timer); timer = null;
+  if (ac) { try { ac.close(); } catch (_) {} ac = null; }
+  if (el) { try { el.pause(); el.srcObject = null; el.removeAttribute('src'); el.load(); } catch (_) {} }
+  mode = 0; document.querySelectorAll('button').forEach((b) => b.classList.remove('on'));
+}
+function webAudio(toEl) {
+  const C = window.AudioContext || window.webkitAudioContext; ac = new C();
+  let out = ac.destination;
+  if (toEl) { msd = ac.createMediaStreamDestination(); out = msd; el = el || document.createElement('audio'); el.setAttribute('playsinline', ''); el.srcObject = msd.stream; el.play().catch(() => {}); }
+  ac.resume(); nextT = ac.currentTime + 0.1; i = 0;
+  timer = setInterval(() => {
+    while (nextT < ac.currentTime + 0.3) {
+      const o = ac.createOscillator(), g = ac.createGain(); o.type = 'square'; o.frequency.value = NOTES[i++ % NOTES.length];
+      g.gain.setValueAtTime(0.0001, nextT); g.gain.exponentialRampToValueAtTime(0.15, nextT + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, nextT + 0.22);
+      o.connect(g); g.connect(out); o.start(nextT); o.stop(nextT + 0.24); nextT += 0.25;
+    }
+    info(toEl ? '③ 鳴らしています' : '① 鳴らしています');
+  }, 50);
+}
+function wavUrl() {   // 同じメロディを、音のファイル（wav）にして作る
+  const sr = 44100, len = sr * 2, d = new Int16Array(len);
+  for (let n = 0; n < len; n++) { const k = Math.floor(n / (sr * 0.25)), t = (n % (sr * 0.25)) / sr, f = NOTES[k % NOTES.length]; const env = t < 0.01 ? t / 0.01 : Math.max(0, 1 - (t - 0.01) / 0.21); d[n] = (Math.sin(2 * Math.PI * f * n / sr) > 0 ? 1 : -1) * env * 0.15 * 32767; }
+  const buf = new ArrayBuffer(44 + len * 2), v = new DataView(buf), w = (o, s) => { for (let j = 0; j < s.length; j++) v.setUint8(o + j, s.charCodeAt(j)); };
+  w(0, 'RIFF'); v.setUint32(4, 36 + len * 2, true); w(8, 'WAVE'); w(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, len * 2, true);
+  new Int16Array(buf, 44).set(d); return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
+}
+let wurl = null;
+document.getElementById('b1').onclick = (e) => { const was = mode === 1; stopAll(); if (was) return info('止めました'); mode = 1; e.target.classList.add('on'); webAudio(false); };
+document.getElementById('b3').onclick = (e) => { const was = mode === 3; stopAll(); if (was) return info('止めました'); mode = 3; e.target.classList.add('on'); webAudio(true); };
+document.getElementById('b2').onclick = (e) => { const was = mode === 2; stopAll(); if (was) return info('止めました'); mode = 2; e.target.classList.add('on'); wurl = wurl || wavUrl(); el = el || document.createElement('audio'); el.setAttribute('playsinline', ''); el.src = wurl; el.loop = true; el.play().then(() => info('② 鳴らしています'), (er) => info('② 鳴らせませんでした：' + er.message)); };
+</script>
+</body></html>
