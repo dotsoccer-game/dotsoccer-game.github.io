@@ -3871,7 +3871,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       // 版721：「おぉー」は本当に惜しい時だけ（ポスト・バー、1対1や近くからのシュートが外れた・止められた時）。ふつうのキャッチでは鳴らさない
       if (e.type === 'shot') { lastShotEv = e; lastShotSimT = e.t; }
       if (e.type === 'shot' && speed < 16) { SND().play('shot'); if (!e.on && (e.one || e.d < 11)) oohT = e.t + 0.45; }
-      if (e.type === 'post' && speed < 16) oohT = e.t + 0.25;
+      if (e.type === 'post' && speed < 16) { SND().play(e.bar ? 'bar' : 'post'); oohT = e.t + 0.25; }   // 版1007：ポスト・バーに当たった音
       if (e.type === 'save' && speed < 16 && lastShotEv && e.t - lastShotEv.t < 2 && (lastShotEv.one || lastShotEv.d < 11)) oohT = e.t + 0.25;
       if (e.type === 'card' && speed < 16) SND().play('card');
       if (e.type === 'gk' && e.act === 'tip' && speed < 16) SND().play('parry');   /* 指先に当たった「パンッ」 */
