@@ -7,7 +7,7 @@
   function ctx() {
     if (AC) return AC;
     const C = window.AudioContext || window.webkitAudioContext; if (!C) return null;
-    try { AC = new C({ latencyHint: 'interactive' }); } catch (_) { AC = new C(); }
+    try { AC = new C({ latencyHint: 'balanced' });   /* 版997：音の処理に少し余裕を持たせる（画面録画などで端末が重い時に、音がぶつぶつ切れていた） */ } catch (_) { AC = new C(); }
     AC.onstatechange = () => { if (!AC) return; if (AC.state === 'interrupted') needRebuild = true; else if (AC.state === 'running') setTimeout(() => { if (AC && AC.state === 'running' && want && !cur) bgm(want); }, 0); };   // 版560：電話・画面収録などで音が止められた
     // 版728：全体の音を大きく（約1.8倍）。大きい音が割れないように、最後に「リミッター」を通す
     master = AC.createGain(); master.gain.value = pref.vol * BOOST;

@@ -1798,7 +1798,7 @@
   }
   // ================= 選手交代（試合中いつでも／ハーフタイム）：カルチョビットAのように、ボードで選んで「はい」 =================
   // ms：この試合の記録（ピッチの選手・使った控え・配置・作戦）。交代は1試合3人まで
-  const battery = (st) => { const n = Math.max(0, Math.min(5, Math.ceil(st / 20))); return `<i class="bat ${st < 35 ? 'low' : st < 60 ? 'mid' : ''}">${'<b></b>'.repeat(n)}${'<b class="e"></b>'.repeat(5 - n)}</i>`; };
+  const battery = (st) => { const n = Math.max(0, Math.min(5, Math.ceil(st / 20))); return `<i class="bat ${st < 35 ? 'low' : st < 60 ? 'mid' : ''}">${'<b></b>'.repeat(n)}${'<b class="e"></b>'.repeat(5 - n)}<em class="batn">${Math.max(0, Math.round(st))}</em></i>`; }   // 版997：電池の中にスタミナの数字;
   function subSheet(mt, info, ms) {
     const ps = mt.team.players, base = C.ensureTactics(save);
     if (!ms.on) { ms.on = [...Array(11).keys()]; ms.used = []; ms.out = []; ms.changes = []; ms.cells = (mt.team.cells || C.cellsFor(mt.team.formation)).map((c) => c && { ...c }); ms.att = base.attitude || 'balanced'; ms.cur = {}; }
@@ -1846,7 +1846,8 @@
       let dots = pl(0, PW / 2, ROWS * CH + CH * 1.2, 'GK');
       for (let k = 1; k < 11; k++) dots += pl(k, cx(cells[k].c), cy(cells[k].r), C.zoneOf(cells[k].r));
       const onSet = new Set(on);
-      const bench = ps.slice(11, 18).map((q, i) => { const j = i + 11, gone = ms.out.includes(q.name) || q.injury > 0, playing = onSet.has(j); return `<div class="sb2-b${gone || playing ? ' off' : ''}" data-j="${j}"><b class="sb2-tag ${ZC[q.position]}">${esc(q.name)}</b><span class="sb2-face">${facePic(q, 'sb2-fci', false)}</span>${playing ? '<em>出場中</em>' : gone ? `<em>${q.injury > 0 ? 'ケガ' : '交代済'}</em>` : ''}</div>`; }).join('');
+      const outIdx = [...Array(11).keys()].filter((j) => !onSet.has(j));   // 版997：交代で下がった選手（ベンチに戻って「交代済」）。入った選手はピッチにいるので、ベンチには出さない（前は「出場中」として薄く残り、表示がずれて見えた）
+      const bench = ps.slice(11, 18).map((q, i) => ({ q, j: i + 11 })).filter((x) => !onSet.has(x.j)).concat(outIdx.map((j) => ({ q: ps[j], j, out: true }))).map(({ q, j, out }) => { const pend = out && !ms.out.includes(q.name), gone = out || ms.out.includes(q.name) || q.injury > 0; return `<div class="sb2-b${gone ? ' off' : ''}" data-j="${j}"${out ? ' data-out="1"' : ''}><b class="sb2-tag ${ZC[q.position]}">${esc(q.name)}</b><span class="sb2-face">${facePic(q, 'sb2-fci', false)}</span>${out ? `<em>${pend ? '交代予定' : '交代済'}</em>` : gone ? `<em>${q.injury > 0 ? 'ケガ' : '交代済'}</em>` : ''}</div>`; }).join('');
       el.innerHTML = `<div class="sb2-box">
           <div class="sb2-board">
             <div class="sb2-head"><img src="${emblemURL(save.team.name, 48)}" alt=""><b>${esc(save.team.name)}</b><em>［${esc(C.formationLabel(cells))}］</em></div>

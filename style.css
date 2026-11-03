@@ -4102,3 +4102,8 @@ img:not([src]),img[src=""]{visibility:hidden}
 .sc-in em.p-fw,.sc-out em.p-fw{background:#2f7fe0}.sc-in em.p-df,.sc-out em.p-df{background:#d83a3a}.sc-in em.p-gk,.sc-out em.p-gk{background:#8e5bd6}
 .pv-gk,.sb2-tag.pv-gk{background:#8e5bd6!important}.pv-df,.sb2-tag.pv-df{background:#d83a3a!important}.pv-mf,.sb2-tag.pv-mf{background:#f08a1c!important}.pv-fw,.sb2-tag.pv-fw{background:#2f7fe0!important}
 .gc6-tx span.lng{font-size:8.5px;letter-spacing:-.08em}
+
+/* 版997：電池の中にスタミナの数字 */
+.bat .batn,.pbat .batn{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:900;font-family:"Hiragino Kaku Gothic ProN",sans-serif;color:#fff;font-size:9px;line-height:1;text-shadow:-1px 0 #10224a,1px 0 #10224a,0 -1px #10224a,0 1px #10224a,1px 1px #10224a,-1px -1px #10224a;pointer-events:none;letter-spacing:-.5px}
+.sb2-p .bat .batn{font-size:12px}
+.pbat .batn{font-size:calc(11px*var(--k))}

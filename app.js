@@ -4063,7 +4063,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
   const PLV_POS = { GK: 'pv-gk', DF: 'pv-df', MF: 'pv-mf', FW: 'pv-fw' };
   let plvMode = 'both', plvTimer = 0, radarOn = false;   // レーダー（右下の小さな全体図）は、真ん中のボタンで出し入れ
   const plvEsc = (x) => String(x).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
-  const plvBat = (st) => { const n = Math.max(0, Math.min(4, Math.ceil(st / 25))); return `<i class="pbat ${st < 35 ? 'low' : st < 60 ? 'mid' : ''}">${'<b></b>'.repeat(n)}${'<b class="e"></b>'.repeat(4 - n)}</i>`; };
+  const plvBat = (st) => { const n = Math.max(0, Math.min(4, Math.ceil(st / 25))); return `<i class="pbat ${st < 35 ? 'low' : st < 60 ? 'mid' : ''}">${'<b></b>'.repeat(n)}${'<b class="e"></b>'.repeat(4 - n)}<em class="batn">${Math.max(0, Math.round(st))}</em></i>`; };   // 版997：電池の中にスタミナの数字
   // 国内屈指の印（赤い角の顔・送ってもらった画像）：試合中の選手データで、名前の横に付けて一目で分かるように
   const TOP_MARK = '<img class="pv-top" src="icons/top_mark.png" alt="国内屈指" title="国内屈指">';
   function plvPanel(team, detail) {
