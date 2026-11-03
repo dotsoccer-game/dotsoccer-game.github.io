@@ -2851,6 +2851,11 @@
         else if (ph === 'wave') v -= backPen;
         else if (ph === 'gas') { if (adv > 3) v += 0.5; else if (adv < -3) v -= 1.4; else v -= 0.4; }
         else if (ph === 'fin') { if (pxf > L - 18 && Math.abs(py - GOAL_Y) < 12) v += 0.6; if (adv < -3 && pr < 2) v -= 1.2; }
+        if ((globalThis.__Kat3 ?? 1) && q.gk && !p.gk && !S.setPiece && !S.restart && xf < L - 35 && S.t - (T[t].at3T ?? -99) < 8) v -= globalThis.__Kat3g ?? 3.0;   // 版1011：さっきまでアタッキングサードにいたのに、GKまで下げない
+        if ((globalThis.__Kat3 ?? 1) && xf >= L - 35 && !p.gk && !S.setPiece && !S.restart) { T[t].at3T = S.t;   // 版1011：アタッキングサード（ゴールまで35m以内）に入ったら、DF・GKまでは戻さない（崩すためにMFへ預けるのはよい）
+          if (q.gk || q.position === 'DF') v -= pr >= 2 ? (globalThis.__Kat3p ?? 2.5) : (globalThis.__Kat3d ?? 4.0);
+          else if (adv < -10 && pxf < L - 45) v -= globalThis.__Kat3b ?? 1.5;   // MFでも、ハーフウェー近くまで大きく下げるのは控える
+        }
         if (Math.abs(py - p.y) > 22 && ph !== 'fin') {   // サイドチェンジ：逆サイドが空いている時だけ。変えた直後に元のサイドへ戻さない
           const cnt = (x0, y0) => foes.filter((o) => !o.gk && hyp(o.x - x0, o.y - y0) < 15).length;
           if (cnt(px, py) <= cnt(p.x, p.y) - 2 || (cnt(px, py) <= 1 && recvOpp > 7)) v += 0.4; else v -= 1.2;
@@ -4816,6 +4821,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       }
       if (globalThis.__spSrc) { const ln = (new Error().stack.split('\n')[2] || '').match(/engine\.js:(\d+)/); globalThis.__spSrc.cur = ln ? +ln[1] : 0; }
       if (globalThis.__tyDbg && (p.type === 'パサー' || p.type === 'ゲームメイカー')) { const G = globalThis.__tyDbg, k = p.type === 'パサー' ? 'PA' : 'GM'; G[k + 'pass'] = (G[k + 'pass'] || 0) + 1; if (through) G[k + 'thr'] = (G[k + 'thr'] || 0) + 1; if (fx(p.team, q.x) > fx(p.team, p.x) + 5) G[k + 'fwd'] = (G[k + 'fwd'] || 0) + 1; }
+      if (globalThis.__pLog && q && q.team === p.team) { const ln = (new Error().stack.split('\n')[2] || '').match(/engine\.js:(\d+)/); globalThis.__pLog.push({ t: +S.t.toFixed(1), tm: p.team, xp: +fx(p.team, p.x).toFixed(1), xq: +fx(p.team, q.x).toFixed(1), pp: p.position, qp: q.gk ? 'GK' : q.position, uq: !!p.uniq, sp: !!(S.setPiece || S.restart), src: ln ? +ln[1] : 0, why: p.__pwhy || '' }); }   // 確認用：パスの記録
       if (globalThis.__tyDbg) { const G = globalThis.__tyDbg; if ((q.stDg || 0) > S.t) G.dgP++; if ((q.f9Run || 0) > S.t && p.type === '偽9番') G.f9P++; }
       const b = S.ball;
       // 桜島の号令（オフサイドトラップの超強化版）：ラインの近くの相手FWへ縦パスが出る瞬間を読み、出し手が蹴るまでのわずかな間にDF全員で一斉に押し上げる
@@ -5008,7 +5014,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         else if (rv < 0.25) spinSign = R.next() < 0.55 ? inS : -inS;   // グラウンダーで曲げる：インで巻く／アウトで外へ曲げる
         else if (rv < 0.45 && dd0 > 12) { style = 'lob'; hrBack = true; }   // 浮かせてバックスピン（受け手の前でぴたりと止まる）
         else if (rv < 0.6 && dd0 > 14) style = 'lob';   // 浮き玉のスルーパス
-        else if (rv < 0.8) {   // 死んだボール（やさしいスルーパス）：受け手が走り込む先で、ちょうど止まる。転がり続けないので、DFもGKもボールへ寄せにくい
+        else if ((globalThis.__Khrd ?? 0) && rv < 0.8) {   // 版1011：死んだボールはやめた（勢いを殺すのは、バックスピンの浮き玉スルーパスだけ）。死んだボール（やさしいスルーパス）：受け手が走り込む先で、ちょうど止まる。転がり続けないので、DFもGKもボールへ寄せにくい
           const sq = maxSpeed(q); let best = null;
           for (let f = 1; f >= 0.35; f -= 0.08) { const sx = q.x + (tx - q.x) * f, sy = q.y + (ty - q.y) * f, tR = hyp(sx - q.x, sy - q.y) / sq;
             const tO = Math.min(...opps(p).filter((o) => !o.off && !(o.downT > 0)).map((o) => Math.max(0, hyp(sx - o.x, sy - o.y) - 1.2) / Math.max(1, maxSpeed(o) * (o.gk ? 0.9 : 1))));
@@ -5661,6 +5667,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         if ((q.stDg || 0) > S.t && through) v += 2.0;
         if (p.type === 'レジスタ' && Math.abs(py - p.y) > 20 && d > 24 && danger < 1.2) v += 1.3;   // 版797：レジスタ：逆サイドへ大きく振る
         // 版799：ゲームメイカー：シャビとデブライネを兼ねる。中盤・自陣ではシャビ（取られないパスで少しずつ前へ）、相手陣の深い所（ゴールまで40m）ではデブライネ（走っている味方へ決定的な1本）
+        if ((globalThis.__Kat3 ?? 1) && q.gk && !p.gk && !S.setPiece && !S.restart && xf < L - 35 && S.t - (T[p.team].at3T ?? -99) < 8) v -= globalThis.__Kat3g ?? 3.0;
+        if ((globalThis.__Kat3 ?? 1) && xf >= L - 35 && !p.gk && !S.setPiece && !S.restart && q.team === p.team) { T[p.team].at3T = S.t; if (q.gk || q.position === 'DF') v -= globalThis.__Kat3d ?? 4.0; else if (pxf < xf - 10 && pxf < L - 45) v -= globalThis.__Kat3b ?? 1.5; }   // 版1011：アタッキングサードではDF・GKへ戻さない（固有スキル持ちの判断）
         if (p.type === 'ゲームメイカー' && xf < L - 40) { if (danger < 0.5) v += 0.5 + (pxf > xf + 3 ? 0.6 : 0); if (danger > 1.2) v -= 0.8; }
         if (p.type === 'ゲームメイカー' && xf >= L - 40 && (through || ((q.run || 0) > 0 && fx(p.team, q.x) > xf) || (q.gmRun || 0) > S.t)) v += 1.3 + (S.t - (p.gmT ?? -9) < 2.5 ? 0.3 : 0);
         if (p.type === 'パサー' && xf > L - 45 && (through || ((q.run || 0) > 0 && fx(p.team, q.x) > xf))) v += 1.3;   // 版798：パサー（デブライネ）：前を向いたら、走っている味方へ決定的な1本

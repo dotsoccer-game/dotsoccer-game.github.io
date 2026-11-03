@@ -4,6 +4,7 @@
   window.__noShow = true;
   const SC = window.__SAVE_SCENES || {};
   const KINDS = [
+    ['post', 'ポスト・バーに当たる（音の確認）', -1.6, 2.4, '版1009〜：ポスト・バーに当たった音は送ってもらった録音。版1010〜：当たった時のボールが速いほど大きく（秒速10m以下で0.4倍〜30m以上で1.3倍）。音を出して確認してください'],
     ['wrongfoot', '逆を突かれる', -1.6, 2.6, '版988〜：シュートの瞬間に逆へ重心が乗る → 崩れて片ひざ・片手をつき、抜けた球を振り返る → 尻もち。届かないと決まったシュートだけ（決まる・決まらないは変えない）'],
     ['new_foot', '足を伸ばして止める：足に当たる', -3.2, 2.0, '版952から本番にも入っています（7m以内の至近距離）：近いシュート。GKは横に飛ばず、片足を伸ばす形で止めに行く。低い球は伸ばした足に当たる'],
     ['new_body', '足を伸ばして止める：体に当たる', -3.2, 2.0, '同じく片足を伸ばす形。腰くらいの高さの球は体に当たる'],
@@ -63,7 +64,7 @@
     const L = SC[kind] || [], k = K(kind); if (!L.length) return;
     document.getElementById('glW').textContent = '見るところ：' + k[4];
     const c = L[(idx + L.length) % L.length], m = Math.floor(c.t * ((D.match && D.match.clockScale) || 12) / 60);
-    document.getElementById('glM').textContent = `${idx + 1} / ${L.length} 場面目：試合番号${c.seed}・${m}分ごろ`;
+    document.getElementById('glM').textContent = `${idx + 1} / ${L.length} 場面目：試合番号${c.seed}・${m}分ごろ${c.sp != null ? `（${c.bar ? 'バー' : 'ポスト'}・秒速${c.sp}m・音${Math.round((0.4 + 0.9 * Math.max(0, Math.min(1, (c.sp - 10) / 20))) * 100)}%）` : ''}`;
   }
   const setPaused = (v) => { paused = v; document.getElementById('glStop').textContent = v ? '再生' : '一時停止'; if (v) D.setSpeed(0.0001); else { D.setSpeed(sp); D.play(); } };
   const step = (d) => { setPaused(true); D.seek(Math.max(0.2, D.time() + d)); D.setSpeed(0.0001); D.play(); };

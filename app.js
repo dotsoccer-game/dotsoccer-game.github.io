@@ -128,7 +128,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
   // その時間にピッチにいた選手の情報（途中で交代したら、それより前は交代前の選手）
   function rinfo(team, k, t) {
     const list = subsAt[team * 11 + k];
-    if (!list || !match.rosterStart) return match.roster[team][k];
+    if (!list || !match.rosterStart) { const r0 = match.roster[team][k], s0 = match.rosterStart && match.rosterStart[team] && match.rosterStart[team][k]; return s0 && s0.name === r0.name ? { ...r0, params: s0.params } : r0; }   // 版1011：試合は先に最後まで計算してあるので、match.roster は「試合終了時（疲れて下がった後）」の能力。表示はキックオフ時の能力にする
     t = t ?? simT;
     let info = match.rosterStart[team][k];
     for (const e of list) if (e.t <= t) info = e.info; else break;
