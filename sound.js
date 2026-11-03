@@ -155,7 +155,8 @@
     header() { noise(0.07, 0.25, 'bandpass', 700); tone(260, 0.1, 'sine', 0.3, 0, 120); },   // ボン（頭）
     catch() { noise(0.12, 0.3, 'lowpass', 500); tone(95, 0.14, 'sine', 0.4, 0, 60); noise(0.06, 0.16, 'bandpass', 1300, 0, null, 0.003); noise(0.04, 0.1, 'highpass', 3000, 0.01); },   // バシッ（両手で抱える）
     // 版1008：ポスト・バーの音を、送ってもらった手本（「Donk」）の測定に合わせて作り直し：低い「ドン」（90〜100Hz）＋当たった瞬間の「ザッ」＋645Hzあたりの「ウォーン」という響き（約0.45秒）。高い金属音は入れない
-    post(k = 1) { tone(95 * k, 0.4, 'sine', 0.38, 0, 68); tone(60 * k, 0.3, 'sine', 0.16); tone(88 * k, 0.25, 'sine', 0.12, 0.12, 70); noise(0.1, 0.12, 'lowpass', 3500); noise(0.03, 0.1, 'bandpass', 2500); [[645, 0.7, 0.06], [620, 0.5, 0.015], [701, 0.45, 0.015], [324, 0.4, 0.012], [1004, 0.3, 0.008], [1590, 0.2, 0.006]].forEach(([f, d, v]) => tone(f * k, d, 'sine', v)); },
+    post(k = 1) { if (FILE.post) return playBuf(FILE.post, FILE_VOL.post * (k < 1 ? 0.95 : 1));   // 版1009：ポストの音は、送ってもらった録音（sound/post.mp3）。読み込み前だけ作った音
+ tone(95 * k, 0.4, 'sine', 0.38, 0, 68); tone(60 * k, 0.3, 'sine', 0.16); tone(88 * k, 0.25, 'sine', 0.12, 0.12, 70); noise(0.1, 0.12, 'lowpass', 3500); noise(0.03, 0.1, 'bandpass', 2500); [[645, 0.7, 0.06], [620, 0.5, 0.015], [701, 0.45, 0.015], [324, 0.4, 0.012], [1004, 0.3, 0.008], [1590, 0.2, 0.006]].forEach(([f, d, v]) => tone(f * k, d, 'sine', v)); },
     bar() { SFX.post(0.88); },   // バーは少し長い棒なので、少し低い音
     parry() { noise(0.06, 0.32, 'bandpass', 1800); tone(320, 0.07, 'square', 0.08, 0, 160); },   // パンッ（はじく）
     // 版558：本家のキックは低く短い「ドッ」（210Hzから130Hzへ、0.04秒）。高い音はほとんどない
@@ -342,10 +343,10 @@
     bgm(name);
   }
   const SVER = (() => { try { return (document.currentScript && document.currentScript.src.split('v=')[1]) || ''; } catch (_) { return ''; } })();   // 版725：音を作り直した時に、古い音が残らないように
-  const FILE_VOL = { crowd: 0.25, big: 0.75, ooh: 0.6, clap: 0.6, cheer: 1.5, chant: 0.6 };   // 版727：スタジアムのざわめきに負けないように、大歓声を大きく
+  const FILE_VOL = { post: 1, crowd: 0.25, big: 0.75, ooh: 0.6, clap: 0.6, cheer: 1.5, chant: 0.6 };   // 版727：スタジアムのざわめきに負けないように、大歓声を大きく
   function loadFiles() {
     const a = AC; if (!a || fileLoading || FILE.crowd) return; fileLoading = true;
-    ['crowd', 'big', 'ooh', 'clap', 'cheerloop', 'chantA', 'chantB', 'thunder'].forEach((n) => {
+    ['crowd', 'big', 'ooh', 'clap', 'cheerloop', 'chantA', 'chantB', 'thunder', 'post'].forEach((n) => {
       fetch('sound/' + n + (/^chant/.test(n) ? '.wav' : '.mp3') + (SVER ? '?v=' + SVER : '')) /* 版731：太鼓はmp3だと前後にすき間が入ってリズムがずれるので、wav */.then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(r.status))).then((ab) => new Promise((ok, ng) => { try { const p = a.decodeAudioData(ab, ok, ng); if (p && p.then) p.then(ok, ng); } catch (e) { ng(e); } }))
         .then((buf) => { FILE[n] = buf; if (n === 'crowd' && crowdModeNow && crowdParts.length) { const m = crowdModeNow; crowd(false); setTimeout(() => crowd(m), 50); } }, () => {});
     });
