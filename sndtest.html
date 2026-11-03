@@ -17,6 +17,7 @@ button.on{background:#2d6fe0;color:#fff}
 <button id="b5">⑤ 動画（mp4）として鳴らす（YouTubeと同じ形）</button>
 <video id="vd" src="sound/test/mel.mp4" playsinline loop controls style="width:100%;max-width:320px;display:block;margin:0 0 10px"></video>
 <button id="b6">⑥ ①に「再生モード」を付けて鳴らす</button>
+<button id="b7">⑦ YouTubeと同じ「少しずつ読み込む」方式で鳴らす</button>
 <div id="st">状態：まだ鳴らしていません</div>
 <script>
 // ドレミの音（0.25秒ずつ）をくり返す、簡単なメロディ
@@ -57,6 +58,11 @@ const _stop = stopAll; stopAll = function () { try { vd.pause(); } catch (_) {} 
 document.getElementById('b4').onclick = (e) => { const was = mode === 4; stopAll(); if (was) return info('止めました'); mode = 4; e.target.classList.add('on'); el = el || document.createElement('audio'); el.setAttribute('playsinline', ''); el.src = 'sound/test/mel.m4a'; el.loop = true; el.play().then(() => info('④ 鳴らしています'), (er) => info('④ 鳴らせませんでした：' + er.message)); };
 document.getElementById('b5').onclick = (e) => { const was = mode === 5; stopAll(); if (was) return info('止めました'); mode = 5; e.target.classList.add('on'); vd.currentTime = 0; vd.play().then(() => info('⑤ 鳴らしています'), (er) => info('⑤ 鳴らせませんでした：' + er.message)); };
 document.getElementById('b6').onclick = (e) => { const was = mode === 6; stopAll(); if (was) return info('止めました'); mode = 6; e.target.classList.add('on'); let ok = false; try { if (navigator.audioSession) { navigator.audioSession.type = 'playback'; ok = true; } } catch (_) {} webAudio(false); setTimeout(() => info('⑥ 鳴らしています（再生モード ' + (ok ? 'あり' : 'この端末では使えない') + '）'), 200); };
+document.getElementById('b7').onclick = async (e) => { const was = mode === 7; stopAll(); if (was) return info('止めました'); mode = 7; e.target.classList.add('on');
+  const MS = window.ManagedMediaSource || window.MediaSource; if (!MS) return info('⑦ この端末では使えません');
+  try { const data = await (await fetch('sound/test/mel_frag.m4a?v=1')).arrayBuffer(); const ms = new MS(); el = el || document.createElement('audio'); el.setAttribute('playsinline', ''); el.disableRemotePlayback = true; el.loop = true; el.src = URL.createObjectURL(ms);
+    ms.addEventListener('sourceopen', () => { const sb = ms.addSourceBuffer('audio/mp4; codecs="mp4a.40.2"'); sb.addEventListener('updateend', () => { try { ms.endOfStream(); } catch (_) {} }, { once: true }); sb.appendBuffer(data); }, { once: true });
+    await el.play(); info('⑦ 鳴らしています（' + (window.ManagedMediaSource ? 'ManagedMediaSource' : 'MediaSource') + '）'); } catch (er) { info('⑦ 鳴らせませんでした：' + er.message); } };
 st.textContent += '\n開き方：' + (navigator.standalone || matchMedia('(display-mode: standalone)').matches ? 'ホーム画面のアプリ' : 'Safariなど');
 document.getElementById('b1').onclick = (e) => { const was = mode === 1; stopAll(); if (was) return info('止めました'); mode = 1; e.target.classList.add('on'); webAudio(false); };
 document.getElementById('b3').onclick = (e) => { const was = mode === 3; stopAll(); if (was) return info('止めました'); mode = 3; e.target.classList.add('on'); webAudio(true); };
