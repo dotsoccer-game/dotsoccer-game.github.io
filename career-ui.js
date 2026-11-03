@@ -1875,7 +1875,7 @@
   }
   // ================= 選手交代（試合中いつでも／ハーフタイム）：カルチョビットAのように、ボードで選んで「はい」 =================
   // ms：この試合の記録（ピッチの選手・使った控え・配置・作戦）。交代は1試合3人まで
-  const battery = (st) => { const n = Math.max(0, Math.min(5, Math.ceil(st / 20))); return `<i class="bat ${st < 35 ? 'low' : st < 60 ? 'mid' : ''}">${'<b></b>'.repeat(n)}${'<b class="e"></b>'.repeat(5 - n)}<em class="batn">${Math.max(0, Math.round(st))}</em></i>`; }   // 版997：電池の中にスタミナの数字;
+  const battery = (st) => { const n = Math.max(0, Math.min(5, Math.ceil(st / 20))); return `<i class="bat ${st < 35 ? 'low' : st < 60 ? 'mid' : ''}">${'<b></b>'.repeat(n)}${'<b class="e"></b>'.repeat(5 - n)}</i>`; }   // 版997：電池の中にスタミナの数字 → 版1012：数字は出さない;
   function subSheet(mt, info, ms) {
     const ps = mt.team.players, base = C.ensureTactics(save);
     if (!ms.on) { ms.on = [...Array(11).keys()]; ms.used = []; ms.out = []; ms.changes = []; ms.cells = (mt.team.cells || C.cellsFor(mt.team.formation)).map((c) => c && { ...c }); ms.att = base.attitude || 'balanced'; ms.cur = {}; }

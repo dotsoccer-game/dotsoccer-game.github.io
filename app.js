@@ -3871,7 +3871,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       // 版721：「おぉー」は本当に惜しい時だけ（ポスト・バー、1対1や近くからのシュートが外れた・止められた時）。ふつうのキャッチでは鳴らさない
       if (e.type === 'shot') { lastShotEv = e; lastShotSimT = e.t; }
       if (e.type === 'shot' && speed < 16) { SND().play('shot'); if (!e.on && (e.one || e.d < 11)) oohT = e.t + 0.45; }
-      if ((e.type === 'post' || e.type === 'barin') && speed < 16) { const gK = e.sp != null ? 0.4 + 0.9 * Math.max(0, Math.min(1, (e.sp - 10) / 20)) : 1; SND().play(e.bar || e.type === 'barin' ? 'bar' : 'post', gK); if (e.type === 'post') oohT = e.t + 0.25; }   // 版1007：ポスト・バーに当たった音　版1010：シュートの強さで音の大きさを変える（弱い0.4倍〜強い1.3倍）。バーに当たって中に落ちた時も鳴らす
+      if ((e.type === 'post' || e.type === 'barin') && speed < 16) { const gK = e.sp != null ? 0.4 + 1.8 * Math.max(0, Math.min(1, (e.sp - 10) / 20)) : 1;   /* 版1012：強いボールはもっと大きく（30m/s以上で2.2倍） */ SND().play(e.bar || e.type === 'barin' ? 'bar' : 'post', gK); if (e.type === 'post') oohT = e.t + 0.25; }   // 版1007：ポスト・バーに当たった音　版1010：シュートの強さで音の大きさを変える（弱い0.4倍〜強い1.3倍）。バーに当たって中に落ちた時も鳴らす
       if (e.type === 'save' && speed < 16 && lastShotEv && e.t - lastShotEv.t < 2 && (lastShotEv.one || lastShotEv.d < 11)) oohT = e.t + 0.25;
       if (e.type === 'card' && speed < 16) SND().play('card');
       if (e.type === 'gk' && e.act === 'tip' && speed < 16) SND().play('parry');   /* 指先に当たった「パンッ」 */
@@ -4063,7 +4063,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
   const PLV_POS = { GK: 'pv-gk', DF: 'pv-df', MF: 'pv-mf', FW: 'pv-fw' };
   let plvMode = 'both', plvTimer = 0, radarOn = false;   // レーダー（右下の小さな全体図）は、真ん中のボタンで出し入れ
   const plvEsc = (x) => String(x).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
-  const plvBat = (st) => { const n = Math.max(0, Math.min(4, Math.ceil(st / 25))); return `<i class="pbat ${st < 35 ? 'low' : st < 60 ? 'mid' : ''}">${'<b></b>'.repeat(n)}${'<b class="e"></b>'.repeat(4 - n)}<em class="batn">${Math.max(0, Math.round(st))}</em></i>`; };   // 版997：電池の中にスタミナの数字
+  const plvBat = (st) => { const n = Math.max(0, Math.min(4, Math.ceil(st / 25))); return `<i class="pbat ${st < 35 ? 'low' : st < 60 ? 'mid' : ''}">${'<b></b>'.repeat(n)}${'<b class="e"></b>'.repeat(4 - n)}</i>`; };   // 版997：電池の中にスタミナの数字 → 版1012：数字は出さない（電池の目盛りだけ）
   // 国内屈指の印（赤い角の顔・送ってもらった画像）：試合中の選手データで、名前の横に付けて一目で分かるように
   const TOP_MARK = '<img class="pv-top" src="icons/top_mark.png" alt="国内屈指" title="国内屈指">';
   function plvPanel(team, detail) {
