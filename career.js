@@ -958,6 +958,7 @@
     }
     const m = fx.m, s = m.a === save.team.name ? myScore : [myScore[1], myScore[0]];
     settlePost(save, m, s);
+    for (const m2 of postMatchesAt(save, m.week)) if (m2 !== m && m2.a !== save.team.name && m2.b !== save.team.name) { const s2 = quickScore(rng(save), lvlOf(save, m2.a), lvlOf(save, m2.b)); settlePost(save, m2, s2); }   // 版1018：自分の試合が終わったら、同じ週のほかの昇格・入れ替え戦の結果もすぐ出す
     if (m.ko) { out.win = m.w === save.team.name; out.pk = myScore[0] === myScore[1]; if (out.win) out.prize = addPrize(save, m.comp, m.label === '決勝' ? 20 : 10); if (out.win && m.label === '決勝') out.champion = true; }
     else if (win) out.prize = addPrize(save, m.comp, 10);
     return out;
