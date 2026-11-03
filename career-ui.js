@@ -1009,7 +1009,7 @@
         <div class="tyg-head"><b class="tyg-logo">⚽ ドットサッカー</b><i class="tyg-sep"></i><h2>選手タイプガイド</h2><span class="tyg-n">全${total}タイプ</span><button class="tyg-x" aria-label="閉じる">✕</button></div>
         <div class="tyg-tabs">${['FW', 'MF', 'DF', 'GK'].map((p) => `<button data-p="${p}" class="${p === pos ? 'on' : ''}">${p}</button>`).join('')}</div>
         <div class="tyg-body">
-          <div class="tyg-list"><h3>${esc(pos)}のタイプ</h3>${types.map((k) => `<button class="tyg-it${k === t ? ' on' : ''}" data-t="${esc(k)}"><span class="tyg-ic">${ico((TY_SH[k] || [])[1])}</span><span class="tyg-nm"><b>${esc(k)}</b><small>${esc((TY_SH[k] || [''])[0])}</small></span></button>`).join('')}</div>
+          <div class="tyg-list"><h3>${esc(pos)}のタイプ</h3>${types.map((k) => `<button class="tyg-it ${TYPE_CLS[k] || 'ty-bal'}${k === t ? ' on' : ''}" data-t="${esc(k)}"><span class="tyg-nm"><b>${esc(k)}</b><small>${esc((TY_SH[k] || [''])[0])}</small></span></button>`).join('')}</div>
           <div class="tyg-main">
             <div class="tyg-title"><span class="tyg-pos p-${pos.toLowerCase()}">${t === 'バランス' ? '全' : esc(pos)}</span><h3>${esc(t)}</h3></div>
             <p class="tyg-role">${esc(inf.role)}</p>
