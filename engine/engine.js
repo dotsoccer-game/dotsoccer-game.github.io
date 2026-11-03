@@ -6934,7 +6934,10 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         for (const o of opps(p)) if (!o.gk && hyp(o.x - p.x, o.y - p.y) < 8) o.lagT = Math.max(o.lagT || 0, S.t + (b.hariLv >= 2 ? 1.3 : 1.1));   // 針の穴を通された：まわりのDFは一瞬反応が遅れる
       }
       if (b.byP && (b.intended === p.idx || b.intended < 0) && p.team === b.lastTeam && b.lastPlayer !== p.idx && !p.gk) {   // 白夜の視界のロングフィードを受けた：前を向いたまま運べる
-        const d3 = b.byLv >= 2 ? 3 : 2; p.byT = S.t + d3; if ((p.byRunT || 0) > S.t) p.byRunT = S.t + 1.5; p.byLv = b.byLv; p.protect = Math.max(p.protect || 0, S.t + 0.8); act(p, 'bybuf', d3, { lv: b.byLv }); }
+        const d3 = b.byLv >= 2 ? 3 : 2; p.byT = S.t + d3; if ((p.byRunT || 0) > S.t) p.byRunT = S.t + 1.5; p.byLv = b.byLv; p.protect = Math.max(p.protect || 0, S.t + ((globalThis.__Kby5 ?? 1) ? 1.4 : 0.8)); act(p, 'bybuf', d3, { lv: b.byLv });
+        if (globalThis.__Kby5 ?? 1) {   // 版996：白夜の1本は「はい、チャンス」：受けた瞬間、そばにいた相手は一瞬遅れ（ボールを見送っていた）、受け手は前を向いてゴールへ運び出す（受けた瞬間に囲まれて取られていた）
+          for (const o of opps(p)) if (!o.gk && hyp(o.x - p.x, o.y - p.y) < 6) { o.lagT = Math.max(o.lagT || 0, S.t + (b.byLv >= 2 ? 0.9 : 0.7)); o.tackleCd = Math.max(o.tackleCd || 0, 0.9); }
+          if (fx(p.team, p.x) > L / 2 - 5) { const gx = fx(p.team, L) - p.x, gy = GOAL_Y - p.y, gl = hyp(gx, gy) || 1; S.dribbleDir = [gx / gl, gy / gl]; S.dribbleMode = 'break'; p.burstT = S.t + 0.5; } } }
       if (b.aoP && p.team === b.lastTeam && b.lastPlayer !== p.idx && !p.gk && p.uniq !== 'aonoouza' && P[b.lastPlayer] && P[b.lastPlayer].uniq === 'aonoouza') { p.aoFast = Math.max(p.aoFast || 0, S.t + 3.5); p.aoKeepFast = true; p.finT = S.t + 9; S.decision = Math.min(S.decision, 0.08); }   // 蒼の王座：裏で受けた味方は、打つか離すまで抜け出す足のまま（追いつかれない）   // 蒼の王座：裏で受けた味方は、そのまま抜け出す足で（追いつかれない）
       if ((p.mdFree || 0) > S.t && p.team === b.lastTeam && P[b.lastPlayer] && P[b.lastPlayer].uniq === 'midori' && !p.gk) { p.mdFree = 0; p.mdDrive = S.t + 2.5; p.protect = Math.max(p.protect || 0, S.t + 1.0); act(p, 'mdfree', 1.6, { lv: T[p.team].mdBuildLv || 1 }); if (globalThis.__mdC) globalThis.__mdC.recv = (globalThis.__mdC.recv || 0) + 1; }   /* 版449 翠の起点：フリーで受けた味方は、前を向いて落ち着いてプレーできる */
       if (b.aoP && p.team === b.lastTeam && b.lastPlayer !== p.idx && !p.gk && p.uniq !== 'aonoouza') { p.finT = S.t + 4; p.protect = Math.max(p.protect || 0, S.t + 0.8); }   // 蒼の王座・渦潮の囮の1本を受けた：迷わずゴールへ運んで、GKとの距離を詰めて打つ
