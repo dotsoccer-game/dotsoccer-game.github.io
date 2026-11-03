@@ -49,26 +49,30 @@
     
   }
   const css = document.createElement('style');
-  css.textContent = `#clubScreen,.std-wrap{display:none!important}#gl{position:fixed;left:8px;top:58px;z-index:50;background:rgba(10,24,16,.92);color:#e8f2ea;border:1px solid #3d6b4a;border-radius:10px;padding:8px 10px;font:13px/1.45 system-ui,sans-serif;max-width:min(560px,calc(100vw - 16px));box-sizing:border-box}
-  #gl b{color:#ffe05a}#gl select,#gl button{font:13px system-ui,sans-serif;background:#23392b;color:#e8f2ea;border:1px solid #4d7a5a;border-radius:6px;padding:5px 8px;margin:2px}
-  #gl button.on{background:#3d7a4f;border-color:#9fe0b0}#gl .row{display:flex;flex-wrap:wrap;align-items:center;gap:2px 6px}#gl .msg{color:#bcd3c2;margin-top:4px}#gl .what{color:#fff;margin-top:2px}#gl.mini>:not(:first-child){display:none}#gl.mini #glP,#gl.mini #glN{display:none}`;
+  css.textContent = `#clubScreen,.std-wrap{display:none!important}#gl{position:fixed;left:6px;bottom:6px;z-index:50;background:rgba(10,24,16,.78);color:#e8f2ea;border:1px solid #3d6b4a;border-radius:10px;padding:4px 6px;font:12px/1.4 system-ui,sans-serif;max-width:min(520px,calc(100vw - 12px));box-sizing:border-box}
+  #gl b{color:#ffe05a}#gl select,#gl button{font:12px system-ui,sans-serif;background:#23392b;color:#e8f2ea;border:1px solid #4d7a5a;border-radius:6px;padding:4px 7px;margin:1px}#gl select{max-width:170px}
+  #gl button.on{background:#3d7a4f;border-color:#9fe0b0}#gl .row{display:flex;flex-wrap:wrap;align-items:center;gap:2px 4px}#gl .msg{color:#bcd3c2;margin-top:3px}#gl .what{color:#fff;margin-top:3px}#gl #glMore{display:none}#gl.open #glMore{display:block}#gl #glC{color:#bcd3c2;white-space:nowrap}`;
   document.head.appendChild(css);
-  const box = document.createElement('div'); box.id = 'gl';
-  box.innerHTML = `<div class="row"><b id="glT" style="cursor:pointer">GKのセーブの確認 ▾</b><select id="glK">${KINDS.map(([k, n]) => `<option value="${k}">${n}（${SC[k].length}）</option>`).join('')}</select>
-    <button id="glP">◀ 前の場面</button><button id="glN">次の場面 ▶</button></div>
-    <div class="row">速さ <button data-s="1">1倍</button><button data-s="0.5" class="on">1/2</button><button data-s="0.25">1/4</button><button data-s="0.1">1/10</button>
-    <button id="glStop">一時停止</button><button id="glB">◀ コマ戻し</button><button id="glF">コマ送り ▶</button><button id="glZ">近くで見る</button></div>
-    <div class="what" id="glW"></div><div class="msg" style="opacity:.7">版 ${window.__appVer || '?'}</div><div class="msg" id="glM"></div>`;
+  const box = document.createElement('div'); box.id = 'gl';   // 版1014：確認画面の操作は小さく、画面の下にまとめる（選手の動きが見えるように）。説明・コマ送りは「…」で開く
+  box.innerHTML = `<div class="row"><select id="glK">${KINDS.map(([k, n]) => `<option value="${k}">${n}（${SC[k].length}）</option>`).join('')}</select>
+    <button id="glP">◀</button><span id="glC"></span><button id="glN">▶</button><button id="glS">1/2倍</button><button id="glStop">一時停止</button><button id="glT">…</button></div>
+    <div id="glMore"><div class="row">速さ <button data-s="1">1倍</button><button data-s="0.5" class="on">1/2</button><button data-s="0.25">1/4</button><button data-s="0.1">1/10</button>
+    <button id="glB">◀ コマ戻し</button><button id="glF">コマ送り ▶</button><button id="glZ">近くで見る</button></div>
+    <div class="what" id="glW"></div><div class="msg" style="opacity:.7">版 ${window.__appVer || '?'}</div><div class="msg" id="glM"></div></div>`;
   document.body.appendChild(box);
   function info() {
     const L = SC[kind] || [], k = K(kind); if (!L.length) return;
     document.getElementById('glW').textContent = '見るところ：' + k[4];
     const c = L[(idx + L.length) % L.length], m = Math.floor(c.t * ((D.match && D.match.clockScale) || 12) / 60);
+    document.getElementById('glC').textContent = `${(idx % L.length + L.length) % L.length + 1}/${L.length}`;
     document.getElementById('glM').textContent = `${idx + 1} / ${L.length} 場面目：試合番号${c.seed}・${m}分ごろ${c.sp != null ? `（${c.bar ? 'バー' : 'ポスト'}・秒速${c.sp}m・音${Math.round((0.4 + 1.8 * Math.max(0, Math.min(1, (c.sp - 10) / 20))) * 100)}%）` : ''}`;
   }
   const setPaused = (v) => { paused = v; document.getElementById('glStop').textContent = v ? '再生' : '一時停止'; if (v) D.setSpeed(0.0001); else { D.setSpeed(sp); D.play(); } };
   const step = (d) => { setPaused(true); D.seek(Math.max(0.2, D.time() + d)); D.setSpeed(0.0001); D.play(); };
-  document.getElementById('glT').onclick = () => { box.classList.toggle('mini'); document.getElementById('glT').textContent = 'GKのセーブの確認 ' + (box.classList.contains('mini') ? '▸' : '▾'); };
+  document.getElementById('glT').onclick = () => box.classList.toggle('open');
+  { const SP = [1, 0.5, 0.25, 0.1], lab = (v) => (v === 1 ? '1倍' : v === 0.5 ? '1/2倍' : v === 0.25 ? '1/4倍' : '1/10倍');
+    document.getElementById('glS').onclick = () => { const nx = SP[(SP.indexOf(sp) + 1) % SP.length]; const bt = box.querySelector(`[data-s="${nx}"]`); if (bt) bt.click(); };
+    const syncS = () => { document.getElementById('glS').textContent = lab(sp); }; box.querySelectorAll('[data-s]').forEach((b) => b.addEventListener('click', () => setTimeout(syncS, 0))); }
   document.getElementById('glK').onchange = (e) => { kind = e.target.value; idx = 0; go(); };
   document.getElementById('glP').onclick = () => { idx--; go(); };
   document.getElementById('glN').onclick = () => { idx++; go(); };
