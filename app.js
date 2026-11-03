@@ -154,6 +154,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       const t = fr[i][0] - 0.1, nx = fr[Math.min(fr.length - 1, i + 1)];
       kickTimes[k].push({ t, dx: nx[1] - fr[i - 1][1], dy: nx[2] - fr[i - 1][2] });
     }
+    { const hev = (match.events || []).find((e) => e.type === 'half'); if (hev) for (const e of match.events) if (e.type === 'sub' && !e.htSub && Math.abs(e.t - hev.t) < 1) { e.t = hev.t + match.frameDt * 2; e.htSub = true; } }   // 版994：ハーフタイムの交代は、後半が始まってから入れ替わる（前半の最後の場面・ハーフタイムの間に、もう替わって見えた）
     subsAt = []; for (const e of match.events) if (e.type === 'sub') (subsAt[e.team * 11 + e.slot] = subsAt[e.team * 11 + e.slot] || []).push(e);
     cardsOf = Array.from({ length: 22 }, () => []); cardList = [];
     goals = []; shotsList = [];

@@ -6749,7 +6749,9 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         const fxp = own.x + dir[0] * own.dO, fyp = own.y + dir[1] * own.dO;
         if (b.z > 0.02) { if ((globalThis.__Kr5 ?? 1) && hyp(b.x - own.x, b.y - own.y) > (globalThis.__Kreach ?? 0.75) + 0.25) { b.x += b.rv[0] * DT; b.y += b.rv[1] * DT; } else { b.x += (fxp - b.x) * 0.55; b.y += (fyp - b.y) * 0.55; } b.z = Math.max(0, b.z - Math.max(2.2, b.z * 3.2) * DT); }   // 版895：足から離れた浮き球は、そのまま飛ぶ（足もとへ吸い寄せない）
         else { if ((globalThis.__Kdrb ?? 1) && hyp(b.x - own.x, b.y - own.y) <= (globalThis.__Kreach ?? 0.75) && own.ppx != null && hyp(own.x - own.ppx, own.y - own.ppy) < 1.5) { b.x += own.x - own.ppx; b.y += own.y - own.ppy; }   // 版923：足もとのボールは、体といっしょに進む（体だけ先に行って、ボールが後ろから付いてくるように見えない）
-          const sdGlue = (globalThis.__Ksd3 ?? 1) && uOn(own, 'shiden');   // 版973：紫電の遊戯：ボールは足に吸いつき、急に向きを変えて走り出しても置いていかれない
+          const bhd = (globalThis.__Kfront ?? 1) && !own.gk && (() => { const dd = hyp(b.x - own.x, b.y - own.y); if (dd < 0.2 || dd > 1.1) return false; return ((b.x - own.x) * dir[0] + (b.y - own.y) * dir[1]) / dd < 0.2; })();   // 版994：ボールが体の横・後ろにある：足の裏で引いて体の前へ持ち直す（体より後ろにボールを置いたまま運ばない）
+          if (bhd && (globalThis.__Kfront2 ?? 0)) { own.vx *= 0.82; own.vy *= 0.82; }   // 持ち直す間は、少し速さをゆるめる
+          const sdGlue = ((globalThis.__Ksd3 ?? 1) && uOn(own, 'shiden')) || bhd;   // 版973：紫電の遊戯：ボールは足に吸いつき、急に向きを変えて走り出しても置いていかれない
           let mx = (fxp - b.x) * (sdGlue ? 0.85 : 0.6), my = (fyp - b.y) * (sdGlue ? 0.85 : 0.6); const ml = hyp(mx, my), cap = (hyp(own.vx, own.vy) + (sdGlue ? 9 : 4.5)) * DT; if (ml > cap && !globalThis.__noCap) { mx *= cap / ml; my *= cap / ml; }
           // 版895：足が届かない所（0.75mより先）にあるボールは、自分で転がっているだけ：曲がらない・戻ってこない・選手に吸い寄せられない。少しずつ遅くなり、選手の方が追いついて触る
           const reach = globalThis.__Kreach ?? 0.75, dist0 = hyp(b.x - own.x, b.y - own.y);
@@ -8562,7 +8564,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       stats[holder].possession += DT;
       if (step % 10 === 0) { checkIssues(); checkPolicies(); logTypes(); }
       // 試合中の交代・作戦変更（プレイヤー）：指示した時間のあと、最初にプレーが切れた所で入れ替える
-      if (pendingCh.length && step % 2 === 0) {
+      if (pendingCh.length && step % 2 === 0 && !((globalThis.__Ksubht ?? 1) && curHalf === 1 && S.t - halfStartT >= HALF - 5 && (pendingCh[0].subs || []).length)) {   // 版994：前半の最後の1分（44分〜）に出した・待っていた交代は、前半の終わりと同時に替えず、ハーフタイムに替えて後半のキックオフ前に見せる
         const ch0 = pendingCh[0];
         const tacOnly = !(ch0.subs && ch0.subs.length);
         if (ch0.at <= S.t && (tacOnly || subOk())) { while (pendingCh.length && pendingCh[0].at <= S.t && (!(pendingCh[0].subs || []).length || subOk())) applyHalfChange(pendingCh.shift()); }
