@@ -2905,6 +2905,9 @@
           if (q.uniq === 'aonoouza' && !(q.uOn > S.t) && !(q.uCd > S.t) && !q.off && !through && pxf > 42 && pxf < 92 && adv > 1.5 && d < 40 && danger < 0.9) v += KB * 1.2;
           if ((globalThis.__Kbyg ?? 1) && q.uniq === 'byakuya' && !(q.uOn > S.t) && !(q.uCd > S.t) && !q.off && pxf > 15 && pxf < 66 && danger < 0.7 && pxf > xf - 25) v += KB * 1.6;   // 版957：白夜の視界：空いているレジスタ（ことう）に、まず預ける
         }
+        if ((globalThis.__Kgz ?? 1) && ((xf < 28 && pxf < 30) || (xf < 32 && near.d < 3.5 && d < 25)) && !p.gk && !q.gk && !through) {   // 版992：原理原則：自分のゴール前（28m以内）では、ゴール前に残るパス（横・後ろ・短い縦）でつながない。取られたら即失点。相手が近い・受け手に相手が近い・通り道が危ないほど強く嫌う
+          const risk = clamp((6 - Math.min(near.d, 6)) / 4, 0, 1) * 0.6 + clamp((5 - Math.min(recvOpp, 5)) / 4, 0, 1) * 0.6 + Math.min(1.5, danger) * 0.8 + (Math.abs(py - GOAL_Y) < 16 && pxf < 22 ? 0.5 : 0);
+          v -= (globalThis.__Kgz1 ?? 1.8) * risk; if (globalThis.__gzc) { globalThis.__gzc.n++; globalThis.__gzc.r += risk; } }
         if (danger < 0.4) bestSafe = Math.max(bestSafe, v);
         if (globalThis.__gpV && gpG && ((gpG.k === 'sh' && p.idx === gpG.a && q.idx === gpG.c) || (gpG.k === 'dc' && gpG.ph === 1 && p.idx === gpG.b && q.idx === gpG.c))) globalThis.__gpV.push([gpG.k, +v0dbg.toFixed(1), +v.toFixed(1), +danger.toFixed(2), ph, +adv.toFixed(0), +d.toFixed(0), through ? 1 : 0, +xf.toFixed(0)]);
         opts.push({ kind: 'pass', q, through, v, danger, d, space: thrSpot, minus: isMinus });
@@ -2971,6 +2974,7 @@
         if (sp2 >= 4) opts.push({ kind: 'dribble', mode: 'carry', dir: [ddx / dl0, ddy / dl0], v: 0.4 + (sp2 - 4) * 0.2 + (globalThis.__Bcut ?? 0.6) });
       }
       if (xf < 22 && pr === 2 && bestSafe < 0) opts.push({ kind: 'clear', v: 0.6 });
+      else if ((globalThis.__Kgz ?? 1) && xf < 30 && (pr >= 1 || near.d < 3.5) && !p.gk && bestSafe < 0.8) opts.push({ kind: 'clear', v: pr === 2 ? 0.9 : 0.5 });   // 版992：ゴール前で寄せられて、安全につなげる味方がいなければ、大きく蹴り出す
       // 版905：奪った後（設計一覧5章）：相手の守備が整っている（ボールより後ろにほぼ全員）か寄せが強い時は、まず安全な味方へ。整っていなければカウンター（前へ）
       if ((globalThis.__Kwon ?? 1) && S.t - (T[t].wonT ?? -9) < 2.0 && S.t - (p.recvT ?? -9) < 2.0) {
         const fO = foes.filter((o) => !o.gk), nbO = fO.filter((o) => fx(t, o.x) > xf + 1).length;
@@ -5614,6 +5618,10 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           if (p._near < 4 || p._out > 0) { const k = (p._near < 4 ? 1 : 0) + Math.max(0, Math.min(2, p._out)) * 0.5;
             if (pxf < xf - 1) v -= 1.4 * k; else if (pxf > xf + 5 && danger < 1.4) v += 0.9 * k; }
         }
+        if ((globalThis.__Kgz ?? 1) && xf < 28 && pxf < 30 && !p.gk && !q.gk) {   // 版992：原理原則：自分のゴール前（28m以内）で、ゴール前に残るパス（横・後ろ・短い縦）はつながない。取られたら即失点。相手が近い・通り道が危ないほど強く嫌う
+          const nearO = p._near != null && p._outT === S.t ? p._near : nearestOpp(p, p.x, p.y).d, rq = nearestOpp(q, q.x, q.y).d;
+          const risk = clamp((6 - Math.min(nearO, 6)) / 4, 0, 1) * 0.6 + clamp((5 - Math.min(rq, 5)) / 4, 0, 1) * 0.6 + Math.min(1.5, danger) * 0.8 + (Math.abs(py - GOAL_Y) < 16 && pxf < 22 ? 0.6 : 0);
+          v -= (globalThis.__Kgz1 ?? 1.6) * risk; }
         if (S.nm && (q.mvOpen || 0) > S.t && !through && danger < 1.3) v += globalThis.__Kmv ?? 2.2;
         if (S.nm && (q.holeT || 0) > S.t && danger < 1.4 && !qOff) v += globalThis.__Khole ?? 2.0;
         if (S.nm && p.layoff && p.layoff.until > S.t && !through && fx(p.team, q.x) < xf - 1 && d < 16 && danger < 1.0) v += globalThis.__Klay ?? 2.6;   // 版894：落とし（前を向ける後ろの味方へ）
