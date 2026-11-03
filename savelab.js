@@ -4,6 +4,7 @@
   window.__noShow = true;
   const SC = window.__SAVE_SCENES || {};
   const KINDS = [
+    ['postin', 'ポストに当たって入る（確認用）', -1.8, 2.6, '版1015〜：ポストは丸い柱。内側に当たった球は、向きを変えてゴールの中へ。確認のため、シュートをわざとポストの内側へ向けている試合です（本番の試合ではしません）。音も確認してください'],
     ['post', 'ポスト・バーに当たる（音の確認）', -1.6, 2.4, '版1009〜：ポスト・バーに当たった音は送ってもらった録音。版1010〜：当たった時のボールが速いほど大きく（秒速10m以下で0.4倍〜20mで1.3倍〜30m以上で2.2倍）。音を出して確認してください'],
     ['wrongfoot', '逆を突かれる', -1.6, 2.6, '版988〜：シュートの瞬間に逆へ重心が乗る → 崩れて片ひざ・片手をつき、抜けた球を振り返る → 尻もち。届かないと決まったシュートだけ（決まる・決まらないは変えない）'],
     ['new_foot', '足を伸ばして止める：足に当たる', -3.2, 2.0, '版952から本番にも入っています（7m以内の至近距離）：近いシュート。GKは横に飛ばず、片足を伸ばす形で止めに行く。低い球は伸ばした足に当たる'],
@@ -29,7 +30,7 @@
   const K = (k) => KINDS.find((x) => x[0] === k);
   function loadSeed(seed, lab) {
     const key = seed + (lab ? 'L' : ''); if (loaded === key) return;
-    globalThis.__Kgkft = lab ? 1 : undefined;   // 版946：確認画面だけの新しい止め方（近い距離のシュートを、飛ばずに足・体で止める）
+    globalThis.__Kgkft = lab ? 1 : undefined; globalThis.__labPost = lab === 'post' ? true : undefined;   // 版1016：ポストに当たって入る場面を作る（確認画面だけ）   // 版946：確認画面だけの新しい止め方（近い距離のシュートを、飛ばずに足・体で止める）
     document.querySelector('#level').value = 's'; const op = document.querySelector('#opponent'); if (op) op.value = 'バランス型';
     document.getElementById('seed').value = String(seed);
     D.start(); D.stop(); loaded = key;

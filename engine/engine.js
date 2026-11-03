@@ -651,8 +651,10 @@
     const uLgF = (p) => { const a = T[p.team] && T[p.team].lgId, b = T[1 - p.team] && T[1 - p.team].lgId; return a && b ? LG_UF[a] ?? 1 : 1; };
     // 版1015：国内屈指が何人も同時に出ていると、1人1人の固有スキルは少し控えめになる（4人までは満額。11人そろえると約6割）。全員を国内屈指でそろえると、格上にも一度も負けないほど強すぎた
     const uCrC = [{ t: -1, v: 1 }, { t: -1, v: 1 }];
-    const uCrowd = (t) => { const c = uCrC[t]; if (S.t - c.t < 1) return c.v; const n = P.filter((q) => q.team === t && q.uniq && !q.off).length; c.t = S.t; c.v = (globalThis.__Kucr ?? 1) ? Math.min(1, Math.sqrt((globalThis.__Kucr1 ?? 4) / Math.max(1, n))) : 1; return c.v; };
-    const uEF = (p) => clamp((uOvr(p) - 50) / 30, 0.15, 1), uEK = (p) => (0.4 + 0.6 * uEF(p)) * uLgF(p) * uCrowd(p.team);
+    const uCrowd = (t) => { const c = uCrC[t]; if (S.t - c.t < 1) return c.v; const n = P.filter((q) => q.team === t && q.uniq && !q.off).length; c.t = S.t; c.v = (globalThis.__Kucr ?? 0) ? Math.min(1, Math.sqrt((globalThis.__Kucr1 ?? 4) / Math.max(1, n))) : 1; return c.v; };
+    // 版1016：人数で弱めるのはやめ、本人の能力でしっかり差をつける：総合57以下はほぼ効かない（3割弱）→ 63で4割 → 70で約6割 → 87で満額
+    const uOv2 = (globalThis.__Kuov ?? 1);
+    const uEF = (p) => uOv2 ? clamp((uOvr(p) - 57) / 30, 0.05, 1) : clamp((uOvr(p) - 50) / 30, 0.15, 1), uEK = (p) => (uOv2 ? 0.25 + 0.75 * uEF(p) : 0.4 + 0.6 * uEF(p)) * uLgF(p) * uCrowd(p.team);
     const uP = (p) => (p.uniqLv >= 2 ? 1.3 : 1) * uEK(p);   // 凸で強化：効果が1.3倍
     const grF = (p) => uEK(p) * clamp(((p.kick || 0) * 0.5 + (p.technique || 0) * 0.3 + (p.mental || 0) * 0.2 - 45) / 45, 0.25, 1.15);   // 版665：紅蓮の牙の強さは、本人のシュート力（キック・テクニック・メンタル）に連動。スカウト直後（60台）は4割ほど、国内屈指（90前後）で満額
     // GKの固有スキル（白亜の城壁・捨て身の守護神）の止める力の上乗せは、本人のセービング力に連動（CPUの国内屈指＝満額、手に入れた直後のE〜D＝2〜3割、99まで育てると満額を超える）
@@ -673,7 +675,7 @@
       if (k === 'sakurajima') { const o = ownerP(); if (o && o.team !== p.team && !o.gk) { const xs = T[p.team].players.filter((m) => !m.off).map((m) => fx(o.team, m.x)).sort((a, c) => c - a); if (fx(o.team, o.x) > xs[1] - 1.5) return false; } }   // 桜島の号令：ボールを持った相手がもう最終ラインを越えている（GKと1対1）なら、号令をかけても意味がない
       if (k === 'miyabi') { const r = miyabiTarget(p), own0 = ownerP(); if ((own0 && own0.team === p.team) || !r) return false; const dr = hyp(r.x - p.x, r.y - p.y); if (dr > 25) return false; if (dr > 14 && T[p.team].players.filter((m) => m !== p && !m.gk && !m.off && hyp(r.x - m.x, r.y - m.y) < dr).length >= 3) return false; }   // 雅の後始末：守備の時だけ。奪いに行ける距離・近い順で2番目までの時だけ（持ち場を捨てて遠くへは行かない）   // 雅の後始末：守備の時だけ。遠すぎる所へは行かない（近くの味方に任せる）
       const u = UNIQ[k], lv2 = p.uniqLv >= 2;
-      if (R.next() > Math.min(1, u.ch * (chMul ?? 1) * (lv2 ? 1.25 : 1) * (0.5 + 0.5 * uEF(p)) * Math.sqrt(uLgF(p)) * uCrowd(p.team))) {   /* 版850：総合力が低いほど発動しにくい（版851：下のリーグほど） */ p.uCd = S.t + 1.5; return false; }
+      if (R.next() > Math.min(1, u.ch * (chMul ?? 1) * (lv2 ? 1.25 : 1) * (uOv2 ? 0.35 + 0.65 * uEF(p) : 0.5 + 0.5 * uEF(p)) * Math.sqrt(uLgF(p)) * uCrowd(p.team))) {   /* 版850：総合力が低いほど発動しにくい（版851：下のリーグほど） */ p.uCd = S.t + 1.5; return false; }
       p.uOn = S.t + u.dur * (lv2 ? 1.25 : 1); p.uCd = p.uOn + (lv2 && u.cd2 != null ? u.cd2 : u.cd * (lv2 ? 0.8 : 1)) * (k === 'kage' && (globalThis.__Ku22 ?? 1) ? 0.7 : 1) * (k === 'byakuya' && (globalThis.__Kby4 ?? 1) ? 0.7 : 1) * (k === 'harinoana' && (globalThis.__Khr3 ?? 1) ? 0.75 : 1);   /* 版986：白夜の視界のロングフィードをもう少し多く */   /* 版922：影の一刺しは間隔を短く */
       if (k === 'midori' && (T[p.team].mdStack || 0) < 3) p.uCd = p.uOn + 4;   /* 版468：積み重ねが4回になるまでは、間隔を短く */
       if (!(k === 'kinshachi' && p.ksShownT && S.t - p.ksShownT < 60)) { p.ksShownT = k === 'kinshachi' ? S.t : p.ksShownT; act(p, 'uniq', 2.2, { k, lv: p.uniqLv || 1 }); } /* 金鯱の心臓は何度も出るので、吹き出しは1分に1回だけ */ ev('uniq', { team: p.team, player: p.name, number: p.number, k, name: u.name, lv: p.uniqLv || 1, face: u.face, gk: p.gk ? 1 : 0 });
@@ -5209,6 +5211,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       let power = null;
       if (brainOn() && !S.pk && !S.fkDirect && !skill && !chip && !emptyNet && !oneOnOne && !aimY) { const prs = nearestOpp(p, p.x, p.y).d < 2.5 ? 1 : 0; power = R.next() < clamp(0.15 + (60 - (p.mental || 50)) * 0.008 + prs * 0.15, 0.08, 0.6); if (power) aim = GOAL_Y + (aim - GOAL_Y) * 0.6; }
       kick(p, gx, chip && !emptyNet ? GOAL_Y + R.gauss() * 1.2 : aim, 'shot', false, { pk: S.pk, fk: S.fkDirect, chip: chip && !emptyNet, calm: oneOnOne || emptyNet, skill, dShot, empty: emptyNet, power });
+      if (globalThis.__labPost && !S.pk && !S.fkDirect) { const b9 = S.ball, gl9 = fx(p.team, L), sd9 = b9.y < GOAL_Y ? -1 : 1, tY = GOAL_Y + sd9 * (POST - 0.145), t9 = (gl9 - b9.x) / (b9.vx || 1e-6); if (t9 > 0.05) { b9.vy = (tY - b9.y) / t9; b9.spin = 0; b9.curveAll = false; b9.curlP = 0; b9.knuckle = false; b9.aimY = tY; } }   // 確認画面だけ：シュートをポストの内側へ（ポストに当たって入る場面を見るため）
       if (power != null && globalThis.__shIntent) globalThis.__shIntent.push({ t: S.t, k: power ? 'power' : 'place' });
       const fkMaster = S.fkDirect && p.sk.has('fk');
       S.ball.gkPen = (SHOT_GK_PEN[skill] || 0) + (dShot ? SHOT_GK_PEN.dribbleShot : 0) + (fkMaster ? 0.4 : 0) + (S.ball.csPlace ? 0.04 : 0);   // 置きに行くコントロールショット：遅くても、GKの届かない隅へ正確に置くので止めにくい
