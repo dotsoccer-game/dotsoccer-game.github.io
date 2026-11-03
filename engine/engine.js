@@ -3596,7 +3596,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
               /* 版865：体を広げて止めるは取りやめ（至近距離は足を伸ばして止めるに集約） */   // 版864：至近距離の浮き球：体を大きくして、体のどこかに当ててはじく
               if (p.svPrep && p.svPrep.t !== b.shotT) p.svPrep = null;
               if (gInBox && !passedGk && b.z > 0.7 && !p.svPrep && !p.diveT && !p.downT && !p.lateDive && tG < 0.32 && Math.abs(gap) > 0.35 && Math.abs(gap) <= 0.8 && kD > 11 && onFrame) { if (globalThis.__Kgkst ?? 1) p.svPrep = { t: b.shotT, k: 'stand', dir: Math.sign(gap) || 1 }; else startDive(p, Math.sign(gap), Math.max(0.7, Math.abs(gap)), Math.max(0.12, tG)); }   // 版970：体のすぐ横（0.8m以内）に来る球は、横っ跳びせず、立ったまま一歩寄って取る（正面なのに横へ飛んでよけて見えた）   // 版868：PKの位置より遠いシュートが体の少し横に来る：ボールが来る前に、体を横に倒しはじめる（はじいた後に倒れない）
-              else if (gInBox && passedGk && onFrame && fx(tm.ti, p.x) < 3.5 && !p.diveT && !p.downT && !p.lateDive && !p.wf && fx(tm.ti, b.x) > 0.4 && Math.abs(yc - p.y) > 0.7 && Math.abs(yc - p.y) < gkDiveMax(p) + 2.5 && (globalThis.__Kwf2 ?? 1)) wrongFoot(p, yc - p.y, 0.1);   // 版989：通り過ぎてから飛ぶ（遅れて見えた）のをやめ、逆を突かれて崩れる
+              else if (gInBox && passedGk && onFrame && fx(tm.ti, p.x) < 3.5 && !p.diveT && !p.downT && !p.lateDive && !p.wf && fx(tm.ti, b.x) > 0.4 && Math.abs(yc - p.y) > 0.7 && Math.abs(yc - p.y) < gkDiveMax(p) + 2.5 && (globalThis.__Kwf2 ?? 1) && !((globalThis.__Kwf3 ?? 1) && b.sx0 != null && !(fx(tm.ti, b.sx0) < 16.8 && Math.abs(b.sy0 - GOAL_Y) < 20.5))) wrongFoot(p, yc - p.y, 0.1);   // 版989：通り過ぎてから飛ぶ（遅れて見えた）のをやめ、逆を突かれて崩れる
               else if (gInBox && passedGk && onFrame && fx(tm.ti, p.x) < 3.5 && !p.diveT && !p.downT && !p.lateDive && fx(tm.ti, b.x) > 0.4 && Math.abs(yc - p.y) > 0.7 && Math.abs(yc - p.y) < gkDiveMax(p) + 2.5) startDive(p, Math.sign(yc - p.y), Math.abs(yc - p.y), 0.15);   // 版877：反応が遅れた：もう間に合わないが、ゴールに入る所（ゴールラインを割る所）へ遅れて飛び込む（見送らない）
               else if (gInBox && !passedGk && !p.svPrep && !p.diveT && !p.downT && !p.lateDive && tG < 0.5 && Math.abs(gap) > 0.8 && (Math.abs(gap) < gkDiveMax(p) + 1 || onFrame)) {   /* 版460：飛び方は版457に戻した */
                 // 飛ぶ瞬間に「届くかどうか」を決めておく：届かない時は手前で落ち、届く時はしっかり触る（見た目と結果をそろえる）
@@ -4057,7 +4057,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
     const gkDiveMax = (p) => 2.6 + p.jump * 0.028;          // 横っ跳びの最大距離：ジャンプ50で約4m、95で約5.3m
     // 版782：止められないシュートは、GKの反応を遅らせる。ボールが横を抜けるまで構えたまま動けず、抜けたあとに遅れて飛ぶ（明らかに触っていないと見えるように）
     // 版989：逆を突かれる（決められる時の見せ方）：逆へ重心が乗る → 崩れる → 尻もち。tG：ボールが横を通るまでの時間
-    function wrongFoot(p, gap, tG) { const b = S.ball; if (p.wf || p.diveT > 0 || p.downT > 0) return false;
+    function wrongFoot(p, gap, tG) { const b = S.ball; if (p.wf || p.diveT > 0 || p.downT > 0) return false; if ((globalThis.__Kwf3 ?? 1) && b.sx0 != null && !(fx(p.team, b.sx0) < 16.8 && Math.abs(b.sy0 - GOAL_Y) < 20.5)) return false;   // 版993：ペナルティエリアの外からのシュートには、逆を突かれて尻もちはつかない（遅れて飛んだが届かない・指先に当たって入る、で見せる）
       const t1 = clamp(tG * 0.55, 0.1, 0.26), gd = Math.sign(gap) || 1;
       p.wf = { dir: -gd, gd, t1: S.t + t1, t2: S.t + t1 + 0.3, end: S.t + t1 + 0.3 + 1.6, shot: b.shotT }; act(p, 'lose', t1 + 0.32, { dx: 0, dy: -gd, o: p.idx, wf: 1 }); if (rec) actions.push({ t: +(S.t + t1 + 0.3).toFixed(2), i: p.idx, a: 'fall', d: 1.5, dx: 0, dy: gd, wf: 1 }); p.vx *= 0.2; p.vy *= 0.2; p.lateDive = null; return true; }
     // 版988：止めた瞬間、GKの手（絵）がボールに届いているようにする：離れていたら、GKの体をボールの方へ伸ばす（触っていないのに止めて見えた）
@@ -6695,12 +6695,14 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       if (own && globalThis.__sdbLog && uOn(own, 'shiden')) { const dd = hyp(b.x - own.x, b.y - own.y); globalThis.__sdbLog.push([dd > 1.4 ? 2 : dd > 0.9 ? 1 : 0, own.settle ? 's' : (own.moveQ && own.moveQ.length ? 'q' : S.dribbleMode || '-'), +(b.z || 0).toFixed(1), +(own.dO || 0).toFixed(2), +hyp(own.vx, own.vy).toFixed(1), S.dribbleDir ? +(((b.x - own.x) * S.dribbleDir[0] + (b.y - own.y) * S.dribbleDir[1])).toFixed(2) : null, +dd.toFixed(2), +hyp(b.vx || 0, b.vy || 0).toFixed(1)]); }
       if (own) {
         const dir = S.dribbleDir || own.bdir || [own.facing, 0];
-        if (own.gk && own.hold) { { const hx = own.x + sgn(own.team) * 0.25 - b.x, hy = own.y - b.y, hd = hyp(hx, hy); if (!(globalThis.__Kgkc2 ?? 1)) { b.x += hx * 0.6; b.y += hy * 0.6; } else if (hd > 0.001) { const gs = Math.min(Math.max(0, hd - 0.3), 0.3); own.x -= hx / hd * gs; own.y -= hy / hd * gs; const st = Math.min(hd - gs, 0.12); b.x += hx / hd * st; b.y += hy / hd * st; } }   /* 版912：つかんだ時は、GKの体がボールの方へ寄り、ボールは手の所から胸へゆっくり引き寄せる（ボールが横へ吸い寄せられない） */ b.z += ((own.downT > 0 ? 0.3 : 1.0) - b.z) * 0.45; b.vx = b.vy = b.vz = 0; return; }
+        if (own.gk && own.hold) { { const lyH = (globalThis.__Kgkh ?? 1) && (own.downT > 0 || own.diveT > 0) && own.diveDir ? own.diveDir * 0.75 : 0;   /* 版993：横っ跳びでつかんで倒れている間は、ボールは伸ばした両手の所（お腹の上に乗って、体を突き抜けて見えた） */ const hx = own.x + sgn(own.team) * 0.25 - b.x, hy = own.y + lyH - b.y, hd = hyp(hx, hy); if (!(globalThis.__Kgkc2 ?? 1)) { b.x += hx * 0.6; b.y += hy * 0.6; } else if (hd > 0.001) { const gs = Math.min(Math.max(0, hd - 0.3), 0.3); own.x -= hx / hd * gs; own.y -= hy / hd * gs; const st = Math.min(hd - gs, 0.12); b.x += hx / hd * st; b.y += hy / hd * st; } }   /* 版912：つかんだ時は、GKの体がボールの方へ寄り、ボールは手の所から胸へゆっくり引き寄せる（ボールが横へ吸い寄せられない） */ b.z += ((own.downT > 0 ? 0.3 : 1.0) - b.z) * 0.45; b.vx = b.vy = b.vz = 0; return; }
         // 版889：ドリブルで足から離れたボールに、相手が先に足を届かせた（相手の方がボールに近く、0.55m以内）：つつかれてこぼれる（見た目は相手のボールなのに、こちらのボールのままにしない）
         if (!own.settle && !((own.protect || 0) > S.t) && !own.gk && b.z < 0.8) { const dO = hyp(b.x - own.x, b.y - own.y); if (dO > (globalThis.__Kpk ?? 1.0)) { for (const q of opps(own)) { if (q.off || q.gk || q.downT > 0 || (q.touchCd || 0) > 0 || (q.stun || 0) > 0 || (q.lagT || 0) > S.t) continue; const dd = hyp(b.x - q.x, b.y - q.y);
           if (dd < 0.55 && dd < dO - 0.3) { const ux = b.x - q.x, uy = b.y - q.y, ul = hyp(ux, uy) || 1, an = Math.atan2(uy, ux) + R.range(-0.6, 0.6), v = R.range(2, 4); Object.assign(b, { owner: -1, kind: 'loose', vx: Math.cos(an) * v, vy: Math.sin(an) * v, vz: 0, lastTeam: q.team, lastPlayer: q.idx, intended: -1 }); act(q, 'poke', 0.35, { dx: ux / ul, dy: uy / ul }); own.touchCd = Math.max(own.touchCd || 0, 0.3); S.dribbleDir = null; own.settle = false; if (globalThis.__ownFix) globalThis.__ownFix.p++; return; } } } }
         // 浮いた球はトラップして足元へ落とす（瞬間的に落ちないように）
         // ドリブル：ボールを少し前へ押し出し、ボールが遅れて追いつく（なめらかに、瞬間移動なし）
+        if ((globalThis.__Kfar ?? 1) && !own.settle && !own.gk && b.z < 0.6 && !uOn(own, 'shiden')) { const dO = hyp(b.x - own.x, b.y - own.y);   // 版993：走りすぎてボールが後ろ・横に1.3m以上離れた：ドリブルしたまま扱わず、ボールの所へ戻って収め直す（相手が近ければ奪い合い）
+          if (dO > 1.3) { const vl = hyp(own.vx, own.vy), dot = vl > 0.5 ? ((b.x - own.x) * own.vx + (b.y - own.y) * own.vy) / (dO * vl) : -1; if (dot < 0.3) { own.settle = 'go'; own.settleT = 0.5; own.moveQ = null; own.moveEnd = null; } } }
         if (own.settle) {
           // 版889：まだ足もとに収めていないボールに、相手の方が近くにいて足が届くなら、まだだれのボールでもない（こぼれ球として奪い合う）。見た目と持ち主を一致させる
           { const dO = hyp(b.x - own.x, b.y - own.y); let near = null, dn = 9; for (const q of opps(own)) { if (q.off || (q.gk && !(fx(q.team, b.x) < 16.5 && Math.abs(b.y - GOAL_Y) < 20)) || q.downT > 0 || (q.touchCd || 0) > 0 || (q.stun || 0) > 0) continue; const dd = hyp(b.x - q.x, b.y - q.y); if (dd < dn) { dn = dd; near = q; } }
@@ -6714,7 +6716,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           else if (own.settleT >= 0.45) { b.vx *= 0.5; b.vy *= 0.5; }
           if (b.z > 0) { b.vz -= 9.8 * DT; b.z = Math.max(0, b.z + b.vz * DT); if (b.z === 0) b.vz = 0; }
           const dd = hyp(b.x - own.x, b.y - own.y);
-          if ((dd < 0.8 && b.z < 0.3) || own.settleT > 1.2) {
+          if ((globalThis.__Kfar ?? 1) && own.settleT > 3.0 && dd > 1.2) { Object.assign(b, { owner: -1, kind: 'loose', lastTeam: own.team, lastPlayer: own.idx }); own.settle = false; return; }   // 版993：いつまでも足もとに届かない球は、だれのボールでもない
+          if ((dd < 0.8 && b.z < 0.3) || (own.settleT > 1.2 && (!(globalThis.__Kfar ?? 1) || dd < 1.1))) {   // 版993：時間がたっても、ボールが足もとに来るまでは「持った」ことにしない（離れたままドリブルして見えた）
             own.settle = false; own.dO = Math.min(dd, 0.6); own.dV = 0;
             own.bdir = dd > 0.05 ? [(b.x - own.x) / dd, (b.y - own.y) / dd] : null;
           }
