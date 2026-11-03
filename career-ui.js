@@ -925,38 +925,114 @@
   const starHTML = (n, totsu, cls) => { const t = Math.min(totsu || 0, 3); let h = ''; for (let k = 0; k < n; k++) h += `<i class="tz tz${t}">★</i>`;   /* 版476：無凸＝白、1凸＝銀、2凸＝金、完凸＝虹 */   /* 版467：凸の数で星全部の色が変わる（無凸＝黄、1凸＝青、2凸＝紫、完凸＝虹） */ return `<span class="stars s${n}${t ? ' t' + t : ''} ${cls || ''}" title="☆${n}${t >= 3 ? '・凸MAX' : t ? '・' + t + '凸' : ''}">${h}</span>`; };   // 版456：凸した分だけ、星に色がつく（1凸＝青、2凸＝紫、3凸＝虹）
   const capBadge = (g) => `<span class="capb">上限<b class="rk rk-${g}">${g}</b></span>`;
   // 版972：タイプの説明（選手の札のタイプをタップすると出る）。役わり・動き方・なり方（どの練習で近づくか）
+  // 版999：タイプの説明を作り込む（試合での本当の動き・動きのくせ・大事な能力・サポート効果・なり方）。動きはエンジンの中身に合わせて書く
   const TYPE_INFO = {
-    'バランス': ['決まった動きのくせがない、なんでもこなす選手', ['まわりに合わせて、攻めも守りもふつうにこなす', '新しく入った選手は、最初はみんなバランス'], '特訓のカードの組み合わせで「動きのくせ（裏の能力）」が変わり、いちばん近いタイプに変わる'],
-    'スイーパー': ['DFラインの後ろで、こぼれ球や裏のボールを掃除する', ['人にはつかず、ラインの後ろのスペースを守る', '抜け出してきた相手を、カバーして止める'], '「スイーパー養成」。ふだんの練習なら「ラインコントロール」が多めで、「プレス」は少なめ'],
-    'ストッパー': ['前に出て、相手FWに激しく寄せてつぶす', ['ラインから前へ出て、ボールを持った相手に強く当たる', '1対1に強い'], '「ストッパー養成」。ふだんの練習なら「マンツーマン」「プレス」「スライディング」'],
-    'マンマーカー': ['決めた相手に、ぴったり付いて離れない', ['エースや危ない相手を、マンツーマンで消す', 'ボールから遠い相手には付いていかず、中を固める'], '「マンマーカー養成」。ふだんの練習なら「マンツーマン」'],
-    'ラインコントローラー': ['DFラインの上げ下げを指示する、守備のリーダー', ['ラインを高く保ち、オフサイドを取る', 'いると、DFライン全体がそろって動く'], '「ラインコントローラー養成」。ふだんの練習なら「ラインコントロール」に「プレス」を少し'],
-    'ビルドアップ型': ['後ろからパスで攻撃を組み立てるDF', ['DFラインからつなぐパスがうまい', '前が空いていれば、自分で持ち上がる'], 'ふだんの練習で「ラインコントロール」と「パス」を多めに'],
-    'レジスタ': ['低い位置から、試合のリズムを作る司令塔', ['DFの間まで下りて受け、前へ配る', 'まわりの味方が、慌てずに蹴れるようになる'], '「レジスタ養成」。ふだんの練習なら「パス」「ビデオ研究」'],
-    'ダイナモ': ['運動量で、ピッチを上下に走り回る', ['攻めでは前へ走り込み、守りでは広い範囲からボールを奪いに行く', 'スタミナが大事'], '「ダイナモ養成」。ふだんの練習なら「ランニング」「ダッシュ」'],
-    'ゲームメイカー': ['ボールを持ってタメを作り、決定的なパスを出す', ['持って相手を引きつけ、空いた味方へ出す', '攻めの中心になる'], '「ゲームメイカー養成」。ふだんの練習なら「パス」「ミニゲーム」'],
-    'パサー': ['正確なスルーパスで、ゴール前のチャンスを作る', ['GKとDFの間へ、スルーパスを通す', 'パスの成功率が高い'], '「パサー養成」。ふだんの練習なら「パス」に「ランニング」「ダッシュ」を少し'],
-    'ファンタジスタ': ['自分で仕掛けて、ひらめきで違いを作る', ['相手陣の狭い所でも、ドリブルで1人かわしに行く', 'パスもシュートもこなす'], 'ふだんの練習で「パス」「ドリブル」「シュート」をまんべんなく'],
-    'シャドー': ['FWの後ろから、ゴール前へ飛び出していく', ['2列目から裏へ走り込み、点を取りに行く', '守備では高い位置に残る'], 'ふだんの練習で「ダッシュ」「ドリブル」と「シュート」を多めに'],
-    'アンカー': ['中盤の底で、守備に専念する', ['DFラインの前で相手の攻めを止める', '攻めでも上がらず、後ろに残る'], 'ふだんの練習で「プレス」を多めに、「マンツーマン」を少し。攻めの練習は少なめ'],
-    'ストライカー': ['ゴール前で待ち、点を取ることに集中する', ['打てる所では迷わず打つ', 'ゴール前で、いい位置を取って待つ'], '「ストライカー養成」。ふだんの練習なら「シュート」「ヘディング」「セットプレー」'],
-    'アタッカー': ['スピードで裏やサイドのスペースへ走り込む', ['DFラインの裏をねらって走る', 'ドリブルで仕掛けて、ゴールへ向かう'], '「アタッカー養成」。ふだんの練習なら「ダッシュ」「ドリブル」「カウンター」'],
-    '偽9番': ['FWなのに中盤へ下りて、組み立てに加わる', ['下りて相手DFを引き出し、空いた所へ味方を走らせる', 'パスがうまいFW'], '「偽9番養成」。ふだんの練習なら「パス」「ビデオ研究」'],
-    'デコイラン': ['裏へ走り続けて、味方のためのスペースを作る', ['相手DFを引きつける「おとり」の走り', '自分が点を取るより、味方を生かす'], 'ふだんの練習で「ダッシュ」「カウンター」をたくさん'],
-    'ゴールキーパー': ['ゴール前で構えて、シュートを止める', ['ゴールラインの近くで守る'], 'GKの基本のタイプ'],
-    'スイーパーキーパー': ['前に出て、裏へのボールを処理するGK', ['ふだんから高い位置に立つ', '抜け出してきた相手に、飛び出して詰める'], 'ふだんの練習で「ダッシュ」など、前へ出る練習を多めに'],
+    'バランス': { role: '決まった動きのくせがない、なんでもこなす選手', mv: ['置かれた場所（マス）の役目を、攻めも守りもふつうにこなす', 'ボールに寄る・上がる・裏へ走る・ゴール前で待つ、をまんべんなく', '「必ずこうする」という決まった動きはない'], pr: '置く場所に合った能力（FWならキック、DFなら守備など）', how: '新しく入った選手は、最初はみんなバランス。特訓のカードの組み合わせで「動きのくせ（裏の能力）」が変わり、いちばん近いタイプに変わる' },
+    'スイーパー': { role: 'DFラインの後ろで、裏のボールやこぼれ球を掃除する', mv: ['DFラインの少し後ろ（約3m）に立ち、裏のスペースを見張る', '人にはつかず、場所（ゾーン）で守る', '前に残る相手FWがいても、ラインを押し下げられない', '味方が抜かれた時に、すぐカバーに入る'], pr: '守備・視野・ダッシュ', how: '特訓「スイーパー養成」。ふだんの練習なら「ラインコントロール」を多めに、「プレス」「マンツーマン」は少なめ' },
+    'ストッパー': { role: '前に出て、相手FWに激しく寄せてつぶす', mv: ['相手FWにボールが入った瞬間、ラインから前へ出て、いちばんに体を寄せる', 'プレスが強く、1対1・競り合いで勝負する', '人に付く（マンツーマン寄り）守り方'], pr: '守備・フィジカル・ジャンプ', how: '特訓「ストッパー養成」。ふだんの練習なら「マンツーマン」「プレス」「スライディング」' },
+    'マンマーカー': { role: '決めた相手に、ぴったり付いて離れない', mv: ['エースや危ない相手に、マンツーマンで付く', 'ボールから遠い時は付いて行きすぎず、中を固める', 'プレスは強すぎず、相手を自由にさせないことを優先'], pr: '守備・ダッシュ・メンタル', how: '特訓「マンマーカー養成」。ふだんの練習なら「マンツーマン」を多めに' },
+    'ラインコントローラー': { role: 'DFラインの上げ下げを指示する、守備のリーダー', mv: ['いると、DFライン全体の押し上げが大きくなる', 'ラインをそろえて高く保ち、相手をオフサイドにかける', '場所（ゾーン）で守り、プレスはほどほど'], pr: '視野・守備・メンタル', how: '特訓「ラインコントローラー養成」。ふだんの練習なら「ラインコントロール」に「プレス」を少し' },
+    'ビルドアップ型': { role: '後ろからパスで攻撃を組み立てるDF', mv: ['DFラインから、長いパスも控えずに前線・逆サイドへ配る', '組み立ての最初の場面では、前が空いていれば自分で持ち上がる', '場所（ゾーン）で守り、プレスは弱め'], pr: 'パス・視野・キック', how: 'ふだんの練習で「ラインコントロール」と「パス」を多めに' },
+    'レジスタ': { role: '低い位置から、試合のリズムを作る司令塔', mv: ['ボールを持った味方のそばに寄って、受け手になる', '低い位置で受けて前へ配る。長いパス（ロングフィード）も控えない', '自分から前へは走らず、後ろで組み立てる'], pr: 'パス・視野・メンタル', how: '特訓「レジスタ養成」。ふだんの練習なら「パス」「ビデオ研究」' },
+    'ダイナモ': { role: '運動量で、ピッチを上下に走り回る', mv: ['攻めでは後ろから長い距離を走って上がり、ゴール前へ飛び込む', '守りでは広い範囲からボールを奪いに行く', 'たくさん走るので、スタミナが大事'], pr: 'スタミナ・ダッシュ・守備', how: '特訓「ダイナモ養成」。ふだんの練習なら「ランニング」「ダッシュ」' },
+    'ゲームメイカー': { role: 'ボールを持ってタメを作り、決定的なパスを出す', mv: ['味方のそばに寄って受け、攻めの中心になる', 'スルーパス・空いたスペースへのパスをよく選ぶ', '持って相手を引きつけてから、空いた味方へ出す'], pr: 'パス・視野・テクニック', how: '特訓「ゲームメイカー養成」。ふだんの練習なら「パス」「ミニゲーム」' },
+    'パサー': { role: '正確なパスで、相手を何人も越えてチャンスを作る', mv: ['相手を何人も越える縦パスを好んで選ぶ', '空いている逆サイドへの大きな展開も選ぶ', '上がりも裏への走りもほどほどの、パスの起点'], pr: 'パス・視野・キック', how: '特訓「パサー養成」。ふだんの練習なら「パス」に「ランニング」「ダッシュ」を少し' },
+    'ファンタジスタ': { role: '自分で仕掛けて、ひらめきで違いを作る', mv: ['相手陣の狭い所でも、ドリブルで1人かわしに行く', 'スルーパス・空いたスペースへのパスをよく選ぶ', 'パスもシュートもこなす、自由な動き'], pr: 'ドリブル・テクニック・視野', how: 'ふだんの練習で「パス」「ドリブル」「シュート」をまんべんなく' },
+    'シャドー': { role: 'FWの後ろから、ゴール前へ飛び出していく', mv: ['2列目から裏へ走り込み、ゴール前へ飛び込む', '守りの時もハーフライン付近より下がらず、カウンターに備える（1チームに1人）', '点を取る動きが多い中盤'], pr: 'ダッシュ・ドリブル・キック', how: 'ふだんの練習で「ダッシュ」「ドリブル」と「シュート」を多めに' },
+    'アンカー': { role: '中盤の底で、守備に専念する', mv: ['DFラインの約5.5m前で、真ん中を守る', '攻めでも上がらない（パスを出した後も前へ走らない）', '相手陣の奥へは運ばず、近くの相手のボールを奪いに行く'], pr: '守備・視野・パス', how: 'ふだんの練習で「プレス」を多めに、「マンツーマン」を少し。攻めの練習は少なめ' },
+    'ストライカー': { role: 'ゴール前で待ち、点を取ることに集中する', mv: ['打てる所では迷わず打つ', 'ゴール前でいい位置を取り、味方のパスが集まる', '守りの時も前に残り、カウンターに備える'], pr: 'キック・ジャンプ（ヘディング）・メンタル', how: '特訓「ストライカー養成」。ふだんの練習なら「シュート」「ヘディング」「セットプレー」' },
+    'アタッカー': { role: 'スピードで裏やサイドのスペースへ走り込む', mv: ['DFラインの裏・サイドの空いたスペースをねらって走る', '前が空いていれば、ドリブルで運んで仕掛ける', 'ゴール前でも待ちつつ、走って受けることが多い'], pr: 'ドリブル・ダッシュ・キック', how: '特訓「アタッカー養成」。ふだんの練習なら「ダッシュ」「ドリブル」「カウンター」' },
+    '偽9番': { role: 'FWなのに中盤へ下りて、組み立てに加わる', mv: ['ボールに寄って下りて受け、相手DFを前へ引き出す', '空いた裏へ、味方を走らせるパスを出す', '守りの時は前に残り、カウンターに備える'], pr: 'パス・視野・ドリブル', how: '特訓「偽9番養成」。ふだんの練習なら「パス」「ビデオ研究」' },
+    'デコイラン': { role: '裏へ走り続けて、味方のためのスペースを作る', mv: ['相手DFラインの裏へ、何度も走り込む（おとり）', '相手DFを引きつけて、味方がフリーになる場所を作る', '自分へのパスは選ばれにくい（味方を生かすのが仕事）'], pr: 'ダッシュ・スタミナ・メンタル', how: 'ふだんの練習で「ダッシュ」「カウンター」をたくさん' },
+    'ゴールキーパー': { role: 'ゴール前で構えて、シュートを止める', mv: ['ゴールラインの近くで構え、シュートに横っ跳び・正面で止める', 'クロス・放り込みには前に出て、キャッチかパンチング', '1対1では前へ出て、シュートの角度を消す'], pr: 'セーブ力は テクニック・視野・ジャンプ・メンタル（判断）で決まる', how: 'GKの基本のタイプ。「前へ飛び出すくせ」が強くなると、スイーパーキーパーになる' },
+    'スイーパーキーパー': { role: '前に出て、裏へのボールを処理するGK', mv: ['ふだんから高い位置に立ち、DFラインの裏をカバーする', '裏へのボールには飛び出して、ペナルティエリアの外でも足でクリア', 'DFラインを高く保ちやすくなる'], pr: 'ダッシュ・ジャンプ・視野', how: 'ふだんの練習で「ダッシュ」など、前へ出る練習を多めに（「前へ飛び出すくせ」が強くなると変わる）' },
   };
+  // 版999：タイプガイドの一覧の短い説明・アイコン・図（ピッチを上から見た図。座標は300×180、上がゴール）
+  const TY_SH = { 'バランス': ['なんでもこなす', 'all'], 'スイーパー': ['ラインの後ろを掃除', 'broom'], 'ストッパー': ['前に出てつぶす', 'fist'], 'マンマーカー': ['ぴったり付く', 'link'], 'ラインコントローラー': ['ラインを操る', 'line'], 'ビルドアップ型': ['後ろから組み立てる', 'pass'],
+    'レジスタ': ['低い位置の司令塔', 'baton'], 'ダイナモ': ['上下に走り回る', 'run'], 'ゲームメイカー': ['決定的なパスを出す', 'key'], 'パサー': ['何人も越えるパス', 'pass'], 'ファンタジスタ': ['ひらめきで仕掛ける', 'star'], 'シャドー': ['2列目から飛び出す', 'run'], 'アンカー': ['中盤の底で守る', 'shield'],
+    'ストライカー': ['点を取ることに集中', 'target'], 'アタッカー': ['裏・サイドへ走り込む', 'bolt'], '偽9番': ['下りて組み立てる', 'swap'], 'デコイラン': ['おとりで味方を生かす', 'ghost'], 'ゴールキーパー': ['ゴール前を守る', 'glove'], 'スイーパーキーパー': ['前に出て守る', 'run'] };
+  // 図：own＝上が自分のゴール（守る図）。z＝黄色の範囲 [x,y,w,h]、me＝その選手、mt＝味方、op＝相手、b＝ボール、ar＝矢印 [x1,y1,x2,y2,'s'実線/'d'点線/'p'パス]、cap＝図の下の言葉
+  const TY_DG = {
+    'バランス': { me: [150, 100], ar: [[150, 100, 150, 70, 'd'], [150, 100, 150, 130, 'd'], [150, 100, 115, 100, 'd'], [150, 100, 185, 100, 'd']], cap: '置かれた場所の役目を、まんべんなく' },
+    'ゴールキーパー': { own: 1, z: [108, 10, 84, 18], me: [150, 22], b: [150, 160], ar: [[150, 152, 150, 34, 'p']], cap: 'ゴールラインの近くで構えて止める' },
+    'スイーパーキーパー': { own: 1, z: [80, 40, 140, 42], me: [150, 56], mt: [[95, 92], [130, 92], [170, 92], [205, 92]], op: [[205, 118]], b: [235, 165], ar: [[150, 24, 150, 50, 'd'], [235, 160, 190, 74, 'p'], [150, 56, 182, 74, 's']], cap: '高い位置から、裏へのボールに飛び出す' },
+    'スイーパー': { own: 1, z: [55, 34, 190, 24], me: [165, 48], mt: [[90, 66], [128, 66], [205, 66]], op: [[120, 92]], ar: [[120, 88, 108, 44, 'd'], [165, 48, 116, 42, 's']], cap: 'ラインの後ろで、裏のスペースをカバー' },
+    'ストッパー': { own: 1, me: [150, 70], mt: [[90, 70], [205, 70], [240, 70]], op: [[150, 112]], b: [150, 120], z: [120, 92, 60, 36], ar: [[150, 74, 150, 102, 's']], cap: '前へ出て、相手FWにいちばんに寄せる' },
+    'マンマーカー': { own: 1, me: [128, 72], mt: [[85, 66], [175, 66], [215, 66]], op: [[150, 100]], ar: [[150, 100, 190, 120, 'd'], [128, 76, 176, 112, 's']], tie: [128, 72, 150, 100], cap: '決めた相手に、ぴったり付いて離れない' },
+    'ラインコントローラー': { own: 1, me: [150, 70], mt: [[80, 70], [115, 70], [185, 70], [220, 70]], op: [[135, 82]], ar: [[80, 72, 80, 98, 's'], [115, 72, 115, 98, 's'], [150, 72, 150, 98, 's'], [185, 72, 185, 98, 's'], [220, 72, 220, 98, 's']], z: [60, 92, 180, 10], cap: 'ラインをそろえて押し上げ、オフサイドを取る' },
+    'ビルドアップ型': { own: 1, me: [130, 62], b: [134, 68], mt: [[245, 160], [190, 66]], ar: [[134, 66, 240, 154, 'p'], [130, 66, 130, 100, 'd']], cap: '後ろから長いパスも配り、組み立てる' },
+    'レジスタ': { z: [95, 122, 110, 44], me: [150, 140], b: [154, 146], mt: [[220, 42], [95, 70]], op: [[150, 112], [180, 120]], ar: [[154, 140, 216, 48, 'p'], [150, 140, 98, 76, 'p']], cap: '低い位置で受けて、前へ配る' },
+    'ダイナモ': { me: [150, 120], z: [120, 30, 60, 140], ar: [[150, 114, 150, 42, 'd'], [158, 126, 158, 168, 'd']], cap: '攻めも守りも、長い距離を走る' },
+    'ゲームメイカー': { me: [150, 104], b: [154, 110], op: [[132, 86], [170, 86], [150, 64]], mt: [[205, 78]], ar: [[205, 74, 188, 40, 'd'], [154, 104, 186, 44, 'p']], cap: 'タメを作って、決定的なパスを出す' },
+    'パサー': { me: [150, 120], b: [154, 126], op: [[110, 82], [140, 82], [170, 82], [200, 82]], mt: [[160, 48], [270, 112]], ar: [[154, 118, 160, 54, 'p'], [158, 122, 264, 112, 'p']], cap: '相手を何人も越えるパス、大きな展開' },
+    'ファンタジスタ': { me: [150, 96], b: [156, 100], op: [[150, 72], [125, 64]], ar: [[150, 92, 170, 74, 's'], [170, 74, 160, 46, 's']], z: [130, 30, 60, 40], cap: '狭い所でも仕掛けて、かわしに行く' },
+    'シャドー': { me: [150, 104], mt: [[150, 64]], op: [[110, 52], [140, 52], [170, 52], [200, 52]], z: [110, 14, 80, 34], ar: [[150, 98, 160, 30, 'd']], cap: 'FWの後ろから、ゴール前へ飛び出す' },
+    'アンカー': { me: [150, 142], mt: [[90, 168], [130, 168], [170, 168], [210, 168]], z: [110, 128, 80, 26], op: [[150, 112]], ar: [[150, 138, 150, 118, 's']], cap: 'DFラインの前で、真ん中を守る' },
+    'ストライカー': { z: [110, 14, 80, 36], me: [150, 40], mt: [[262, 66]], op: [[128, 42], [175, 46]], b: [262, 72], ar: [[258, 68, 156, 42, 'p'], [150, 34, 150, 10, 's']], cap: 'ゴール前で待ち、打てる所では迷わず打つ' },
+    'アタッカー': { me: [215, 112], op: [[150, 72], [190, 72], [230, 72]], mt: [[150, 122]], z: [205, 26, 50, 40], ar: [[215, 106, 232, 40, 'd'], [150, 118, 226, 46, 'p']], cap: '裏・サイドのスペースへ走り込む' },
+    '偽9番': { me: [150, 108], op: [[150, 82], [110, 62], [190, 62]], mt: [[205, 98]], z: [130, 40, 40, 30], ar: [[150, 62, 150, 102, 'd'], [150, 66, 150, 78, 's'], [205, 94, 168, 48, 'd']], cap: '下りて受け、相手DFを引き出す' },
+    'デコイラン': { me: [125, 92], op: [[118, 66], [150, 66]], mt: [[195, 96]], z: [165, 46, 60, 40], ar: [[125, 86, 112, 36, 'd'], [118, 62, 112, 44, 's'], [195, 92, 195, 62, 'd']], cap: '裏へ走り続けて、味方のスペースを作る' },
+  };
+  const TY_ICON = { all: 'M12 3l2.6 5.6 6 .8-4.4 4.2 1.1 6-5.3-2.9-5.3 2.9 1.1-6L3.4 9.4l6-.8z', glove: 'M7 21v-7l-2-3 1-1 3 2V5a1 1 0 012 0v5V4a1 1 0 012 0v6V5a1 1 0 012 0v6-3a1 1 0 012 0v8c0 3-2 5-5 5z', run: 'M13 4a2 2 0 110 .1zM9 21l2-6-3-2 1-5 4 1 2 4 3 1M6 12l3-4', broom: 'M4 20l8-8M12 12l3-8 5 5-8 3zM4 20l3 1', fist: 'M6 10h12v6a4 4 0 01-4 4h-4a4 4 0 01-4-4zM8 10V6M12 10V5M16 10V6', link: 'M9 15l6-6M7 12l-2 2a3 3 0 004 4l2-2M17 12l2-2a3 3 0 00-4-4l-2 2', line: 'M3 12h18M6 8v8M12 8v8M18 8v8', pass: 'M4 18c4-10 10-12 16-12M16 3l4 3-4 3', baton: 'M5 19L19 5M15 5h4v4', key: 'M8 15a4 4 0 110-.1zM11 12l9-9M17 6l2 2', star: 'M12 2l3 7h7l-6 4 3 8-7-5-7 5 3-8-6-4h7z', shield: 'M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6z', target: 'M12 12a1 1 0 110-.1zM12 12a5 5 0 110-.1zM12 12a9 9 0 110-.1z', bolt: 'M13 2L4 14h7l-1 8 9-12h-7z', swap: 'M7 4v14M3 14l4 4 4-4M17 20V6M13 10l4-4 4 4', ghost: 'M6 20V10a6 6 0 0112 0v10l-3-2-3 2-3-2zM10 11a1 1 0 110-.1M14 11a1 1 0 110-.1' };
+  function tyDiagram(t) {
+    const g = TY_DG[t] || TY_DG['バランス'], own = !!g.own, POSCOL = { GK: '#f0c419', DF: '#e04a4a', MF: '#f0a020', FW: '#2f7bf2' };
+    const lines = '<rect x="0" y="0" width="300" height="180" fill="url(#tyg-grass)"/><g fill="none" stroke="#fff" stroke-width="2" opacity=".9"><rect x="4" y="4" width="292" height="200"/><rect x="72" y="4" width="156" height="60"/><rect x="114" y="4" width="72" height="24"/><path d="M118 64a32 22 0 0064 0"/><circle cx="150" cy="190" r="34"/></g><rect x="126" y="-2" width="48" height="8" fill="#fff" opacity=".85"/><circle cx="150" cy="46" r="2" fill="#fff"/>';
+    const zone = g.z ? `<rect x="${g.z[0]}" y="${g.z[1]}" width="${g.z[2]}" height="${g.z[3]}" rx="6" fill="#ffd84a" opacity=".55" stroke="#ffcf1a" stroke-width="2"/>` : '';
+    const arr = (g.ar || []).map(([x1, y1, x2, y2, s]) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${s === 'p' ? '#ffffff' : s === 'd' ? '#fff27a' : '#ffffff'}" stroke-width="${s === 'p' ? 2.5 : 3}" ${s === 'd' ? 'stroke-dasharray="6 5"' : s === 'p' ? 'stroke-dasharray="2 4" stroke-linecap="round"' : ''} marker-end="url(#tyg-ah${s === 'd' ? 'y' : ''})"/>`).join('');
+    const tie = g.tie ? `<line x1="${g.tie[0]}" y1="${g.tie[1]}" x2="${g.tie[2]}" y2="${g.tie[3]}" stroke="#fff27a" stroke-width="2" stroke-dasharray="1 4" stroke-linecap="round"/>` : '';
+    const dot = (x, y, col, me) => `<g><circle cx="${x}" cy="${y + 2}" r="${me ? 9 : 7}" fill="rgba(0,0,0,.25)"/><circle cx="${x}" cy="${y}" r="${me ? 9 : 7}" fill="${col}" stroke="#fff" stroke-width="${me ? 3 : 2}"/></g>`;
+    const pos = TYPE_POS_OF(t), meCol = POSCOL[pos] || '#2f7bf2';
+    const mates = (g.mt || []).map(([x, y]) => dot(x, y, '#5b8fe0', false)).join(''), opps = (g.op || []).map(([x, y]) => dot(x, y, '#3a3a44', false)).join('');
+    const ball = g.b ? `<circle cx="${g.b[0]}" cy="${g.b[1]}" r="5" fill="#fff" stroke="#222" stroke-width="1.5"/><circle cx="${g.b[0]}" cy="${g.b[1]}" r="1.8" fill="#222"/>` : '';
+    return `<svg class="tyg-svg" viewBox="0 0 300 180"><defs><pattern id="tyg-grass" width="300" height="30" patternUnits="userSpaceOnUse"><rect width="300" height="15" fill="#3fa34d"/><rect y="15" width="300" height="15" fill="#379746"/></pattern><marker id="tyg-ah" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5 0 10z" fill="#fff"/></marker><marker id="tyg-ahy" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5 0 10z" fill="#fff27a"/></marker></defs>${lines}${zone}${tie}${opps}${mates}${arr}${ball}${dot(g.me[0], g.me[1], meCol, true)}</svg><div class="tyg-cap">${esc(g.cap)}</div><div class="tyg-leg">${own ? '上＝自分のゴール' : '上＝相手のゴール'}　<i class="lg me" style="background:${meCol}"></i>この選手 <i class="lg mt"></i>味方 <i class="lg op"></i>相手　<span class="lg-d">┅</span>走る <span class="lg-p">⋯</span>パス</div>`;
+  }
+  const TY_HK = [['support', 'ボールに寄って受ける'], ['overlap', '攻め上がる'], ['run_space', '裏・スペースへ走る'], ['goal_wait', 'ゴール前で待つ'], ['zone_man', '人に付く（低いと場所で守る）'], ['press', 'プレスの強さ']];
   const TYPE_ORDER = { DF: ['スイーパー', 'ストッパー', 'マンマーカー', 'ラインコントローラー', 'ビルドアップ型'], MF: ['レジスタ', 'ダイナモ', 'ゲームメイカー', 'パサー', 'ファンタジスタ', 'シャドー', 'アンカー'], FW: ['ストライカー', 'アタッカー', '偽9番', 'デコイラン'], GK: ['ゴールキーパー', 'スイーパーキーパー'] };
-  async function showTypeInfo(t, pos) {
-    t = t || 'バランス'; const inf = TYPE_INFO[t] || [t, [], ''];
-    const list = (TYPE_ORDER[pos] || []).map((k) => `<li class="${k === t ? 'on' : ''}"><span data-ty="${esc(k)}" data-pos="${esc(pos)}" class="tbadge ${TYPE_CLS[k] || 'ty-bal'}" style="--tl:${k.length}">${esc(k)}</span>${esc((TYPE_INFO[k] || [''])[0])}</li>`).join('');
-    const html = `<div class="ty-info"><h2><span class="tbadge ${TYPE_CLS[t] || 'ty-bal'}" style="--tl:${t.length}">${esc(t)}</span></h2>
-      <p class="ty-role">${esc(inf[0])}</p><ul class="ty-mv">${inf[1].map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
-      <p class="ty-how"><b>なり方</b>${esc(inf[2])}</p>
-      ${t === 'バランス' ? '' : `<p class="ty-note">最初はみんな「バランス」。特訓で動きのくせ（裏の能力）が変わり、いちばん近いタイプに変わります。国内屈指の選手のタイプは変わりません。</p>`}
-      ${list ? `<h4>${esc(pos)}のタイプ</h4><ul class="ty-list">${list}</ul>` : ''}</div>`;
-    const m = $('#crModal'); const z = m.style.zIndex; m.style.zIndex = 90;
-    await modal(html, [{ label: '閉じる', value: 0 }]); m.style.zIndex = z;
+  const TYPE_POS_OF = (t) => Object.keys(TYPE_ORDER).find((p) => TYPE_ORDER[p].includes(t)) || '';
+  // 版999：選手タイプガイド（全19タイプ）：上にポジションのタブ、左にタイプの一覧、右に図と説明
+  function showTypeInfo(t, pos) {
+    t = t || 'バランス'; pos = pos || TYPE_POS_OF(t) || 'FW'; if (pos === 'GK' && t === 'バランス') t = 'ゴールキーパー';
+    let el = document.getElementById('tyGuide');
+    if (!el) { el = document.createElement('div'); el.id = 'tyGuide'; el.className = 'tyg-wrap'; document.getElementById('app').appendChild(el);
+      const fit = () => { const box = el.querySelector('.tyg-box'); if (!box) return; const ap = document.getElementById('app'); const k = Math.min(ap.clientWidth / 1080, ap.clientHeight / 600); box.style.transform = `translate(-50%,-50%) scale(${k.toFixed(4)})`; };
+      el.__fit = fit; addEventListener('resize', () => { if (!el.hidden) fit(); }); }
+    const total = Object.keys(TYPE_INFO).length;
+    const draw = () => {
+      const types = (pos === 'GK' ? [] : ['バランス']).concat(TYPE_ORDER[pos] || []);
+      if (!types.includes(t)) t = types[0];
+      const inf = TYPE_INFO[t] || { role: t, mv: [], pr: '', how: '' }, ps = (D.PASSIVE || {})[t];
+      const hd = (D.TYPE_HIDDEN || {})[t] || {}, gkT = pos === 'GK', dfT = pos === 'DF' || 'zone_man' in hd || 'press' in hd;
+      const keys = TY_HK.filter(([k]) => gkT ? (k === 'run_space' || k === 'goal_wait') : (k === 'zone_man' || k === 'press') ? dfT : true);
+      const bars = keys.map(([k, nm]) => { const v = hd[k] != null ? hd[k] : 50, w = k === 'zone_man' ? Math.round((v + 100) / 2) : Math.max(0, Math.min(100, v)), lv = w >= 70 ? '強い' : w >= 45 ? 'ふつう' : '弱い'; return `<div class="ty-bar"><span>${esc(gkT && k === 'run_space' ? '前へ飛び出す' : gkT && k === 'goal_wait' ? 'ゴール前に残る' : nm)}</span><i><b style="width:${w}%"></b></i><em>${lv}</em></div>`; }).join('');
+      const ico = (k) => `<svg viewBox="0 0 24 24"><path d="${TY_ICON[k] || TY_ICON.all}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+      el.innerHTML = `<div class="tyg-box">
+        <div class="tyg-head"><b class="tyg-logo">⚽ ドットサッカー</b><i class="tyg-sep"></i><h2>選手タイプガイド</h2><span class="tyg-n">全${total}タイプ</span><button class="tyg-x" aria-label="閉じる">✕</button></div>
+        <div class="tyg-tabs">${['FW', 'MF', 'DF', 'GK'].map((p) => `<button data-p="${p}" class="${p === pos ? 'on' : ''}">${p}</button>`).join('')}</div>
+        <div class="tyg-body">
+          <div class="tyg-list"><h3>${esc(pos)}のタイプ</h3>${types.map((k) => `<button class="tyg-it${k === t ? ' on' : ''}" data-t="${esc(k)}"><span class="tyg-ic">${ico((TY_SH[k] || [])[1])}</span><span class="tyg-nm"><b>${esc(k)}</b><small>${esc((TY_SH[k] || [''])[0])}</small></span></button>`).join('')}</div>
+          <div class="tyg-main">
+            <div class="tyg-title"><span class="tyg-pos p-${pos.toLowerCase()}">${t === 'バランス' ? '全' : esc(pos)}</span><h3>${esc(t)}</h3></div>
+            <p class="tyg-role">${esc(inf.role)}</p>
+            <div class="tyg-grid">
+              <div class="tyg-fig">${tyDiagram(t)}<h4>動きのくせ（裏の能力）</h4><div class="ty-bars">${bars}</div></div>
+              <div class="tyg-cards">
+                <div class="tyg-card"><h4>プレーの特徴</h4><ul>${inf.mv.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>
+                <div class="tyg-card"><h4>大事な能力</h4><p>${esc(inf.pr)}</p></div>
+                ${ps ? `<div class="tyg-card"><h4>サポート効果「${esc(ps.name)}」</h4><p>${esc(ps.what)}<small>（☆と凸で付く・強くなる）</small></p></div>` : ''}
+                <div class="tyg-card"><h4>なり方</h4><p>${esc(inf.how)}</p></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="tyg-foot"><div class="tyg-fl"><b>タイプの変化について</b><span>最初は「バランス」からスタート</span></div><p>特訓で動きのくせ（裏の能力）が変わり、いちばん近いタイプへ変わります。国内屈指の選手のタイプは変わりません。</p><button class="tyg-close">閉じる</button></div>
+      </div>`;
+      el.hidden = false; el.__fit();
+      el.querySelectorAll('.tyg-tabs button').forEach((b) => b.onclick = () => { pos = b.dataset.p; t = null; draw(); });
+      el.querySelectorAll('.tyg-it').forEach((b) => b.onclick = () => { t = b.dataset.t; draw(); });
+      const close = () => { el.hidden = true; el.innerHTML = ''; };
+      el.querySelector('.tyg-x').onclick = close; el.querySelector('.tyg-close').onclick = close;
+    };
+    draw();
   }
   document.addEventListener('click', (e) => { let b = e.target.closest && e.target.closest('.tbadge[data-ty], .ty-q'); if (b && b.classList.contains('ty-q')) b = b.parentElement.querySelector('.tbadge[data-ty]'); if (!b) return; e.stopPropagation(); showTypeInfo(b.dataset.ty, b.dataset.pos); }, true);
   const typeBadge = (t, cls) => `<span class="tbadge ${TYPE_CLS[t] || 'ty-bal'} ${cls || ''}" style="--tl:${String(t || '').length || 1}">${esc(t)}</span>`;   // 版700：--tl＝文字数（長いタイプ名は文字を小さく）
@@ -1001,8 +1077,8 @@
   // ================= 選手データ（カルチョビットAの一覧表のように、詰めて見やすく） =================
   function renderData() {
     const head = D.PARAMS.map((q) => `<th title="${q.name}" class="th-ico">${ico(q.k)}</th>`).join('');
-    const rows = save.team.players.map((p, i) => { C.ensurePts(p); return `<tr data-i="${i}" class="${i >= 11 ? 'sub' : ''}"><td><span class="pos ${POSC[p.position]}">${p.position}</span></td><td class="no">${p.number}</td><td class="s-nm">${esc(p.name)}${starHTML(C.ensureStar(p), p.totsu, 'sm')}</td><td><i class="cdot ${condDot(p)}"><em class="cdn">${Math.round(p.fatigue || 0)}</em></i></td>${D.PARAMS.map((q) => { const ri = C.rankInfo(p.pts[q.k]); return `<td class="gd" title="${q.name} ${Math.floor(p.pts[q.k])}（次のランクまであと${Math.max(0, Math.ceil(ri.next - p.pts[q.k]))}）"><b class="rk rk-${ri.g}">${ri.g}</b></td>`; }).join('')}<td>${typeBadge(p.type)}</td><td>${condGauge(p, 'sm')}</td></tr>`; }).join('');
-    $('#clubLayer').innerHTML = `<div class="dpanel dp2"><h2><img class="emb" src="${emblemURL(save.team.name, 48)}" alt="">${esc(save.team.name)}　［${lgBadge(save.league.id)}］</h2><div class="dscroll"><table class="dtbl dtbl2"><thead><tr><th>Pos.</th><th>No.</th><th colspan="2">所属選手</th>${head}<th>タイプ</th><th>調子</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+    const rows = save.team.players.map((p, i) => { C.ensurePts(p); return `<tr data-i="${i}" class="${i >= 11 ? 'sub' : ''}"><td><span class="pos ${POSC[p.position]}">${p.position}</span></td><td class="no">${p.number}</td><td class="s-nm">${esc(p.name)}${starHTML(C.ensureStar(p), p.totsu, 'sm')}</td><td><i class="cdot ${condDot(p)}"><em class="cdn">${Math.round(p.fatigue || 0)}</em></i></td>${D.PARAMS.map((q) => { const ri = C.rankInfo(p.pts[q.k]); return `<td class="gd" title="${q.name} ${Math.floor(p.pts[q.k])}（次のランクまであと${Math.max(0, Math.ceil(ri.next - p.pts[q.k]))}）"><b class="rk rk-${ri.g}">${ri.g}</b></td>`; }).join('')}<td>${typeBadge(p.type)}</td></tr>`; }).join('');   // 版999：調子の列はなくした（疲労度は名前の右の丸）
+    $('#clubLayer').innerHTML = `<div class="dpanel dp2"><h2><img class="emb" src="${emblemURL(save.team.name, 48)}" alt="">${esc(save.team.name)}　［${lgBadge(save.league.id)}］</h2><div class="dscroll"><table class="dtbl dtbl2"><thead><tr><th>Pos.</th><th>No.</th><th>所属選手</th><th>疲労度</th>${head}<th>タイプ</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
     $('#clubLayer').querySelectorAll('tr[data-i]').forEach((tr) => tr.onclick = () => playerDetail(+tr.dataset.i, { club: true }));
   }
   // ================= 選手カード（カルチョビットAの選手カードに寄せる）：タップでページ切り替え・◀▶で前後の選手 =================
