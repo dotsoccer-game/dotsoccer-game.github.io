@@ -8,16 +8,18 @@
   function ctx() {
     if (AC) return AC;
     const C = window.AudioContext || window.webkitAudioContext; if (!C) return null;
-    // 版1004：画面録画で「ブブブ」という雑音になる件。原因を実機で絞るため、音の出し方を4通りから選べるようにする（設定の「録画用の音」）
-    //   0 標準 ／ 1 48kHzで作る ／ 2 audio要素を通して鳴らす（動画の音と同じ扱いにする） ／ 3 再生モード（音の種類を「再生」にする）
+    // 版1005：画面録画中は、端末が一度に1024個分の音をまとめて要求するのに、こちらは少ししか渡せず、残りが無音になって「ブブブ」と鳴っていた（録画を解析：21msごとに4msだけ音・残り無音）
+    //   音を作る単位を大きくする（latencyHint）と合うかを実機で試す。設定の「録画用の音」で切り替え
+    //   0 標準 ／ 1 大きめ（playback） ／ 2 さらに大きめ（0.2秒） ／ 3 大きめ＋再生モード
     const rm = pref.rec | 0;
     try { if (navigator.audioSession) navigator.audioSession.type = rm === 3 ? 'playback' : 'auto'; } catch (_) {}
-    try { AC = rm === 1 ? new C({ sampleRate: 48000 }) : new C(); } catch (_) { AC = new C(); }
+    const lh = rm === 1 || rm === 3 ? 'playback' : rm === 2 ? 0.2 : null;
+    try { AC = lh != null ? new C({ latencyHint: lh }) : new C(); } catch (_) { AC = new C(); }
     AC.onstatechange = () => { if (!AC) return; if (AC.state === 'interrupted') needRebuild = true; else if (AC.state === 'running') setTimeout(() => { if (AC && AC.state === 'running' && want && !cur) bgm(want); }, 0); };   // 版560：電話・画面収録などで音が止められた
     // 版728：全体の音を大きく（約1.8倍）。大きい音が割れないように、最後に「リミッター」を通す
     master = AC.createGain(); master.gain.value = pref.vol * BOOST;
     let out = AC.destination;
-    if (rm === 2 && AC.createMediaStreamDestination) { try { const md = AC.createMediaStreamDestination(); if (!recEl) { recEl = document.createElement('audio'); recEl.setAttribute('playsinline', ''); recEl.autoplay = true; recEl.style.display = 'none'; document.body.appendChild(recEl); } recEl.srcObject = md.stream; out = md; } catch (_) { out = AC.destination; } }
+    if (rm === 99 && AC.createMediaStreamDestination) { try { const md = AC.createMediaStreamDestination(); if (!recEl) { recEl = document.createElement('audio'); recEl.setAttribute('playsinline', ''); recEl.autoplay = true; recEl.style.display = 'none'; document.body.appendChild(recEl); } recEl.srcObject = md.stream; out = md; } catch (_) { out = AC.destination; } }
     else if (recEl) { try { recEl.pause(); recEl.srcObject = null; } catch (_) {} }
     try { const lim = AC.createDynamicsCompressor(); lim.threshold.value = -8; lim.knee.value = 6; lim.ratio.value = 12; lim.attack.value = 0.003; lim.release.value = 0.25; master.connect(lim); lim.connect(out); } catch (_) { master.connect(out); }
     sfxG = AC.createGain(); sfxG.gain.value = pref.sfx ? 1 : 0; sfxG.connect(master);
@@ -456,7 +458,7 @@
     if (k === 'vol') master.gain.value = v * BOOST;
     if (k === 'rec' && AC) { needRebuild = true; rebuild(); unlock(); }
   }
-  window.DotSound = { get info() { return AC ? { sr: AC.sampleRate, st: AC.state } : null; }, play, bgm, bgmIn, crowd, goal, excite, chant, set, __render, get __bufs() { return { PRE, FILE }; }, get state() { return { bgm: cur, want, crowd: crowdMix ? +crowdMix.gain.value.toFixed(2) : 0, hp: crowdHp ? Math.round(crowdHp.frequency.value) : 0, pre: Object.keys(PRE).join(',') }; }, get pref() { return { ...pref }; } };
+  window.DotSound = { get info() { return AC ? { sr: AC.sampleRate, st: AC.state, bl: Math.round((AC.baseLatency || 0) * 1000), ol: Math.round((AC.outputLatency || 0) * 1000) } : null; }, play, bgm, bgmIn, crowd, goal, excite, chant, set, __render, get __bufs() { return { PRE, FILE }; }, get state() { return { bgm: cur, want, crowd: crowdMix ? +crowdMix.gain.value.toFixed(2) : 0, hp: crowdHp ? Math.round(crowdHp.frequency.value) : 0, pre: Object.keys(PRE).join(',') }; }, get pref() { return { ...pref }; } };
 })();
 // ボタンを押した時の音（戻るボタンは別の音）
 document.addEventListener('click', (e) => {

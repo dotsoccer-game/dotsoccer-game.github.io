@@ -5339,7 +5339,7 @@
   // 版892：設定「新しい動き（試作）」：ONにすると、この端末の試合（育成モード・フリー試合）が新しい動きになる
   const nmLabel = () => { const b = $('#mNm'); if (!b) return; const on = !!globalThis.__newMove; b.classList.toggle('on', on); const em = b.querySelector('.st-sw em'); if (em) em.textContent = on ? 'ON' : 'OFF'; };
   nmLabel();
-  const sndLabel = () => { const P = window.DotSound ? DotSound.pref : { sfx: true, bgm: true }; for (const [id, on] of [['#mSfx', P.sfx], ['#mBgm', P.bgm]]) { const b = $(id); if (!b) continue; b.classList.toggle('on', !!on); const em = b.querySelector('.st-sw em'); if (em) em.textContent = on ? 'ON' : 'OFF'; }  const rb = $('#mRec'); if (rb && window.DotSound) { const RN = ['標準', '48kHz', 'audio要素', '再生モード'], inf = DotSound.info; rb.querySelector('em').textContent = RN[DotSound.pref.rec | 0] + (inf ? ` ${inf.sr}` : ''); } };   // 版679：スイッチの見た目
+  const sndLabel = () => { const P = window.DotSound ? DotSound.pref : { sfx: true, bgm: true }; for (const [id, on] of [['#mSfx', P.sfx], ['#mBgm', P.bgm]]) { const b = $(id); if (!b) continue; b.classList.toggle('on', !!on); const em = b.querySelector('.st-sw em'); if (em) em.textContent = on ? 'ON' : 'OFF'; }  const rb = $('#mRec'); if (rb && window.DotSound) { const RN = ['標準', '大きめ', 'さらに大きめ', '大きめ＋再生'], inf = DotSound.info; rb.querySelector('em').textContent = RN[DotSound.pref.rec | 0] + (inf ? ` ${inf.sr / 1000}k ${inf.bl}ms` : ''); } };   // 版679：スイッチの見た目
   // 版678：アカウントID（＝フレンドID・8けた）を設定に出す。テスト用のボタンは、開発用のアカウントだけに出す
   const DEV_IDS = ['11111111', '99995139', '84539075'];   // ここに開発用のアカウントID（8けた）を入れる
   let acctFid = null;
