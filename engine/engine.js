@@ -649,7 +649,10 @@
     // 版851：所属リーグでも変わる（下のリーグほど弱い）。リーグ戦・カップ戦など、両チームのリーグが分かる試合だけ（対人戦などは満点）
     const LG_UF = UNIQ_LG;
     const uLgF = (p) => { const a = T[p.team] && T[p.team].lgId, b = T[1 - p.team] && T[1 - p.team].lgId; return a && b ? LG_UF[a] ?? 1 : 1; };
-    const uEF = (p) => clamp((uOvr(p) - 50) / 30, 0.15, 1), uEK = (p) => (0.4 + 0.6 * uEF(p)) * uLgF(p);
+    // 版1015：国内屈指が何人も同時に出ていると、1人1人の固有スキルは少し控えめになる（4人までは満額。11人そろえると約6割）。全員を国内屈指でそろえると、格上にも一度も負けないほど強すぎた
+    const uCrC = [{ t: -1, v: 1 }, { t: -1, v: 1 }];
+    const uCrowd = (t) => { const c = uCrC[t]; if (S.t - c.t < 1) return c.v; const n = P.filter((q) => q.team === t && q.uniq && !q.off).length; c.t = S.t; c.v = (globalThis.__Kucr ?? 1) ? Math.min(1, Math.sqrt((globalThis.__Kucr1 ?? 4) / Math.max(1, n))) : 1; return c.v; };
+    const uEF = (p) => clamp((uOvr(p) - 50) / 30, 0.15, 1), uEK = (p) => (0.4 + 0.6 * uEF(p)) * uLgF(p) * uCrowd(p.team);
     const uP = (p) => (p.uniqLv >= 2 ? 1.3 : 1) * uEK(p);   // 凸で強化：効果が1.3倍
     const grF = (p) => uEK(p) * clamp(((p.kick || 0) * 0.5 + (p.technique || 0) * 0.3 + (p.mental || 0) * 0.2 - 45) / 45, 0.25, 1.15);   // 版665：紅蓮の牙の強さは、本人のシュート力（キック・テクニック・メンタル）に連動。スカウト直後（60台）は4割ほど、国内屈指（90前後）で満額
     // GKの固有スキル（白亜の城壁・捨て身の守護神）の止める力の上乗せは、本人のセービング力に連動（CPUの国内屈指＝満額、手に入れた直後のE〜D＝2〜3割、99まで育てると満額を超える）
@@ -670,7 +673,7 @@
       if (k === 'sakurajima') { const o = ownerP(); if (o && o.team !== p.team && !o.gk) { const xs = T[p.team].players.filter((m) => !m.off).map((m) => fx(o.team, m.x)).sort((a, c) => c - a); if (fx(o.team, o.x) > xs[1] - 1.5) return false; } }   // 桜島の号令：ボールを持った相手がもう最終ラインを越えている（GKと1対1）なら、号令をかけても意味がない
       if (k === 'miyabi') { const r = miyabiTarget(p), own0 = ownerP(); if ((own0 && own0.team === p.team) || !r) return false; const dr = hyp(r.x - p.x, r.y - p.y); if (dr > 25) return false; if (dr > 14 && T[p.team].players.filter((m) => m !== p && !m.gk && !m.off && hyp(r.x - m.x, r.y - m.y) < dr).length >= 3) return false; }   // 雅の後始末：守備の時だけ。奪いに行ける距離・近い順で2番目までの時だけ（持ち場を捨てて遠くへは行かない）   // 雅の後始末：守備の時だけ。遠すぎる所へは行かない（近くの味方に任せる）
       const u = UNIQ[k], lv2 = p.uniqLv >= 2;
-      if (R.next() > Math.min(1, u.ch * (chMul ?? 1) * (lv2 ? 1.25 : 1) * (0.5 + 0.5 * uEF(p)) * Math.sqrt(uLgF(p)))) {   /* 版850：総合力が低いほど発動しにくい（版851：下のリーグほど） */ p.uCd = S.t + 1.5; return false; }
+      if (R.next() > Math.min(1, u.ch * (chMul ?? 1) * (lv2 ? 1.25 : 1) * (0.5 + 0.5 * uEF(p)) * Math.sqrt(uLgF(p)) * uCrowd(p.team))) {   /* 版850：総合力が低いほど発動しにくい（版851：下のリーグほど） */ p.uCd = S.t + 1.5; return false; }
       p.uOn = S.t + u.dur * (lv2 ? 1.25 : 1); p.uCd = p.uOn + (lv2 && u.cd2 != null ? u.cd2 : u.cd * (lv2 ? 0.8 : 1)) * (k === 'kage' && (globalThis.__Ku22 ?? 1) ? 0.7 : 1) * (k === 'byakuya' && (globalThis.__Kby4 ?? 1) ? 0.7 : 1) * (k === 'harinoana' && (globalThis.__Khr3 ?? 1) ? 0.75 : 1);   /* 版986：白夜の視界のロングフィードをもう少し多く */   /* 版922：影の一刺しは間隔を短く */
       if (k === 'midori' && (T[p.team].mdStack || 0) < 3) p.uCd = p.uOn + 4;   /* 版468：積み重ねが4回になるまでは、間隔を短く */
       if (!(k === 'kinshachi' && p.ksShownT && S.t - p.ksShownT < 60)) { p.ksShownT = k === 'kinshachi' ? S.t : p.ksShownT; act(p, 'uniq', 2.2, { k, lv: p.uniqLv || 1 }); } /* 金鯱の心臓は何度も出るので、吹き出しは1分に1回だけ */ ev('uniq', { team: p.team, player: p.name, number: p.number, k, name: u.name, lv: p.uniqLv || 1, face: u.face, gk: p.gk ? 1 : 0 });
@@ -5369,7 +5372,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       if (p.gk && !p.hold && !S.setPiece && !S.restart && S.ball.owner === p.idx && gkFeet(p)) return;   // 版863：足もとのボール（バックパス）：GKもビルドアップに加わる
       if (!p.gk && !S.setPiece && S.ball.owner === p.idx && S.ball.z > 0.15) { S.decision = 0.05; return; }   // 版812：胸・ももで止めたボールが足もとに落ちてくるまでは、蹴らない（頭の上から真っすぐ飛んでいた。ワンタッチで打つ時も、落ちてから）
       if (S.forceShot != null) { const a = S.forceShot, h = S.forceHow; S.forceShot = null; S.forceHow = null; shoot(p, a, h); return; }
-      const uqOld = (globalThis.__Kuq ?? 1) && (p.uniq || (p.hariT || 0) > S.t || (p.byT || 0) > S.t || (p.finT || 0) > S.t || (p.uzDrive && p.uzDrive.until > S.t) || (p.mdFree || 0) > S.t || (p.mdDrive || 0) > S.t || (p.mtCounter || 0) > S.t || (p.tsukiGuard || 0) > S.t || (p.aoFast || 0) > S.t);   // 版914：固有スキルを持つ選手と、固有スキルの効果を受けている選手は、固有スキルの判断が入っている判断（版907まで）を使う（新しい判断には固有スキルの判断がなく、出なかった。設計一覧18章）
+      const uqOld = (globalThis.__Kuq ?? 1) && (p.uniq || p.lgcyTest || (p.hariT || 0) > S.t || (p.byT || 0) > S.t || (p.finT || 0) > S.t || (p.uzDrive && p.uzDrive.until > S.t) || (p.mdFree || 0) > S.t || (p.mdDrive || 0) > S.t || (p.mtCounter || 0) > S.t || (p.tsukiGuard || 0) > S.t || (p.aoFast || 0) > S.t);   // 版914：固有スキルを持つ選手と、固有スキルの効果を受けている選手は、固有スキルの判断が入っている判断（版907まで）を使う（新しい判断には固有スキルの判断がなく、出なかった。設計一覧18章）
       if (brainOn() && (globalThis.__bAtk ?? 1) && !uqOld && !p.gk && !S.setPiece && !S.restart && S.ball.owner === p.idx) {   // 版902：原理原則から作り直した判断
         if (emptyGoal(p)) { shoot(p, null, null); return; }
         if (S.mustClear && S.mustClear.i === p.idx && S.t - S.mustClear.t < 1.5) { S.mustClear = null; const [ax, ay] = clearAim(p, clamp(p.x + sgn(p.team) * R.range(20, 34), 2, L - 2), p.y < GOAL_Y ? R.range(-4, 10) : W - R.range(-4, 10)); kick(p, ax, ay, 'pass', 'clear', { landFrac: R.range(0.8, 1.0) }); S.ball.intended = -1; S.ball.offside = false; S.ball.kind = 'loose'; return; }
@@ -6860,30 +6863,31 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
     function postHit() {
       const b = S.ball;
       if (b.px == null) return;
-      if (b.postIn != null && S.t - b.postIn < 0.6) return;   // 版1013：ポストの内側に当たって中へ向かった直後は、もう一度当たり判定しない
+      if (b.postIn != null && S.t - b.postIn < 0.4) return;   // 版1013：ポストに当たった直後は、もう一度当たり判定しない
       for (const gx of [0, L]) {
         if ((b.px - gx) * (b.x - gx) > 0 || b.px === gx) continue;
         const u = (gx - b.px) / ((b.x - b.px) || 1e-6), yc = b.py + (b.y - b.py) * u, zc = b.pz != null ? b.pz + (b.z - b.pz) * u : b.z;
         const inward = b.px < gx ? -1 : 1;   // ピッチ側の向き
         const r = 0.11 + 0.06;               // ポストの太さ＋ボール
         for (const py of [GOAL_Y - POST, GOAL_Y + POST]) {
-          if (Math.abs(yc - py) < r + 0.05 && zc < BAR + r) {
-            const side = Math.sign(yc - py) || (R.next() < 0.5 ? 1 : -1);
-            const sp = hyp(b.vx, b.vy);
-            // 版1013：ポストの内側（ゴールの中心側）に当たった球は、向きを変えてゴールの中へ（ポストに当たって入るゴール）。外側・正面は跳ね返る
-            const offIn = side === Math.sign(GOAL_Y - py) ? Math.abs(yc - py) / r : 0;
-            if ((globalThis.__Kpin ?? 1) && offIn > (globalThis.__Kpin1 ?? 0.35) && R.next() < 0.25 + 0.55 * offIn) {
-              b.x = gx + inward * 0.03; b.y = py + side * (r + 0.09);
-              const turn = R.range(0.75, 1.1);   // 中へ大きく向きを変える（当たったのがはっきり分かるように）
-              const vIn = sp * R.range(0.55, 0.75); b.vx = -inward * vIn * Math.cos(turn); b.vy = side * vIn * Math.sin(turn); if (b.vz) b.vz *= 0.6;
-              b.curveAll = false; b.spin = 0; b.knuckle = false; b.postT = S.t; b.postIn = S.t;
-              ev('post', { team: b.lastTeam, sp: +hyp(sp, b.vz || 0).toFixed(1), into: true });
-              return;
-            }
-            b.x = gx + inward * 0.05; b.y = py + side * (r + 0.02);
-            b.vx = inward * Math.abs(b.vx) * R.range(0.3, 0.6); b.vy = side * sp * R.range(0.25, 0.5) + b.vy * 0.3;
-            b.kind = 'loose'; b.curveAll = false; b.spin = 0; b.knuckle = false; b.postT = S.t;
-            ev('post', { team: b.lastTeam, sp: +hyp(sp, b.vz || 0).toFixed(1) });
+          if (Math.abs(yc - py) < r && zc < BAR + r) {
+            // 版1015：ポストは丸い柱。当たった所の向き（柱の中心→ボール）で、物理的に跳ね返す（内側に当たればゴールの中へ、外側なら外へ、正面ならピッチへ）。角度がはっきり変わる
+            const sp = hyp(b.vx, b.vy) || 1e-6, dx = b.vx / sp, dy = b.vy / sp, wy = yc - py;
+            const wd = wy * dy, disc = wd * wd - wy * wy + r * r;
+            const s0 = disc > 0 ? -wd - Math.sqrt(disc) : 0;   // 柱にふれた瞬間（線を越える少し手前）
+            let cx = gx + dx * s0, cy = yc + dy * s0; let nx = cx - gx, ny = cy - py; const nl = hyp(nx, ny) || 1; nx /= nl; ny /= nl;
+            { const ja = R.range(-0.1, 0.1), c0 = Math.cos(ja), s1 = Math.sin(ja); const tx0 = nx * c0 - ny * s1; ny = nx * s1 + ny * c0; nx = tx0; }   // 少しだけばらつく
+            let vn = b.vx * nx + b.vy * ny;
+            if (vn > -0.3 * sp && R.next() < 0.4) continue;   // かすっただけ（ほぼ真横に当たる）：そのまま通り過ぎることもある
+            vn = Math.min(vn, -(globalThis.__Kpst ?? 0.45) * sp);   // 当たったら、向きがはっきり変わる（物理的にも、柱に当たれば大きく曲がる）
+            if (vn < 0) { const e = R.range(0.5, 0.7), tvx = b.vx - vn * nx, tvy = b.vy - vn * ny; b.vx = tvx * 0.8 - e * vn * nx; b.vy = tvy * 0.8 - e * vn * ny; }
+            if (b.vz) b.vz *= 0.7;
+            b.x = gx + inward * Math.max(0.03, Math.abs(nx) * (r + 0.03)); b.y = py + ny * (r + 0.03); b.px = b.x; b.py = b.y; if (b.z != null) b.pz = b.z;   // いつもピッチ側に置き直す（次の動きでゴールラインを越えるかで判定）
+            b.curveAll = false; b.spin = 0; b.knuckle = false; b.postT = S.t; b.postIn = S.t;
+            const intoG = (globalThis.__Kpin ?? 1) && b.vx * inward < 0 && (() => { const t1 = Math.abs((gx - b.x) / (b.vx || 1e-6)); const y1 = b.y + b.vy * t1; return Math.abs(y1 - GOAL_Y) < POST - 0.05; })();
+            if (globalThis.__postLog) globalThis.__postLog.push({ a0: Math.atan2(dy, dx), a1: Math.atan2(b.vy, b.vx), into: intoG, sp });
+            if (!intoG) b.kind = 'loose';
+            ev('post', { team: b.lastTeam, sp: +hyp(sp, b.vz || 0).toFixed(1), into: intoG || undefined });
             return;
           }
         }
