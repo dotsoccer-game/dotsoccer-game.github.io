@@ -1557,12 +1557,21 @@
       const own = ownerP(); if (!own || own.gk) return;
       const t = 1 - own.team, oxf = fx(t, own.x), fr = (globalThis.__Kfear ?? 1) ? (T[t].fear || 0) : 0, dpx = (globalThis.__Kdpp ?? 1) && T[t].attitude === 'defensive' ? 12 : 0; if (oxf > 30 + dpx + 10 * fr || Math.abs(own.y - GOAL_Y) > 20 + 4 * fr) return;   // 版957：恐れ：ロングシュートが怖いと、もっと遠く（最大40m）から寄せに行く
       const defs = opps(own).filter((m) => !m.gk && !m.off && !(m.downT > 0) && !(m.slideT > 0));
-      if (defs.some((m) => hyp(m.x - own.x, m.y - own.y) < 2.8)) return;   // もう誰かが寄せている
+      { const gx1 = fx(t, 0), dl1 = hyp(gx1 - own.x, GOAL_Y - own.y) || 1, cl = defs.filter((m) => hyp(m.x - own.x, m.y - own.y) < 2.8).sort((a, c) => hyp(a.x - own.x, a.y - own.y) - hyp(c.x - own.x, c.y - own.y))[0];
+        if (cl) { if ((globalThis.__Kdfp2 ?? 1) && fx(t, cl.x) < oxf + 1.5) { targets[cl.idx] = [own.x + own.vx * 0.2 + (gx1 - own.x) / dl1 * 0.7, own.y + own.vy * 0.2 + (GOAL_Y - own.y) / dl1 * 0.7]; urgent[cl.idx] = true; } return; } }   // もう誰かが寄せている：版991：そばにいるだけで止まらず、ゴール側から体を寄せ切る
       let best = null, bd = 1e9; for (const m of defs) { if (fx(t, m.x) > oxf + 1.5) continue; const d = hyp(m.x - own.x, m.y - own.y); if (d < bd) { bd = d; best = m; } }
       if (!best || bd > 15 + 6 * fr) return;
       const gx0 = fx(t, 0), dl = hyp(gx0 - own.x, GOAL_Y - own.y) || 1;
       targets[best.idx] = [own.x + own.vx * 0.3 + (gx0 - own.x) / dl * 1.0, own.y + own.vy * 0.3 + (GOAL_Y - own.y) / dl * 1.0]; urgent[best.idx] = true;
       if (globalThis.__dfpLog) globalThis.__dfpLog.push(S.t);
+    }
+    // 版991：原理原則：ボールがペナルティエリアの外にある間は、DFラインはPKの位置くらい（ゴールから11m）より下がらない（下がりすぎると、エリアの手前で自由に持たれて打たれる）
+    function lineHoldPost() {
+      if (!(globalThis.__Klh ?? 1) || S.restart || S.setPiece || S.celebrate > 0) return;
+      const own = ownerP(); if (!own || own.gk) return;
+      const t = 1 - own.team, oxf = fx(t, own.x); if (oxf < 17.5) return;
+      const floor = Math.min(globalThis.__Klh1 ?? 11, oxf - 6);
+      for (const q of T[t].players) { if (q.off || q.gk || chasing[q.idx]) continue; const tg = targets[q.idx]; if (!tg) continue; if (fx(t, tg[0]) < floor) tg[0] = fx(t, floor); }   // マークで走る選手（急いでいる選手）も、ラインより下へは付いていかない（相手はオフサイドになる）
     }
     function gkChargePost() {
       fearGkPost();
@@ -8476,6 +8485,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       deepPost();
       rebPost();
       dfPressPost();
+      lineHoldPost();
       fearRunPost();
       urgentPost();
       if ((globalThis.__Kbyr ?? 1) && brainOn()) { const o0 = ownerP(); for (const p of P) if ((p.byRunT || 0) > S.t && p.byRunTo && !p.off && o0 && o0.team === p.team && o0 !== p) { const olR = offsideLine(p.team); targets[p.idx] = [fx(p.team, Math.min(fx(p.team, p.byRunTo[0]), olR - 1.5)), p.byRunTo[1]]; urgent[p.idx] = true; } }   // 版957：白夜の視界の走り出しを、新しい動きの位置取りで上書きしない
