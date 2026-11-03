@@ -1,17 +1,25 @@
 // 版499：サウンド（効果音とBGM）。音のファイルは使わず、ファミコン風の音をその場で作る
 (function () {
   let AC = null, master = null, sfxG = null, bgmG = null, crowdNode = null, crowdGain = null;
-  const pref = { sfx: true, bgm: true, vol: 0.8 }; const BOOST = 1.8;
+  const pref = { sfx: true, bgm: true, vol: 0.8, rec: 0 }; const BOOST = 1.8;
   try { const v = JSON.parse(localStorage.getItem('dotSound') || '{}'); Object.assign(pref, v); } catch (_) {}
   const save = () => { try { localStorage.setItem('dotSound', JSON.stringify(pref)); } catch (_) {} };
+  let recEl = null;
   function ctx() {
     if (AC) return AC;
     const C = window.AudioContext || window.webkitAudioContext; if (!C) return null;
-    AC = new C();   // 版1003：latencyHintの指定をやめて標準に戻す（版997の'balanced'は、画面録画で雑音になる疑い）
+    // 版1004：画面録画で「ブブブ」という雑音になる件。原因を実機で絞るため、音の出し方を4通りから選べるようにする（設定の「録画用の音」）
+    //   0 標準 ／ 1 48kHzで作る ／ 2 audio要素を通して鳴らす（動画の音と同じ扱いにする） ／ 3 再生モード（音の種類を「再生」にする）
+    const rm = pref.rec | 0;
+    try { if (navigator.audioSession) navigator.audioSession.type = rm === 3 ? 'playback' : 'auto'; } catch (_) {}
+    try { AC = rm === 1 ? new C({ sampleRate: 48000 }) : new C(); } catch (_) { AC = new C(); }
     AC.onstatechange = () => { if (!AC) return; if (AC.state === 'interrupted') needRebuild = true; else if (AC.state === 'running') setTimeout(() => { if (AC && AC.state === 'running' && want && !cur) bgm(want); }, 0); };   // 版560：電話・画面収録などで音が止められた
     // 版728：全体の音を大きく（約1.8倍）。大きい音が割れないように、最後に「リミッター」を通す
     master = AC.createGain(); master.gain.value = pref.vol * BOOST;
-    try { const lim = AC.createDynamicsCompressor(); lim.threshold.value = -8; lim.knee.value = 6; lim.ratio.value = 12; lim.attack.value = 0.003; lim.release.value = 0.25; master.connect(lim); lim.connect(AC.destination); } catch (_) { master.connect(AC.destination); }
+    let out = AC.destination;
+    if (rm === 2 && AC.createMediaStreamDestination) { try { const md = AC.createMediaStreamDestination(); if (!recEl) { recEl = document.createElement('audio'); recEl.setAttribute('playsinline', ''); recEl.autoplay = true; recEl.style.display = 'none'; document.body.appendChild(recEl); } recEl.srcObject = md.stream; out = md; } catch (_) { out = AC.destination; } }
+    else if (recEl) { try { recEl.pause(); recEl.srcObject = null; } catch (_) {} }
+    try { const lim = AC.createDynamicsCompressor(); lim.threshold.value = -8; lim.knee.value = 6; lim.ratio.value = 12; lim.attack.value = 0.003; lim.release.value = 0.25; master.connect(lim); lim.connect(out); } catch (_) { master.connect(out); }
     sfxG = AC.createGain(); sfxG.gain.value = pref.sfx ? 1 : 0; sfxG.connect(master);
     bgmG = AC.createGain(); bgmG.gain.value = pref.bgm ? 0.55 : 0; bgmG.connect(master);
     clockA = null; setTimeout(prerenderAll, 0); setTimeout(loadFiles, 0);
@@ -42,7 +50,7 @@
   // iPhoneは、画面にさわった時でないと音が出せない：最初のタッチで音を使えるようにする
   // 版561：resume は少し待ってから動き出すので、動き出してから曲を始める（前は最初のタッチで曲が始まらず、しばらく無音だった）
   const startWant = () => { if (AC && AC.state === 'running' && want && !cur) bgm(want); };
-  const unlock = () => { srCheck(); if (needRebuild) rebuild(); const a = ctx(); if (!a) return; if (a.state !== 'running') { try { const pr = a.resume(); if (pr && pr.then) pr.then(startWant, () => {}); } catch (_) {} setTimeout(startWant, 120); setTimeout(startWant, 500); } else startWant(); };
+  const unlock = () => { srCheck(); if (needRebuild) rebuild(); const a = ctx(); if (!a) return; if (recEl && recEl.srcObject && recEl.paused) { try { const pp = recEl.play(); if (pp && pp.catch) pp.catch(() => {}); } catch (_) {} } if (a.state !== 'running') { try { const pr = a.resume(); if (pr && pr.then) pr.then(startWant, () => {}); } catch (_) {} setTimeout(startWant, 120); setTimeout(startWant, 500); } else startWant(); };
   ['pointerdown', 'touchstart', 'touchend', 'pointerup', 'click', 'keydown'].forEach((e) => addEventListener(e, unlock, { passive: true, capture: true }));   // 版561：iPhoneは指を離した時（touchend）でないと音を始められないことがある
   // 版1003：画面録画を始めると、端末の音の周波数（サンプルレート）が変わり、今の音の仕組みのままだと雑音しか出なくなる。
   // 新しく作った時の周波数と今の周波数が違っていたら、音の仕組みごと作り直す（画面を触った時に確認。数秒おきに確認すると、確認自体が音の邪魔をするおそれがあるのでしない）
@@ -446,8 +454,9 @@
     if (k === 'sfx') sfxG.gain.value = v ? 1 : 0;
     if (k === 'bgm') { bgmG.gain.value = v ? 0.55 : 0; }
     if (k === 'vol') master.gain.value = v * BOOST;
+    if (k === 'rec' && AC) { needRebuild = true; rebuild(); unlock(); }
   }
-  window.DotSound = { play, bgm, bgmIn, crowd, goal, excite, chant, set, __render, get __bufs() { return { PRE, FILE }; }, get state() { return { bgm: cur, want, crowd: crowdMix ? +crowdMix.gain.value.toFixed(2) : 0, hp: crowdHp ? Math.round(crowdHp.frequency.value) : 0, pre: Object.keys(PRE).join(',') }; }, get pref() { return { ...pref }; } };
+  window.DotSound = { get info() { return AC ? { sr: AC.sampleRate, st: AC.state } : null; }, play, bgm, bgmIn, crowd, goal, excite, chant, set, __render, get __bufs() { return { PRE, FILE }; }, get state() { return { bgm: cur, want, crowd: crowdMix ? +crowdMix.gain.value.toFixed(2) : 0, hp: crowdHp ? Math.round(crowdHp.frequency.value) : 0, pre: Object.keys(PRE).join(',') }; }, get pref() { return { ...pref }; } };
 })();
 // ボタンを押した時の音（戻るボタンは別の音）
 document.addEventListener('click', (e) => {
