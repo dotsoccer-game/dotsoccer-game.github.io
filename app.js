@@ -1068,7 +1068,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
   }
   const CATCH_ART = {"front": [11.0, 14.0, 23, false], "fdiag": [16.0, 15.5, 28, false], "side": [17.5, 13.5, 25, false], "bdiag": [17.0, 13.0, 28, true], "back": [11.0, 13.0, 26, true]};   // 版1044：キャッチの絵：[ボールの中心の列, 行, 絵の高さ, ボールが体の向こう]
   const CATCH_ART_L = {"front": [11.0, 15.0, 21, false], "fdiag": [16.0, 19.5, 26, false], "side": [17.5, 17.5, 24, false], "bdiag": [17.0, 17.0, 27, true], "back": [11.0, 16.0, 25, true]};   // 版1050：低いボールのキャッチ（片ひざをついて、ひざの前で両手で持つ）
-  let dmHideArm = null;   // 版1053：パンチングの体（突き出す側の腕を消した立ち絵）
+  let dmHideArm = null, punchFist = null;   // 版1056：パンチのこぶしの画面の位置（ボールをこぶしに当てて描く）   // 版1053：パンチングの体（突き出す側の腕を消した立ち絵）
   let soCamOn = false, soCheer = null;
   function pitch() {
     ctx.fillStyle = venue <= 1 ? '#3f6d2c' : '#6b6862'; ctx.fillRect(0, 0, CW, CH);
@@ -1791,8 +1791,10 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     const g = P3(b.x, b.y, standZ(b.x, b.y));   // 影：観客席の上なら段の上に落とす
     const r = Math.max(5.5, 9 * g.s);
     const p = P3(b.x, b.y, b.z + 0.11);
+    const pfOn = punchFist && Math.abs(simT - punchFist.at) < 0.15 && simT >= punchFist.t0 - 0.1 && simT <= punchFist.t0 + 0.06;   // 版1056
+    if (pfOn) ballTrail.length = 0;
     // 残像（速いほど長い）
-    ballTrail.push({ x: p.x, y: p.y - r * 0.6, sp: speed });
+    if (!pfOn) ballTrail.push({ x: p.x, y: p.y - r * 0.6, sp: speed });
     if (ballTrail.length > 10) ballTrail.shift();
     // シュート技のエフェクト（強烈ミドル・ニア上ぶち抜き・コントロールショット・無回転・ドリブルシュート）
     const shs = ballOwned ? null : curShot(), sfx = shs && shs.sk && SHOT_FX[shs.sk] ? shs.sk : null, red = !!(shs && shs.guren), kaku = red && shs.guren >= 2;   // kaku：凸（覚醒）した紅蓮の牙
@@ -1841,7 +1843,8 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     ctx.fillStyle = 'rgba(0,40,0,0.38)';
     ctx.beginPath(); ctx.ellipse(g.x, g.y, r * 1.05, r * 0.42, 0, 0, Math.PI * 2); ctx.fill();
     // 球
-    const cx = p.x + kjx, cy = p.y - r * 0.6 + kjy;
+    let cx = p.x + kjx, cy = p.y - r * 0.6 + kjy;
+    if (pfOn) { cx = punchFist.x + punchFist.sx * (r * 0.75 + punchFist.dot); cy = punchFist.y - (r * 0.75 + punchFist.dot); }   // 版1056：こぶしに当たる瞬間は、こぶしの先に
     ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#222'; ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, r - 0.5, 0, Math.PI * 2); ctx.clip();
@@ -2043,7 +2046,11 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       // 版1055：パンチングは横向きの手描きの絵だけで描く（監督と決めた形）。ボールのある方（画面の左右）を向いて跳び、
       //  跳び始めはこぶしをあごの横に構え（gkPunch_cock）、頂点の手前でボールへ斜め上に突き出す（gkPunch_hit）
       const bsx = proj(kpBall.x, kpBall.y).x - q.x, fa = bsx >= 0 ? 0 : Math.PI;
-      dmFacing = fa; const r6 = sprite(lifted.x, lifted.y, q.s, info, team, 1, 0, false, false, true, uu < 0.28 ? 'gkPunch_cock' : 'gkPunch_hit', 0, 'side'); dmFacing = null; window.__gk6 = [lifted.x, lifted.y, simT];
+      // 版1056：こぶしがボールに当たる瞬間（パンチの記録の時刻）に合わせて突き出し、その前後はボールをこぶしの先に描く
+      const pe = match.events.find((e) => e.type === 'save' && e.act === 'punch' && e.team === team && e.t > simT - 1.2 && e.t < simT + 1.2);
+      const hit = pe ? simT >= pe.t - 0.12 : uu >= 0.28;
+      dmFacing = fa; const r6 = sprite(lifted.x, lifted.y, q.s, info, team, 1, 0, false, false, true, hit ? 'gkPunch_hit' : 'gkPunch_cock', 0, 'side'); dmFacing = null; window.__gk6 = [lifted.x, lifted.y, simT];
+      if (hit && pe && r6 && r6.dot) { const dt = r6.dot, sx = fa === 0 ? 1 : -1; punchFist = { x: lifted.x + sx * (20.5 - 11) * dt, y: lifted.y + (2.5 - 26) * dt, sx, dot: dt, t0: pe.t, at: simT }; }
       return r6 || { top: lifted.y - 18 * px * 0.7, px };
     }
     // 版862：セーブの型ごとの姿勢
