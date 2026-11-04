@@ -1827,9 +1827,9 @@
            <div class="tq-styles">${C.STYLES.map((st) => `<button class="tq-st${st.id === work.style ? ' on' : ''}" data-st="${st.id}"><span class="tq-art"><img src="img/tactics/${st.id}.png" alt=""></span><b>${esc(st.name)}</b><small>${esc(TQ_SHORT[st.id] || st.desc)}</small>${st.id === work.style ? '<em class="tq-ck">✓</em>' : ''}</button>`).join('')}</div>
            <div class="tq-h"><b>細かい調整</b><i></i>${work.style === 'custom' ? '<small>（カスタム）</small>' : ''}</div>
            <div class="tq-adj"><div>${LEFT.map(item).join('')}</div><div>${RIGHT.map(item).join('')}<p class="tq-note">選手の配置は変わりません。</p></div></div>`
-        : `<div class="tq-from"><span class="tq-fl">切り替え開始</span>${C.SITU_FROM.map(([v, nm]) => `<button data-sf="${v}" class="${si.from === v ? 'on' : ''}">${si.from === v ? '✓ ' : ''}${esc(nm.replace('から', ''))}</button>`).join('')}</div>
+        : `<div class="tq-from"><span class="tq-fl">切り替え開始</span>${C.SITU_FROM.map(([v, nm]) => `<button data-sf="${v}" class="${si.from === v ? 'on' : ''}">${si.from === v ? '✓ ' : ''}${esc(/^残り/.test(nm) ? nm.replace('から', '') : nm)}</button>`).join('')}</div>
            <div class="tq-sit">${C.SITU_ROWS.map(([key]) => `<div class="tq-col c-${key}"><h3>${SIT_HD[key]}</h3>${C.SITU_ACTS.map(([v]) => `<button data-sk="${key}" data-sv="${v}" class="${si[key] === v ? 'on ' + (v === 'attack' || v === 'allout' ? 'or' : 'bl') : ''}">${si[key] === v ? '✓ ' : ''}${SIT_NM[v]}</button>`).join('')}</div>`).join('')}</div>
-           <p class="tq-note2">作戦を選ぶと、終盤に自動で切り替わります。</p>`;
+           <p class="tq-note2">選んだ時間から、スコアに応じて作戦を切り替えます。</p>`;
       el.innerHTML = `<div class="tq-top"><h2>戦術設定</h2><button class="tq-back" aria-label="戻る"><svg viewBox="0 0 24 24"><path d="M20 12H6M11 6l-6 6 6 6" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
         <div class="tq-tabs"><button data-t="tac" class="${tab === 'tac' ? 'on' : ''}">チーム戦術</button><button data-t="sit" class="${tab === 'sit' ? 'on' : ''}">試合中の作戦</button></div>
         <div class="tq-body">${body}</div>

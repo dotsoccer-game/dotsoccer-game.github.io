@@ -6326,7 +6326,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         // 70分を過ぎて負け・引き分け：縦へ急ぎ、前から全体でプレス
         if (tm.situ) {
           // 状況別の作戦（プレイヤーが決める）：残り時間になったら、勝っている／引き分け／負けているで動きを変える
-          const sit = tm.situ, on = minute >= (sit.from || 70);
+          const sit = tm.situ, on = (sit.from || 70) <= 45 ? S.half === 2 : minute >= (sit.from || 70);   /* 版1060：「後半から」は後半の笛から（前半のロスタイムでは切り替えない） */
           const a = on ? (diff > 0 ? sit.lead : diff < 0 ? sit.behind : sit.draw) || 'keep' : 'keep';
           if (a !== tm.sitAct) {
             tm.sitAct = a;

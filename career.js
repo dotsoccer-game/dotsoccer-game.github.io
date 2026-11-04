@@ -1221,6 +1221,7 @@
     if (!t.cells) t.cells = cellsFor(t.formation || '4-4-2');
     if (!t.roles) t.roles = {};
     if (!t.situ) t.situ = { ...SITU_DEFAULT };
+    if (t.situ.from === 80) t.situ.from = 70;   /* 版1060：「残り10分から」をやめて「後半から」に。残り10分だった人は残り20分へ */
     delete t.adj;
     return t;
   }
@@ -1233,7 +1234,7 @@
     ['allout', '総攻撃', 'DFも上がって全員で点を取りにいく（裏を取られやすく、とても疲れる）'],
   ];
   const SITU_ROWS = [['lead', '勝っている時'], ['draw', '引き分けの時'], ['behind', '負けている時']];
-  const SITU_FROM = [[60, '残り30分から'], [70, '残り20分から'], [80, '残り10分から']];
+  const SITU_FROM = [[45, '後半から'], [60, '残り30分から'], [70, '残り20分から']];
   // フォーメーションの各ポジションが DF・MF・FW のどれか（GK→1列目→…→最前列）
   function slotRoles(formation) {
     if (Array.isArray(formation)) return ['GK', ...formation.slice(1, 11).map((c) => zoneOf(c.r))];   // マス目の配置
