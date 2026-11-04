@@ -1625,7 +1625,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     } else if (armsUp) o.pose = 'cheer';   // バンザイ・GKのパンチング／ダイブ・転倒（倒した絵として使う）
     else if (/^(shotA|passA|trapI|trapC|stumble|fall|getup|scisB|scis|bfStep|bfPush|bicycle|dhead|headS|volleyS|lobS|toeK|ctrlS|gkwf)\d[RL]?$/.test(pose || '')) { const m = pose.match(/^([a-zA-Z]+?)(\d)([RL]?)$/); o.pose = m[1]; o.frame = +m[2]; o.art = true; if (m[3]) o.foot = m[3]; }   // 手で描いた絵。最後の R/L＝使う足   // 手で描いたシュートフォーム・シザース
     else if (pose === 'lie') { o.pose = 'lie'; o.art = true; }   // あお向けの大の字
-    else if (pose === 'gkReach' || pose === 'gkCrouch' || pose === 'gkSit' || pose === 'slide' || pose === 'slideF' || pose === 'slideB' || pose === 'hurdle') { o.pose = pose; o.art = true; }   // 失点したGKの悔しがり
+    else if (pose === 'gkReach' || pose === 'gkCrouch' || pose === 'gkSit' || pose === 'gkCatch' || pose === 'slide' || pose === 'slideF' || pose === 'slideB' || pose === 'hurdle') { o.pose = pose; o.art = true; }   // 失点したGKの悔しがり
     else if (pose === 'jump' || pose === 'lunge' || pose === 'sole' || pose === 'crouch') o.pose = pose;
     else if (pose === 'windup' || pose === 'bigWindup' || pose === 'kick' || pose === 'follow') { const m = { windup: ['pass', 1], bigWindup: ['shot', 1], kick: ['pass', 2], follow: ['shot', 3] }[pose]; o.pose = m[0]; o.frame = m[1]; }
     else if (moving && ART_RUN) { o.pose = 'run'; o.art = true; o.frame = DotMan.artFrame(fa, dmFacing == null || dmRunPh == null ? performance.now() / 1000 * 2.15 + (info.number || 0) * 0.37 : dmRunPh); }
@@ -2059,19 +2059,9 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       ctx.fillStyle = 'rgba(0,30,0,0.3)'; ctx.beginPath(); ctx.ellipse(q.x, q.y - px * 0.2, 5.6 * px, 1.8 * px, 0, 0, Math.PI * 2); ctx.fill();
       dmFacing = Math.atan2(0, team === 0 ? 1 : -1); const r11 = sprite(lifted.x, lifted.y, q.s, info, team, facing, 1, false, true, true, null, 0, 'front'); dmFacing = null; return r11;
     }
-    if (code === 15) {   // 版1040：正面でキャッチ：ボールに正対して、両腕を前へ伸ばし、両手（グローブ）でボールをはさむ
-      { const bq0 = kpFace(p); dmFacing = Math.atan2((bq0.y - q.y) / 0.45, bq0.x - q.x); }
-      const r15 = sprite(q.x, q.y, q.s, info, team, facing, 0, false, false, false, null, 0, 'front'); dmFacing = null;
-      const px = (r15 && r15.px) ? r15.px * SPR_W / 14 : Math.max(1.4, 2.6 * q.s), bq = P3(kpBall.x, kpBall.y, kpBall.z || 0.9), gc = GKC[team];
-      const sh = [q.x - 5.5 * px, q.y - 15 * px], sh2 = [q.x + 5.5 * px, q.y - 15 * px], bx = bq.x, by = bq.y, rr = 2.2 * px;
-      { ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(bx, by, rr * 1.05, 0, 7); ctx.fill(); ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(bx, by, rr * 0.8, 0, 7); ctx.fill(); ctx.fillStyle = '#222'; ctx.fillRect(Math.round(bx - 0.6 * px), Math.round(by - 0.6 * px), Math.ceil(1.2 * px), Math.ceil(1.2 * px)); }   // 抱えたボール（両手の間に見えるように、体の手前に描く）
-      for (const [sx, sy, sd] of [[sh[0], sh[1], -1], [sh2[0], sh2[1], 1]]) {
-        const hx = bx + sd * rr * 1.35, hy = by; ctx.strokeStyle = '#000'; ctx.lineCap = 'round'; ctx.lineWidth = 3.2 * px; ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(hx, hy); ctx.stroke();
-        ctx.strokeStyle = gc.W; ctx.lineWidth = 2 * px; ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(hx, hy); ctx.stroke();
-        ctx.fillStyle = '#000'; ctx.fillRect(Math.round(hx - 1.6 * px), Math.round(hy - 1.8 * px), Math.ceil(3.2 * px), Math.ceil(3.6 * px));
-        ctx.fillStyle = '#f4f4f0'; ctx.fillRect(Math.round(hx - 1.0 * px), Math.round(hy - 1.2 * px), Math.ceil(2 * px), Math.ceil(2.4 * px)); }
-      ctx.lineCap = 'butt';
-      return r15;
+    if (code === 15) {   // 版1041：正面でキャッチ：手で描いた絵（両腕を前に出し、胸の前で両手（グローブ）でボールをはさむ）。ボールは絵の中にあるので、本物のボールは描かない
+      dmFacing = Math.PI / 2;
+      const r15 = sprite(q.x, q.y, q.s, info, team, facing, 0, false, false, false, 'gkCatch', 0, 'front'); dmFacing = null; return r15;
     }
     if (code === 12) {   // 正面の低い球：腰を落として、すくい上げるように抱える
       dmFacing = Math.atan2(0, team === 0 ? 1 : -1);
@@ -2913,7 +2903,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
         }
         if (!(goalDefer && (goalDefer.before.length || goalDefer.after.length)) && (bb.z || 0) > 1.6) { hiBall = [bb, st.spin, st.bs, st.owner >= 0, st.held]; continue; }   // 版670：高い浮き球（ヒールリフトなど）は、名前・スキルの吹き出しに隠れないよう、いちばん最後に描く
         if (goalDefer && goalDefer.before.length) goalDraw(goalDefer.gx, goalDefer.before);   // ボールの奥にある柱・手前のネット
-        ballOwned = st.owner >= 0; ballDraw(bb, st.spin, st.bs, st.held);
+        ballOwned = st.owner >= 0; if (!(st.gk && (st.gk[0] === 15 || st.gk[1] === 15))) ballDraw(bb, st.spin, st.bs, st.held);   // 版1041：キャッチの絵（15）はボールも絵の中に描いてある
         if (goalDefer && goalDefer.after.length) goalDraw(goalDefer.gx, goalDefer.after);   // ボールの手前にある奥のネット（ゴールの裏・天井の上など）
         continue;
       }
@@ -4836,7 +4826,10 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
   // 版581：（テスト用）優勝の演出を見る：試合の最後まで飛ばして、すぐ優勝の演出へ
   function champDemo(ch) { if (!match) return false; closeLocker(); closePlv(); simT = match.duration; champTried = true; startChamp(ch); play(); return true; }
   window.addEventListener('unhandledrejection', (e) => showErr(e.reason, 'promise'));   // 版585：見えないエラーも左下に出す
-  window.__app = { champDemo, applyKits, artSprite, kitSprite, kitCol, lockerTalk, startWith, showScreen, stop, spriteCanvas, SPR: { W: SPR_W, H: SPR_H }, get match() { return match; }, catchUp, get simT() { return simT; }, get playing() { return playing; }, RATE };
+  // 版1041：確認画面用：好きな時刻の絵を出す（止めたまま）／そこから再生
+  function labPeek(t, snap) { if (!match) return; stop(); if (show && show.phase !== "endOut") show = null; koWhistleT = -1; if (snap) lastDrawT = -99; simT = Math.max(0, Math.min(t, match.duration)); evIndex = 0; while (evIndex < match.events.length && match.events[evIndex].t <= simT) evIndex++; try { draw(); } catch (err) { showErr(err, '確認画面'); } }
+  function labPlay() { if (match && !playing) play(); }
+  window.__app = { labPeek, labPlay, champDemo, applyKits, artSprite, kitSprite, kitCol, lockerTalk, startWith, showScreen, stop, spriteCanvas, SPR: { W: SPR_W, H: SPR_H }, get match() { return match; }, catchUp, get simT() { return simT; }, get playing() { return playing; }, RATE };
   window.__demo = { simT: () => simT, showPh: () => (show ? show.phase + (show.phase === "sub" ? "#" + show.rt.toFixed(2) + "k" + show.k + "n" + show.list.length : "") : null), playingNow: () => playing, poses: (list) => {
     ctx.fillStyle = '#45a31d'; ctx.fillRect(0, 0, CW, CH);
     list.forEach((pz, k) => { sprite(90 + k * 165, 270, 4.2, match.roster[0][9], 0, 1, 0, false, false, false, pz === 'side' ? null : pz, 0, 'side'); ctx.fillStyle = '#fff'; ctx.font = '12px sans-serif'; ctx.fillText(pz, 60 + k * 165, 300); });
