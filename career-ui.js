@@ -77,7 +77,7 @@
   }
   let liveBack = null, liveSnap = null;   // 試合前の画面（LIVE）からスタメン・戦術を開いたとき、もどる先と、後ろに見せる会場の絵
   $('#cvBack').onclick = () => { if (liveBack) { const f = liveBack; liveBack = null; f(); return; } go(view === 'club' || view === 'assoc' ? 'home' : 'club'); };
-  document.querySelectorAll('#cv-club .rbtns button').forEach((b) => b.onclick = () => { const g = b.dataset.go; if (g === 'tactic') { sqTab = 'tac'; go('lineup'); } else { if (g === 'lineup') sqTab = 'pos'; go(g); } });
+  document.querySelectorAll('#cv-club .rbtns button').forEach((b) => b.onclick = () => { const g = b.dataset.go; if (g === 'tactic') { openTacSet('tac'); }   /* 版1063：クラブハウスの「戦術」は戦術設定だけを開く（閉じたらクラブハウスのまま） */ else { if (g === 'lineup') sqTab = 'pos'; go(g); } });
 
   // 日付のドット数字（カルチョビットAのような、白くて太い四角い数字に黒いふち）
   const DOT_FONT = { 0: ['111', '101', '101', '101', '111'], 1: ['010', '110', '010', '010', '111'], 2: ['111', '001', '111', '100', '111'], 3: ['111', '001', '111', '001', '111'], 4: ['101', '101', '111', '001', '001'], 5: ['111', '100', '111', '001', '111'], 6: ['111', '100', '111', '101', '111'], 7: ['111', '001', '001', '010', '010'], 8: ['111', '101', '111', '101', '111'], 9: ['111', '101', '111', '001', '111'] };
@@ -1815,7 +1815,7 @@
   function openTacSet(tab0, onClose) {
     const tac = C.ensureTactics(save), snap = JSON.parse(JSON.stringify(tac));
     let work = JSON.parse(JSON.stringify(tac)), tab = tab0 === 'sit' ? 'sit' : 'tac', ask = false;
-    let el = document.getElementById('tacSet'); if (!el) { el = document.createElement('div'); el.id = 'tacSet'; document.body.appendChild(el); }
+    let el = document.getElementById('tacSet'); if (!el) { el = document.createElement('div'); el.id = 'tacSet'; (document.documentElement.classList.contains('stage') && document.getElementById('app') || document.body).appendChild(el); }   /* 版1063：ゲームの画面（#app）の中に出す（両側の緑・Dynamic Islandをよける） */
     const SIT_NM = { keep: 'そのまま', defend: '守備重視', attack: '攻撃重視', allout: '総攻撃' }, SIT_HD = { lead: 'リード', draw: '同点', behind: 'ビハインド' };
     const LEFT = ['line', 'width', 'compact', 'attitude'], RIGHT = ['press', 'pass', 'side'];
     const item = (k) => { const it = C.TACTIC_ITEMS.find((x) => x.key === k); return `<div class="tq-it"><span class="tq-in">${esc(it.name)}</span><span class="tq-seg n${it.opts.length}">${it.opts.map(([v, nm]) => `<button data-k="${k}" data-v="${v}" class="${String(work[k]) === String(v) ? 'on' : ''}">${String(work[k]) === String(v) ? '✓ ' : ''}${esc(nm)}</button>`).join('')}</span></div>`; };
@@ -1830,11 +1830,11 @@
         : `<div class="tq-from"><span class="tq-fl">切り替え開始</span>${C.SITU_FROM.map(([v, nm]) => `<button data-sf="${v}" class="${si.from === v ? 'on' : ''}">${si.from === v ? '✓ ' : ''}${esc(/^残り/.test(nm) ? nm.replace('から', '') : nm)}</button>`).join('')}</div>
            <div class="tq-sit">${C.SITU_ROWS.map(([key]) => `<div class="tq-col c-${key}"><h3>${SIT_HD[key]}</h3>${C.SITU_ACTS.map(([v]) => `<button data-sk="${key}" data-sv="${v}" class="${si[key] === v ? 'on ' + (v === 'attack' || v === 'allout' ? 'or' : 'bl') : ''}">${si[key] === v ? '✓ ' : ''}${SIT_NM[v]}</button>`).join('')}</div>`).join('')}</div>
            <p class="tq-note2">選んだ時間から、スコアに応じて作戦を切り替えます。</p>`;
-      el.innerHTML = `<div class="tq-top"><h2>戦術設定</h2><button class="tq-back" aria-label="戻る"><svg viewBox="0 0 24 24"><path d="M20 12H6M11 6l-6 6 6 6" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
+      el.innerHTML = `<div class="tq-root"><div class="tq-top"><h2>戦術設定</h2><button class="tq-back" aria-label="戻る"><svg viewBox="0 0 24 24"><path d="M20 12H6M11 6l-6 6 6 6" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
         <div class="tq-tabs"><button data-t="tac" class="${tab === 'tac' ? 'on' : ''}">チーム戦術</button><button data-t="sit" class="${tab === 'sit' ? 'on' : ''}">試合中の作戦</button></div>
         <div class="tq-body">${body}</div>
         <div class="tq-foot"><button class="tq-reset">元に戻す</button><button class="tq-apply">設定を反映</button></div>
-        ${ask ? `<div class="tq-ask"><div><p>反映していない変更があります。</p><div><button class="tq-a1">反映して戻る</button><button class="tq-a2">反映せずに戻る</button><button class="tq-a3">やめる</button></div></div></div>` : ''}`;
+        ${ask ? `<div class="tq-ask"><div><p>反映していない変更があります。</p><div><button class="tq-a1">反映して戻る</button><button class="tq-a2">反映せずに戻る</button><button class="tq-a3">やめる</button></div></div></div>` : ''}</div>`;
       el.querySelectorAll('.tq-tabs button').forEach((b) => b.onclick = () => { tab = b.dataset.t; draw(); });
       el.querySelectorAll('.tq-st').forEach((b) => b.onclick = () => { const st = C.STYLES.find((x) => x.id === b.dataset.st); Object.assign(work, st.t, { style: st.id }); draw(); });
       el.querySelectorAll('.tq-seg button').forEach((b) => b.onclick = () => { const v = b.dataset.v; work[b.dataset.k] = isNaN(+v) ? v : +v; work.style = 'custom'; draw(); });
@@ -2343,6 +2343,7 @@
         liveRaf = requestAnimationFrame(loop);
         el.querySelectorAll('button[data-a]').forEach((b) => b.onclick = () => {
           const a = b.dataset.a;
+          if (a === 'tac') { openTacSet('tac'); return; }   /* 版1063：試合前の「戦術」も戦術設定だけを開く */
           if (a === 'lineup' || a === 'tac') { cancelAnimationFrame(liveRaf); { const sc = el.querySelector('canvas'); liveSnap = document.createElement('canvas'); liveSnap.width = 1280; liveSnap.height = 720; try { liveSnap.getContext('2d').drawImage(sc, 0, 0, 1280, 720); } catch (_) { liveSnap = null; } } el.hidden = true; sqTab = a === 'tac' ? 'tac' : 'pos'; liveBack = () => { showLive(); }; go('lineup'); return; }
           if (a === 'kit') { kitPick(el, op, meta, () => showLive()); return; }
           cancelAnimationFrame(liveRaf); showVs();
