@@ -1628,7 +1628,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     } else if (armsUp) o.pose = 'cheer';   // バンザイ・GKのパンチング／ダイブ・転倒（倒した絵として使う）
     else if (/^(shotA|passA|trapI|trapC|stumble|fall|getup|scisB|scis|bfStep|bfPush|bicycle|dhead|headS|volleyS|lobS|toeK|ctrlS|gkwf)\d[RL]?$/.test(pose || '')) { const m = pose.match(/^([a-zA-Z]+?)(\d)([RL]?)$/); o.pose = m[1]; o.frame = +m[2]; o.art = true; if (m[3]) o.foot = m[3]; }   // 手で描いた絵。最後の R/L＝使う足   // 手で描いたシュートフォーム・シザース
     else if (pose === 'lie') { o.pose = 'lie'; o.art = true; }   // あお向けの大の字
-    else if (pose === 'gkReach' || pose === 'gkCrouch' || pose === 'gkSit' || /^gkCatchL?F?_/.test(pose || '') || pose === 'slide' || pose === 'slideF' || pose === 'slideB' || pose === 'hurdle') { o.pose = pose; o.art = true; }   // 失点したGKの悔しがり
+    else if (pose === 'gkReach' || pose === 'gkCrouch' || pose === 'gkSit' || /^gk(CatchL?F?|Punch)_/.test(pose || '') || pose === 'slide' || pose === 'slideF' || pose === 'slideB' || pose === 'hurdle') { o.pose = pose; o.art = true; }   // 失点したGKの悔しがり
     else if (pose === 'jump' || pose === 'lunge' || pose === 'sole' || pose === 'crouch') o.pose = pose;
     else if (pose === 'windup' || pose === 'bigWindup' || pose === 'kick' || pose === 'follow') { const m = { windup: ['pass', 1], bigWindup: ['shot', 1], kick: ['pass', 2], follow: ['shot', 3] }[pose]; o.pose = m[0]; o.frame = m[1]; }
     else if (moving && ART_RUN) { o.pose = 'run'; o.art = true; o.frame = DotMan.artFrame(fa, dmFacing == null || dmRunPh == null ? performance.now() / 1000 * 2.15 + (info.number || 0) * 0.37 : dmRunPh); }
@@ -2040,25 +2040,10 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       ctx.fillStyle = 'rgba(0,30,0,0.3)';
       const px = Math.max(1.4, 2.5 * q.s);
       ctx.beginPath(); ctx.ellipse(q.x, q.y - px * 0.2, 5.2 * px, 1.7 * px, 0, 0, Math.PI * 2); ctx.fill();
-      // 版1052：パンチング：ボールの方を向いて跳び、ボールのある方の腕を、肩からボールへ斜め上に突き出す（こぶしで打つ）。
-      //  最初はこぶしをあごの横に引き（短く）、跳んだ頂点でボールへ突き出す（ゲームの選手の腕に合わせた長さ）。もう片方の腕は下ろしたまま
-      const d = Math.max(1.4, 2.6 * q.s) * 24 / 27, bq = P3(kpBall.x, kpBall.y, kpBall.z || 2.2);
-      const fa = Math.atan2((proj(kpBall.x, kpBall.y).y - q.y) / 0.45, proj(kpBall.x, kpBall.y).x - q.x);
-      const sd = (bq.x - lifted.x) >= 0 ? 1 : -1, back = Math.sin(fa) < -0.2;   // back：背中が見えている（腕は体の向こう：先に描いて、頭より上に出た所だけ見せる）
-      const shX = lifted.x + sd * (back ? 3.6 : 3.2) * d, shY = lifted.y - 17.5 * d;   // 肩の高さ
-      let vx = bq.x - shX, vy = bq.y - shY; const vl = Math.hypot(vx, vy) || 1; vx /= vl; vy /= vl;
-      if (vy > -0.42) { vy = -0.42; vx = Math.sign(vx || sd) * Math.sqrt(1 - vy * vy); }
-      if (Math.abs(vx) < 0.42) { vx = 0.42 * (Math.sign(vx) || sd); vy = -Math.sqrt(1 - vx * vx); }   // 真上には突き上げない（斜めに打つ）   // いつも斜め上へ（下へは打たない）
-      const len = (uu < 0.22 ? 3.2 : uu < 0.32 ? 3.2 + (uu - 0.22) / 0.1 * 4.6 : 7.8) * d, fx = shX + vx * len, fy = shY + vy * len;
-      const gc = (info.gk ? GKC[team] : TEAM[team]);
-      // 版1054：腕はドットの四角で描く（なめらかな線だと棒に見えた）。袖は肩の側を太く
-      const dot = (x, y, col, w = 1) => { ctx.fillStyle = col; ctx.fillRect(Math.round(x - w * d / 2), Math.round(y - w * d / 2), Math.ceil(w * d), Math.ceil(w * d)); };
-      const steps = Math.max(2, Math.round(len / d)), pts = []; for (let i = 0; i <= steps; i++) pts.push([shX + (fx - shX) * i / steps, shY + (fy - shY) * i / steps, 2.6 - 0.6 * i / steps]);
-      const drawSleeve = () => { for (const [x, y, w] of pts) dot(x, y, '#000', w + 1.2); for (const [x, y, w] of pts) dot(x, y, gc.W, w); };
-      const drawFist = () => { dot(fx, fy, '#000', 4); dot(fx, fy - 0.2 * d, '#f4f4f0', 2.6); dot(fx, fy + 0.9 * d, '#c4c4c0', 2.6 * 0.4); };
-      if (back) drawSleeve();
-      dmFacing = fa; dmHideArm = sd > 0 ? 'R' : 'L'; const r6 = sprite(lifted.x, lifted.y, q.s, info, team, 1, 0, false, false, true); dmHideArm = null; dmFacing = null; window.__gk6 = [lifted.x, lifted.y, simT];
-      if (!back) { drawSleeve(); drawFist(); } else drawFist();   // 背中向き：腕は体の向こう（先に描いた分が頭の横から少し見える）。こぶしは見せる
+      // 版1055：パンチングは横向きの手描きの絵だけで描く（監督と決めた形）。ボールのある方（画面の左右）を向いて跳び、
+      //  跳び始めはこぶしをあごの横に構え（gkPunch_cock）、頂点の手前でボールへ斜め上に突き出す（gkPunch_hit）
+      const bsx = proj(kpBall.x, kpBall.y).x - q.x, fa = bsx >= 0 ? 0 : Math.PI;
+      dmFacing = fa; const r6 = sprite(lifted.x, lifted.y, q.s, info, team, 1, 0, false, false, true, uu < 0.28 ? 'gkPunch_cock' : 'gkPunch_hit', 0, 'side'); dmFacing = null; window.__gk6 = [lifted.x, lifted.y, simT];
       return r6 || { top: lifted.y - 18 * px * 0.7, px };
     }
     // 版862：セーブの型ごとの姿勢
