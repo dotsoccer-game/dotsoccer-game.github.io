@@ -8852,7 +8852,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
               else if (wood === 'postIn') { b.vx *= R.range(0.3, 0.4); b.vy = -sideAim * R.range(6.5, 9); b.vz = Math.min(b.vz * 0.4, 0.3); b.x = gl + 0.02; b.y = GOAL_Y + sideAim * (POST - 0.18);   /* 版1040：ポストの内側に当たって、はっきり横へはね返り、ゴールの中を斜めに横切ってネットへ */ ev('post', { team: t, sp: spH, into: true, so: 1 }); }   // 内側に当たって中へ
               else { b.vx *= R.range(0.25, 0.35); b.vz = -R.range(7, 9); b.z = BAR - 0.15; b.x = gl + 0.02; ev('barin', { team: t, sp: spH, so: 1 }); } }   // 版1041：バーの下に当たると、真下へたたきつけられ、地面で弾んでネットへ   // バーの下に当たって中へ落ちる
             else if (res === 'save' && b.x >= gl - 0.9) { hit = true; tell();
-              if (stay) { b.x = g.x - 0.45; b.y = g.y; b.z = 1.0; b.vx = b.vy = b.vz = 0; g.saveT = 9; g.saveK = 15; ev('save', { team: 1 - t, player: g.name, act: 'catch', so: 1 }); }   /* 版1040：両腕を前に伸ばしてキャッチ（絵は15） */   // 正面：がっちりキャッチ
+              if (stay) { b.x = g.x - 0.3; b.y = g.y; b.z = 0.9; b.vx = b.vy = b.vz = 0; ev('save', { team: 1 - t, player: g.name, act: 'catch', so: 1 }); }   /* 版1045：キャッチ専用の絵（15）は使わない（版1039までの形に戻した） */   // 正面：がっちりキャッチ
               else { b.x = gl - 0.9; b.vx = -R.range(5, 8); b.vy = (ay > GOAL_Y ? 1 : -1) * R.range(2, 5); b.vz = R.range(1.5, 3.5); ev('save', { team: 1 - t, player: g.name, act: 'diveparry', so: 1 }); } }   // 横っ飛びで前へはじく
             else if (b.x >= gl && res === 'goal') { hit = true; tell(); b.vy *= 0.3; }   // 版1037：ゴールに入っても速さはそのまま、奥のネットまで突き刺さる
             else if (res === 'miss' && b.x >= gl + 1) { tell(); } }
@@ -8860,7 +8860,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             if (b.x >= gl + 1.9 && b.vx > 0) { b.x = gl + 1.9; b.vx = -0.6; b.vy = 0; b.vz = Math.min(b.vz, 0); }   // 奥のネットに当たって止まり、下に落ちる
             else if (b.vx <= 0) { b.vx *= 0.85; if (b.z <= 0 && b.vz < 0) b.vz = -b.vz * 0.25; } }
           else if (!(res === 'save' && stay)) { b.x += b.vx * DT; b.y += b.vy * DT; b.vx *= 0.92; b.vy *= 0.92; b.z = Math.max(0, b.z + b.vz * DT); b.vz -= 9.8 * DT; if (b.z <= 0) b.vz = Math.abs(b.vz) * 0.3; }
-          if (res === 'save' && stay && hit) { b.x = g.x - 0.45; b.y = g.y; b.z = 1.0; }
+          if (res === 'save' && stay && hit) { b.x = g.x - 0.3; b.y = g.y; b.z = 0.9; }
           if (prevK && homeSpot[prevK.idx]) moveTo(prevK, homeSpot[prevK.idx][0], homeSpot[prevK.idx][1], 3.4);
           if (hit && res === 'goal') moveTo(kq, kq.x - 2, kq.y + (kq.y > GOAL_Y ? 1 : -1) * 0.6, 3.2); else if (el > 0.8) moveTo(kq, kq.x - 0.5, kq.y, 0.2);
         });
