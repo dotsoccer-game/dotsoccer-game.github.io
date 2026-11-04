@@ -1791,7 +1791,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     const g = P3(b.x, b.y, standZ(b.x, b.y));   // 影：観客席の上なら段の上に落とす
     const r = Math.max(5.5, 9 * g.s);
     const p = P3(b.x, b.y, b.z + 0.11);
-    const pfOn = punchFist && Math.abs(simT - punchFist.at) < 0.15 && simT >= punchFist.t0 - 0.1 && simT <= punchFist.t0 + 0.06;   // 版1056
+    const pfOn = punchFist && Math.abs(simT - punchFist.at) < 0.15 && simT >= punchFist.t0 + 0.02 && simT <= punchFist.t0 + 0.1;   // 版1057：伸ばし切った瞬間だけ、こぶしに当てる   // 版1056
     if (pfOn) ballTrail.length = 0;
     // 残像（速いほど長い）
     if (!pfOn) ballTrail.push({ x: p.x, y: p.y - r * 0.6, sp: speed });
@@ -2048,8 +2048,9 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       const bsx = proj(kpBall.x, kpBall.y).x - q.x, fa = bsx >= 0 ? 0 : Math.PI;
       // 版1056：こぶしがボールに当たる瞬間（パンチの記録の時刻）に合わせて突き出し、その前後はボールをこぶしの先に描く
       const pe = match.events.find((e) => e.type === 'save' && e.act === 'punch' && e.team === team && e.t > simT - 1.2 && e.t < simT + 1.2);
-      const hit = pe ? simT >= pe.t - 0.12 : uu >= 0.28;
-      dmFacing = fa; const r6 = sprite(lifted.x, lifted.y, q.s, info, team, 1, 0, false, false, true, hit ? 'gkPunch_hit' : 'gkPunch_cock', 0, 'side'); dmFacing = null; window.__gk6 = [lifted.x, lifted.y, simT];
+      // 版1057：ボールが来るまでは構えたまま。当たる直前（0.07秒前）に腕を半分伸ばし、当たった瞬間に伸ばし切る
+      const hit = pe ? simT >= pe.t + 0.02 : uu >= 0.3, mid = pe ? !hit && simT >= pe.t - 0.07 : false;
+      dmFacing = fa; const r6 = sprite(lifted.x, lifted.y, q.s, info, team, 1, 0, false, false, true, hit ? 'gkPunch_hit' : mid ? 'gkPunch_mid' : 'gkPunch_cock', 0, 'side'); dmFacing = null; window.__gk6 = [lifted.x, lifted.y, simT];
       if (hit && pe && r6 && r6.dot) { const dt = r6.dot, sx = fa === 0 ? 1 : -1; punchFist = { x: lifted.x + sx * (20.5 - 11) * dt, y: lifted.y + (2.5 - 26) * dt, sx, dot: dt, t0: pe.t, at: simT }; }
       return r6 || { top: lifted.y - 18 * px * 0.7, px };
     }
