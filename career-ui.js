@@ -4698,6 +4698,7 @@
   // サーバーから届いたものを受け取って、ポストに入れる（守備のRPもここで入る）
   function syncPost(force) {
     if (!(window.DotNet && DotNet.on)) return Promise.resolve(0);
+    if (/lab\.html$/.test(location.pathname) || !ensureOnline().fid) return Promise.resolve(0);   // 版1021：まだオンライン（空港）を開いたことのない端末・確認画面では、サーバーに登録しない（開いただけの端末が「はじまりFC 0RP」としてランキングに大量に並んでいた）
     if (postBusy) return postBusy;
     if (!force && Date.now() - postAt < 60000) { postBadge(); return Promise.resolve(postUnread()); }
     postBusy = (async () => {
@@ -4945,6 +4946,7 @@
   // 版613：自分のクラブをオンラインに公開（ロビーを開いた時・対戦のあと）
   let pubBusy = false;
   async function publishMe() {
+    if (/lab\.html$/.test(location.pathname)) return null;   // 版1021：確認画面からは登録しない
     if (!(window.DotNet && DotNet.on) || pubBusy) return null; pubBusy = true;
     try { const on = ensureOnline(), d = C.guestCode(save), code = await packCode(d);
       const fid = await DotNet.publish({ fid: on.fid, name: d.name, short: d.short, mgr: d.mgr, lg: d.lg, emb: d.emb, kit: d.kit, rank: rankIdx(on.rp), rp: on.rp, lvl: C.teamLevel(save), code, sv: save.cloudCode || null, prem: C.premOn(save) });
