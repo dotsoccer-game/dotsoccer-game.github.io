@@ -5,7 +5,7 @@
   css.textContent = `#clubScreen,.std-wrap{display:none!important}#pkl{position:fixed;left:50%;transform:translateX(-50%);top:4px;z-index:60;background:rgba(10,24,16,.82);color:#e8f2ea;border:1px solid #3d6b4a;border-radius:10px;padding:5px 7px;font:12px/1.4 system-ui,sans-serif;max-width:min(560px,calc(100vw - 12px))}#pkl button{font:12px system-ui,sans-serif;background:#23392b;color:#e8f2ea;border:1px solid #4d7a5a;border-radius:6px;padding:4px 8px;margin:1px}#pkl .msg{color:#bcd3c2;margin-top:3px}#pkl.min>div:not(.tg){display:none}#pkl .tg{text-align:center}#pkl{text-align:center}`;
   document.head.appendChild(css);
   const box = document.createElement('div'); box.id = 'pkl';
-  box.innerHTML = `<div class="tg"><button id="pkT">確認画面のボタン ▼</button></div><div><button id="pkN">次の試合 ▶</button><button id="pkR">もう一度（終了の笛から）</button><button id="pkS">PK戦の途中から</button></div><div>場面を指定して見る：<button data-f="missWide">外した（枠の横）</button><button data-f="missHigh">外した（バーの上）</button><button data-f="save">GKが横っ飛びで止めた</button><button data-f="catch">GKが正面でキャッチ</button><button data-f="goalRead">読まれたが決めた</button><button data-f="gk">GKが蹴って決めた</button><button data-f="post">ポストに当たって外れる</button><button data-f="bar">バーに当たって外れる</button><button data-f="postIn">ポストに当たって入る</button><button data-f="barIn">バーに当たって入る</button></div><div class="msg" id="pkM">準備しています…</div><div class="msg" style="opacity:.7">版 ${window.__appVer || '?'}</div>`;
+  box.innerHTML = `<div class="tg"><button id="pkT">確認画面のボタン ▼</button></div><div><button id="pkN">次の試合 ▶</button><button id="pkR">もう一度（終了の笛から）</button><button id="pkS">PK戦の途中から</button></div><div>場面を指定して見る：<button data-f="missWide">外した（枠の横）</button><button data-f="missHigh">外した（バーの上）</button><button data-f="save">GKが横っ飛びで止めた</button><button data-f="catch">GKが正面でキャッチ（胸）</button><button data-f="catchLow">GKが正面でキャッチ（低い球）</button><button data-f="goalRead">読まれたが決めた</button><button data-f="gk">GKが蹴って決めた</button><button data-f="post">ポストに当たって外れる</button><button data-f="bar">バーに当たって外れる</button><button data-f="postIn">ポストに当たって入る</button><button data-f="barIn">バーに当たって入る</button></div><div class="msg" id="pkM">準備しています…</div><div class="msg" style="opacity:.7">版 ${window.__appVer || '?'}</div>`;
   document.body.appendChild(box);
   // 版1032：iPhoneでは、ボタンがPK戦のボードとゴールに重なっていた → 上の真ん中に、たたんで置く（タップで開く）
   const tg = () => { box.classList.toggle('min'); document.getElementById('pkT').textContent = box.classList.contains('min') ? '確認画面のボタン ▼' : 'たたむ ▲'; };
@@ -28,7 +28,7 @@
     }, 60);
   }
   // 版1038：場面を指定して見る（その結果になるように決めて、PK戦の1本目の少し前から流す）
-  const NAMES = { missWide: '外した（枠の横）', missHigh: '外した（バーの上）', save: 'GKが横っ飛びで止めた', catch: 'GKが正面でキャッチ', goalRead: '読まれたが決めた', gk: 'GKが蹴って決めた', post: 'ポストに当たって外れる', bar: 'バーに当たって外れる', postIn: 'ポストに当たって入る', barIn: 'バーに当たって入る' };
+  const NAMES = { missWide: '外した（枠の横）', missHigh: '外した（バーの上）', save: 'GKが横っ飛びで止めた', catch: 'GKが正面でキャッチ（胸）', catchLow: 'GKが正面でキャッチ（低い球）', goalRead: '読まれたが決めた', gk: 'GKが蹴って決めた', post: 'ポストに当たって外れる', bar: 'バーに当たって外れる', postIn: 'ポストに当たって入る', barIn: 'バーに当たって入る' };
   box.querySelectorAll('[data-f]').forEach((bt) => bt.onclick = () => { tg(); const f = bt.dataset.f, sd = cur; msg('準備しています…（数秒かかります）');
     setTimeout(() => { const [a, b] = teams(sd);
       const o = f === 'gk' ? { soGkFirst: true, soForce: ['goal', 'goal', 'goal', 'goal'] } : { soForce: Array(12).fill(f) };

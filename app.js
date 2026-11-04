@@ -1067,6 +1067,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     blobCache[v] = out; return out;
   }
   const CATCH_ART = {"front": [11.0, 14.0, 23, false], "fdiag": [16.0, 15.5, 28, false], "side": [17.5, 13.5, 25, false], "bdiag": [17.0, 13.0, 28, true], "back": [11.0, 13.0, 26, true]};   // 版1044：キャッチの絵：[ボールの中心の列, 行, 絵の高さ, ボールが体の向こう]
+  const CATCH_ART_L = {"front": [11.0, 15.0, 21, false], "fdiag": [16.0, 19.5, 26, false], "side": [17.5, 17.5, 24, false], "bdiag": [17.0, 17.0, 27, true], "back": [11.0, 16.0, 25, true]};   // 版1050：低いボールのキャッチ（片ひざをついて、ひざの前で両手で持つ）
   let soCamOn = false, soCheer = null;
   function pitch() {
     ctx.fillStyle = venue <= 1 ? '#3f6d2c' : '#6b6862'; ctx.fillRect(0, 0, CW, CH);
@@ -1626,7 +1627,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     } else if (armsUp) o.pose = 'cheer';   // バンザイ・GKのパンチング／ダイブ・転倒（倒した絵として使う）
     else if (/^(shotA|passA|trapI|trapC|stumble|fall|getup|scisB|scis|bfStep|bfPush|bicycle|dhead|headS|volleyS|lobS|toeK|ctrlS|gkwf)\d[RL]?$/.test(pose || '')) { const m = pose.match(/^([a-zA-Z]+?)(\d)([RL]?)$/); o.pose = m[1]; o.frame = +m[2]; o.art = true; if (m[3]) o.foot = m[3]; }   // 手で描いた絵。最後の R/L＝使う足   // 手で描いたシュートフォーム・シザース
     else if (pose === 'lie') { o.pose = 'lie'; o.art = true; }   // あお向けの大の字
-    else if (pose === 'gkReach' || pose === 'gkCrouch' || pose === 'gkSit' || /^gkCatchF?_/.test(pose || '') || pose === 'slide' || pose === 'slideF' || pose === 'slideB' || pose === 'hurdle') { o.pose = pose; o.art = true; }   // 失点したGKの悔しがり
+    else if (pose === 'gkReach' || pose === 'gkCrouch' || pose === 'gkSit' || /^gkCatchL?F?_/.test(pose || '') || pose === 'slide' || pose === 'slideF' || pose === 'slideB' || pose === 'hurdle') { o.pose = pose; o.art = true; }   // 失点したGKの悔しがり
     else if (pose === 'jump' || pose === 'lunge' || pose === 'sole' || pose === 'crouch') o.pose = pose;
     else if (pose === 'windup' || pose === 'bigWindup' || pose === 'kick' || pose === 'follow') { const m = { windup: ['pass', 1], bigWindup: ['shot', 1], kick: ['pass', 2], follow: ['shot', 3] }[pose]; o.pose = m[0]; o.frame = m[1]; }
     else if (moving && ART_RUN) { o.pose = 'run'; o.art = true; o.frame = DotMan.artFrame(fa, dmFacing == null || dmRunPh == null ? performance.now() / 1000 * 2.15 + (info.number || 0) * 0.37 : dmRunPh); }
@@ -2071,16 +2072,16 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       ctx.fillStyle = 'rgba(0,30,0,0.3)'; ctx.beginPath(); ctx.ellipse(q.x, q.y - px * 0.2, 5.6 * px, 1.8 * px, 0, 0, Math.PI * 2); ctx.fill();
       dmFacing = Math.atan2(0, team === 0 ? 1 : -1); const r11 = sprite(lifted.x, lifted.y, q.s, info, team, facing, 1, false, true, true, null, 0, 'front'); dmFacing = null; return r11;
     }
-    if (code === 15) {   // 版1047：キャッチ（監督が選んだ形：あごの前で、ボールを両手で包む。8方向）。版1044：体の絵 → 試合と同じボール → ボールの上の手、の順に重ねる。向きは、GKが向いているピッチの方
+    if (code === 15 || code === 16) {   // 15：胸に引きつけるキャッチ、16：低いボールのキャッチ   // 版1047：キャッチ（監督が選んだ形：あごの前で、ボールを両手で包む。8方向）。版1044：体の絵 → 試合と同じボール → ボールの上の手、の順に重ねる。向きは、GKが向いているピッチの方
       const fp = proj(p.x + (p.x > 52.5 ? -6 : 6), p.y), ang = Math.atan2((fp.y - q.y) / 0.45, fp.x - q.x), sec = ((Math.round(ang / (Math.PI / 4)) % 8) + 8) % 8;
-      const key = ['side', 'fdiag', 'front', 'fdiag', 'side', 'bdiag', 'back', 'bdiag'][sec], M = CATCH_ART[key], flip = Math.cos(ang) < -0.01;
+      const key = ['side', 'fdiag', 'front', 'fdiag', 'side', 'bdiag', 'back', 'bdiag'][sec], LOW = code === 16, PRE = LOW ? 'gkCatchL' : 'gkCatch', M = (LOW ? CATCH_ART_L : CATCH_ART)[key], flip = Math.cos(ang) < -0.01;
       dmFacing = ang;
       const drawBall = (dot) => ballFace(q.x + ((flip ? 11 - M[0] : M[0] - 11) + 0.5) * dot, q.y + (M[1] + 0.5 - M[2]) * dot, Math.max(5.5, 9 * q.s));   // 絵の中のボールの位置（ドット）→ 画面
-      const dot0 = Math.max(1.4, 2.6 * q.s) * DotMan.fitScale({ art: true }, ang, 'gkCatch_' + key);   // 版1048：立ち絵と同じ縮尺
+      const dot0 = Math.max(1.4, 2.6 * q.s) * DotMan.fitScale({ art: true }, ang, PRE + '_' + key);   // 版1048：立ち絵と同じ縮尺
       if (M[3]) drawBall(dot0);
-      const r15 = sprite(q.x, q.y, q.s, info, team, facing, 0, false, false, false, 'gkCatch_' + key, 0, 'front');
+      const r15 = sprite(q.x, q.y, q.s, info, team, facing, 0, false, false, false, PRE + '_' + key, 0, 'front');
       if (!M[3]) drawBall((r15 && r15.dot) || dot0);
-      sprite(q.x, q.y, q.s, info, team, facing, 0, false, false, true, 'gkCatchF_' + key, 0, 'front');
+      sprite(q.x, q.y, q.s, info, team, facing, 0, false, false, true, PRE + 'F_' + key, 0, 'front');
       dmFacing = null; return r15;
     }
     if (code === 12) {   // 正面の低い球：腰を落として、すくい上げるように抱える
@@ -2923,7 +2924,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
         }
         if (!(goalDefer && (goalDefer.before.length || goalDefer.after.length)) && (bb.z || 0) > 1.6) { hiBall = [bb, st.spin, st.bs, st.owner >= 0, st.held]; continue; }   // 版670：高い浮き球（ヒールリフトなど）は、名前・スキルの吹き出しに隠れないよう、いちばん最後に描く
         if (goalDefer && goalDefer.before.length) goalDraw(goalDefer.gx, goalDefer.before);   // ボールの奥にある柱・手前のネット
-        ballOwned = st.owner >= 0; if (!(st.gk && (st.gk[0] === 15 || st.gk[1] === 15))) ballDraw(bb, st.spin, st.bs, st.held);   // 版1041：キャッチの絵（15）はボールも絵の中に描いてある
+        ballOwned = st.owner >= 0; if (!(st.gk && (st.gk[0] === 15 || st.gk[1] === 15 || st.gk[0] === 16 || st.gk[1] === 16))) ballDraw(bb, st.spin, st.bs, st.held);   // 版1041：キャッチの絵（15）はボールも絵の中に描いてある
         if (goalDefer && goalDefer.after.length) goalDraw(goalDefer.gx, goalDefer.after);   // ボールの手前にある奥のネット（ゴールの裏・天井の上など）
         continue;
       }
