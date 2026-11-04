@@ -1809,7 +1809,48 @@
     const cs = C.cellsFor(f || '4-4-2'), dots = cs.slice(1, 11).map((c2) => c2 ? `<circle cx="${3 + c2.c * 2.4}" cy="${33 - c2.r * 3}" r="2" fill="#fff"/>` : '').join('');
     return `<svg viewBox="0 0 40 40" class="s2mini"><rect x="1" y="1" width="38" height="38" rx="3" fill="#2f8a4e"/><rect x="1" y="1" width="38" height="9" fill="#2f6fd6" opacity=".6"/><rect x="1" y="10" width="38" height="12" fill="#e0b020" opacity=".55"/><rect x="1" y="22" width="38" height="9" fill="#d83a3a" opacity=".55"/>${dots}<circle cx="20" cy="36" r="2" fill="#ffe23a"/></svg>`;
   }
+  // 版1059：戦術設定（監督の画像どおりの画面）：チーム戦術（戦い方のカード5枚＋細かい調整）／試合中の作戦（切り替え開始＋リード・同点・ビハインド）。
+  //  「設定を反映」で保存、「元に戻す」で開いた時の設定へ、←で閉じる（反映していない変更があれば聞く）
+  const TQ_SHORT = { balance: '攻守のバランスを重視', counter: '深く守り、奪ったら前へ', possession: 'パスをつないで保持', highpress: '前から奪いに行く', wing: '幅を使ってクロス' };
+  function openTacSet(tab0, onClose) {
+    const tac = C.ensureTactics(save), snap = JSON.parse(JSON.stringify(tac));
+    let work = JSON.parse(JSON.stringify(tac)), tab = tab0 === 'sit' ? 'sit' : 'tac', ask = false;
+    let el = document.getElementById('tacSet'); if (!el) { el = document.createElement('div'); el.id = 'tacSet'; document.body.appendChild(el); }
+    const SIT_NM = { keep: 'そのまま', defend: '守備重視', attack: '攻撃重視', allout: '総攻撃' }, SIT_HD = { lead: 'リード', draw: '同点', behind: 'ビハインド' };
+    const LEFT = ['line', 'width', 'compact', 'attitude'], RIGHT = ['press', 'pass', 'side'];
+    const item = (k) => { const it = C.TACTIC_ITEMS.find((x) => x.key === k); return `<div class="tq-it"><span class="tq-in">${esc(it.name)}</span><span class="tq-seg n${it.opts.length}">${it.opts.map(([v, nm]) => `<button data-k="${k}" data-v="${v}" class="${String(work[k]) === String(v) ? 'on' : ''}">${String(work[k]) === String(v) ? '✓ ' : ''}${esc(nm)}</button>`).join('')}</span></div>`; };
+    const changed = () => JSON.stringify(work) !== JSON.stringify(snap);
+    const draw = () => {
+      const si = work.situ || { from: 70, lead: 'keep', draw: 'keep', behind: 'attack' }; work.situ = si;
+      const body = tab === 'tac'
+        ? `<div class="tq-h"><b>基本の戦い方</b><i></i></div>
+           <div class="tq-styles">${C.STYLES.map((st) => `<button class="tq-st${st.id === work.style ? ' on' : ''}" data-st="${st.id}"><span class="tq-art"><img src="img/tactics/${st.id}.png" alt=""></span><b>${esc(st.name)}</b><small>${esc(TQ_SHORT[st.id] || st.desc)}</small>${st.id === work.style ? '<em class="tq-ck">✓</em>' : ''}</button>`).join('')}</div>
+           <div class="tq-h"><b>細かい調整</b><i></i>${work.style === 'custom' ? '<small>（カスタム）</small>' : ''}</div>
+           <div class="tq-adj"><div>${LEFT.map(item).join('')}</div><div>${RIGHT.map(item).join('')}<p class="tq-note">選手の配置は変わりません。</p></div></div>`
+        : `<div class="tq-from"><span class="tq-fl">切り替え開始</span>${C.SITU_FROM.map(([v, nm]) => `<button data-sf="${v}" class="${si.from === v ? 'on' : ''}">${si.from === v ? '✓ ' : ''}${esc(nm.replace('から', ''))}</button>`).join('')}</div>
+           <div class="tq-sit">${C.SITU_ROWS.map(([key]) => `<div class="tq-col c-${key}"><h3>${SIT_HD[key]}</h3>${C.SITU_ACTS.map(([v]) => `<button data-sk="${key}" data-sv="${v}" class="${si[key] === v ? 'on ' + (v === 'attack' || v === 'allout' ? 'or' : 'bl') : ''}">${si[key] === v ? '✓ ' : ''}${SIT_NM[v]}</button>`).join('')}</div>`).join('')}</div>
+           <p class="tq-note2">作戦を選ぶと、終盤に自動で切り替わります。</p>`;
+      el.innerHTML = `<div class="tq-top"><h2>戦術設定</h2><button class="tq-back" aria-label="戻る"><svg viewBox="0 0 24 24"><path d="M20 12H6M11 6l-6 6 6 6" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
+        <div class="tq-tabs"><button data-t="tac" class="${tab === 'tac' ? 'on' : ''}">チーム戦術</button><button data-t="sit" class="${tab === 'sit' ? 'on' : ''}">試合中の作戦</button></div>
+        <div class="tq-body">${body}</div>
+        <div class="tq-foot"><button class="tq-reset">元に戻す</button><button class="tq-apply">設定を反映</button></div>
+        ${ask ? `<div class="tq-ask"><div><p>反映していない変更があります。</p><div><button class="tq-a1">反映して戻る</button><button class="tq-a2">反映せずに戻る</button><button class="tq-a3">やめる</button></div></div></div>` : ''}`;
+      el.querySelectorAll('.tq-tabs button').forEach((b) => b.onclick = () => { tab = b.dataset.t; draw(); });
+      el.querySelectorAll('.tq-st').forEach((b) => b.onclick = () => { const st = C.STYLES.find((x) => x.id === b.dataset.st); Object.assign(work, st.t, { style: st.id }); draw(); });
+      el.querySelectorAll('.tq-seg button').forEach((b) => b.onclick = () => { const v = b.dataset.v; work[b.dataset.k] = isNaN(+v) ? v : +v; work.style = 'custom'; draw(); });
+      el.querySelectorAll('[data-sf]').forEach((b) => b.onclick = () => { work.situ.from = +b.dataset.sf; draw(); });
+      el.querySelectorAll('[data-sk]').forEach((b) => b.onclick = () => { work.situ[b.dataset.sk] = b.dataset.sv; draw(); });
+      el.querySelector('.tq-reset').onclick = () => { work = JSON.parse(JSON.stringify(snap)); draw(); };
+      const apply = () => { for (const k of Object.keys(work)) tac[k] = work[k]; store(); };
+      const close = () => { el.remove(); if (onClose) onClose(); };
+      el.querySelector('.tq-apply').onclick = () => { apply(); close(); };
+      el.querySelector('.tq-back').onclick = () => { if (changed()) { ask = true; draw(); } else close(); };
+      if (ask) { el.querySelector('.tq-a1').onclick = () => { apply(); close(); }; el.querySelector('.tq-a2').onclick = () => close(); el.querySelector('.tq-a3').onclick = () => { ask = false; draw(); }; }
+    };
+    draw();
+  }
   function renderLineup() {
+    if (sqTab === 'tac' || sqTab === 'sit') { const t0 = sqTab; sqTab = 'pos'; renderLineup2(); openTacSet(t0, () => renderLineup()); return; }   // 版1059：チーム戦術・試合中の作戦は、専用の画面で
     if (sqTab === 'pos') { renderLineup2(); return; }
     const ps = save.team.players, tac = C.ensureTactics(save), cells = tac.cells;
     const TOP = 20, CW = 28, CH = 35, COLS = C.GRID_C, ROWS = C.GRID_R + 2, PW = CW * COLS, PH = CH * ROWS + TOP;

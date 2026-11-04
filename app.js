@@ -2041,7 +2041,9 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       // パンチング：飛び上がって片手のこぶしで突き上げる
       const jp = (info.params && info.params.jump) || 65, jT = 0.56 + jp * 0.0045;   // 版872：ハイボールと同じ跳び方（ジャンプ力で高さ・時間）
       if (simT - (highStart[gi] ?? -9) > jT + 0.3 || simT < (highStart[gi] ?? -9)) highStart[gi] = simT;
-      const uu = Math.min(1, (simT - highStart[gi]) / jT), hh = Math.max(0.3, Math.sin(Math.PI * uu) * (0.55 + jp * 0.0085)), lifted = P3(p.x, p.y, hh);
+      // 版1059：パンチングは高く跳ぶ（前の約1.7倍）。跳んだ一番上でこぶしが当たるように、パンチの時刻に合わせる
+      const pe0 = match.events.find((e) => e.type === 'save' && e.act === 'punch' && e.team === team && e.t > simT - 1.2 && e.t < simT + 1.2);
+      const uu = Math.min(1, (simT - highStart[gi]) / jT), uj = pe0 ? Math.max(0, Math.min(1, (simT - (pe0.t - jT * 0.5)) / jT)) : uu, hh = Math.max(0.3, Math.sin(Math.PI * uj) * (0.95 + jp * 0.0145)), lifted = P3(p.x, p.y, hh);
       ctx.fillStyle = 'rgba(0,30,0,0.3)';
       const px = Math.max(1.4, 2.5 * q.s);
       ctx.beginPath(); ctx.ellipse(q.x, q.y - px * 0.2, 5.2 * px, 1.7 * px, 0, 0, Math.PI * 2); ctx.fill();
