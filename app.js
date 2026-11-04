@@ -1066,7 +1066,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     if (heavy) for (let k = 0; k < 160; k++) blob(-3 + r() * 111, -2 + r() * 72, 0.25 + r() * 0.45, 'rgba(170,144,86,0.7)');   // 小さなはげ
     blobCache[v] = out; return out;
   }
-  const CATCH_ART = {"front": [11.0, 12.0, 30, false], "side": [19.5, 11.0, 27, false], "fdiag": [16.5, 12.5, 31, false], "bdiag": [17.5, 7.5, 30, true], "back": [11.0, 7.0, 28, true]};   // 版1044：キャッチの絵：[ボールの中心の列, 行, 絵の高さ, ボールが体の向こう]
+  const CATCH_ART = {"front": [11.0, 14.0, 23, false], "fdiag": [16.0, 15.5, 28, false], "side": [17.5, 13.5, 25, false], "bdiag": [17.0, 13.0, 28, true], "back": [11.0, 13.0, 26, true]};   // 版1044：キャッチの絵：[ボールの中心の列, 行, 絵の高さ, ボールが体の向こう]
   let soCamOn = false, soCheer = null;
   function pitch() {
     ctx.fillStyle = venue <= 1 ? '#3f6d2c' : '#6b6862'; ctx.fillRect(0, 0, CW, CH);
