@@ -1971,7 +1971,8 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
   const punchDot = [];
   /* 版1061：パンチの絵の1ドットの大きさ（GKごと、前のコマの値）と、パンチで向く側（1回のパンチの間は変えない） */
   const punchSideOf = new WeakMap();
-  const punchSide = (pe, q) => { let v = punchSideOf.get(pe); if (v == null) { const bs = stateAt(pe.t + 0.1).ball; v = proj(bs.x, bs.y).x - q.x >= 0 ? 1 : -1; punchSideOf.set(pe, v); } return v; };
+  /* 版1062：自分のゴールに背を向けて、ピッチの内側を向いてパンチする（ゴールの方を向いてパンチしていた） */
+  const punchSide = (pe, q, p) => { let v = punchSideOf.get(pe); if (v == null) { const gx = p.x < 52.5 ? 0 : 105, gs = proj(gx, p.y).x, fs = proj(52.5, p.y).x; v = fs - gs >= 0 ? 1 : -1; punchSideOf.set(pe, v); } return v; };
   let kpBall = { x: 52.5, y: 34 };   // 版866：GKの絵をボールに向けるための、いまのボールの位置（drawKeeper の中からは st が見えない）
   let hiDv = false; const hiCache = [];
   // 版970：GKはボールの方を向く。止める姿勢（片足・片手を伸ばす）のままボールが後ろ（ゴールの中）へ抜けたら、姿勢をやめて普通に立ち、振り返ってボールを見る（伸ばした手足がゴールを指さして見えた）
@@ -2052,7 +2053,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       /* 版1061：ボールをこぶしへ引き寄せると「ガタッ」と揺れた → ボールは本当の通り道のまま動かさず、GKの方を跳びながら少しずつずらして、
          当たる瞬間にこぶしの先がちょうどボールに来るようにする（当たった後はゆっくり元の位置へ） */
       if (pe0 && punchDot[gi]) {
-        const tc = pe0.t + 0.1, dt = punchDot[gi]   /* ボールの向きが変わるのは記録の1コマ後 */, sx = punchSide(pe0, q);
+        const tc = pe0.t + 0.1, dt = punchDot[gi]   /* ボールの向きが変わるのは記録の1コマ後 */, sx = punchSide(pe0, q, p);
         const bs = stateAt(tc).ball, bg = P3(bs.x, bs.y, 0), bp = P3(bs.x, bs.y, bs.z + 0.11), br = Math.max(5.5, 9 * bg.s);
         const pk = P3(p.x, p.y, hpk), tx = bp.x - sx * (9.5 * dt + br * 0.75 + dt), ty = bp.y - br * 0.6 + (23.5 * dt + br * 0.75 + dt);
         const t0 = tc - jT * 0.5, sm = (v) => { v = Math.max(0, Math.min(1, v)); return v * v * (3 - 2 * v); };
@@ -2064,7 +2065,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       ctx.beginPath(); ctx.ellipse(q.x, q.y - px * 0.2, 5.2 * px, 1.7 * px, 0, 0, Math.PI * 2); ctx.fill();
       // 版1055：パンチングは横向きの手描きの絵だけで描く（監督と決めた形）。ボールのある方（画面の左右）を向いて跳び、
       //  跳び始めはこぶしをあごの横に構え（gkPunch_cock）、頂点の手前でボールへ斜め上に突き出す（gkPunch_hit）
-      const fa = pe0 ? (punchSide(pe0, q) > 0 ? 0 : Math.PI) : (proj(kpBall.x, kpBall.y).x - q.x >= 0 ? 0 : Math.PI);   /* 版1061：向きはパンチの瞬間のボールの側で決める（途中で左右が入れ替わってガタッとならない） */
+      const fa = pe0 ? (punchSide(pe0, q, p) > 0 ? 0 : Math.PI) : (proj(52.5, p.y).x - proj(p.x < 52.5 ? 0 : 105, p.y).x >= 0 ? 0 : Math.PI);   /* 版1061：向きはパンチの瞬間のボールの側で決める（途中で左右が入れ替わってガタッとならない） */
       // 版1056：こぶしがボールに当たる瞬間（パンチの記録の時刻）に合わせて突き出し、その前後はボールをこぶしの先に描く
       const pe = match.events.find((e) => e.type === 'save' && e.act === 'punch' && e.team === team && e.t > simT - 1.2 && e.t < simT + 1.2);
       // 版1057：ボールが来るまでは構えたまま。当たる直前（0.07秒前）に腕を半分伸ばし、当たった瞬間に伸ばし切る
