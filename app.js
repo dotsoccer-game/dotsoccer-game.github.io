@@ -1792,7 +1792,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     const r = Math.max(5.5, 9 * g.s);
     const p = P3(b.x, b.y, b.z + 0.11);
     // 版1058：ボールを急にこぶしへ移すと「ガタッ」と揺れた → 当たる0.18秒前から少しずつこぶしへ寄せ、当たった後も0.15秒かけて本当の位置へ戻す
-    let pfW = 0; if (punchFist && Math.abs(simT - punchFist.at) < 0.15) { const dt = simT - (punchFist.t0 + 0.02); pfW = dt < 0 ? Math.max(0, 1 + dt / 0.18) : Math.max(0, 1 - dt / 0.15); pfW = pfW * pfW * (3 - 2 * pfW); }
+    let pfW = 0; if (false && punchFist && Math.abs(simT - punchFist.at) < 0.15) {   /* 版1061：ボールは寄せない（GKの方を合わせる） */ const dt = simT - (punchFist.t0 + 0.02); pfW = dt < 0 ? Math.max(0, 1 + dt / 0.18) : Math.max(0, 1 - dt / 0.15); pfW = pfW * pfW * (3 - 2 * pfW); }
     const pfOn = pfW > 0.5;   // 版1056
     if (pfOn) ballTrail.length = 0;
     // 残像（速いほど長い）
@@ -1968,6 +1968,10 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     dmFacing = Math.PI / 2; const r = sprite(q.x, q.y, q.s, info, team, 1, 0, false, false, true, 'lie', 0, 'front'); dmFacing = null;
     return r;
   }
+  const punchDot = [];
+  /* 版1061：パンチの絵の1ドットの大きさ（GKごと、前のコマの値）と、パンチで向く側（1回のパンチの間は変えない） */
+  const punchSideOf = new WeakMap();
+  const punchSide = (pe, q) => { let v = punchSideOf.get(pe); if (v == null) { const bs = stateAt(pe.t + 0.1).ball; v = proj(bs.x, bs.y).x - q.x >= 0 ? 1 : -1; punchSideOf.set(pe, v); } return v; };
   let kpBall = { x: 52.5, y: 34 };   // 版866：GKの絵をボールに向けるための、いまのボールの位置（drawKeeper の中からは st が見えない）
   let hiDv = false; const hiCache = [];
   // 版970：GKはボールの方を向く。止める姿勢（片足・片手を伸ばす）のままボールが後ろ（ゴールの中）へ抜けたら、姿勢をやめて普通に立ち、振り返ってボールを見る（伸ばした手足がゴールを指さして見えた）
@@ -2043,18 +2047,29 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       if (simT - (highStart[gi] ?? -9) > jT + 0.3 || simT < (highStart[gi] ?? -9)) highStart[gi] = simT;
       // 版1059：パンチングは高く跳ぶ（前の約1.7倍）。跳んだ一番上でこぶしが当たるように、パンチの時刻に合わせる
       const pe0 = match.events.find((e) => e.type === 'save' && e.act === 'punch' && e.team === team && e.t > simT - 1.2 && e.t < simT + 1.2);
-      const uu = Math.min(1, (simT - highStart[gi]) / jT), uj = pe0 ? Math.max(0, Math.min(1, (simT - (pe0.t - jT * 0.5)) / jT)) : uu, hh = Math.max(0.3, Math.sin(Math.PI * uj) * (0.95 + jp * 0.0145)), lifted = P3(p.x, p.y, hh);
+      const uu = Math.min(1, (simT - highStart[gi]) / jT), uj = pe0 ? Math.max(0, Math.min(1, (simT - (pe0.t + 0.1 - jT * 0.5)) / jT)) : uu, hh = Math.max(0.3, Math.sin(Math.PI * uj) * (0.95 + jp * 0.0145)), hpk = 0.95 + jp * 0.0145;
+      let lifted = P3(p.x, p.y, hh);
+      /* 版1061：ボールをこぶしへ引き寄せると「ガタッ」と揺れた → ボールは本当の通り道のまま動かさず、GKの方を跳びながら少しずつずらして、
+         当たる瞬間にこぶしの先がちょうどボールに来るようにする（当たった後はゆっくり元の位置へ） */
+      if (pe0 && punchDot[gi]) {
+        const tc = pe0.t + 0.1, dt = punchDot[gi]   /* ボールの向きが変わるのは記録の1コマ後 */, sx = punchSide(pe0, q);
+        const bs = stateAt(tc).ball, bg = P3(bs.x, bs.y, 0), bp = P3(bs.x, bs.y, bs.z + 0.11), br = Math.max(5.5, 9 * bg.s);
+        const pk = P3(p.x, p.y, hpk), tx = bp.x - sx * (9.5 * dt + br * 0.75 + dt), ty = bp.y - br * 0.6 + (23.5 * dt + br * 0.75 + dt);
+        const t0 = tc - jT * 0.5, sm = (v) => { v = Math.max(0, Math.min(1, v)); return v * v * (3 - 2 * v); };
+        const w = simT <= tc ? sm((simT - t0) / (tc - t0)) : 1 - sm((simT - tc - 0.12) / 0.4);
+        lifted = { ...lifted, x: lifted.x + (tx - pk.x) * w, y: lifted.y + (ty - pk.y) * w };
+      }
       ctx.fillStyle = 'rgba(0,30,0,0.3)';
       const px = Math.max(1.4, 2.5 * q.s);
       ctx.beginPath(); ctx.ellipse(q.x, q.y - px * 0.2, 5.2 * px, 1.7 * px, 0, 0, Math.PI * 2); ctx.fill();
       // 版1055：パンチングは横向きの手描きの絵だけで描く（監督と決めた形）。ボールのある方（画面の左右）を向いて跳び、
       //  跳び始めはこぶしをあごの横に構え（gkPunch_cock）、頂点の手前でボールへ斜め上に突き出す（gkPunch_hit）
-      const bsx = proj(kpBall.x, kpBall.y).x - q.x, fa = bsx >= 0 ? 0 : Math.PI;
+      const fa = pe0 ? (punchSide(pe0, q) > 0 ? 0 : Math.PI) : (proj(kpBall.x, kpBall.y).x - q.x >= 0 ? 0 : Math.PI);   /* 版1061：向きはパンチの瞬間のボールの側で決める（途中で左右が入れ替わってガタッとならない） */
       // 版1056：こぶしがボールに当たる瞬間（パンチの記録の時刻）に合わせて突き出し、その前後はボールをこぶしの先に描く
       const pe = match.events.find((e) => e.type === 'save' && e.act === 'punch' && e.team === team && e.t > simT - 1.2 && e.t < simT + 1.2);
       // 版1057：ボールが来るまでは構えたまま。当たる直前（0.07秒前）に腕を半分伸ばし、当たった瞬間に伸ばし切る
-      const hit = pe ? simT >= pe.t + 0.02 : uu >= 0.3, mid = pe ? !hit && simT >= pe.t - 0.07 : false;
-      dmFacing = fa; const r6 = sprite(lifted.x, lifted.y, q.s, info, team, 1, 0, false, false, true, hit ? 'gkPunch_hit' : mid ? 'gkPunch_mid' : 'gkPunch_cock', 0, 'side'); dmFacing = null; window.__gk6 = [lifted.x, lifted.y, simT];
+      const hit = pe ? simT >= pe.t + 0.1 : uu >= 0.3, mid = pe ? !hit && simT >= pe.t + 0.01 : false;   /* 版1061：ボールが実際にはね返るのは記録の1コマ（0.1秒）後 */
+      dmFacing = fa; const r6 = sprite(lifted.x, lifted.y, q.s, info, team, 1, 0, false, false, true, hit ? 'gkPunch_hit' : mid ? 'gkPunch_mid' : 'gkPunch_cock', 0, 'side'); dmFacing = null; window.__gk6 = [lifted.x, lifted.y, simT]; if (r6 && r6.dot) punchDot[gi] = r6.dot;
       if (pe && r6 && r6.dot) { /* 版1058：伸ばし切った時のこぶしの位置（構えの間も計算して、ボールをそこへなめらかに寄せる） */ const dt = r6.dot, sx = fa === 0 ? 1 : -1; punchFist = { x: lifted.x + sx * (20.5 - 11) * dt, y: lifted.y + (2.5 - 26) * dt, sx, dot: dt, t0: pe.t, at: simT }; }
       return r6 || { top: lifted.y - 18 * px * 0.7, px };
     }
