@@ -8798,6 +8798,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         //  ボールはゴールの中から、次に蹴る人の足元へ転がして渡す → 足元で運んでスポットに置く
         // 版1034：ボールはスポットに置いてある（転がして渡さない）。助走の長さは人それぞれ（背番号などから決まる、1.5〜5.5m）
         const b = kickBall(kq); b.x = spotX; b.y = GOAL_Y; b.vx = b.vy = 0; b.wood = 0; b.stand = 0; let arrived = false;
+        ev('soplace', { team: t, round: tk[t] + 1 });   /* 版1065：ボールをPKマークに置いた（6本目からは、ここで表に1列足す） */
         const runLen = 1.5 + (((kq.number || 0) * 7 + kq.idx * 3 + (kq.kick | 0)) % 9) / 8 * 4, standX = spotX - 0.35 - runLen * 0.85, standY = GOAL_Y - 0.15 - runLen * 0.5;
         settle(12, (el) => {
           if (arrived) return 'stop';
