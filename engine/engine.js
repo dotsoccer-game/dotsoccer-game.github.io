@@ -5237,7 +5237,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       if (globalThis.__shD) { const g0 = opps(p).find((o) => o.gk && !o.off); globalThis.__shD.push({ t: S.t, i: p.idx, team: p.team, kick: p.kick, kq: p.kick * 0.6 + p.technique * 0.4, ot: b.shotOnTarget ? 1 : 0, yH: +(yHit - GOAL_Y).toFixed(2), zH: +zHit.toFixed(2), v: +hyp(b.vx, b.vy).toFixed(1), d: +b.shotFrom.toFixed(1), gkY: g0 ? +(g0.y - GOAL_Y).toFixed(2) : 0, gkD: g0 ? +hyp(g0.x - gx, g0.y - GOAL_Y).toFixed(1) : 0, skill: S.ball.skill || '' }); }
       const s = stats[p.team];
       s.shots++;
-      if (b.shotOnTarget) s.shots_on_target++; else s.off_target++;
+      if (b.shotOnTarget) s.shots_on_target++; else s.off_target++; b.sotCnt = !!b.shotOnTarget;   // 版1019：枠外と数えたシュートが入ったら、枠内に数え直す
       
       if (globalThis.__gkLog) { const g = T[1 - p.team].players[0], gxl = fx(1 - p.team, 0), sx = fx(1 - p.team, p.x), ga = Math.atan2(p.y - GOAL_Y, sx), gy = GOAL_Y + Math.tan(ga) * fx(1 - p.team, g.x); globalThis.__gkLog.push({ k: 'shot', t: S.t, gkX: +fx(1 - p.team, g.x).toFixed(1), gkY: +(g.y - GOAL_Y).toFixed(1), idealY: +(gy - GOAL_Y).toFixed(1), sd: +b.shotFrom.toFixed(1), sy: +(p.y - GOAL_Y).toFixed(1), on: b.shotOnTarget, down: (g.downT > 0 || g.diveT > 0) ? 1 : 0 }); }
       ev('shot', { team: p.team, player: p.name, number: p.number, d: +b.shotFrom.toFixed(1), on: b.shotOnTarget, knuckle: !!b.knuckle, chip: !!chip, one: !!S.ball.oneOnOne, power: Math.round(hyp(b.vx, b.vy) * 3.6) });
@@ -6683,6 +6683,9 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           const lp = S.lastPass[scorer];
           let assist = null;
           if (k.team === scorer && lp && lp.from !== k.idx && S.t - lp.t < 8) assist = P[lp.from].name;
+          if (b.sotCnt === false && kk && kk.team === scorer && (b.kickKind === 'shot' || b.kickKind === 'head')) { stats[scorer].shots_on_target++; stats[scorer].off_target = Math.max(0, (stats[scorer].off_target || 0) - 1); b.sotCnt = true; for (let k9 = events.length - 1; k9 >= 0 && S.t - events[k9].t < 8; k9--) if (events[k9].type === 'shot' && events[k9].team === scorer) { events[k9].on = true; break; } }   // 版1019：枠外と見ていたシュートが入った（当たってコースが変わった・ポストに当たって入った）：枠内に数え直す（入ったシュートは必ず枠内）
+          if ((globalThis.__Ksot ?? 1) && k.team === scorer) { let had = false; for (let k9 = events.length - 1; k9 >= 0 && S.t - events[k9].t < 8; k9--) if (events[k9].type === 'shot' && events[k9].team === scorer) { had = true; break; }
+            if (!had) { stats[scorer].shots++; stats[scorer].shots_on_target++; ev('shot', { team: scorer, player: k.name, number: k.number, d: +(b.shotFrom || 0).toFixed(1), on: true, conv: true }); } }   // 版1019：クロス・こぼれ球がそのまま入ったゴールも、シュート（枠内）1本に数える
           const g = { t: S.t, clock: Math.round(S.t * CLOCK_SCALE), player: k.team === scorer ? k.name : 'オウンゴール', number: k.number, assist };
           stats[scorer].goals.push(g);
           ev('goal', { team: scorer, player: g.player, number: k.number, assist, score: [...S.score], kind: b.kind, style: b.style || '', speed: Math.round(hyp(b.vx, b.vy) * 3.6), dist: b.shotFrom ? Math.round(b.shotFrom) : -1, knuckle: !!b.knuckle, conv: !!b.conv, hurry, roll: b.z < 0.4 && hyp(b.vx, b.vy) < 18, gkOut: (() => { const g = T[goalTeam].players[0]; return g.downT > 0 || g.diveT > 0 || fx(goalTeam, g.x) > 6; })() }); if (globalThis.__gkLog) { const g = T[goalTeam].players[0]; globalThis.__gkLog.push({ k: 'goal', pk: !!S.ball.pkShot, curve: !!S.ball.curveAll, kind: S.ball.kind, sinceShot: +(S.t - (S.ball.shotT ?? -9)).toFixed(2), lastTouch: S.ball.lastPlayer, kicker: S.ball.kicker, t: S.t, dive: g.diveT > 0 || g.downT > 0 ? (g.diveDir || 0) : 0, by: +(S.ball.y - GOAL_Y).toFixed(1), gy: +(g.y - GOAL_Y).toFixed(1), gx: +fx(goalTeam, g.x).toFixed(1), style: S.ball.style || '', dist: S.ball.shotFrom ? +S.ball.shotFrom.toFixed(0) : -1 }); }
@@ -7598,7 +7601,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         if (gr) { b.grF = grF(p); b.gkPen += (lv2 ? 0.6 : 0.2) * b.grF; b.uDelay = 0.07 * uP(p) * b.grF; b.guren = p.uniqLv || 1; }
         const tHit = (gx - b.x) / b.vx, yHit = b.y + b.vy * tHit;
         b.shotOnTarget = Math.abs(yHit - GOAL_Y) < POST;
-        stats[p.team].shots++; if (b.shotOnTarget) stats[p.team].shots_on_target++; else stats[p.team].off_target++;
+        stats[p.team].shots++; if (b.shotOnTarget) stats[p.team].shots_on_target++; else stats[p.team].off_target++; b.sotCnt = !!b.shotOnTarget;
         
         ev('shot', { team: p.team, player: p.name, number: p.number, d: +b.shotFrom.toFixed(1), on: b.shotOnTarget, header: true, power: Math.round(v * 3.6) });
       } else if (xf < 40 && (b.lastTeam !== p.team || opps(p).some((q) => !q.off && hyp(q.x - p.x, q.y - p.y) < 3.5) || (xf < 22 && Math.abs(p.y - GOAL_Y) < 20))) {   // 版845：クリアするのは、相手のボール・すぐ近くに相手がいる・自陣ゴール前の時だけ

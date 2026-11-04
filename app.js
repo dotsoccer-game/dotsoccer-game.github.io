@@ -386,7 +386,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     if (show && ['replay', 'jreplay', 'digest'].includes(show.phase) && match.events) {
       const E = match.events; let lo2 = 0, hi2 = E.length; while (lo2 < hi2) { const m = (lo2 + hi2) >> 1; if (E[m].t <= t0) lo2 = m + 1; else hi2 = m; }
       for (; lo2 < E.length && E[lo2].t <= t1; lo2++) { const e = E[lo2];
-        if (e.type === 'shot') SND().play('shot');
+        if (e.type === 'shot' && !e.conv) SND().play('shot');
         else if (e.type === 'post' || e.type === 'barin') { const gK = e.sp != null ? 0.4 + 1.8 * Math.max(0, Math.min(1, (e.sp - 10) / 20)) : 1; SND().play(e.bar || e.type === 'barin' ? 'bar' : 'post', gK); if (e.type === 'post' && !e.into) setTimeout(() => SND().play('ooh'), 250); }
         else if (e.type === 'goal' && show.phase === 'digest') { SND().play('cheer'); } } }
     // リプレイの中で、ボールがゴールに入る瞬間に歓声
@@ -3876,8 +3876,8 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       if ((e.type === 'foul' || e.type === 'offside') && speed < 16 && !match.events.some((x) => x.type === 'penalty' && Math.abs(x.t - e.t) < 0.05)) SND().play('foul');
       if (e.type === 'penalty' && speed < 16) SND().play('pkcall');   // 版837：PKの判定は長い笛   // 版558：本家のファールは「ピッピッ」
       // 版721：「おぉー」は本当に惜しい時だけ（ポスト・バー、1対1や近くからのシュートが外れた・止められた時）。ふつうのキャッチでは鳴らさない
-      if (e.type === 'shot') { lastShotEv = e; lastShotSimT = e.t; }
-      if (e.type === 'shot' && speed < 16) { SND().play('shot'); if (!e.on && (e.one || e.d < 11)) oohT = e.t + 0.45; }
+      if (e.type === 'shot' && !e.conv) { lastShotEv = e; lastShotSimT = e.t; }
+      if (e.type === 'shot' && speed < 16 && !e.conv) { SND().play('shot'); if (!e.on && (e.one || e.d < 11)) oohT = e.t + 0.45; }
       if ((e.type === 'post' || e.type === 'barin') && speed < 16) { const gK = e.sp != null ? 0.4 + 1.8 * Math.max(0, Math.min(1, (e.sp - 10) / 20)) : 1;   /* 版1012：強いボールはもっと大きく（30m/s以上で2.2倍） */ SND().play(e.bar || e.type === 'barin' ? 'bar' : 'post', gK); if (e.type === 'post' && !e.into) oohT = e.t + 0.25; }   // 版1007：ポスト・バーに当たった音　版1010：シュートの強さで音の大きさを変える（弱い0.4倍〜強い1.3倍）。バーに当たって中に落ちた時も鳴らす
       if (e.type === 'save' && speed < 16 && lastShotEv && e.t - lastShotEv.t < 2 && (lastShotEv.one || lastShotEv.d < 11)) oohT = e.t + 0.25;
       if (e.type === 'card' && speed < 16) SND().play('card');
