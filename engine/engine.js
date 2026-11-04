@@ -8828,25 +8828,27 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         const tc = Math.max(0.3, (gl - 0.9 - spotX) / sp), gv = (gTo - g.y) / tc;
         ev('sokick0', { team: t, player: kq.name });
         S.kickRec = kq.idx; Object.assign(S.ball, { x: spotX, y: GOAL_Y, z: 0.05, vx: sp, vy, vz, kind: 'shot', lastTeam: t, lastPlayer: kq.idx, kicker: kq.idx, owner: -1 });
-        let hit = false, k0 = 0, told = false, gT = 0;
+        let hit = false, k0 = 0, told = false, gT = 0;   // 版1037
         const tell = () => { if (told) return; told = true; if (res === 'goal') sc[t]++; tk[t]++; kicks.push({ team: t, idx: kq.idx, name: kq.name, number: kq.number, res, round: tk[t] }); ev('sokick', { team: t, player: kq.name, number: kq.number, idx: kq.idx, res, round: tk[t], so: [...sc] }); };
         settle(2.2, (el) => {
           k0++;
           if (!stay) { if (k0 === 1) { g.diveT = tc + 0.25; g.diveDir = Math.sign(gTo - GOAL_Y) || guess; } gT += DT; if (gT <= tc) g.y += gv * DT; if (g.diveT > 0) { g.diveT = Math.max(0, g.diveT - DT); if (g.diveT <= 0) g.downT = 1.4; } else if (g.downT > 0) g.downT = Math.max(0.01, g.downT - DT * 0.5); }
           const b = S.ball;
           if (!hit) { b.x += b.vx * DT; b.y += b.vy * DT; b.z = Math.max(0, b.z + b.vz * DT - 4.9 * DT * DT); b.vz -= 9.8 * DT;
+            if (res === 'miss') { if (b.z <= 0 && b.vz < 0) { b.vz = -b.vz * 0.4; b.vx *= 0.8; b.vy *= 0.8; } if (b.x >= 113.3) { b.x = 113.3; b.vx = -Math.abs(b.vx) * 0.3; b.vy *= 0.5; b.vz = Math.min(b.vz, 0); } }   // 版1037：外れたボールは、ゴール裏の壁に当たって跳ね返る（どこまでも飛んで行かない）
             if (res === 'save' && b.x >= gl - 0.9) { hit = true; tell();
               if (stay) { b.x = g.x - 0.3; b.y = g.y; b.z = 0.9; b.vx = b.vy = b.vz = 0; ev('save', { team: 1 - t, player: g.name, act: 'catch', so: 1 }); }   // 正面：がっちりキャッチ
               else { b.x = gl - 0.9; b.vx = -R.range(5, 8); b.vy = (ay > GOAL_Y ? 1 : -1) * R.range(2, 5); b.vz = R.range(1.5, 3.5); ev('save', { team: 1 - t, player: g.name, act: 'diveparry', so: 1 }); } }   // 横っ飛びで前へはじく
-            else if (b.x >= gl && res === 'goal') { hit = true; tell(); b.x = gl + 0.2; b.vx = 4; b.vy = 0; b.vz = Math.min(0, b.vz); b.y = clamp(b.y, GOAL_Y - POST + 0.35, GOAL_Y + POST - 0.35); }   // ゴールの中へ（ネットに当たって落ちる）
+            else if (b.x >= gl && res === 'goal') { hit = true; tell(); b.vy *= 0.3; }   // 版1037：ゴールに入っても速さはそのまま、奥のネットまで突き刺さる
             else if (res === 'miss' && b.x >= gl + 1) { tell(); } }
-          else if (res === 'goal') { b.x = Math.min(gl + 1.9, b.x + b.vx * DT); b.vx *= 0.75; b.z = Math.max(0, b.z + b.vz * DT); b.vz -= 9.8 * DT; }
+          else if (res === 'goal') { b.x += b.vx * DT; b.y = clamp(b.y + b.vy * DT, GOAL_Y - POST + 0.3, GOAL_Y + POST - 0.3); b.z = Math.min(BAR - 0.15, Math.max(0, b.z + b.vz * DT)); b.vz -= 9.8 * DT;
+            if (b.x >= gl + 1.9 && b.vx > 0) { b.x = gl + 1.9; b.vx = -0.6; b.vy = 0; b.vz = Math.min(b.vz, 0); }   // 奥のネットに当たって止まり、下に落ちる
+            else if (b.vx <= 0) { b.vx *= 0.85; if (b.z <= 0 && b.vz < 0) b.vz = -b.vz * 0.25; } }
           else if (!(res === 'save' && stay)) { b.x += b.vx * DT; b.y += b.vy * DT; b.vx *= 0.92; b.vy *= 0.92; b.z = Math.max(0, b.z + b.vz * DT); b.vz -= 9.8 * DT; if (b.z <= 0) b.vz = Math.abs(b.vz) * 0.3; }
           if (res === 'save' && stay && hit) { b.x = g.x - 0.3; b.y = g.y; b.z = 0.9; }
           if (prevK && homeSpot[prevK.idx]) moveTo(prevK, homeSpot[prevK.idx][0], homeSpot[prevK.idx][1], 3.4);
           if (hit && res === 'goal') moveTo(kq, kq.x - 2, kq.y + (kq.y > GOAL_Y ? 1 : -1) * 0.6, 3.2); else if (el > 0.8) moveTo(kq, kq.x - 0.5, kq.y, 0.2);
         });
-        if (res === 'miss' && S.ball.x > gl) { S.ball.x = gl + 4; S.ball.vx = S.ball.vy = 0; S.ball.z = 0; }
         tell();
         S.ball.kind = 'dead'; prevK = kq; prevRes = res;
         t = 1 - t;

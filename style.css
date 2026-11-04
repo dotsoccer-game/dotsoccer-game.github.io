@@ -4237,3 +4237,4 @@ img:not([src]),img[src=""]{visibility:hidden}
 #soPick .pk2 .sp-pos{font-size:2.6cqh;padding:0 .6cqh;min-width:5cqh}#soPick .k2-th .k2-n{width:5.4cqh;white-space:nowrap}#soPick .k2-th span{white-space:nowrap}
 #soPick .k2-g3h,#soPick li .k2-g3{width:34cqh}#soPick .k2-th .k2-bh{width:9cqh}#soPick li .sp-bat{width:7cqh;height:2.6cqh;margin:0 1cqh}#soPick .k2-th .k2-h{width:6cqh}
 #soPick .k2-pc .sp-type{font-size:2.8cqh;width:auto;padding:0 2cqh}#soPick .k2-side{gap:1cqh}#soPick .k2-cap{margin-top:-.4cqh}
+#match.so-run aside{display:none!important}

@@ -3998,14 +3998,17 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     items.push({ f: rq.f, d: () => drawOfficial(52.5, cy - 0.3, REF_INFO, 1, false, 0, sig, false) });
     items.sort((a, b) => b.f - a.f).forEach((it) => it.d());
     // コイン：投げ上げて、くるくる回りながら落ちてくる → 手の甲で受ける
-    const u = Math.max(0, Math.min(1, (e - 0.8) / 1.4)), h = 1.9 + Math.sin(u * Math.PI) * 2.6, c = P3(52.5 + 0.15, cy - 0.3, h), px = Math.max(1.4, 2.6 * proj(52.5, cy).s);
+    // 版1037：コインは小さく、主審の上げた手から投げ上げて、手に戻る（頭の上には乗せない）
+    const rb = proj(52.5, cy - 0.3), px = Math.max(1.4, 2.6 * rb.s), u = Math.max(0, Math.min(1, (e - 0.8) / 1.4));
+    const hx = rb.x + 6.5 * px, hy = rb.y - 25 * px - Math.sin(u * Math.PI) * 26 * px, r = 1.1 * px;
     const w = flip ? Math.abs(Math.cos(e * 18)) : 1;
-    ctx.fillStyle = '#7a5a00'; ctx.beginPath(); ctx.ellipse(c.x, c.y, 2.6 * px * Math.max(0.15, w) + 0.6, 2.6 * px + 0.6, 0, 0, 7); ctx.fill();
-    ctx.fillStyle = (Math.floor(e * 9) % 2 && flip) ? '#fff2a0' : '#ffd23c'; ctx.beginPath(); ctx.ellipse(c.x, c.y, 2.6 * px * Math.max(0.15, w), 2.6 * px, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = '#6b4e00'; ctx.beginPath(); ctx.ellipse(hx, hy, r * Math.max(0.2, w) + 0.8, r + 0.8, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = (Math.floor(e * 9) % 2 && flip) ? '#fff2a0' : '#ffd23c'; ctx.beginPath(); ctx.ellipse(hx, hy, r * Math.max(0.2, w), r, 0, 0, 7); ctx.fill();
   }
   function soBoard(t) {
     let el = document.getElementById('soBoard');
     const on = match && match.shootout && t >= match.regEnd + 2;
+    { const mt = document.getElementById('match'); if (mt) mt.classList.toggle('so-run', !!on); }   // 版1037：PK戦の間は、右の3つのボタン（選手交代・選手・状況）を出さない
     if (!on) { if (el) el.hidden = true; const cd = document.getElementById('soCard'); if (cd) cd.hidden = true; return; }
     if (!el) { el = document.createElement('div'); el.id = 'soBoard'; const vp = document.querySelector('#match .viewport'); (vp || document.body).appendChild(el); }
     const ks = match.events.filter((e) => e.type === 'sokick' && e.t <= t), n = Math.max(5, ...[0, 1].map((k) => ks.filter((e) => e.team === k).length));
