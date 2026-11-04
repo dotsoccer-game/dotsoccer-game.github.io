@@ -1622,6 +1622,66 @@
     if (sqShow === 'star') return `<b class="s2n s2n-st">${starHTML(C.ensureStar(q), q.totsu)}</b>`;
     return `<b class="s2n ${POSC[q.position]}">${esc(q.name)}</b>`;
   }
+  // 版1066：スタメン画面の新しい形（下書き）：マス目を見せず、縦のピッチに顔の札を並べる（イーフト風）。
+  //  フォーメーションを選ぶ・選手をドラッグで入れ替える（ピッチ同士、ピッチとベンチ）・空いた所へ動かす（内部では一番近いマスに合わせる）
+  const sq3On = () => { try { return !!(window.__sq3 || localStorage.getItem('dsSq3')); } catch (_) { return !!window.__sq3; } };
+  let sq3Pick = -1, sq3Menu = false;
+  function renderLineup3() {
+    const ps = save.team.players, tac = C.ensureTactics(save), cells = tac.cells, R = C.GRID_R, COLS = C.GRID_C;
+    if (unpile(cells)) store();
+    const L = $('#clubLayer'); { const bk = $('#cvBack'); if (bk) bk.style.visibility = 'hidden'; }
+    const px = (c) => 7 + (c + 0.5) / COLS * 86, py = (r) => 13 + (1 - r / (R - 1)) * 68;   // ピッチの中の％（攻める方が上）
+    const tags = (q) => ['pk', 'fk', 'ck'].filter((k) => tac.roles[k] === q.name).map((k) => `<i class="q3t t-${k}">${ROLE_TAG[k]}</i>`).join('');
+    const chip = (q, i, x, y) => `<div class="q3p${i === sq3Pick ? ' sel' : ''}${q.injury > 0 ? ' inj' : ''}${i === 0 ? ' gk' : ''}" data-i="${i}" style="left:${x}%;top:${y}%"><div class="q3fw">${facePic(q, 'q3f', false)}<b class="q3o">${statOvr(q)}</b><span class="q3ts">${tags(q)}</span>${tac.roles.captain === q.name ? '<i class="q3c">C</i>' : ''}</div><span class="q3n${tac.roles.captain === q.name ? ' cap' : ''}">${esc(q.name)}</span></div>`;
+    let dots = chip(ps[0], 0, 50, 89);
+    for (let i = 1; i < 11; i++) { const c = cells[i]; if (c) dots += chip(ps[i], i, px(c.c), py(c.r)); }
+    const row = (q, i) => `<div class="q3b${i === sq3Pick ? ' sel' : ''}${q.injury > 0 ? ' inj' : ''}" data-i="${i}">${facePic(q, 'q3bf', true)}<span>${esc(q.name)}</span><b class="q3o">${statOvr(q)}</b></div>`;
+    const bench = ps.slice(11), b1 = bench.slice(0, C.BENCH_N), b2 = bench.slice(C.BENCH_N);
+    const fm = tac.formation && tac.formation !== 'custom' ? tac.formation : C.formationLabel(cells);
+    const nRes = (save.reserve || []).length;
+    L.innerHTML = `<div class="sq3"><div class="q3in">
+      <div class="q3top"><h2><svg viewBox="0 0 64 64" class="q3ball"><circle cx="32" cy="32" r="28" fill="#fff" stroke="#222" stroke-width="3"/><polygon points="32,21 42,28 38,40 26,40 22,28" fill="#222"/><path d="M32 4v17M60 26l-18 2M49 56l-11-16M15 56l11-16M4 26l18 2" stroke="#222" stroke-width="3"/></svg>スタメン・配置</h2><i class="q3sep"></i><img class="q3emb" src="${emblemURL(save.team.name, 48)}" alt=""><b class="q3tm">${esc(save.team.name)}</b>
+        <button class="q3back" aria-label="戻る"><svg viewBox="0 0 24 24"><path d="M20 12H6M11 6l-6 6 6 6" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
+      <div class="q3bar"><span class="q3fl">フォーメーション</span><button class="q3fm">${esc(fm)}<i>▼</i></button><button class="q3tac">戦術設定</button>${nRes ? `<button class="q3res"><span>リザーブ</span><b>${nRes}</b></button>` : ''}</div>
+      <div class="q3main"><div class="q3pitch"><i class="q3half"></i><i class="q3box"></i><i class="q3box2"></i><i class="q3arc"></i>${dots}</div>
+        <div class="q3side"><div class="q3col"><b class="q3h">ベンチ入り</b>${b1.map((q, k) => row(q, 11 + k)).join('')}</div><i class="q3vl"></i><div class="q3col"><b class="q3h">ベンチ外</b>${b2.map((q, k) => row(q, 11 + C.BENCH_N + k)).join('')}</div></div></div>
+      <p class="q3hint"><span>選手をドラッグして配置・入れ替え</span></p>
+      ${sq3Menu ? `<div class="q3menu">${C.FORMATIONS.map((f) => `<button data-f="${f}" class="${f === tac.formation ? 'on' : ''}">${f}</button>`).join('')}</div>` : ''}
+    </div></div>`;
+    L.querySelectorAll('img.fc').forEach((im) => { const f = () => cutFace(im); im.addEventListener('load', f); if (im.complete) f(); });
+    const box = L.querySelector('.sq3'), redo = () => { store(); renderLineup3(); };
+    L.querySelector('.q3back').onclick = () => { const bk = $('#cvBack'); if (bk) { bk.style.visibility = ''; bk.click(); } };
+    L.querySelector('.q3fm').onclick = () => { sq3Menu = !sq3Menu; renderLineup3(); };
+    L.querySelectorAll('.q3menu [data-f]').forEach((b) => b.onclick = () => { tac.formation = b.dataset.f; tac.cells = C.cellsFor(b.dataset.f); sq3Menu = false; sq3Pick = -1; redo(); });
+    L.querySelector('.q3tac').onclick = () => openTacSet('tac');
+    { const rb = L.querySelector('.q3res'); if (rb) rb.onclick = () => { const t = document.createElement('div'); t.className = 'q3toast'; t.textContent = 'リザーブとの入れ替えは、下書きではまだ動きません'; box.appendChild(t); setTimeout(() => t.remove(), 1600); }; }
+    // ドラッグ：札をつまんで、ほかの札の上で離すと入れ替え。ピッチの空いた所で離すと、そこへ動かす（一番近いマス）
+    const pitch = L.querySelector('.q3pitch');
+    const swap = (i, j) => { if (i === j) return; if (swapPlayers(i, j) === false) { const t = document.createElement('div'); t.className = 'q3toast'; t.textContent = 'GKの所には、GKの選手しか入れられません'; box.appendChild(t); setTimeout(() => t.remove(), 1600); return; } sq3Pick = -1; redo(); };
+    L.querySelectorAll('.q3p, .q3b').forEach((el) => {
+      el.addEventListener('pointerdown', (e0) => {
+        e0.preventDefault(); const i = +el.dataset.i, br = box.getBoundingClientRect(), k = box.offsetWidth / br.width;
+        let gh = null, moved = false;
+        const mv = (e) => { const dx = e.clientX - e0.clientX, dy = e.clientY - e0.clientY;
+          if (!moved && Math.hypot(dx, dy) < 6) return; moved = true;
+          if (!gh) { gh = el.cloneNode(true); gh.classList.add('q3ghost'); gh.style.left = gh.style.top = ''; box.appendChild(gh); el.classList.add('q3src'); }
+          gh.style.transform = `translate(${(e.clientX - br.left) * k}px,${(e.clientY - br.top) * k}px) translate(-50%,-50%)`; };
+        const up = (e) => { window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up);
+          if (gh) gh.remove(); el.classList.remove('q3src');
+          if (!moved) { if (sq3Pick >= 0 && sq3Pick !== i) swap(sq3Pick, i); else { sq3Pick = sq3Pick === i ? -1 : i; renderLineup3(); } return; }   // タップ：1人目を選んで、2人目をタップで入れ替え
+          const tg = document.elementFromPoint(e.clientX, e.clientY), to = tg && tg.closest('.q3p, .q3b');
+          if (to && +to.dataset.i !== i) { swap(i, +to.dataset.i); return; }
+          const pr = pitch.getBoundingClientRect();
+          if (i >= 1 && i < 11 && e.clientX > pr.left && e.clientX < pr.right && e.clientY > pr.top && e.clientY < pr.bottom) {
+            const fx = ((e.clientX - pr.left) / pr.width * 100 - 7) / 86, fy = ((e.clientY - pr.top) / pr.height * 100 - 13) / 68;
+            const c = Math.max(0, Math.min(COLS - 1, Math.floor(fx * COLS))), r = Math.max(0, Math.min(R - 1, Math.round((1 - fy) * (R - 1))));
+            if (!cells.some((x, j) => j && j !== i && x && x.r === r && x.c === c)) { cells[i] = { r, c }; tac.formation = 'custom'; }
+            redo(); return; }
+          renderLineup3(); };
+        window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
+      });
+    });
+  }
   function renderLineup2() {
     const keepRes = (document.querySelector('#clubLayer .s2st-l') || {}).scrollTop || 0;   // 版561：リザーブを選んでも、一覧の位置をそのままに
     const ps = save.team.players, tac = C.ensureTactics(save), cells = tac.cells, roles = C.slotRoles(cells);
@@ -1851,7 +1911,7 @@
   }
   function renderLineup() {
     if (sqTab === 'tac' || sqTab === 'sit') { const t0 = sqTab; sqTab = 'pos'; renderLineup2(); openTacSet(t0, () => renderLineup()); return; }   // 版1059：チーム戦術・試合中の作戦は、専用の画面で
-    if (sqTab === 'pos') { renderLineup2(); return; }
+    if (sqTab === 'pos') { if (sq3On()) { renderLineup3(); return; } renderLineup2(); return; }   /* 版1066：新しいスタメン画面（下書き・確認画面でだけ） */
     const ps = save.team.players, tac = C.ensureTactics(save), cells = tac.cells;
     const TOP = 20, CW = 28, CH = 35, COLS = C.GRID_C, ROWS = C.GRID_R + 2, PW = CW * COLS, PH = CH * ROWS + TOP;
     const cx = (c) => c * CW + CW / 2, cy = (r) => TOP + (C.GRID_R - 1 - r) * CH + CH / 2;   // 行0が下（自陣）。上は選手の頭が切れないよう少しあける
