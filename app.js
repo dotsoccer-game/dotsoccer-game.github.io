@@ -1066,7 +1066,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     if (heavy) for (let k = 0; k < 160; k++) blob(-3 + r() * 111, -2 + r() * 72, 0.25 + r() * 0.45, 'rgba(170,144,86,0.7)');   // 小さなはげ
     blobCache[v] = out; return out;
   }
-  const CATCH_ART = {"front": [11.0, 12.0, 26, false], "side": [19.5, 11.0, 27, false], "fdiag": [16.5, 12.5, 31, false], "bdiag": [17.5, 7.5, 30, true], "back": [11.0, 7.0, 28, true]};   // 版1044：キャッチの絵：[ボールの中心の列, 行, 絵の高さ, ボールが体の向こう]
+  const CATCH_ART = {"front": [11.0, 12.0, 30, false], "side": [19.5, 11.0, 27, false], "fdiag": [16.5, 12.5, 31, false], "bdiag": [17.5, 7.5, 30, true], "back": [11.0, 7.0, 28, true]};   // 版1044：キャッチの絵：[ボールの中心の列, 行, 絵の高さ, ボールが体の向こう]
   let soCamOn = false, soCheer = null;
   function pitch() {
     ctx.fillStyle = venue <= 1 ? '#3f6d2c' : '#6b6862'; ctx.fillRect(0, 0, CW, CH);
@@ -2076,7 +2076,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       const key = ['side', 'fdiag', 'front', 'fdiag', 'side', 'bdiag', 'back', 'bdiag'][sec], M = CATCH_ART[key], flip = Math.cos(ang) < -0.01;
       dmFacing = ang;
       const drawBall = (dot) => ballFace(q.x + ((flip ? 11 - M[0] : M[0] - 11) + 0.5) * dot, q.y + (M[1] + 0.5 - M[2]) * dot, Math.max(5.5, 9 * q.s));   // 絵の中のボールの位置（ドット）→ 画面
-      const dot0 = Math.max(1.4, 2.6 * q.s) * (24 / 27);
+      const dot0 = Math.max(1.4, 2.6 * q.s) * DotMan.fitScale({ art: true }, ang, 'gkCatch_' + key);   // 版1048：立ち絵と同じ縮尺
       if (M[3]) drawBall(dot0);
       const r15 = sprite(q.x, q.y, q.s, info, team, facing, 0, false, false, false, 'gkCatch_' + key, 0, 'front');
       if (!M[3]) drawBall((r15 && r15.dot) || dot0);
