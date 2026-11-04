@@ -2010,7 +2010,7 @@
       { const bb = el.querySelector('.sb2-back') || el.querySelector('.sb-back'); if (bb) bb.disabled = true; }   // 版556：ボタンが見つからずに止まって、もどれなくなっていた
       const t = base;
       const ch = { team: 0, at: info.atHalf ? null : info.t, subs: plan.subs.map((x) => ({ slot: x.slot, player: ps[x.bench] })), tac: { attitude: plan.att, press: t.press, pass_style: t.pass, attack_side: t.side, line_height: t.line, zone_width: t.width, compact: t.compact, situ: { ...t.situ } } };
-      if (moved) ch.tac.cells = plan.cells.map((c) => c && { ...c });
+      ch.tac.cells = plan.cells.map((c) => c && { ...c });   // 版1026：配置はいつも今の作戦盤のまま送る（交代だけの時に、試合前の配置へ戻っていた）
       setTimeout(() => {
         ms.changes.push(ch);
         info.apply(ms.changes, () => {

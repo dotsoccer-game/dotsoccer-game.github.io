@@ -565,7 +565,8 @@
         tm.tac = teamTac({ ...teamsIn[ch.team], ...c });
         if (c.situ) tm.situ = c.situ;
         if (c.compact || c.zone_width || c.cells) {
-          const sl = buildSlots({ formation: c.formation || teamsIn[ch.team].formation, cells: c.cells || teamsIn[ch.team].cells, compact: c.compact || teamsIn[ch.team].compact, zone_width: c.zone_width || teamsIn[ch.team].zone_width });
+          const cellsNow = c.cells || tm.cellsNow || teamsIn[ch.team].cells; tm.cellsNow = cellsNow;   // 版1026：配置を変えなかった指示（交代だけなど）は、今の配置のまま（試合前の配置に戻していた：作戦盤と試合で左右が逆になっていた）
+          const sl = buildSlots({ formation: c.formation || teamsIn[ch.team].formation, cells: cellsNow, compact: c.compact || teamsIn[ch.team].compact, zone_width: c.zone_width || teamsIn[ch.team].zone_width });
           tm.players.forEach((p, i) => { p.slot = sl[i] ? (side[ch.team] < 0 ? mirSlot(sl[i]) : sl[i]) : p.slot; p.slot0 = null; if (!p.gk) slotPos(p); });
         }
       }
@@ -4105,6 +4106,14 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         p.hiDiveT = zAt > 1.8 && (bb.z || 0) > 0.9 ? S.t + 1.0 : 0; }   // 版871：高い球へ飛ぶ時は、高く飛ぶ横っ跳び（絵は13・14）
       if (p.gk && p.wf && S.t < p.wf.end) return;   // 版986：逆を突かれて崩れている間は飛ばない
       if ((globalThis.__Kgk2d ?? 1) && p.gk && S.ball.kind === 'shot' && S.ball.shotT != null) { if (p.dvShot === S.ball.shotT) return; p.dvShot = S.ball.shotT; }   // 版970：同じシュートに2回飛ばない（2段で飛んで見えた）
+      if ((globalThis.__Kgkdir ?? 1) && p.gk && S.ball.kind === 'shot' && S.ball.lastTeam !== p.team && S.ball.owner < 0) {   // 版1026：GKは逆へ飛ばない。ボールが本当に通る側（自分の前を通る所。もう横を過ぎていればゴールラインを割る所）へ飛ぶ（逆を突かれて崩れるのは別）
+        const bb = S.ball, gl = fx(p.team, 0), sp0 = !!bb.spin;
+        const ahead = Math.abs(bb.vx) > 0.5 && (p.x - bb.x) * bb.vx > 0;
+        const yT = ahead ? (sp0 ? curveYAt(bb, p.x) : bb.y + bb.vy * (p.x - bb.x) / bb.vx) : (Math.abs(bb.vx) > 0.5 ? (sp0 ? curveYAt(bb, gl) : bb.y + bb.vy * (gl - bb.x) / bb.vx) : bb.y);
+        const gT = yT - p.y;
+        if ((globalThis.__Kgkdr ?? 1) && Math.abs(gT) < 0.35 && !src) return;   // 体の正面に来る球には飛ばない
+        if (Math.abs(gT) >= 0.35 && Math.sign(gT) !== Math.sign(dir)) { if (globalThis.__dirFix) globalThis.__dirFix.push(+gT.toFixed(2)); dir = Math.sign(gT); dist = Math.max(0.6, Math.abs(gT)); }
+      }
       if (globalThis.__dvLog && p.gk) { const bb = S.ball, gl = fx(p.team, 0), tl = Math.abs(bb.vx) > 0.3 ? (p.x - bb.x) / bb.vx : -1; globalThis.__dvLog.push({ t: S.t, team: p.team, dir, dist, tHit, kind: bb.kind, last: bb.lastTeam, sp: hyp(bb.vx, bb.vy), z: bb.z || 0, bxf: fx(p.team, bb.x), gxf: fx(p.team, p.x), gy: p.y - GOAL_Y, by: bb.y - GOAL_Y, yAt: tl > 0 ? bb.y + bb.vy * tl - GOAL_Y : null, tl, own: bb.owner, src: (new Error().stack.split('\n')[2] || '').replace(/.*engine.js:/, '').replace(/\)$/, '') }); }
       p.diveT = 0.7; p.diveDir = dir;
       dist = Math.min(dist, gkDiveMax(p));
@@ -7390,7 +7399,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             if (b.guren && !b.pkShot) prob -= (b.guren >= 2 ? 0.14 : 0.1) * (b.grF ?? 1);   // 紅蓮の牙：正面に来ても、勢いでGKの手をはじく
             if (b.tsukiShot) prob = Math.max(prob, 0) + (b.csPlace ? 0.26 : 0.14);   // 月影の抜け出し（無凸）の後のシュートは、GKも待ち構えて止めやすい（エースのかとうより決定力は下）
             if (globalThis.__gkp && off < 0.2 && shotD > 16) globalThis.__gkp.push({ prob, skill, shotD, sp, corner, pace, trick, kq: P[b.kicker].kick * 0.6 + P[b.kicker].technique * 0.4, base: 0.27 + (skill - 50) * 0.0058 + (1 - Math.min(1, off)) * 0.32, drive: b.drive > 0 && b.driveOn, guren: !!b.guren, kn: !!b.knuckle });
-            if (!ik && !b.pkStop && !rolling && !b.conv) prob *= globalThis.__Kgkm ?? 0.78;   // 版966：GKを全体に少し弱く（引き分けより、勝ったり負けたりする方が面白い）。白亜の城壁・PKストッパー・コロコロ・クロスの処理は別
+            if (!ik && !b.pkStop && !rolling && !b.conv) prob *= globalThis.__Kgkm ?? 0.68;   // 版966：GKを全体に少し弱く（引き分けより、勝ったり負けたりする方が面白い）。白亜の城壁・PKストッパー・コロコロ・クロスの処理は別
             return { prob, skill, shotD, oneGK, rolling };
     }
     // カットインの角度：前から内側へ 25°〜90°（真横）の5つから選ぶ（ゲームとカットイン確認画面で同じ計算）
