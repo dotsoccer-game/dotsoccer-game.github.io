@@ -2788,7 +2788,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     else if (!celeb && !koShow && st.code !== 6 && !judgeZ) keepBallInView(st.ball);
     lastDrawT = simT;
     pitch();
-    if (soBench) drawBench();
+    if (soBench) { drawBench(); return; }   // 版1035：順番を決める間は、ピッチに選手を立たせない（ベンチだけ）
     // 追跡中の軌跡
     if (selected >= 0) {
       const p = st.players[selected];
@@ -2854,12 +2854,13 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
           box(15, -10, 21, -2, '#000'); box(16, -9, 20, -3, cardCol);                // カード
         } else drawOfficial(st.ref.x, st.ref.y, REF_INFO, fc, Math.abs(rvx) > 0.06, st.refCard, sig.ref, false);
       } });
-      [[st.ar[0], -2.2], [st.ar[1], 70.2]].forEach(([x, y], k) => {
+      (soOn ? [[105, 34 - 9.16], [52.5 - 2.5, 34]] : [[st.ar[0], -2.2], [st.ar[1], 70.2]]).forEach(([x, y], k) => {   // 版1035：PK戦：副審の1人はゴールラインとゴールエリアの線が交わる所、もう1人はセンターサークルで選手を見る
         items.push({ f: proj(x, y).f, goal: () => {
           const q = proj(x, y);
           drawOfficial(x, y, AR_INFO[k], ballSide > q.x ? 1 : -1, false, 0, sig.ar[k], true);
         } });
       });
+      if (soOn) items.push({ f: proj(52.5, -1.6).f, goal: () => drawOfficial(52.5, -1.6, AR_INFO[1], 1, false, 0, null, false) });   // 第4審判（ハーフウェーラインの外）
     }
     items.sort((a, b) => b.f - a.f);
     const frameAnim = Math.floor(simT * 7) % 2;
@@ -3961,7 +3962,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     if (!el) { el = document.createElement('div'); el.id = 'soBoard'; const vp = document.querySelector('#match .viewport'); (vp || document.body).appendChild(el); }
     const ks = match.events.filter((e) => e.type === 'sokick' && e.t <= t), n = Math.max(5, ...[0, 1].map((k) => ks.filter((e) => e.team === k).length));
     const row = (k) => `<div class="so-r"><b>${k ? match.awayShort : match.homeShort}</b>${Array.from({ length: n }, (_, j) => { const e = ks.filter((x) => x.team === k)[j]; return `<i class="${e ? (e.res === 'goal' ? 'g' : 'x') : ''}">${e ? (e.res === 'goal' ? '○' : '×') : ''}</i>`; }).join('')}<em>${ks.filter((x) => x.team === k && x.res === 'goal').length}</em></div>`;
-    const html = row(0) + row(1); if (el._h !== html) { el.innerHTML = html; el._h = html; } el.hidden = false;
+    const f0 = match.shootout.first || 0, html = row(f0) + row(1 - f0);   /* 版1035：先攻が上、後攻が下 */ if (el._h !== html) { el.innerHTML = html; el._h = html; } el.hidden = false;
     // 版1031：いま蹴る人のカード（本家の右上：ポジション・背番号・名前・能力・タイプ）
     let cd = document.getElementById('soCard'); if (!cd) { cd = document.createElement('div'); cd.id = 'soCard'; el.parentNode.appendChild(cd); }
     const lk = match.events.filter((e) => e.type === 'sokick' && e.t <= t).pop(), t0k = lk ? lk.t : match.regEnd, wh = t >= t0k + 1.2 ? match.events.find((e) => e.type === 'sowhistle' && e.t > t0k) : lk && match.events.find((e) => e.type === 'sowhistle' && e.t <= t0k && e.player === lk.player && e.team === lk.team && e.t > t0k - 8), done = match.events.some((e) => e.type === 'shootout' && e.t <= t);

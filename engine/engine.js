@@ -8768,14 +8768,14 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         const out = want.map((n) => rec.find((q) => q.name === n)).filter(Boolean); for (const q of rec) if (!out.includes(q)) out.push(q); return out; });
       const first0 = R.next() < 0.5 ? 0 : 1, first = opts.soFirst === 0 || opts.soFirst === 1 ? opts.soFirst : first0, sc = [0, 0], tk = [0, 0], kicks = [];
       const line = P.filter((q) => !q.off && !q.gk).map((q, k) => q);   // センターサークルの並び（チームごとに少し離れて）
-      const homeSpot = {}; { const a0 = line.filter((q) => q.team === 0), a1 = line.filter((q) => q.team === 1); a0.forEach((q, k) => { homeSpot[q.idx] = [L / 2 + 1.2, GOAL_Y - 1 - k * 1.25]; }); a1.forEach((q, k) => { homeSpot[q.idx] = [L / 2 + 1.2, GOAL_Y + 1 + k * 1.25]; }); }
+      const homeSpot = {}; { const a0 = line.filter((q) => q.team === 0), a1 = line.filter((q) => q.team === 1); a0.forEach((q, k) => { homeSpot[q.idx] = [L / 2 + 0.3, GOAL_Y - 0.6 - k * 0.9]; }); a1.forEach((q, k) => { homeSpot[q.idx] = [L / 2 + 0.3, GOAL_Y + 0.6 + k * 0.9]; });   /* 版1035：ルールどおり、センターサークルの中、ハーフウェーラインに沿って並ぶ（チームごとに上下） */ }
       const gkOf = (t) => P.find((q) => q.team === t && q.gk && !q.off) || P[t * 11];
-      const gkWait = (t) => [L - 7, GOAL_Y + (t ? 19 : -19)];   // 版1031：待っているGKはペナルティエリアの横（歩いて入れかわれる近さ）
+      const gkWait = (t) => [L - 0.4, GOAL_Y - 20.16];   // 版1035：蹴る側のGKは、ゴールラインとペナルティエリアの線が交わる所で待つ（ルールどおり）   // 版1031：待っているGKはペナルティエリアの横（歩いて入れかわれる近さ）
       const resetGK = (g) => { g.diveT = 0; g.downT = 0; g.saveT = 0; g.highT = 0; g.punchT = 0; g.hiDiveT = 0; g.hold = false; g.wf = null; };
       for (const q of P) { q.vx = q.vy = 0; resetGK(q); }
       S.restart = null; S.celebrate = 0; S.refCard = null; Object.assign(S.ball, { owner: -1, kind: 'dead', vx: 0, vy: 0, vz: 0, drive: false, knuckle: false, spin: 0, bs: 0, intended: -1 });
       side[0] = -1; side[1] = 1;
-      ref.x = L - 14; ref.y = GOAL_Y + 8; ar[0] = L - 0.5; ar[1] = L * 0.25;
+      ref.x = L - 10; ref.y = GOAL_Y + 5.5;   /* 版1035：主審はペナルティエリアの中、スポットの横 */ ar[0] = L - 0.5; ar[1] = L * 0.25;
       const moveTo = (q, x, y, v) => { const dx = x - q.x, dy = y - q.y, d = hyp(dx, dy); if (d < 0.05) { q.vx = q.vy = 0; return true; } const st = Math.min(d, v * DT); q.x += dx / d * st; q.y += dy / d * st; q.vx = dx / d * v; q.vy = dy / d * v; q.facing = Math.sign(dx) || q.facing; return d <= st + 1e-6; };
       const tickF = () => { S.t += DT; step++; if (rec && step % FRAME_EVERY === 0) record(); };
       const settle = (secs, fn) => { for (let k = 0; k < Math.round(secs / DT); k++) { if (fn && fn(k * DT) === 'stop') break; tickF(); } };
