@@ -2774,9 +2774,9 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     const gxR = isReplay ? (stateAt(rg.t).ball.x > 52.5 ? 105 : 0) : 0;
     const jr = show && (show.phase === 'jreplay' || show.phase === 'jfade');
     replayYaw = isReplay ? (gxR ? 0.85 : -0.85) : jr && !show.off ? (show.cx > 52.5 ? 0.5 : -0.5) : null;
-    const soCam = match.shootout && simT >= match.regEnd + 3.4 && !(show && show.phase === 'digest');   // 版1031：PK戦は、ゴールの裏の高い所から、フィールドの方を見る（本家の画角）
+    const soOn = match.shootout && simT >= match.regEnd + 3.4 && !(show && show.phase === 'digest'), soCam = soOn && !!window.__soBehind;   // 版1033：PK戦も、ふだんの試合の目線で（ゴール裏の画角は __soBehind で試せる）   // 版1031：PK戦は、ゴールの裏の高い所から、フィールドの方を見る（本家の画角）
     soCamOn = soCam;
-    soCheer = null; if (soCam) { const evs = match.events; for (let k = evs.length - 1; k >= 0; k--) { const e = evs[k]; if (e.t > simT) continue; if (e.type === 'shootout') { soCheer = { team: e.win, idx: -1 }; break; } if (e.type === 'sokick') { if (e.res === 'goal' && simT - e.t < 3.2) soCheer = { idx: e.idx, team: -1 }; break; } } }
+    soCheer = null; if (soOn) { const evs = match.events; for (let k = evs.length - 1; k >= 0; k--) { const e = evs[k]; if (e.t > simT) continue; if (e.type === 'shootout') { soCheer = { team: e.win, idx: -1 }; break; } if (e.type === 'sokick') { if (e.res === 'goal' && simT - e.t < 3.2) soCheer = { idx: e.idx, team: -1 }; break; } } }
     if (soCam) { replayYaw = window.__soYaw ?? -Math.PI / 2; fx = 105 - (window.__soFx ?? 15); fy = 34; zoom = window.__soZ ?? 0.56; FOCAL = baseFocal * zoom; }
     const pT = soCam ? (window.__soP ?? 0.75) : isReplay ? 0.3 : jr ? (show.off ? 0.36 : 0.3) : VIEWS[viewMode].pitch;
     camPitch = !cam.init ? pT : camPitch + (pT - camPitch) * 0.08;
@@ -3885,22 +3885,22 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
   // 版1029：PK戦の結果のボード（○決めた ×外した・止められた）
   // 版1030：PK戦の蹴る順番を決める画面（おすすめ順に並べてあり、▲▼で入れ替え）。決めたら、同じ試合を計算し直して（90分までは同じ）PK戦だけ、その順番で蹴る
   let soPicked = false;
+  const soGr = (r, k) => { const C = window.DotCareer, v = r.ab ? r.ab[k] : r[k]; try { if (C && C.rankInfo && C.toPts) return C.rankInfo(C.toPts(v ?? 50)).g; } catch (_) {} return D.grade ? D.grade(v ?? 50) : ''; };   // 版1033：育成画面と同じランク
   function openSoPick() {
     const so = match && match.shootout; if (!so) { play(); return; }
     // 版1031：本家のように、ロッカーを背にしたクリップボード「PKキッカーの順番」。行をドラッグして入れ替え、右の「PK先攻」「PK後攻」で決める → コイントス
     const rec = so.rec[0].slice(); let cur = (so.order && so.order[0] ? so.order[0].map((n) => rec.find((r) => r.name === n)).filter(Boolean) : rec.slice());
     let el = document.getElementById('soPick'); if (!el) { el = document.createElement('div'); el.id = 'soPick'; (document.getElementById('app') || document.body).appendChild(el); }
-    const g = (v) => (D.grade ? D.grade(v) : '');
-    const AB = [['speed', '速'], ['stamina', '持'], ['physical', '体'], ['kick', '蹴'], ['technique', '技'], ['pass', 'パ'], ['mental', '心']];
-    const CR = window.__career || {}; let face = '', bg = ''; try { face = CR.staffFace ? CR.staffFace('sec') : ''; bg = CR.clubhouseBg ? CR.clubhouseBg() : ''; } catch (_) {}
-    const lines = ['いよいよPK戦で決着をつけることになりました！', 'ここでキッカーを指名してください。\n選手をドラッグすれば、順番を入れ替えられますよ。', '決まりましたら、最後に「先攻」「後攻」の\n希望する方を選んでください。'];
+    const g0 = (v) => (D.grade ? D.grade(v) : '');
+    const AB = (D.PARAMS || []).map((q) => [q.k, q.name]);   // 版1033：ドットサッカーの12の能力（育成画面と同じランク・アイコン）
+    const CR = window.__career || {}; let face = '', bg = ''; try { face = CR.staffFace ? CR.staffFace('coach') : ''; bg = CR.clubhouseBg ? CR.clubhouseBg() : ''; } catch (_) {}
+    const lines = ['監督、いよいよPK戦で決着をつけることになりました！', 'キッカーを指名してください。\n選手をドラッグすれば、順番を入れ替えられます。', '決まったら、最後に「先攻」「後攻」の\n希望する方を選んでください。'];
     let li = 0;
-    const row = (r, k) => `<li data-k="${k}"><span class="sp-n">${k + 1}</span><i class="sp-pos p-${(r.position || '').toLowerCase()}">${r.position}</i><b class="sp-num">${r.number}</b><span class="sp-name">${r.name}</span><span class="sp-bat"><span style="width:${Math.max(4, Math.min(100, r.cur ?? 100))}%" class="${(r.cur ?? 100) < 35 ? 'lo' : (r.cur ?? 100) < 60 ? 'mid' : ''}"></span></span><span class="sp-gr">${AB.map(([key]) => { const v = g(r[key] ?? 50); return `<b class="gr-${v}">${v}</b>`; }).join('')}</span><em class="sp-type">${r.type || (r.gk ? 'GK' : '')}</em></li>`;
+    const row = (r, k) => `<li data-k="${k}"><span class="sp-n">${k + 1}</span><i class="sp-pos p-${(r.position || '').toLowerCase()}">${r.position}</i><b class="sp-num">${r.number}</b><span class="sp-name">${r.name}</span><span class="sp-bat"><span style="width:${Math.max(4, Math.min(100, r.cur ?? 100))}%" class="${(r.cur ?? 100) < 35 ? 'lo' : (r.cur ?? 100) < 60 ? 'mid' : ''}"></span></span><span class="sp-gr">${AB.map(([key]) => { const v = soGr(r, key); return `<b class="gr-${v}">${v}</b>`; }).join('')}</span><em class="sp-type">${r.type || (r.gk ? 'GK' : '')}</em></li>`;
     const draw = () => {
-      el.classList.remove('toss'); el.innerHTML = `<canvas class="sp-bg" width="640" height="360"></canvas><div class="sp-board"><div class="sp-clip"></div><div class="sp-hd"><span>PKキッカーの順番</span><span class="sp-ab">${AB.map(([, j]) => `<i>${j}</i>`).join('')}</span><span class="sp-tyh">タイプ</span></div><ol class="sp-list">${cur.map(row).join('')}</ol></div>
+      el.classList.remove('toss'); el.innerHTML = `<div class="sp-board"><div class="sp-clip"></div><div class="sp-hd"><span>PKキッカーの順番</span><span class="sp-ab">${AB.map(([k, j]) => `<img src="icons/${k}.png" alt="${j}" title="${j}" draggable="false">`).join('')}</span><span class="sp-tyh">タイプ</span></div><ol class="sp-list">${cur.map(row).join('')}</ol></div>
         <div class="sp-side"><button class="sp-first">PK<br>先攻</button><button class="sp-second">PK<br>後攻</button><button class="sp-rec">おすすめ順</button></div>
-        <div class="sp-talk${li >= lines.length ? ' gone' : ''}">${face ? `<img class="sp-face" src="${face}" alt="">` : ''}<div class="sp-msg"><b>秘書</b><p>${(lines[Math.min(li, lines.length - 1)] || '').replace(/\n/g, '<br>')}</p><span class="sp-next">▶</span></div></div>`;
-      try { drawLockerRoom(el.querySelector('.sp-bg').getContext('2d'), 0); } catch (_) {}   // 本家のように、ロッカールームを背に
+        <div class="sp-talk${li >= lines.length ? ' gone' : ''}">${face ? `<img class="sp-face" src="${face}" alt="">` : ''}<div class="sp-msg"><b>コーチ</b><p>${(lines[Math.min(li, lines.length - 1)] || '').replace(/\n/g, '<br>')}</p><span class="sp-next">▶</span></div></div>`;
       const talk = el.querySelector('.sp-talk'); talk.onclick = () => { li++; if (li >= lines.length) talk.classList.add('gone'); else talk.querySelector('p').innerHTML = lines[li].replace(/\n/g, '<br>'); };
       el.querySelector('.sp-rec').onclick = () => { cur = rec.slice(); li = lines.length; draw(); };
       el.querySelector('.sp-first').onclick = () => go(0); el.querySelector('.sp-second').onclick = () => go(1);
@@ -3934,8 +3934,8 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     const lk = match.events.filter((e) => e.type === 'sokick' && e.t <= t).pop(), t0k = lk ? lk.t : match.regEnd, wh = t >= t0k + 1.2 ? match.events.find((e) => e.type === 'sowhistle' && e.t > t0k) : lk && match.events.find((e) => e.type === 'sowhistle' && e.t <= t0k && e.player === lk.player && e.team === lk.team && e.t > t0k - 8), done = match.events.some((e) => e.type === 'shootout' && e.t <= t);
     const r = wh && !done && match.shootout.rec && match.shootout.rec[wh.team] && match.shootout.rec[wh.team].find((x) => x.name === wh.player);
     if (!r) { cd.hidden = true; return; }
-    const g = (v) => (D.grade ? D.grade(v ?? 50) : ''), AB = ['speed', 'stamina', 'physical', 'kick', 'technique', 'pass', 'mental'];
-    const ch = `<div class="sc-top"><i class="sp-pos p-${(r.position || '').toLowerCase()}">${r.position}</i><b>${r.number}</b><span>${r.name}</span><small>${wh.team ? match.awayShort : match.homeShort}</small></div><div class="sc-bot"><span class="sp-gr">${AB.map((k) => { const v = g(r[k]); return `<b class="gr-${v}">${v}</b>`; }).join('')}</span><em class="sp-type">${r.type || ''}</em></div>`;
+    const g = (v) => (D.grade ? D.grade(v ?? 50) : ''), AB = (D.PARAMS || []).map((q) => q.k);
+    const ch = `<div class="sc-top"><i class="sp-pos p-${(r.position || '').toLowerCase()}">${r.position}</i><b>${r.number}</b><span>${r.name}</span><small>${wh.team ? match.awayShort : match.homeShort}</small></div><div class="sc-bot"><span class="sp-gr">${AB.map((k) => { const v = soGr(r, k); return `<b class="gr-${v}">${v}</b>`; }).join('')}</span><em class="sp-type">${r.type || ''}</em></div>`;
     if (cd._h !== ch) { cd.innerHTML = ch; cd._h = ch; } cd.hidden = false;
   }
   function clockText(t, holdHalf) {

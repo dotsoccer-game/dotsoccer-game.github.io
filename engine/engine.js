@@ -8845,7 +8845,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       ev('shootout', { score: [...sc], win });
       { const hub = kicks[kicks.length - 1].team === win ? P[kicks[kicks.length - 1].idx] : gkOf(win), hx = hub.x, hy = hub.y;   // 版1031：勝った方は、決めた人（または止めたGK）のところへ駆け寄って喜ぶ
         settle(4.5, () => { for (const q of P) if (q.team === win && !q.off && q !== hub) moveTo(q, hx - 1.2 + (q.idx % 3) * 0.9, hy + ((q.idx % 5) - 2) * 0.8, 6.5); }); }
-      shootout = { score: sc, win, kicks, first, start: +matchEnd.toFixed(2), order: ord.map((o) => o.map((q) => q.name)), rec: recs.map((o) => o.map((q) => ({ name: q.name, number: q.number, position: q.position, kick: Math.round(q.kick), mental: Math.round(q.mental), technique: Math.round(q.technique), speed: Math.round(q.speed), stamina: Math.round(q.stamina), physical: Math.round(q.physical), defense: Math.round(q.defense), pass: Math.round(q.pass), cur: Math.round(q.curV ?? q.cur), type: q.type || '', pk: q === T[q.team].role.pk, pkMaster: q.sk.has('pkMaster'), gk: !!q.gk }))) };
+      shootout = { score: sc, win, kicks, first, start: +matchEnd.toFixed(2), order: ord.map((o) => o.map((q) => q.name)), rec: recs.map((o) => o.map((q) => ({ name: q.name, number: q.number, position: q.position, kick: Math.round(q.kick), mental: Math.round(q.mental), technique: Math.round(q.technique), speed: Math.round(q.speed), stamina: Math.round(q.stamina), physical: Math.round(q.physical), defense: Math.round(q.defense), pass: Math.round(q.pass), cur: Math.round(q.curV ?? q.cur), type: q.type || '', ab: Object.fromEntries(PARAM_KEYS.map((k) => [k, Math.round((q[k] ?? 50) * 10) / 10])), pk: q === T[q.team].role.pk, pkMaster: q.sk.has('pkMaster'), gk: !!q.gk }))) };
       soEnd = S.t;
     }
 
