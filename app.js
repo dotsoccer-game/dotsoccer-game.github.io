@@ -90,7 +90,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     mctx = { mine, theirs, seed, opts: opts || {}, homeShort, awayShort };
     venue = mctx.opts.venue != null ? Math.max(0, Math.min(4, mctx.opts.venue)) : 4;
     applyKits(mctx.opts.kits);
-    careerChanges = []; tacChange = null; tacState = null; closeLocker();
+    careerChanges = []; tacChange = null; tacState = null; soPicked = false; closeLocker();
     match = D.simulateMatch(mine, theirs, seed, { oneHalf: !!mctx.opts.oneHalf, shootout: !!mctx.opts.shootout });   // 版560：練習試合は前半だけ
     { const hb = document.getElementById('htTac'); if (hb) hb.hidden = !mctx.opts.onSub; const sb = document.querySelector('#half [data-panel="subs"]'); if (sb) sb.hidden = !!mctx.opts.onSub; }
     { const ab = document.querySelector('#match aside [data-panel="subs"]'); if (ab) ab.style.display = (mctx.opts.watch || mctx.opts.lockEdit) ? 'none' : ''; }   // 観戦：選手交代はない（版622：フレンドのルーム対戦も、2つの画面で同じ試合にするため変更なし）
@@ -356,7 +356,8 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       const simT0 = simT;
       simT += dt * RATE * speed * (speed < 4 ? slowAt(simT) : 1);   // 白夜の視界の間は、ゆっくり
       if (koWhistleT >= 0 && simT0 < koWhistleT && simT >= koWhistleT) { SND().play('whistle'); koWhistleT = -1; }
-      if (match.shootout && simT0 < match.regEnd && simT >= match.regEnd) { SND().play('whistle3'); flash($('#policy'), '90分で決着つかず　PK戦へ！', 3600); }   // 版1029：PK戦
+      if (match.shootout && simT0 < match.regEnd && simT >= match.regEnd) { SND().play('whistle3'); flash($('#policy'), '90分で決着つかず　PK戦へ！', 3600);   // 版1029：PK戦
+        if (mctx && mctx.opts.soPick && speed < 16 && !soPicked) { simT = match.regEnd + 0.01; soPicked = true; stop(); setTimeout(openSoPick, 1600); return; } }   // 版1030：蹴る順番を監督が決める
       if (oohT >= 0 && simT >= oohT) { if (speed < 16) SND().play('ooh'); oohT = -1; }   // 版558：おしいシュートの「おぉー」
       if (simT >= match.duration) {
         // 試合終了（ゴール演出の途中でも、ここで締める。止まったままにならないように）
@@ -3875,6 +3876,27 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     return { sec: Math.floor((base + raw) / 10) * 10, addN, added: raw >= 45 * 60, inSecond };
   }
   // 版1029：PK戦の結果のボード（○決めた ×外した・止められた）
+  // 版1030：PK戦の蹴る順番を決める画面（おすすめ順に並べてあり、▲▼で入れ替え）。決めたら、同じ試合を計算し直して（90分までは同じ）PK戦だけ、その順番で蹴る
+  let soPicked = false;
+  function openSoPick() {
+    const so = match && match.shootout; if (!so) { play(); return; }
+    const rec = so.rec[0].slice(); let cur = (so.order && so.order[0] ? so.order[0].map((n) => rec.find((r) => r.name === n)).filter(Boolean) : rec.slice());
+    let el = document.getElementById('soPick'); if (!el) { el = document.createElement('div'); el.id = 'soPick'; (document.getElementById('app') || document.body).appendChild(el); }
+    const g = (v) => (D.grade ? D.grade(v) : '');
+    const draw = () => {
+      el.innerHTML = `<div class="sp-box"><h2>PK戦　蹴る順番</h2><p class="sp-sub">おすすめ順に並んでいます。▲▼で入れ替えられます（上から順に蹴り、6人目からは1人ずつ）。</p>
+        <div class="sp-btns"><button class="sp-rec">おすすめ順に戻す</button><button class="sp-go">この順番で蹴る！</button></div>
+        <ol class="sp-list">${cur.map((r, k) => `<li class="${k < 5 ? 'top5' : ''}"><span class="sp-n">${k + 1}</span><b class="sp-num">${r.number}</b><span class="sp-name">${r.name}</span><i class="sp-pos p-${(r.position || '').toLowerCase()}">${r.position}</i><span class="sp-pr">キック <b>${g(r.kick)}</b>　メンタル <b>${g(r.mental)}</b></span>${r.pk ? '<em class="sp-tag">PK</em>' : ''}${r.pkMaster ? '<em class="sp-tag m">PKの名手</em>' : ''}<span class="sp-mv"><button data-u="${k}" ${k ? '' : 'disabled'}>▲</button><button data-d="${k}" ${k < cur.length - 1 ? '' : 'disabled'}>▼</button></span></li>`).join('')}</ol></div>`;
+      el.querySelectorAll('[data-u]').forEach((b) => b.onclick = () => { const k = +b.dataset.u; [cur[k - 1], cur[k]] = [cur[k], cur[k - 1]]; draw(); });
+      el.querySelectorAll('[data-d]').forEach((b) => b.onclick = () => { const k = +b.dataset.d; [cur[k + 1], cur[k]] = [cur[k], cur[k + 1]]; draw(); });
+      el.querySelector('.sp-rec').onclick = () => { cur = rec.slice(); draw(); };
+      el.querySelector('.sp-go').onclick = () => { el.hidden = true; const names = cur.map((r) => r.name);
+        if (names.join() !== (so.order ? so.order[0].join() : '')) { try { const m2 = D.simulateMatch(mctx.mine, mctx.theirs, mctx.seed, { changes: [...careerChanges, ...(tacChange ? [tacChange] : [])], oneHalf: !!mctx.opts.oneHalf, shootout: true, soOrder: names });
+            if (m2.shootout && Math.abs(m2.regEnd - match.regEnd) < 0.01) { m2.homeShort = match.homeShort; m2.awayShort = match.awayShort; match = m2; prepTimeline(); evIndex = 0; while (evIndex < match.events.length && match.events[evIndex].t <= simT) evIndex++; } } catch (err) { showErr(err, 'PK戦の順番'); } }
+        play(); };
+    };
+    draw(); el.hidden = false;
+  }
   function soBoard(t) {
     let el = document.getElementById('soBoard');
     const on = match && match.shootout && t >= match.regEnd + 2;
