@@ -1066,7 +1066,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     if (heavy) for (let k = 0; k < 160; k++) blob(-3 + r() * 111, -2 + r() * 72, 0.25 + r() * 0.45, 'rgba(170,144,86,0.7)');   // 小さなはげ
     blobCache[v] = out; return out;
   }
-  const CATCH_ART = {"front": [4.5, 17.0, 25, false], "fdiag": [18.5, 17.5, 26, false], "side": [19.0, 15.5, 24, false], "back": [11.0, 15.5, 24, true]};   // 版1044：キャッチの絵：[ボールの中心の列, 行, 絵の高さ, ボールが体の向こう]
+  const CATCH_ART = {"front": [11.0, 12.0, 26, false], "side": [19.5, 11.0, 27, false], "fdiag": [16.5, 12.5, 31, false], "bdiag": [17.5, 7.5, 30, true], "back": [11.0, 7.0, 28, true]};   // 版1044：キャッチの絵：[ボールの中心の列, 行, 絵の高さ, ボールが体の向こう]
   let soCamOn = false, soCheer = null;
   function pitch() {
     ctx.fillStyle = venue <= 1 ? '#3f6d2c' : '#6b6862'; ctx.fillRect(0, 0, CW, CH);
@@ -2071,9 +2071,9 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       ctx.fillStyle = 'rgba(0,30,0,0.3)'; ctx.beginPath(); ctx.ellipse(q.x, q.y - px * 0.2, 5.6 * px, 1.8 * px, 0, 0, Math.PI * 2); ctx.fill();
       dmFacing = Math.atan2(0, team === 0 ? 1 : -1); const r11 = sprite(lifted.x, lifted.y, q.s, info, team, facing, 1, false, true, true, null, 0, 'front'); dmFacing = null; return r11;
     }
-    if (code === 15) {   // 版1044：正面でキャッチ（本家の形）：体の絵 → 試合と同じボール → ボールの上の手、の順に重ねる。向きは、GKが向いているピッチの方
+    if (code === 15) {   // 版1047：キャッチ（監督が選んだ形：あごの前で、ボールを両手で包む。8方向）。版1044：体の絵 → 試合と同じボール → ボールの上の手、の順に重ねる。向きは、GKが向いているピッチの方
       const fp = proj(p.x + (p.x > 52.5 ? -6 : 6), p.y), ang = Math.atan2((fp.y - q.y) / 0.45, fp.x - q.x), sec = ((Math.round(ang / (Math.PI / 4)) % 8) + 8) % 8;
-      const key = ['side', 'fdiag', 'front', 'fdiag', 'side', 'side', 'back', 'side'][sec], M = CATCH_ART[key], flip = Math.cos(ang) < -0.01;
+      const key = ['side', 'fdiag', 'front', 'fdiag', 'side', 'bdiag', 'back', 'bdiag'][sec], M = CATCH_ART[key], flip = Math.cos(ang) < -0.01;
       dmFacing = ang;
       const drawBall = (dot) => ballFace(q.x + ((flip ? 11 - M[0] : M[0] - 11) + 0.5) * dot, q.y + (M[1] + 0.5 - M[2]) * dot, Math.max(5.5, 9 * q.s));   // 絵の中のボールの位置（ドット）→ 画面
       const dot0 = Math.max(1.4, 2.6 * q.s) * (24 / 27);

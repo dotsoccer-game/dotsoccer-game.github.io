@@ -6987,6 +6987,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       if (globalThis.__byLog && b.byP) globalThis.__byLog.push([+S.t.toFixed(2), p.idx, b.intended, b.kind, how, +b.z.toFixed(1)]);
       if (globalThis.__scLog && b.kind === 'shot' && p.team === b.lastTeam && p.idx !== b.lastPlayer) globalThis.__scLog.push(['gain', S.t, how]);
       p.recvT = S.t;
+      if (how === 'save' && p.gk) p.catchT = S.t;   // 版1047：シュートをキャッチした瞬間（キャッチの絵を出す）
       if (globalThis.__kcut && b.kicker >= 0 && P[b.kicker] && P[b.kicker].uniq === 'aonoouza' && P[b.kicker].team !== p.team && S.t - (b.passT ?? -9) < 3) globalThis.__kcut.push([+S.t.toFixed(1), how, b.kind, b.uSafe, b.lastPlayer === b.kicker ? 'direct' : 'touched:' + b.lastPlayer, b.intended, +(S.t - b.passT).toFixed(2), b.z.toFixed(1), b.style || '']);
       if (globalThis.__aoLost && b.lastPlayer >= 0 && P[b.lastPlayer] && P[b.lastPlayer].uniq === 'aonoouza' && P[b.lastPlayer].team !== p.team && uOn(P[b.lastPlayer], 'aonoouza')) globalThis.__aoLost.push([+S.t.toFixed(1), how, b.kind, P[b.lastPlayer].aoLastPick || '-', +(S.t - (P[b.lastPlayer].aoHoldT || S.t)).toFixed(1), +(L - fx(1 - p.team, P[b.lastPlayer].x)).toFixed(0)]);
       if (globalThis.__aoCut && globalThis.__aoCut.log) { const c = globalThis.__aoCut.log[globalThis.__aoCut.log.length - 1]; if (c && c.t != null && c.by == null && S.t - c.t < 4) { c.by = p.idx; c.how = how; c.dt = +(S.t - c.t).toFixed(2); c.bz = +S.ball.z.toFixed(1); } }
@@ -8461,7 +8462,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       for (const p of P) f.push(+p.x.toFixed(2), +p.y.toFixed(2), Math.round(p.curV ?? p.cur));
       f.push(r ? (r.offside ? 8 : RESTART_CODE[r.type]) : S.celebrate > 0 ? 6 : 0, held, S.ball.drive && S.ball.kind === 'shot' && S.ball.z > 0.1 ? 4 : S.ball.knuckle && S.ball.z > 0.1 ? 1 : Math.abs(S.ball.spin || 0) > 0.3 && S.ball.z > 0.1 ? (S.ball.spin > 0 ? 2 : 3) : 0);
       // 審判・副審・カード・GKの姿勢・退場者
-      const gkCode = (g) => (g.saveT > 0 && (g.saveK === 9 || g.saveK === 10) && !(g.diveT > 0) ? g.saveK : g.diveT > 0 ? ((g.hiDiveT || 0) > S.t ? (g.diveDir > 0 ? 13 : 14) : g.diveDir > 0 ? 1 : 3) : g.downT > 0 ? (g.diveDir > 0 ? 2 : 4) : g.saveT > 0 && g.saveK ? g.saveK : g.highT > 0 ? (g.hiPunch ? 6 : 7) : g.punchT > 0 ? 6 : g.hold && S.ball.owner === g.idx ? 5 : 0);   // 版834   // 版862：8＝指先でバーの上へ 9・10＝足で止める（右・左） 11＝体を広げて止める 12＝腰を落として抱える：7＝ハイボールに跳んでいる
+      const gkCode = (g) => (g.catchT != null && S.t - g.catchT < (g.catchHold || 0.9) && (S.ball.owner === g.idx || g.catchHold) && !(g.diveT > 0) && !(g.downT > 0) && !(g.highT > 0) ? 15 : g.saveT > 0 && (g.saveK === 9 || g.saveK === 10) && !(g.diveT > 0) ? g.saveK : g.diveT > 0 ? ((g.hiDiveT || 0) > S.t ? (g.diveDir > 0 ? 13 : 14) : g.diveDir > 0 ? 1 : 3) : g.downT > 0 ? (g.diveDir > 0 ? 2 : 4) : g.saveT > 0 && g.saveK ? g.saveK : g.highT > 0 ? (g.hiPunch ? 6 : 7) : g.punchT > 0 ? 6 : g.hold && S.ball.owner === g.idx ? 5 : 0);   // 版834   // 版862：8＝指先でバーの上へ 9・10＝足で止める（右・左） 11＝体を広げて止める 12＝腰を落として抱える：7＝ハイボールに跳んでいる
       let gone = 0;
       for (const p of P) if (p.off && p.y > W + 2.5) gone += 2 ** p.idx;
       f.push(+ref.x.toFixed(2), +ref.y.toFixed(2), +ar[0].toFixed(2), +ar[1].toFixed(2), S.refCard && S.refCard.show ? S.refCard.code : 0, gkCode(P[0]), gkCode(P[11]), gone, side[0], r ? r.team : -1, r ? +r.x.toFixed(1) : -1, r ? +r.y.toFixed(1) : -1, +(S.ball.bs || 0).toFixed(2), S.kickRec, S.ball.owner < 0 && (S.ball.kind === 'pass') ? (S.ball.intended ?? -1) : -1);
@@ -8772,7 +8773,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       const homeSpot = {}; { const a0 = line.filter((q) => q.team === 0), a1 = line.filter((q) => q.team === 1); a0.forEach((q, k) => { homeSpot[q.idx] = [L / 2 + 0.3, GOAL_Y - 0.6 - k * 0.9]; }); a1.forEach((q, k) => { homeSpot[q.idx] = [L / 2 + 0.3, GOAL_Y + 0.6 + k * 0.9]; });   /* 版1035：ルールどおり、センターサークルの中、ハーフウェーラインに沿って並ぶ（チームごとに上下） */ }
       const gkOf = (t) => P.find((q) => q.team === t && q.gk && !q.off) || P[t * 11];
       const gkWait = (t) => [L - 0.4, GOAL_Y - 20.16];   // 版1035：蹴る側のGKは、ゴールラインとペナルティエリアの線が交わる所で待つ（ルールどおり）   // 版1031：待っているGKはペナルティエリアの横（歩いて入れかわれる近さ）
-      const resetGK = (g) => { g.diveT = 0; g.downT = 0; g.saveT = 0; g.highT = 0; g.punchT = 0; g.hiDiveT = 0; g.hold = false; g.wf = null; };
+      const resetGK = (g) => { g.catchT = null; g.catchHold = 0; g.diveT = 0; g.downT = 0; g.saveT = 0; g.highT = 0; g.punchT = 0; g.hiDiveT = 0; g.hold = false; g.wf = null; };
       for (const q of P) { q.vx = q.vy = 0; resetGK(q); }
       S.restart = null; S.celebrate = 0; S.refCard = null; Object.assign(S.ball, { owner: -1, kind: 'dead', vx: 0, vy: 0, vz: 0, drive: false, knuckle: false, spin: 0, bs: 0, intended: -1 });
       side[0] = -1; side[1] = 1;
@@ -8852,7 +8853,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
               else if (wood === 'postIn') { b.vx *= R.range(0.3, 0.4); b.vy = -sideAim * R.range(6.5, 9); b.vz = Math.min(b.vz * 0.4, 0.3); b.x = gl + 0.02; b.y = GOAL_Y + sideAim * (POST - 0.18);   /* 版1040：ポストの内側に当たって、はっきり横へはね返り、ゴールの中を斜めに横切ってネットへ */ ev('post', { team: t, sp: spH, into: true, so: 1 }); }   // 内側に当たって中へ
               else { b.vx *= R.range(0.25, 0.35); b.vz = -R.range(7, 9); b.z = BAR - 0.15; b.x = gl + 0.02; ev('barin', { team: t, sp: spH, so: 1 }); } }   // 版1041：バーの下に当たると、真下へたたきつけられ、地面で弾んでネットへ   // バーの下に当たって中へ落ちる
             else if (res === 'save' && b.x >= gl - 0.9) { hit = true; tell();
-              if (stay) { b.x = g.x - 0.3; b.y = g.y; b.z = 0.9; b.vx = b.vy = b.vz = 0; ev('save', { team: 1 - t, player: g.name, act: 'catch', so: 1 }); }   /* 版1045：キャッチ専用の絵（15）は使わない（版1039までの形に戻した） */   // 正面：がっちりキャッチ
+              if (stay) { b.x = g.x - 0.3; b.y = g.y; b.z = 0.9; b.vx = b.vy = b.vz = 0; g.catchT = S.t; g.catchHold = 9; ev('save', { team: 1 - t, player: g.name, act: 'catch', so: 1 }); }   /* 版1047：キャッチの絵（15）を出す */   // 正面：がっちりキャッチ
               else { b.x = gl - 0.9; b.vx = -R.range(5, 8); b.vy = (ay > GOAL_Y ? 1 : -1) * R.range(2, 5); b.vz = R.range(1.5, 3.5); ev('save', { team: 1 - t, player: g.name, act: 'diveparry', so: 1 }); } }   // 横っ飛びで前へはじく
             else if (b.x >= gl && res === 'goal') { hit = true; tell(); b.vy *= 0.3; }   // 版1037：ゴールに入っても速さはそのまま、奥のネットまで突き刺さる
             else if (res === 'miss' && b.x >= gl + 1) { tell(); } }
