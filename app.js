@@ -1750,6 +1750,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     ballM = out;
   }
   function ballDraw(b, spinCode, bs, held) {
+    if (match && match.shootout && simT > match.regEnd && b.x > 114.2) return;   // 版1039：PK戦で観客席に飛び込んだ球は、見えなくなる
     let speed = 0;
     if (lastBall) {
       const dx = b.x - lastBall.x, dy = b.y - lastBall.y, dz = b.z - lastBall.z;
@@ -2830,6 +2831,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       const ballSide = proj(st.ball.x, st.ball.y).x;
       const sig = officialSignals(st);
       if (show && show.phase === 'endOut' && show.rt > END_T.arms) sig.ref = { mode: 'both', tx: st.ref.x, ty: st.ref.y };
+      if (match.shootout) { const se = match.events.find((e) => e.type === 'shootout'); if (se && simT >= se.t + 0.2) sig.ref = { mode: 'both', tx: st.ref.x, ty: st.ref.y }; }   // 版1039：PK戦の決着：笛と同時に両手を上げる
       items.push({ f: proj(st.ref.x, st.ref.y).f, goal: () => {
         const q = proj(st.ref.x, st.ref.y);
         const fc = Math.abs(rvx) > 0.05 ? Math.sign(proj(st.ref.x + rvx, st.ref.y).x - q.x) || 1 : (ballSide > q.x ? 1 : -1);

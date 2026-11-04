@@ -8796,7 +8796,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         // 版1031：入れかわり。蹴り終わった人はセンターサークルへ戻り（決めた人は喜びながら）、同時に次の人がセンターサークルから歩いて来る。GKも歩いて入れかわる
         //  ボールはゴールの中から、次に蹴る人の足元へ転がして渡す → 足元で運んでスポットに置く
         // 版1034：ボールはスポットに置いてある（転がして渡さない）。助走の長さは人それぞれ（背番号などから決まる、1.5〜5.5m）
-        const b = kickBall(kq); b.x = spotX; b.y = GOAL_Y; b.vx = b.vy = 0; let arrived = false;
+        const b = kickBall(kq); b.x = spotX; b.y = GOAL_Y; b.vx = b.vy = 0; b.wood = 0; b.stand = 0; let arrived = false;
         const runLen = 1.5 + (((kq.number || 0) * 7 + kq.idx * 3 + (kq.kick | 0)) % 9) / 8 * 4, standX = spotX - 0.35 - runLen * 0.85, standY = GOAL_Y - 0.15 - runLen * 0.5;
         settle(12, (el) => {
           if (arrived) return 'stop';
@@ -8825,6 +8825,12 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         else if (saved) { ay = GOAL_Y + sideAim * R.range(1.2, 2.3); az = R.range(0.2, 1.3); }   // GKが飛んだ先（手が届く所）
         else if (guess === sideAim) { ay = GOAL_Y + sideAim * R.range(POST - 0.75, POST - 0.5); az = R.range(1.4, 2.0); }   // 読まれたが、手の届かない隅
         else { ay = GOAL_Y + sideAim * R.range(1.3, POST - 0.6); az = R.range(0.2, 1.7); }
+        // 版1039：ポスト・クロスバーに当たる（外れる：post・bar、入る：postIn・barIn）。外れた球の4本に1本、決まった球の25本に1本くらい
+        const wood = force === 'post' || force === 'bar' || force === 'postIn' || force === 'barIn' ? force : miss && !center ? (R.next() < 0.25 ? (R.next() < 0.6 ? 'post' : 'bar') : null) : !saved && !center ? (R.next() < 0.04 ? (R.next() < 0.6 ? 'postIn' : 'barIn') : null) : null;
+        if (wood) { miss = wood === 'post' || wood === 'bar'; saved = false; if (miss) guess = R.next() < 0.5 ? sideAim : -sideAim;
+          if (wood === 'post') { ay = GOAL_Y + sideAim * (POST + 0.06); az = R.range(0.3, 1.9); }
+          else if (wood === 'postIn') { ay = GOAL_Y + sideAim * (POST - 0.1); az = R.range(0.3, 1.9); }
+          else { ay = GOAL_Y + sideAim * R.range(0.6, POST - 0.8); az = wood === 'bar' ? BAR + 0.08 : BAR - 0.1; } }
         const res = miss ? 'miss' : saved ? 'save' : 'goal';
         const sp = R.range(20, 26), tf = (gl - spotX) / sp, vy = (ay - GOAL_Y) / tf, vz = (az + 4.9 * tf * tf) / tf;
         // GKの飛ぶ先：止める時はボールの所、読みが当たって決められる時は届かずに手前、外れた時は反対へ
@@ -8836,11 +8842,16 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         const tell = () => { if (told) return; told = true; if (res === 'goal') sc[t]++; tk[t]++; kicks.push({ team: t, idx: kq.idx, name: kq.name, number: kq.number, res, round: tk[t] }); ev('sokick', { team: t, player: kq.name, number: kq.number, idx: kq.idx, res, round: tk[t], so: [...sc] }); };
         settle(2.2, (el) => {
           k0++;
-          if (!stay) { if (k0 === 1) { g.diveT = tc + 0.25; g.diveDir = Math.sign(gTo - GOAL_Y) || guess; } gT += DT; if (gT <= tc) g.y += gv * DT; if (g.diveT > 0) { g.diveT = Math.max(0, g.diveT - DT); if (g.diveT <= 0) g.downT = 1.4; } else if (g.downT > 0) g.downT = Math.max(0.01, g.downT - DT * 0.5); }
+          if (!stay) { if (k0 === 1) { g.diveT = tc + 0.25; g.diveDir = Math.sign(gTo - GOAL_Y) || guess; } gT += DT; if (gT <= tc) g.y += gv * DT; if (g.diveT > 0) { g.diveT = Math.max(0, g.diveT - DT); if (g.diveT <= 0) g.downT = 1.3; } else if (g.downT > 0) g.downT = Math.max(0, g.downT - DT); }   // 版1039：倒れたままにしない（1.4秒で起き上がる）
           const b = S.ball;
           if (!hit) { b.x += b.vx * DT; b.y += b.vy * DT; b.z = Math.max(0, b.z + b.vz * DT - 4.9 * DT * DT); b.vz -= 9.8 * DT;
-            if (res === 'miss') { if (b.z <= 0 && b.vz < 0) { b.vz = -b.vz * 0.4; b.vx *= 0.8; b.vy *= 0.8; } if (b.x >= 113.3) { b.x = 113.3; b.vx = -Math.abs(b.vx) * 0.3; b.vy *= 0.5; b.vz = Math.min(b.vz, 0); } }   // 版1037：外れたボールは、ゴール裏の壁に当たって跳ね返る（どこまでも飛んで行かない）
-            if (res === 'save' && b.x >= gl - 0.9) { hit = true; tell();
+            if (res === 'miss') { if (b.z <= 0 && b.vz < 0) { b.vz = -b.vz * 0.4; b.vx *= 0.8; b.vy *= 0.8; } if (b.x >= 113.3 && b.vx > 0) { if (b.z < 2.6 && !b.stand) { b.x = 113.3; b.vx = -Math.abs(b.vx) * 0.3; b.vy *= 0.5; b.vz = Math.min(b.vz, 0); } else { b.stand = 1; if (b.x > 118) { b.x = 118; b.vx = b.vy = b.vz = 0; b.z = 4; } else if (b.z < 4) { b.z = 4; b.vz = 0; } } } }   // 版1039：高い球（壁より上）は観客席に消える（画面では見えなくなる）   // 版1037：外れたボールは、ゴール裏の壁に当たって跳ね返る（どこまでも飛んで行かない）
+            if (wood && !b.wood && b.x >= gl - 0.12) { b.wood = 1; const spH = +Math.hypot(b.vx, b.vy, b.vz).toFixed(1); b.x = gl - 0.12;
+              if (wood === 'post') { b.vx = -b.vx * R.range(0.25, 0.4); b.vy = sideAim * R.range(3, 6); b.vz = Math.min(b.vz * 0.5, 0.5); ev('post', { team: t, sp: spH, so: 1 }); hit = true; tell(); }   // 外側に当たって外へ
+              else if (wood === 'bar') { b.vx = -Math.abs(b.vx) * R.range(0.3, 0.45); b.vz = Math.abs(b.vz) * 0.4 + 2.5; b.z = BAR + 0.12; ev('post', { team: t, bar: true, sp: spH, so: 1 }); hit = true; tell(); }   // バーの上に当たって外へ
+              else if (wood === 'postIn') { b.vx *= 0.6; b.vy = -sideAim * R.range(2.5, 4); b.vz = Math.min(b.vz * 0.5, 0.5); b.x = gl + 0.02; ev('post', { team: t, sp: spH, into: true, so: 1 }); }   // 内側に当たって中へ
+              else { b.vz = -Math.abs(b.vz) * 0.4 - 3; b.z = BAR - 0.15; b.x = gl + 0.02; ev('barin', { team: t, sp: spH, so: 1 }); } }   // バーの下に当たって中へ落ちる
+            else if (res === 'save' && b.x >= gl - 0.9) { hit = true; tell();
               if (stay) { b.x = g.x - 0.3; b.y = g.y; b.z = 0.9; b.vx = b.vy = b.vz = 0; ev('save', { team: 1 - t, player: g.name, act: 'catch', so: 1 }); }   // 正面：がっちりキャッチ
               else { b.x = gl - 0.9; b.vx = -R.range(5, 8); b.vy = (ay > GOAL_Y ? 1 : -1) * R.range(2, 5); b.vz = R.range(1.5, 3.5); ev('save', { team: 1 - t, player: g.name, act: 'diveparry', so: 1 }); } }   // 横っ飛びで前へはじく
             else if (b.x >= gl && res === 'goal') { hit = true; tell(); b.vy *= 0.3; }   // 版1037：ゴールに入っても速さはそのまま、奥のネットまで突き刺さる
@@ -8859,7 +8870,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       }
       if (prevK && prevRes !== 'goal') settle(0.4, () => {});
       const win = sc[0] > sc[1] ? 0 : 1;
-      settle(1.5, () => {});
+      settle(1.5, () => { for (const q of P) if (q.gk && q.downT > 0) q.downT = Math.max(0, q.downT - DT); });
+      for (const q of P) if (q.gk) resetGK(q);
       ev('shootout', { score: [...sc], win });
       { const hub = kicks[kicks.length - 1].team === win ? P[kicks[kicks.length - 1].idx] : gkOf(win), hx = hub.x, hy = hub.y;   // 版1031：勝った方は、決めた人（または止めたGK）のところへ駆け寄って喜ぶ
         settle(4.5, () => { for (const q of P) if (q.team === win && !q.off && q !== hub) moveTo(q, hx - 1.2 + (q.idx % 3) * 0.9, hy + ((q.idx % 5) - 2) * 0.8, 6.5); }); }
