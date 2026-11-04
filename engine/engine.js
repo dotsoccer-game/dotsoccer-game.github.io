@@ -8794,47 +8794,59 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         resetGK(g); resetGK(other);
         // 版1031：入れかわり。蹴り終わった人はセンターサークルへ戻り（決めた人は喜びながら）、同時に次の人がセンターサークルから歩いて来る。GKも歩いて入れかわる
         //  ボールはゴールの中から、次に蹴る人の足元へ転がして渡す → 足元で運んでスポットに置く
-        const b = kickBall(kq); let carry = false, arrived = false;
+        // 版1034：ボールはスポットに置いてある（転がして渡さない）。助走の長さは人それぞれ（背番号などから決まる、1.5〜5.5m）
+        const b = kickBall(kq); b.x = spotX; b.y = GOAL_Y; b.vx = b.vy = 0; let arrived = false;
+        const runLen = 1.5 + (((kq.number || 0) * 7 + kq.idx * 3 + (kq.kick | 0)) % 9) / 8 * 4, standX = spotX - 0.35 - runLen * 0.85, standY = GOAL_Y - 0.15 - runLen * 0.5;
         settle(12, (el) => {
           if (arrived) return 'stop';
-          if (prevK && prevK !== kq) moveTo(prevK, homeSpot[prevK.idx][0], homeSpot[prevK.idx][1], prevRes === 'goal' ? 4.2 : 3.4);
-          const okK = moveTo(kq, spotX - 2.2, GOAL_Y - 0.6, el < 0.6 ? 2 : 6.2);
-          const okG = moveTo(g, gl - 0.4, GOAL_Y, 4.6); moveTo(other, gkWait(t)[0], gkWait(t)[1], 4.6);
-          if (!carry) { const dx = kq.x + 0.6 - b.x, dy = kq.y - b.y, d = hyp(dx, dy), v = Math.min(d, 9 * DT); if (d > 0.7) { b.x += dx / d * v; b.y += dy / d * v; b.vx = dx / d * 9; b.vy = dy / d * 9; } else carry = true; }
-          if (carry) { const tx = hyp(kq.x - (spotX - 2.2), kq.y - (GOAL_Y - 0.6)) < 2.5 ? spotX : kq.x + 0.7, ty = tx === spotX ? GOAL_Y : kq.y + 0.2; b.x += (tx - b.x) * 0.5; b.y += (ty - b.y) * 0.5; b.vx = b.vy = 0; }
-          if (okK && okG && carry && el > 1.2 && (!prevK || hyp(prevK.x - homeSpot[prevK.idx][0], prevK.y - homeSpot[prevK.idx][1]) < 12)) arrived = true;
+          if (prevK && prevK !== kq && homeSpot[prevK.idx]) moveTo(prevK, homeSpot[prevK.idx][0], homeSpot[prevK.idx][1], prevRes === 'goal' ? 4.2 : 3.4);
+          const okK = moveTo(kq, standX, standY, el < 0.6 ? 2 : 6.2);
+          const okG = moveTo(g, gl - 0.4, GOAL_Y, 4.6); if (other !== kq) moveTo(other, gkWait(t)[0], gkWait(t)[1], 4.6);
+          if (okK && okG && el > 1.2 && (!prevK || !homeSpot[prevK.idx] || hyp(prevK.x - homeSpot[prevK.idx][0], prevK.y - homeSpot[prevK.idx][1]) < 12)) arrived = true;
         });
-        b.x = spotX; b.y = GOAL_Y; b.vx = b.vy = 0;
-        settle(0.8, () => { kq.vx = kq.vy = 0; g.vx = g.vy = 0; if (prevK) moveTo(prevK, homeSpot[prevK.idx][0], homeSpot[prevK.idx][1], 3.4); moveTo(other, gkWait(t)[0], gkWait(t)[1], 4.6); });
+        settle(0.8, () => { kq.vx = kq.vy = 0; g.vx = g.vy = 0; if (prevK && homeSpot[prevK.idx]) moveTo(prevK, homeSpot[prevK.idx][0], homeSpot[prevK.idx][1], 3.4); if (other !== kq) moveTo(other, gkWait(t)[0], gkWait(t)[1], 4.6); });
         ev('sowhistle', { team: t, player: kq.name, number: kq.number, idx: kq.idx, round: tk[t] + 1 });
-        settle(1.0, () => { kq.vx = kq.vy = 0; if (prevK) moveTo(prevK, homeSpot[prevK.idx][0], homeSpot[prevK.idx][1], 3.4); });
-        // 助走
-        settle(0.6, () => moveTo(kq, spotX - 0.35, GOAL_Y - 0.15, 4.5));
-        // 蹴る：狙い・GKの読み・結果
+        settle(0.6 + runLen * 0.08, () => { kq.vx = kq.vy = 0; if (prevK && homeSpot[prevK.idx]) moveTo(prevK, homeSpot[prevK.idx][0], homeSpot[prevK.idx][1], 3.4); });
+        // 助走（長い人は速く、短い人はちょこんと）
+        { let ok = false; const v = 3.2 + runLen * 0.6; settle(4, () => { if (ok) return 'stop'; ok = moveTo(kq, spotX - 0.35, GOAL_Y - 0.15, v); }); }
+        // 蹴る：狙い・GKの読み・結果。版1034：結果がひと目で分かるように、コースを結果に合わせて決める
         const sideAim = R.next() < 0.5 ? -1 : 1, kq0 = kq.kick * 0.5 + kq.mental * 0.3 + kq.technique * 0.2;
         const miss = R.next() < clamp(0.1 - (kq0 - 50) * 0.0025 + (kq.gk ? 0.1 : 0), 0.02, 0.24);
         const guessP = (0.42 + g.mental * 0.002 + (g.sk.has('pkStopper') ? 0.12 : 0) + (uOn(g, 'ikari') ? 0.25 : 0)) * (kq.sk.has('pkMaster') ? 0.3 : 1);
         const guess = R.next() < guessP ? sideAim : -sideAim, center = !miss && R.next() < 0.08;
         const saved = !miss && (center ? R.next() < 0.5 : guess === sideAim && R.next() < clamp(0.24 + ((g.jump + g.technique) / 2 - 60) * 0.004 - (kq0 - 60) * 0.004 + (g.sk.has('pkStopper') ? 0.15 : 0) + (uOn(g, 'ikari') ? 0.15 : 0), 0.12, 0.75));
-        const ay = center ? GOAL_Y + R.range(-0.4, 0.4) : miss && R.next() < 0.5 ? GOAL_Y + sideAim * R.range(POST + 0.4, POST + 1.6) : GOAL_Y + sideAim * R.range(1.8, POST - 0.35);
-        const az = miss && Math.abs(ay - GOAL_Y) < POST ? R.range(BAR + 0.3, BAR + 1.4) : R.range(0.2, 1.6);
+        let ay, az;
+        if (center) { ay = GOAL_Y + R.range(-0.4, 0.4); az = saved ? R.range(0.4, 1.2) : R.range(0.8, 1.9); }
+        else if (miss) { if (R.next() < 0.5) { ay = GOAL_Y + sideAim * R.range(POST + 0.8, POST + 2.0); az = R.range(0.3, 1.6); } else { ay = GOAL_Y + sideAim * R.range(0.8, POST - 0.6); az = R.range(BAR + 0.7, BAR + 1.8); } }   // 枠の外へ、はっきり外れる
+        else if (saved) { ay = GOAL_Y + sideAim * R.range(1.2, 2.3); az = R.range(0.2, 1.3); }   // GKが飛んだ先（手が届く所）
+        else if (guess === sideAim) { ay = GOAL_Y + sideAim * R.range(POST - 0.75, POST - 0.5); az = R.range(1.4, 2.0); }   // 読まれたが、手の届かない隅
+        else { ay = GOAL_Y + sideAim * R.range(1.3, POST - 0.6); az = R.range(0.2, 1.7); }
+        const res = miss ? 'miss' : saved ? 'save' : 'goal';
         const sp = R.range(20, 26), tf = (gl - spotX) / sp, vy = (ay - GOAL_Y) / tf, vz = (az + 4.9 * tf * tf) / tf;
+        // GKの飛ぶ先：止める時はボールの所、読みが当たって決められる時は届かずに手前、外れた時は反対へ
+        const stay = center && saved, gTo = stay ? GOAL_Y : saved ? ay : guess === sideAim ? GOAL_Y + sideAim * Math.min(2.4, Math.abs(ay - GOAL_Y) - 0.9) : GOAL_Y + guess * R.range(1.8, 2.5);
+        const tc = Math.max(0.3, (gl - 0.9 - spotX) / sp), gv = (gTo - g.y) / tc;
         ev('sokick0', { team: t, player: kq.name });
         S.kickRec = kq.idx; Object.assign(S.ball, { x: spotX, y: GOAL_Y, z: 0.05, vx: sp, vy, vz, kind: 'shot', lastTeam: t, lastPlayer: kq.idx, kicker: kq.idx, owner: -1 });
-        const res = miss ? 'miss' : saved ? 'save' : 'goal';
-        let hit = false, k0 = 0, told = false;
+        let hit = false, k0 = 0, told = false, gT = 0;
         const tell = () => { if (told) return; told = true; if (res === 'goal') sc[t]++; tk[t]++; kicks.push({ team: t, idx: kq.idx, name: kq.name, number: kq.number, res, round: tk[t] }); ev('sokick', { team: t, player: kq.name, number: kq.number, idx: kq.idx, res, round: tk[t], so: [...sc] }); };
-        settle(2.0, (el) => {
-          k0++; if (k0 === 1 && !center) { g.diveT = 0.7; g.diveDir = guess; } if (center) { g.saveT = 0; }
-          if (g.diveT > 0) { g.diveT = Math.max(0, g.diveT - DT); g.y += guess * 3.6 * DT * (g.diveT > 0.2 ? 1 : 0.3); if (g.diveT <= 0) g.downT = 1.2; } else if (g.downT > 0) g.downT = Math.max(0.01, g.downT - DT * 0.5);
+        settle(2.2, (el) => {
+          k0++;
+          if (!stay) { if (k0 === 1) { g.diveT = tc + 0.25; g.diveDir = Math.sign(gTo - GOAL_Y) || guess; } gT += DT; if (gT <= tc) g.y += gv * DT; if (g.diveT > 0) { g.diveT = Math.max(0, g.diveT - DT); if (g.diveT <= 0) g.downT = 1.4; } else if (g.downT > 0) g.downT = Math.max(0.01, g.downT - DT * 0.5); }
           const b = S.ball;
           if (!hit) { b.x += b.vx * DT; b.y += b.vy * DT; b.z = Math.max(0, b.z + b.vz * DT - 4.9 * DT * DT); b.vz -= 9.8 * DT;
-            if (res === 'save' && b.x >= gl - 1.2) { hit = true; b.vx = -R.range(4, 8); b.vy = (b.y > GOAL_Y ? 1 : -1) * R.range(3, 7); b.vz = R.range(1, 3); ev('save', { team: 1 - t, player: g.name, act: 'diveparry', so: 1 }); tell(); }
-            if (b.x >= gl) { hit = true; tell(); if (res === 'goal') { b.x = gl + 0.6; b.vx = 1.5; b.vy *= 0.1; b.vz = 0; b.z = Math.min(b.z, 2); } else { b.vx = 0; b.vy = 0; } } }
-          else { b.x += b.vx * DT; b.y += b.vy * DT; b.vx *= 0.9; b.vy *= 0.9; b.z = Math.max(0, b.z + b.vz * DT); b.vz -= 9.8 * DT; if (res === 'goal') b.x = Math.min(b.x, gl + 1.6); }
-          if (prevK) moveTo(prevK, homeSpot[prevK.idx][0], homeSpot[prevK.idx][1], 3.4);
+            if (res === 'save' && b.x >= gl - 0.9) { hit = true; tell();
+              if (stay) { b.x = g.x - 0.3; b.y = g.y; b.z = 0.9; b.vx = b.vy = b.vz = 0; ev('save', { team: 1 - t, player: g.name, act: 'catch', so: 1 }); }   // 正面：がっちりキャッチ
+              else { b.x = gl - 0.9; b.vx = -R.range(5, 8); b.vy = (ay > GOAL_Y ? 1 : -1) * R.range(2, 5); b.vz = R.range(1.5, 3.5); ev('save', { team: 1 - t, player: g.name, act: 'diveparry', so: 1 }); } }   // 横っ飛びで前へはじく
+            else if (b.x >= gl && res === 'goal') { hit = true; tell(); b.x = gl + 0.2; b.vx = 4; b.vy = 0; b.vz = Math.min(0, b.vz); b.y = clamp(b.y, GOAL_Y - POST + 0.35, GOAL_Y + POST - 0.35); }   // ゴールの中へ（ネットに当たって落ちる）
+            else if (res === 'miss' && b.x >= gl + 1) { tell(); } }
+          else if (res === 'goal') { b.x = Math.min(gl + 1.9, b.x + b.vx * DT); b.vx *= 0.75; b.z = Math.max(0, b.z + b.vz * DT); b.vz -= 9.8 * DT; }
+          else if (!(res === 'save' && stay)) { b.x += b.vx * DT; b.y += b.vy * DT; b.vx *= 0.92; b.vy *= 0.92; b.z = Math.max(0, b.z + b.vz * DT); b.vz -= 9.8 * DT; if (b.z <= 0) b.vz = Math.abs(b.vz) * 0.3; }
+          if (res === 'save' && stay && hit) { b.x = g.x - 0.3; b.y = g.y; b.z = 0.9; }
+          if (prevK && homeSpot[prevK.idx]) moveTo(prevK, homeSpot[prevK.idx][0], homeSpot[prevK.idx][1], 3.4);
           if (hit && res === 'goal') moveTo(kq, kq.x - 2, kq.y + (kq.y > GOAL_Y ? 1 : -1) * 0.6, 3.2); else if (el > 0.8) moveTo(kq, kq.x - 0.5, kq.y, 0.2);
         });
+        if (res === 'miss' && S.ball.x > gl) { S.ball.x = gl + 4; S.ball.vx = S.ball.vy = 0; S.ball.z = 0; }
         tell();
         S.ball.kind = 'dead'; prevK = kq; prevRes = res;
         t = 1 - t;
@@ -8860,6 +8872,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       uniqLog,
       actions,
       rosterStart,
+      benchEnd: opts.shootout ? T.map((tm) => (tm.bench || []).map((p) => ({ name: p.name, number: p.number, position: p.position, hair: p.hair, hairColor: p.hairColor, skin: p.skin, gk: p.gk || p.position === 'GK', faceKey: p.faceKey || undefined }))) : undefined,   // 版1034：PK戦の順番を決める画面の後ろに映すベンチ（使わなかった控え）
       captains: T.map((tm) => { const c = tm.role.captain || tm.players.find((q) => q.sk.has('captaincy')) || tm.players.filter((q) => !q.gk).sort((x, y) => ((y.uniq ? 100 : 0) + y.mental) - ((x.uniq ? 100 : 0) + x.mental))[0]; return Math.max(0, tm.players.indexOf(c)); }),   // 版801：キャプテン（入場の列の先頭）
       typeLog, shootout, regEnd: +matchEnd.toFixed(2), duration: +soEnd.toFixed(2), halfTime: +halfStartT.toFixed(2), nominalHalf: HALF, clockScale: CLOCK_SCALE, frameDt: DT * FRAME_EVERY, liveMap,
     };
