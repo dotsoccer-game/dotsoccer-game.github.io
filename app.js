@@ -1068,6 +1068,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
   }
   const CATCH_ART = {"front": [11.0, 14.0, 23, false], "fdiag": [16.0, 15.5, 28, false], "side": [17.5, 13.5, 25, false], "bdiag": [17.0, 13.0, 28, true], "back": [11.0, 13.0, 26, true]};   // 版1044：キャッチの絵：[ボールの中心の列, 行, 絵の高さ, ボールが体の向こう]
   const CATCH_ART_L = {"front": [11.0, 15.0, 21, false], "fdiag": [16.0, 19.5, 26, false], "side": [17.5, 17.5, 24, false], "bdiag": [17.0, 17.0, 27, true], "back": [11.0, 16.0, 25, true]};   // 版1050：低いボールのキャッチ（片ひざをついて、ひざの前で両手で持つ）
+  let dmHideArm = null;   // 版1053：パンチングの体（突き出す側の腕を消した立ち絵）
   let soCamOn = false, soCheer = null;
   function pitch() {
     ctx.fillStyle = venue <= 1 ? '#3f6d2c' : '#6b6862'; ctx.fillRect(0, 0, CW, CH);
@@ -1632,7 +1633,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     else if (pose === 'windup' || pose === 'bigWindup' || pose === 'kick' || pose === 'follow') { const m = { windup: ['pass', 1], bigWindup: ['shot', 1], kick: ['pass', 2], follow: ['shot', 3] }[pose]; o.pose = m[0]; o.frame = m[1]; }
     else if (moving && ART_RUN) { o.pose = 'run'; o.art = true; o.frame = DotMan.artFrame(fa, dmFacing == null || dmRunPh == null ? performance.now() / 1000 * 2.15 + (info.number || 0) * 0.37 : dmRunPh); }
     else if (moving) { o.pose = 'run'; o.frame = dmFacing == null ? Math.floor(performance.now() / 1000 * 12 + (info.number || 0) * 2.3) % 8 : dmRunF; }
-    else { o.pose = 'stand'; if (ART_RUN) o.art = true; }
+    else { o.pose = 'stand'; if (ART_RUN) o.art = true; if (dmHideArm) o.hideArm = dmHideArm; }
     const F = DotMan.frame(o), px0 = Math.max(1.4, 2.6 * s);
     // 本家を写した絵は今までの絵より背が高い（足もとまで28〜30ドット、今までは24ドット）ので、試合での背の高さが今までと同じになるように縮めて描く
     const px = px0 * DotMan.fitScale(F, fa, o.pose);   // 写した絵は24ドットの背に、自動で組む絵も同じ向きの写した絵と同じ背の高さにそろえる
@@ -2055,7 +2056,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
         ctx.fillStyle = '#000'; ctx.fillRect(Math.round(fx - 2 * d), Math.round(fy - 2 * d), Math.ceil(4 * d), Math.ceil(4 * d));
         ctx.fillStyle = '#f4f4f0'; ctx.fillRect(Math.round(fx - 1.3 * d), Math.round(fy - 1.3 * d), Math.ceil(2.6 * d), Math.ceil(2.6 * d));
         ctx.fillStyle = '#c4c4c0'; ctx.fillRect(Math.round(fx - 1.3 * d), Math.round(fy + 0.3 * d), Math.ceil(2.6 * d), Math.ceil(1 * d)); };
-      dmFacing = fa; const r6 = sprite(lifted.x, lifted.y, q.s, info, team, 1, 0, false, false, true); dmFacing = null; window.__gk6 = [lifted.x, lifted.y, simT];
+      dmFacing = fa; dmHideArm = sd > 0 ? 'R' : 'L'; const r6 = sprite(lifted.x, lifted.y, q.s, info, team, 1, 0, false, false, true); dmHideArm = null; dmFacing = null; window.__gk6 = [lifted.x, lifted.y, simT];
       drawArm();   // 背中向きでも、頭の横から斜め上に出た腕とこぶしが見える
       return r6 || { top: lifted.y - 18 * px * 0.7, px };
     }

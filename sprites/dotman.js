@@ -375,7 +375,8 @@ const VIEWS = {
       // 体の向き（8方向）：0右 1右下 2下 3左下 4左 5左上 6上 7右上
       const { key, flip } = artDir(facing), A = RA[key];
       const fi = opt.pose === 'run' ? ((((opt.frame || 0) % 4) + 4) % 4) : 1;   // 走りのコマ番号は artFrame() で決める
-      const rows = opt.pose === 'stand' && A.stand ? A.stand : A.frames[fi], aw = rows[0].length, lift = opt.pose === 'run' ? (A.bob[fi] || 0) : 0;
+      let rows = opt.pose === 'stand' && A.stand ? A.stand : A.frames[fi]; const aw = rows[0].length, lift = opt.pose === 'run' ? (A.bob[fi] || 0) : 0;
+      if (opt.hideArm && opt.pose === 'stand') rows = hideArm(rows, key, flip ? (opt.hideArm === 'R' ? 'L' : 'R') : opt.hideArm);   // 版1053：パンチングで突き出す側の、下ろした腕を消す（腕が3本に見えないように）
       const CH = Object.assign({}, P.ch, { c: P.socks, C: P.socksD, x: [72, 72, 78], r: opt.stripe ? hex(opt.stripe) : P.shirt, B: mul(P.shirt, 0.82), P: P.shortsD });
       const buf = new Buf(), oy = PY - A.foot - lift;
       for (let r = 0; r < rows.length; r++) for (let c = 0; c < aw; c++) { const ch = rows[r][c]; if (ch !== '.') buf.put(flip ? PX + (aw - 1 - A.cx) - c : PX + c - A.cx, oy + r, gloveCol(P, rows, r, ch, CH[ch] || P.shirt)); }
@@ -584,6 +585,17 @@ const VIEWS = {
   const cache = new Map();
   // 作った絵はとっておく。ただし多くなりすぎたら古いものから捨てる（絵が増えすぎるとブラウザが絵を出せなくなり、選手が消えるため）
   const CACHE_MAX = 1500;
+  // 版1053：立ち絵から片方の腕（下ろした腕と手）を消す。side：絵の上での左右（'L'・'R'）。消した所の内側を線にする
+  const ARM_MASK = { front: { L: [[13, 21, 0, 3]], R: [[13, 21, 19, 22]] }, back: { L: [[12, 19, 0, 3]], R: [[12, 19, 19, 22]] }, fdiag: { L: [[21, 22, 0, 5]], R: [[15, 22, 19, 26]] }, bdiag: { L: [[17, 18, 0, 7]], R: [[19, 20, 18, 26]] } };
+  function hideArm(rows, key, side) {
+    const R = rows.map((r) => r.split(''));
+    if (key === 'side') { for (const r of [21, 22]) if (R[r]) for (let c = 0; c < R[r].length; c++) if (R[r][c] === 's' || R[r][c] === 'S') R[r][c] = 'b'; return R.map((r) => r.join('')); }   // 横向き：手前の手だけ（腕は体に重なっている）
+    const M = (ARM_MASK[key] || {})[side]; if (!M) return rows;
+    for (const [r0, r1, c0, c1] of M) for (let r = r0; r <= r1; r++) { if (!R[r]) continue;
+      for (let c = c0; c <= c1; c++) R[r][c] = '.';
+      const inner = side === 'L' ? c1 + 1 : c0 - 1; if (R[r][inner] && R[r][inner] !== '.' && R[r][inner] !== 'o') R[r][inner] = 'o'; }
+    return R.map((r) => r.join(''));
+  }
   function frame(opt) { const k = JSON.stringify(opt); let f = cache.get(k); if (!f) { f = opt.pat && opt.pat !== 'solid' && opt.sub ? patterned(opt) : render(opt); cache.set(k, f); if (cache.size > CACHE_MAX) { let n = 400; for (const [key, v] of cache) { cache.delete(key); if (v && v.cv && v.cv.width) { v.cv.width = 0; v.cv.height = 0; } if (--n <= 0) break; } } } return f; }
   // ユニフォームの柄：無地の絵を描いてから、シャツの色のドットだけを柄に合わせてサブの色に塗りかえる（影の濃さはそのまま）
   //  vstripe 縦じま / hstripe 横じま / band 胸に太い横線 / sash ななめのたすき / half 左右で2色
