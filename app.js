@@ -1066,6 +1066,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     if (heavy) for (let k = 0; k < 160; k++) blob(-3 + r() * 111, -2 + r() * 72, 0.25 + r() * 0.45, 'rgba(170,144,86,0.7)');   // 小さなはげ
     blobCache[v] = out; return out;
   }
+  const CATCH_ART = {"front": [4.5, 17.0, 25, false], "fdiag": [18.5, 17.5, 26, false], "side": [19.0, 15.5, 24, false], "back": [11.0, 15.5, 24, true]};   // 版1044：キャッチの絵：[ボールの中心の列, 行, 絵の高さ, ボールが体の向こう]
   let soCamOn = false, soCheer = null;
   function pitch() {
     ctx.fillStyle = venue <= 1 ? '#3f6d2c' : '#6b6862'; ctx.fillRect(0, 0, CW, CH);
@@ -1625,7 +1626,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     } else if (armsUp) o.pose = 'cheer';   // バンザイ・GKのパンチング／ダイブ・転倒（倒した絵として使う）
     else if (/^(shotA|passA|trapI|trapC|stumble|fall|getup|scisB|scis|bfStep|bfPush|bicycle|dhead|headS|volleyS|lobS|toeK|ctrlS|gkwf)\d[RL]?$/.test(pose || '')) { const m = pose.match(/^([a-zA-Z]+?)(\d)([RL]?)$/); o.pose = m[1]; o.frame = +m[2]; o.art = true; if (m[3]) o.foot = m[3]; }   // 手で描いた絵。最後の R/L＝使う足   // 手で描いたシュートフォーム・シザース
     else if (pose === 'lie') { o.pose = 'lie'; o.art = true; }   // あお向けの大の字
-    else if (pose === 'gkReach' || pose === 'gkCrouch' || pose === 'gkSit' || pose === 'gkCatch' || pose === 'slide' || pose === 'slideF' || pose === 'slideB' || pose === 'hurdle') { o.pose = pose; o.art = true; }   // 失点したGKの悔しがり
+    else if (pose === 'gkReach' || pose === 'gkCrouch' || pose === 'gkSit' || /^gkCatchF?_/.test(pose || '') || pose === 'slide' || pose === 'slideF' || pose === 'slideB' || pose === 'hurdle') { o.pose = pose; o.art = true; }   // 失点したGKの悔しがり
     else if (pose === 'jump' || pose === 'lunge' || pose === 'sole' || pose === 'crouch') o.pose = pose;
     else if (pose === 'windup' || pose === 'bigWindup' || pose === 'kick' || pose === 'follow') { const m = { windup: ['pass', 1], bigWindup: ['shot', 1], kick: ['pass', 2], follow: ['shot', 3] }[pose]; o.pose = m[0]; o.frame = m[1]; }
     else if (moving && ART_RUN) { o.pose = 'run'; o.art = true; o.frame = DotMan.artFrame(fa, dmFacing == null || dmRunPh == null ? performance.now() / 1000 * 2.15 + (info.number || 0) * 0.37 : dmRunPh); }
@@ -1637,7 +1638,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     if (!noShadow) { ctx.fillStyle = 'rgba(0,30,0,0.38)'; ctx.beginPath(); ctx.ellipse(x, y - px0 * 0.4, 6.4 * px0, 2.0 * px0, 0, 0, Math.PI * 2); ctx.fill(); }
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(F.cv, Math.round(x - F.px * px), Math.round(y - F.py * px), F.cv.width * px, F.cv.height * px);
-    return { top: y - 24 * px0 + 2 * px0, px: px0 * 14 / SPR_W, toe: { x: x + (F.toeK.x - F.px) * px, y: y + (F.toeK.y - F.py) * px } };
+    return { top: y - 24 * px0 + 2 * px0, px: px0 * 14 / SPR_W, dot: px, toe: { x: x + (F.toeK.x - F.px) * px, y: y + (F.toeK.y - F.py) * px } };
   }
   // frame：走りの4コマ。run：走る速さ。view：'side' | 'f34' | 'front' | 'b34' | 'back'
   function sprite(x, y, s, info, team, facing, frame, moving, armsUp, noShadow, pose, run, view) {
@@ -1748,6 +1749,17 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     const nrm = (o) => { const l = Math.hypot(out[o], out[o + 3], out[o + 6]); out[o] /= l; out[o + 3] /= l; out[o + 6] /= l; };
     nrm(0); nrm(1); nrm(2);
     ballM = out;
+  }
+  // 版1044：ボールの見た目だけを、画面の好きな所に描く（キャッチの絵で、GKが抱えるボール）。試合のボールと同じ描き方
+  function ballFace(cx, cy, r) {
+    ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#222'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, r - 0.5, 0, Math.PI * 2); ctx.clip(); ctx.fillStyle = '#222';
+    const M = ballM;
+    for (const q of BALL_PTS) { const wx = M[0] * q[0] + M[1] * q[1] + M[2] * q[2], wy = M[3] * q[0] + M[4] * q[1] + M[5] * q[2], wz = M[6] * q[0] + M[7] * q[1] + M[8] * q[2];
+      const toCam = -(wx * B.fx + wy * B.fy + wz * B.fz); if (toCam < -0.15) continue; const sx = wx * B.rx + wy * B.ry, sy = -(wx * B.ux + wy * B.uy + wz * B.uz), rr = r * 0.3, sq = Math.max(0.2, toCam);
+      ctx.beginPath(); ctx.ellipse(cx + sx * r * 0.92, cy + sy * r * 0.92, rr * sq, rr, Math.atan2(sy, sx) + Math.PI / 2, 0, Math.PI * 2); ctx.fill(); }
+    ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.beginPath(); ctx.arc(cx - r * 0.35, cy - r * 0.38, r * 0.28, 0, Math.PI * 2); ctx.fill(); ctx.restore();
   }
   function ballDraw(b, spinCode, bs, held) {
     if (match && match.shootout && simT > match.regEnd && b.x > 114.2) return;   // 版1039：PK戦で観客席に飛び込んだ球は、見えなくなる
@@ -2059,9 +2071,17 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       ctx.fillStyle = 'rgba(0,30,0,0.3)'; ctx.beginPath(); ctx.ellipse(q.x, q.y - px * 0.2, 5.6 * px, 1.8 * px, 0, 0, Math.PI * 2); ctx.fill();
       dmFacing = Math.atan2(0, team === 0 ? 1 : -1); const r11 = sprite(lifted.x, lifted.y, q.s, info, team, facing, 1, false, true, true, null, 0, 'front'); dmFacing = null; return r11;
     }
-    if (code === 15) {   // 版1041：正面でキャッチ：手で描いた絵（両腕を前に出し、胸の前で両手（グローブ）でボールをはさむ）。ボールは絵の中にあるので、本物のボールは描かない
-      dmFacing = Math.PI / 2;
-      const r15 = sprite(q.x, q.y, q.s, info, team, facing, 0, false, false, false, 'gkCatch', 0, 'front'); dmFacing = null; return r15;
+    if (code === 15) {   // 版1044：正面でキャッチ（本家の形）：体の絵 → 試合と同じボール → ボールの上の手、の順に重ねる。向きは、GKが向いているピッチの方
+      const fp = proj(p.x + (p.x > 52.5 ? -6 : 6), p.y), ang = Math.atan2((fp.y - q.y) / 0.45, fp.x - q.x), sec = ((Math.round(ang / (Math.PI / 4)) % 8) + 8) % 8;
+      const key = ['side', 'fdiag', 'front', 'fdiag', 'side', 'side', 'back', 'side'][sec], M = CATCH_ART[key], flip = Math.cos(ang) < -0.01;
+      dmFacing = ang;
+      const drawBall = (dot) => ballFace(q.x + ((flip ? 11 - M[0] : M[0] - 11) + 0.5) * dot, q.y + (M[1] + 0.5 - M[2]) * dot, Math.max(5.5, 9 * q.s));   // 絵の中のボールの位置（ドット）→ 画面
+      const dot0 = Math.max(1.4, 2.6 * q.s) * (24 / 27);
+      if (M[3]) drawBall(dot0);
+      const r15 = sprite(q.x, q.y, q.s, info, team, facing, 0, false, false, false, 'gkCatch_' + key, 0, 'front');
+      if (!M[3]) drawBall((r15 && r15.dot) || dot0);
+      sprite(q.x, q.y, q.s, info, team, facing, 0, false, false, true, 'gkCatchF_' + key, 0, 'front');
+      dmFacing = null; return r15;
     }
     if (code === 12) {   // 正面の低い球：腰を落として、すくい上げるように抱える
       dmFacing = Math.atan2(0, team === 0 ? 1 : -1);
