@@ -301,6 +301,19 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     if (simT >= match.duration) { simT = match.duration; show = { phase: 'endOut', hold: true, rt: 0 }; SND().play('whistle3'); }
     return true;
   }
+  // 版1025：見張り：ハーフタイムのロッカーも交代の画面も出ていないのに、前半の終わり（45:00）で止まったままなら、後半を始める
+  setInterval(() => {
+    try {
+      const ms = document.getElementById('match');
+      const vis = (id) => { const e = document.getElementById(id); return !!e && !e.hidden; };
+      const stuck = !!match && !playing && !!ms && !ms.hidden && halfShown && !lk && simT < match.duration - 1 && Math.abs(simT - halfT) <= 1.5 && !(show && show.phase === 'halfOut')
+        && !vis('locker') && !vis('htModal') && !vis('half') && !vis('panel') && !vis('plv') && !window.__tutHold && !(mctx && mctx.opts.tut) && !document.querySelector('.modal:not([hidden])');
+      if (!stuck) { wdN = 0; return; }
+      wdN++; if (wdN < 3) return; wdN = 0;
+      startSecondHalf();
+    } catch (err) { showErr(err, '見張り'); }
+  }, 1000);
+  let wdN = 0;
   let hidAt = 0;
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) { hidAt = performance.now(); return; }
@@ -311,7 +324,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     // 版771：ハーフタイムのロッカーにいる時に裏へ回したら、後半を始めて、そのまま進める（交代・作戦の画面を開いている時と、チュートリアルは待つ）
     const lkEl0 = document.getElementById('locker'), htm = document.getElementById('htModal');
     if (lk && !lk.talk && !lk.leaving && lkEl0 && !lkEl0.hidden && halfShown && simT < match.duration - 1 && !(htm && !htm.hidden) && !(mctx && mctx.opts.tut)) {
-      closeLocker(); startSecondHalf();
+      try { closeLocker(); } catch (err) { showErr(err, 'ロッカー'); lk = null; lkEl0.hidden = true; } startSecondHalf();
     }
     if (!playing) return;
     catchUp(simT + sec * RATE * speed, true);
@@ -4189,7 +4202,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       stamina: st.players.slice(0, 11).map((p) => p.st),
       score: [0, 1].map((ti) => goals.filter((g) => g.t < t && g.team === ti).length),
       cancel: () => { if (!atHalf && wasPlaying) play(); },
-      apply: (changes, cb) => { careerChanges = changes.slice(); applyHalf([...changes, ...(tacChange ? [tacChange] : [])], (subs) => {
+      apply: (changes, cb) => { careerChanges = changes.slice(); try { applyHalf([...changes, ...(tacChange ? [tacChange] : [])], (subs) => {
         if (atHalf) {
           $('#halfStats').innerHTML = statsHtml(halfT, '前半終了');
         } else {
@@ -4197,7 +4210,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
           play();
         }
         if (cb) cb(subs);
-      }); },
+      }); } catch (err) { showErr(err, '交代'); try { if (cb) cb([]); } catch (_) {} if (!atHalf) play(); } },   // 版1025：交代の計算でエラーが出ても、止まったままにしない
     });
   }
   $('.close').onclick = () => { showOverlay(null); if (!lk) play(); };   // ロッカールームから開いた時は試合を進めない
@@ -4211,7 +4224,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     while (evIndex < match.events.length && match.events[evIndex].t <= simT) evIndex++;
     lastBall = null; ballTrail.length = 0;
     show = { phase: 'kickoff', hold: true, koT: simT, start: simT, goal: null, rt: 0 }; cam.init = false;
-    if (hs.length) startSubShow(hs, show);   // ハーフタイムの交代：後半のキックオフ前に交代ボード
+    try { if (hs.length) startSubShow(hs, show); } catch (err) { showErr(err, '交代ボード'); }   // ハーフタイムの交代：後半のキックオフ前に交代ボード
     play();
   }
   c.onclick = (e) => {
@@ -4323,7 +4336,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     const el = document.getElementById('locker');
     if (lk) cancelAnimationFrame(lk.raf);
     lk = null; if (el) el.hidden = true;
-    SND().bgm(null); if (!$('#match').hidden) SND().crowd(true);
+    try { SND().bgm(null); if (!$('#match').hidden) SND().crowd(true); } catch (err) { showErr(err, 'ロッカーの音'); }   // 版1025：音でエラーが出ても、後半は必ず始める（ロッカーが消えて45:00で止まっていた）
   }
   // 後半開始：暗転してからキックオフへ
   function lkStartSecond() {
@@ -4332,7 +4345,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     const el = document.getElementById('locker'), bl = el.querySelector('.lk-black');
     el.querySelector('.lk-sub').hidden = true;
     bl.style.transition = 'opacity .5s'; bl.style.opacity = '1';
-    setTimeout(() => { closeLocker(); startSecondHalf(); }, 560);
+    setTimeout(() => { try { closeLocker(); } catch (err) { showErr(err, 'ロッカー'); lk = null; el.hidden = true; } startSecondHalf(); }, 560);
   }
 
   // ---------- ロッカールームの絵（斜め上から見た部屋：ロッカー・ベンチ・ホワイトボード・マッサージ台） ----------
