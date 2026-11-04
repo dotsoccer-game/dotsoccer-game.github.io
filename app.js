@@ -90,8 +90,8 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     mctx = { mine, theirs, seed, opts: opts || {}, homeShort, awayShort };
     venue = mctx.opts.venue != null ? Math.max(0, Math.min(4, mctx.opts.venue)) : 4;
     applyKits(mctx.opts.kits);
-    careerChanges = []; tacChange = null; tacState = null; soPicked = false; closeLocker();
-    match = D.simulateMatch(mine, theirs, seed, { oneHalf: !!mctx.opts.oneHalf, shootout: !!mctx.opts.shootout });   // 版560：練習試合は前半だけ
+    careerChanges = []; tacChange = null; tacState = null; soPicked = false; soBench = false; soToss = null; { const mt = document.getElementById('match'); if (mt) mt.classList.remove('so-pick', 'so-run'); const sp = document.getElementById('soPick'); if (sp) sp.hidden = true; const tm = document.getElementById('soTossMsg'); if (tm) tm.hidden = true; } closeLocker();
+    match = D.simulateMatch(mine, theirs, seed, { oneHalf: !!mctx.opts.oneHalf, shootout: !!mctx.opts.shootout, soForce: mctx.opts.soForce, soGkFirst: mctx.opts.soGkFirst });   // 版560：練習試合は前半だけ
     { const hb = document.getElementById('htTac'); if (hb) hb.hidden = !mctx.opts.onSub; const sb = document.querySelector('#half [data-panel="subs"]'); if (sb) sb.hidden = !!mctx.opts.onSub; }
     { const ab = document.querySelector('#match aside [data-panel="subs"]'); if (ab) ab.style.display = (mctx.opts.watch || mctx.opts.lockEdit) ? 'none' : ''; }   // 観戦：選手交代はない（版622：フレンドのルーム対戦も、2つの画面で同じ試合にするため変更なし）
     // 版695：プレミアムパス：試合の早送り（1倍→2倍→4倍）。フレンドのルーム対戦（2つの画面で同じ試合）では出さない
@@ -137,7 +137,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
   let subsAt = [];
   // ハーフタイムの交代・作戦変更：同じシードで試合を計算し直す（前半はまったく同じになる）。後半はそこから続ける
   function applyHalf(changes, cb) {
-    const m2 = D.simulateMatch(mctx.mine, mctx.theirs, mctx.seed, { changes, oneHalf: !!mctx.opts.oneHalf, shootout: !!mctx.opts.shootout });
+    const m2 = D.simulateMatch(mctx.mine, mctx.theirs, mctx.seed, { changes, oneHalf: !!mctx.opts.oneHalf, shootout: !!mctx.opts.shootout, soForce: mctx.opts.soForce, soGkFirst: mctx.opts.soGkFirst });
     m2.homeShort = match.homeShort; m2.awayShort = match.awayShort;
     match = m2; halfT = match.halfTime || halfT;
     prepTimeline();
@@ -3947,7 +3947,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       el.classList.remove('toss');
       el.innerHTML = `<div class="pk2"><div class="pk2-hd"><span class="k2-ball">⚽</span><b>PKキッカーの順番</b><i class="k2-stripe"></i><button class="k2-rec">おすすめ順</button></div>
         <div class="pk2-in"><p class="k2-hint">↕ 右のつまみ（≡）を上下にドラッグして並べ替え</p><div class="pk2-body"><div class="k2-tbl"><div class="k2-th"><span class="k2-n">順番</span><span class="k2-nmh">選手</span><span class="k2-bh">疲労</span><span class="k2-g3h"><small>キック</small><small>テクニック</small><small>メンタル</small></span><span class="k2-h"></span></div><ol class="sp-list">${list5()}</ol><p class="k2-note">ⓘ 5人で決着しない場合は、6人目以降が蹴ります。</p></div><div class="k2-side">${side()}</div></div></div></div>
-        <div class="sp-talk${li >= lines.length ? ' gone' : ''}">${coach ? `<img class="sp-face" src="${coach}" alt="">` : ''}<div class="sp-msg"><b>コーチ</b><p>${(lines[Math.min(li, lines.length - 1)] || '').replace(/\n/g, '<br>')}</p><span class="sp-next">▶</span></div></div>`;
+        <div class="sp-talk${li >= lines.length ? ' gone' : ''}"><div class="ct-bust">${coach ? `<img class="art" src="${coach}" alt="コーチ">` : ''}</div><div class="ct-box"><b class="ct-name">コーチ</b><p>${(lines[Math.min(li, lines.length - 1)] || '').replace(/\n/g, '<br>')}</p></div></div>`;
       const talk = el.querySelector('.sp-talk'); talk.onclick = () => { li++; if (li >= lines.length) talk.classList.add('gone'); else talk.querySelector('p').innerHTML = lines[li].replace(/\n/g, '<br>'); };
       el.querySelector('.k2-rec').onclick = () => { cur = rec.slice(); sel = 0; draw(); };
       el.querySelector('.k2-more').onclick = () => { more = !more; draw(); };
@@ -3999,15 +3999,22 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     items.sort((a, b) => b.f - a.f).forEach((it) => it.d());
     // コイン：投げ上げて、くるくる回りながら落ちてくる → 手の甲で受ける
     // 版1037：コインは小さく、主審の上げた手から投げ上げて、手に戻る（頭の上には乗せない）
-    const rb = proj(52.5, cy - 0.3), px = Math.max(1.4, 2.6 * rb.s), u = Math.max(0, Math.min(1, (e - 0.8) / 1.4));
-    const hx = rb.x + 6.5 * px, hy = rb.y - 25 * px - Math.sin(u * Math.PI) * 26 * px, r = 1.1 * px;
-    const w = flip ? Math.abs(Math.cos(e * 18)) : 1;
+    // 版1038：投げ上げたコインは、そのまま地面に落ちる（主審の足もとで少し弾んで、平らに止まる）
+    const rb = proj(52.5, cy - 0.3), px = Math.max(1.4, 2.6 * rb.s), r = 1.1 * px;
+    const handY = rb.y - 25 * px, groundY = rb.y + 2 * px, hx0 = rb.x + 6.5 * px, hx1 = rb.x + 11 * px;
+    let hx = hx0, hy = handY, w = 1, flat = false;
+    if (e >= 0.8) { const tt = e - 0.8, T1 = 0.55, H = 30 * px, g = 2 * H / (T1 * T1), vy0 = g * T1, tl0 = T1 + Math.sqrt(2 * (H + groundY - handY) / g);
+      hx = hx0 + (hx1 - hx0) * Math.min(1, tt / tl0); w = Math.abs(Math.cos(e * 18));
+      if (tt < tl0) hy = handY - (vy0 * tt - 0.5 * g * tt * tt);
+      else { const tl = tt - tl0; hx = hx1; hy = groundY - Math.sin(Math.min(1, tl / 0.25) * Math.PI) * 3 * px; flat = tl > 0.25; } }
+    const spin = !flat && e >= 0.8;
+    if (flat) { ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(hx, groundY + 1, r * 1.1, r * 0.45, 0, 0, 7); ctx.fill(); ctx.fillStyle = '#ffd23c'; ctx.beginPath(); ctx.ellipse(hx, groundY, r, r * 0.4, 0, 0, 7); ctx.fill(); return; }
     ctx.fillStyle = '#6b4e00'; ctx.beginPath(); ctx.ellipse(hx, hy, r * Math.max(0.2, w) + 0.8, r + 0.8, 0, 0, 7); ctx.fill();
-    ctx.fillStyle = (Math.floor(e * 9) % 2 && flip) ? '#fff2a0' : '#ffd23c'; ctx.beginPath(); ctx.ellipse(hx, hy, r * Math.max(0.2, w), r, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = (Math.floor(e * 9) % 2 && spin) ? '#fff2a0' : '#ffd23c'; ctx.beginPath(); ctx.ellipse(hx, hy, r * Math.max(0.2, w), r, 0, 0, 7); ctx.fill();
   }
   function soBoard(t) {
     let el = document.getElementById('soBoard');
-    const on = match && match.shootout && t >= match.regEnd + 2;
+    const on = match && match.shootout && t >= match.regEnd + 2 && !(show && show.phase && show.phase !== 'endOut');   // 版1038：リプレイ・ハイライトの間は出さない
     { const mt = document.getElementById('match'); if (mt) mt.classList.toggle('so-run', !!on); }   // 版1037：PK戦の間は、右の3つのボタン（選手交代・選手・状況）を出さない
     if (!on) { if (el) el.hidden = true; const cd = document.getElementById('soCard'); if (cd) cd.hidden = true; return; }
     if (!el) { el = document.createElement('div'); el.id = 'soBoard'; const vp = document.querySelector('#match .viewport'); (vp || document.body).appendChild(el); }

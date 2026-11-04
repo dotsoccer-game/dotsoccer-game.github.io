@@ -4238,3 +4238,6 @@ img:not([src]),img[src=""]{visibility:hidden}
 #soPick .k2-g3h,#soPick li .k2-g3{width:34cqh}#soPick .k2-th .k2-bh{width:9cqh}#soPick li .sp-bat{width:7cqh;height:2.6cqh;margin:0 1cqh}#soPick .k2-th .k2-h{width:6cqh}
 #soPick .k2-pc .sp-type{font-size:2.8cqh;width:auto;padding:0 2cqh}#soPick .k2-side{gap:1cqh}#soPick .k2-cap{margin-top:-.4cqh}
 #match.so-run aside{display:none!important}
+/* 版1038：PKの順番画面のコーチの話も、ほかの場面（#coachTalk）と同じ大きさ */
+#soPick .sp-talk .ct-bust{transform:none;opacity:1}
+#soTossMsg{left:0;right:0;bottom:30px;border:0;border-radius:0;background:rgba(20,22,24,.86);min-height:120px;padding:26px 40px 16px;font:900 26px/1.5 system-ui,-apple-system,"Hiragino Sans",sans-serif}#soTossMsg .big{font-size:26px}

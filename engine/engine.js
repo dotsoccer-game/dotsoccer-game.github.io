@@ -8764,6 +8764,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         const field = ps.filter((q) => !q.gk).sort((a0, c0) => ((c0 === tm.role.pk ? 1000 : 0) + c0.kick * 0.6 + c0.mental * 0.4 + (c0.sk.has('pkMaster') ? 30 : 0)) - ((a0 === tm.role.pk ? 1000 : 0) + a0.kick * 0.6 + a0.mental * 0.4 + (a0.sk.has('pkMaster') ? 30 : 0)));
         const rec = [...field, ...ps.filter((q) => q.gk)]; recs[t] = rec;
         const want = t === 0 && Array.isArray(opts.soOrder) ? opts.soOrder : t === 1 && Array.isArray(opts.soOrder1) ? opts.soOrder1 : null;   // 版1030：監督が決めた蹴る順番（名前の並び）。足りない選手はおすすめ順で後ろへ
+        if (opts.soGkFirst) return [...rec.filter((q) => q.gk), ...rec.filter((q) => !q.gk)];   // 版1038：確認画面用（GKが1人目に蹴る）
         if (!want) return rec;
         const out = want.map((n) => rec.find((q) => q.name === n)).filter(Boolean); for (const q of rec) if (!out.includes(q)) out.push(q); return out; });
       const first0 = R.next() < 0.5 ? 0 : 1, first = opts.soFirst === 0 || opts.soFirst === 1 ? opts.soFirst : first0, sc = [0, 0], tk = [0, 0], kicks = [];
@@ -8811,13 +8812,16 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         { let ok = false; const v = 3.2 + runLen * 0.6; settle(4, () => { if (ok) return 'stop'; ok = moveTo(kq, spotX - 0.35, GOAL_Y - 0.15, v); }); }
         // 蹴る：狙い・GKの読み・結果。版1034：結果がひと目で分かるように、コースを結果に合わせて決める
         const sideAim = R.next() < 0.5 ? -1 : 1, kq0 = kq.kick * 0.5 + kq.mental * 0.3 + kq.technique * 0.2;
-        const miss = R.next() < clamp(0.1 - (kq0 - 50) * 0.0025 + (kq.gk ? 0.1 : 0), 0.02, 0.24);
+        let miss = R.next() < clamp(0.1 - (kq0 - 50) * 0.0025 + (kq.gk ? 0.1 : 0), 0.02, 0.24);
         const guessP = (0.42 + g.mental * 0.002 + (g.sk.has('pkStopper') ? 0.12 : 0) + (uOn(g, 'ikari') ? 0.25 : 0)) * (kq.sk.has('pkMaster') ? 0.3 : 1);
-        const guess = R.next() < guessP ? sideAim : -sideAim, center = !miss && R.next() < 0.08;
-        const saved = !miss && (center ? R.next() < 0.5 : guess === sideAim && R.next() < clamp(0.24 + ((g.jump + g.technique) / 2 - 60) * 0.004 - (kq0 - 60) * 0.004 + (g.sk.has('pkStopper') ? 0.15 : 0) + (uOn(g, 'ikari') ? 0.15 : 0), 0.12, 0.75));
+        let guess = R.next() < guessP ? sideAim : -sideAim, center = !miss && R.next() < 0.08;
+        let saved = !miss && (center ? R.next() < 0.5 : guess === sideAim && R.next() < clamp(0.24 + ((g.jump + g.technique) / 2 - 60) * 0.004 - (kq0 - 60) * 0.004 + (g.sk.has('pkStopper') ? 0.15 : 0) + (uOn(g, 'ikari') ? 0.15 : 0), 0.12, 0.75));
+        // 版1038：確認画面用：結果を指定して見る（opts.soForce[何本目] = 'missWide' 枠の横・'missHigh' バーの上・'save' 横っ飛びではじく・'catch' 正面でキャッチ・'goal' 決まる・'goalRead' 読まれたが決まる）
+        const force = Array.isArray(opts.soForce) ? opts.soForce[kicks.length] : null; let missHigh = null;
+        if (force) { miss = force === 'missWide' || force === 'missHigh'; missHigh = force === 'missHigh'; center = force === 'catch'; saved = force === 'save' || force === 'catch'; if (force === 'save' || force === 'goalRead') guess = sideAim; if (force === 'goal') guess = -sideAim; }
         let ay, az;
         if (center) { ay = GOAL_Y + R.range(-0.4, 0.4); az = saved ? R.range(0.4, 1.2) : R.range(0.8, 1.9); }
-        else if (miss) { if (R.next() < 0.5) { ay = GOAL_Y + sideAim * R.range(POST + 0.8, POST + 2.0); az = R.range(0.3, 1.6); } else { ay = GOAL_Y + sideAim * R.range(0.8, POST - 0.6); az = R.range(BAR + 0.7, BAR + 1.8); } }   // 枠の外へ、はっきり外れる
+        else if (miss) { const wide = R.next() < 0.5; if (missHigh === null ? wide : !missHigh) { ay = GOAL_Y + sideAim * R.range(POST + 0.8, POST + 2.0); az = R.range(0.3, 1.6); } else { ay = GOAL_Y + sideAim * R.range(0.8, POST - 0.6); az = R.range(BAR + 0.7, BAR + 1.8); } }   // 枠の外へ、はっきり外れる
         else if (saved) { ay = GOAL_Y + sideAim * R.range(1.2, 2.3); az = R.range(0.2, 1.3); }   // GKが飛んだ先（手が届く所）
         else if (guess === sideAim) { ay = GOAL_Y + sideAim * R.range(POST - 0.75, POST - 0.5); az = R.range(1.4, 2.0); }   // 読まれたが、手の届かない隅
         else { ay = GOAL_Y + sideAim * R.range(1.3, POST - 0.6); az = R.range(0.2, 1.7); }
