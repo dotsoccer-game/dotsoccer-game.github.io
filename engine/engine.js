@@ -8782,7 +8782,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       const settle = (secs, fn) => { for (let k = 0; k < Math.round(secs / DT); k++) { if (fn && fn(k * DT) === 'stop') break; tickF(); } };
       // まず全員がセンターサークルへ歩いて集まる
       ev('sostart', { first });
-      settle(2.0, () => {});   // 笛のあと、少し間をおいて場面を切りかえる（PK戦の並びへ）
+      settle(3.0, () => {});   /* 版1040：笛（ピッ、ピッ、ピーーー）と審判のアップが終わるまで待つ */ // 笛のあと、少し間をおいて場面を切りかえる（PK戦の並びへ）
       for (const q of line) { q.x = homeSpot[q.idx][0]; q.y = homeSpot[q.idx][1]; q.vx = q.vy = 0; }
       { const gd = gkOf(1 - first), gw = gkOf(first); gd.x = gl - 0.4; gd.y = GOAL_Y; gw.x = gkWait(first)[0]; gw.y = gkWait(first)[1]; }
       Object.assign(S.ball, { x: spotX, y: GOAL_Y, z: 0, vx: 0, vy: 0, vz: 0 });
@@ -8829,7 +8829,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         const wood = force === 'post' || force === 'bar' || force === 'postIn' || force === 'barIn' ? force : miss && !center ? (R.next() < 0.25 ? (R.next() < 0.6 ? 'post' : 'bar') : null) : !saved && !center ? (R.next() < 0.04 ? (R.next() < 0.6 ? 'postIn' : 'barIn') : null) : null;
         if (wood) { miss = wood === 'post' || wood === 'bar'; saved = false; if (miss) guess = R.next() < 0.5 ? sideAim : -sideAim;
           if (wood === 'post') { ay = GOAL_Y + sideAim * (POST + 0.06); az = R.range(0.3, 1.9); }
-          else if (wood === 'postIn') { ay = GOAL_Y + sideAim * (POST - 0.1); az = R.range(0.3, 1.9); }
+          else if (wood === 'postIn') { ay = GOAL_Y + sideAim * (POST - 0.04); az = R.range(0.3, 1.9); }
           else { ay = GOAL_Y + sideAim * R.range(0.6, POST - 0.8); az = wood === 'bar' ? BAR + 0.08 : BAR - 0.1; } }
         const res = miss ? 'miss' : saved ? 'save' : 'goal';
         const sp = R.range(20, 26), tf = (gl - spotX) / sp, vy = (ay - GOAL_Y) / tf, vz = (az + 4.9 * tf * tf) / tf;
@@ -8849,10 +8849,10 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             if (wood && !b.wood && b.x >= gl - 0.12) { b.wood = 1; const spH = +Math.hypot(b.vx, b.vy, b.vz).toFixed(1); b.x = gl - 0.12;
               if (wood === 'post') { b.vx = -b.vx * R.range(0.25, 0.4); b.vy = sideAim * R.range(3, 6); b.vz = Math.min(b.vz * 0.5, 0.5); ev('post', { team: t, sp: spH, so: 1 }); hit = true; tell(); }   // 外側に当たって外へ
               else if (wood === 'bar') { b.vx = -Math.abs(b.vx) * R.range(0.3, 0.45); b.vz = Math.abs(b.vz) * 0.4 + 2.5; b.z = BAR + 0.12; ev('post', { team: t, bar: true, sp: spH, so: 1 }); hit = true; tell(); }   // バーの上に当たって外へ
-              else if (wood === 'postIn') { b.vx *= 0.6; b.vy = -sideAim * R.range(2.5, 4); b.vz = Math.min(b.vz * 0.5, 0.5); b.x = gl + 0.02; ev('post', { team: t, sp: spH, into: true, so: 1 }); }   // 内側に当たって中へ
+              else if (wood === 'postIn') { b.vx *= R.range(0.3, 0.4); b.vy = -sideAim * R.range(6.5, 9); b.vz = Math.min(b.vz * 0.4, 0.3); b.x = gl + 0.02; b.y = GOAL_Y + sideAim * (POST - 0.18);   /* 版1040：ポストの内側に当たって、はっきり横へはね返り、ゴールの中を斜めに横切ってネットへ */ ev('post', { team: t, sp: spH, into: true, so: 1 }); }   // 内側に当たって中へ
               else { b.vz = -Math.abs(b.vz) * 0.4 - 3; b.z = BAR - 0.15; b.x = gl + 0.02; ev('barin', { team: t, sp: spH, so: 1 }); } }   // バーの下に当たって中へ落ちる
             else if (res === 'save' && b.x >= gl - 0.9) { hit = true; tell();
-              if (stay) { b.x = g.x - 0.3; b.y = g.y; b.z = 0.9; b.vx = b.vy = b.vz = 0; ev('save', { team: 1 - t, player: g.name, act: 'catch', so: 1 }); }   // 正面：がっちりキャッチ
+              if (stay) { b.x = g.x - 0.45; b.y = g.y; b.z = 1.0; b.vx = b.vy = b.vz = 0; g.saveT = 9; g.saveK = 15; ev('save', { team: 1 - t, player: g.name, act: 'catch', so: 1 }); }   /* 版1040：両腕を前に伸ばしてキャッチ（絵は15） */   // 正面：がっちりキャッチ
               else { b.x = gl - 0.9; b.vx = -R.range(5, 8); b.vy = (ay > GOAL_Y ? 1 : -1) * R.range(2, 5); b.vz = R.range(1.5, 3.5); ev('save', { team: 1 - t, player: g.name, act: 'diveparry', so: 1 }); } }   // 横っ飛びで前へはじく
             else if (b.x >= gl && res === 'goal') { hit = true; tell(); b.vy *= 0.3; }   // 版1037：ゴールに入っても速さはそのまま、奥のネットまで突き刺さる
             else if (res === 'miss' && b.x >= gl + 1) { tell(); } }
@@ -8860,7 +8860,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             if (b.x >= gl + 1.9 && b.vx > 0) { b.x = gl + 1.9; b.vx = -0.6; b.vy = 0; b.vz = Math.min(b.vz, 0); }   // 奥のネットに当たって止まり、下に落ちる
             else if (b.vx <= 0) { b.vx *= 0.85; if (b.z <= 0 && b.vz < 0) b.vz = -b.vz * 0.25; } }
           else if (!(res === 'save' && stay)) { b.x += b.vx * DT; b.y += b.vy * DT; b.vx *= 0.92; b.vy *= 0.92; b.z = Math.max(0, b.z + b.vz * DT); b.vz -= 9.8 * DT; if (b.z <= 0) b.vz = Math.abs(b.vz) * 0.3; }
-          if (res === 'save' && stay && hit) { b.x = g.x - 0.3; b.y = g.y; b.z = 0.9; }
+          if (res === 'save' && stay && hit) { b.x = g.x - 0.45; b.y = g.y; b.z = 1.0; }
           if (prevK && homeSpot[prevK.idx]) moveTo(prevK, homeSpot[prevK.idx][0], homeSpot[prevK.idx][1], 3.4);
           if (hit && res === 'goal') moveTo(kq, kq.x - 2, kq.y + (kq.y > GOAL_Y ? 1 : -1) * 0.6, 3.2); else if (el > 0.8) moveTo(kq, kq.x - 0.5, kq.y, 0.2);
         });
@@ -8874,7 +8874,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       for (const q of P) if (q.gk) resetGK(q);
       ev('shootout', { score: [...sc], win });
       { const hub = kicks[kicks.length - 1].team === win ? P[kicks[kicks.length - 1].idx] : gkOf(win), hx = hub.x, hy = hub.y;   // 版1031：勝った方は、決めた人（または止めたGK）のところへ駆け寄って喜ぶ
-        settle(4.5, () => { for (const q of P) if (q.team === win && !q.off && q !== hub) moveTo(q, hx - 1.2 + (q.idx % 3) * 0.9, hy + ((q.idx % 5) - 2) * 0.8, 6.5); }); }
+        settle(1.2, () => { for (const q of P) if (q.team === win && !q.off && q !== hub) moveTo(q, hx - 1.2 + (q.idx % 3) * 0.9, hy + ((q.idx % 5) - 2) * 0.8, 6.5); }); }   // 版1040：決着のあとすぐに試合終了（審判のアップと笛）
       shootout = { score: sc, win, kicks, first, start: +matchEnd.toFixed(2), order: ord.map((o) => o.map((q) => q.name)), rec: recs.map((o) => o.map((q) => ({ name: q.name, number: q.number, position: q.position, kick: Math.round(q.kick), mental: Math.round(q.mental), technique: Math.round(q.technique), speed: Math.round(q.speed), stamina: Math.round(q.stamina), physical: Math.round(q.physical), defense: Math.round(q.defense), pass: Math.round(q.pass), cur: Math.round(q.curV ?? q.cur), type: q.type || '', hair: q.hair, hairColor: q.hairColor, skin: q.skin, faceKey: q.faceKey || undefined, ab: Object.fromEntries(PARAM_KEYS.map((k) => [k, Math.round((q[k] ?? 50) * 10) / 10])), pk: q === T[q.team].role.pk, pkMaster: q.sk.has('pkMaster'), gk: !!q.gk }))) };
       soEnd = S.t;
     }

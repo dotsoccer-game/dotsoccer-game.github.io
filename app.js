@@ -298,7 +298,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     show = null; banner = null; nextBanner = null; cardPanel = null; oohT = -1; koWhistleT = -1; trail = []; ballTrail.length = 0; lastBall = null;
     if (goalSnd) { goalSnd = false; SND().goal(false); }
     { const led = document.getElementById('subLed'); if (led) led.classList.remove('show'); }
-    if (simT >= match.duration) { simT = match.duration; show = { phase: 'endOut', hold: true, rt: 0 }; if (!match.shootout) SND().play('whistle3'); }
+    if (simT >= match.duration) { simT = match.duration; show = { phase: 'endOut', hold: true, rt: 0 }; SND().play('whistle3'); }
     return true;
   }
   // 版1025：見張り：ハーフタイムのロッカーも交代の画面も出ていないのに、前半の終わり（45:00）で止まったままなら、後半を始める
@@ -357,13 +357,13 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       simT += dt * RATE * speed * (speed < 4 ? slowAt(simT) : 1);   // 白夜の視界の間は、ゆっくり
       if (koWhistleT >= 0 && simT0 < koWhistleT && simT >= koWhistleT) { SND().play('whistle'); koWhistleT = -1; }
       if (match.shootout && simT0 < match.regEnd && simT >= match.regEnd) SND().play('whistle3');   // 版1029：PK戦。版1036：審判が笛を吹く絵と合わせる（笛の絵は下の whistles）
-      if (match.shootout && mctx && mctx.opts.soPick && speed < 16 && !soPicked && simT >= match.regEnd + 1.5 && simT0 < match.regEnd + 1.5) { simT = match.regEnd + 1.5; soPicked = true; stop(); try { draw(); } catch (_) {} soFadeTo(true, 250, () => { soBench = true; $('#match').classList.add('so-pick'); openSoPick(); try { draw(); } catch (_) {} soFadeTo(false, 150); }); return; }   /* 版1036：笛を吹き終わってから、いったん暗く → ベンチを背に順番を決める画面 */
+      if (match.shootout && mctx && mctx.opts.soPick && speed < 16 && !soPicked && simT >= match.regEnd + 2.7 && simT0 < match.regEnd + 2.7) { simT = match.regEnd + 2.7; soPicked = true; stop(); try { draw(); } catch (_) {} soFadeTo(true, 250, () => { soBench = true; $('#match').classList.add('so-pick'); openSoPick(); try { draw(); } catch (_) {} soFadeTo(false, 150); }); return; }   /* 版1036：笛を吹き終わってから、いったん暗く → ベンチを背に順番を決める画面 */
       if (oohT >= 0 && simT >= oohT) { if (speed < 16) SND().play('ooh'); oohT = -1; }   // 版558：おしいシュートの「おぉー」
       if (simT >= match.duration) {
         // 試合終了（ゴール演出の途中でも、ここで締める。止まったままにならないように）
         simT = match.duration;
         if (speed >= 16) { show = null; draw(); finish(); return; }
-        if (!show || !show.hold) { show = { phase: 'endOut', hold: true, rt: 0 }; if (!match.shootout) SND().play('whistle3'); setTimeout(() => SND().play('clap'), 700); }
+        if (!show || !show.hold) { show = { phase: 'endOut', hold: true, rt: 0 }; SND().play('whistle3'); setTimeout(() => SND().play('clap'), 700); }
       }
       fireEvents();
       if (show) advanceShow(dt);
@@ -779,7 +779,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
   const GK_SAD_T = 2.9;   // ゴールが決まってから、GKが悔しがり終わる（立ち上がってゴールを見つめる）までの間
   function jumpToKickoff() {
     const g = show.goal, koT = koTimeAfter(g.t + 0.5);
-    if (koT >= match.duration - 0.3) { simT = match.duration; show = { phase: 'endOut', hold: true, rt: 0 }; if (!match.shootout) SND().play('whistle3'); setTimeout(() => SND().play('clap'), 700); return; }
+    if (koT >= match.duration - 0.3) { simT = match.duration; show = { phase: 'endOut', hold: true, rt: 0 }; SND().play('whistle3'); setTimeout(() => SND().play('clap'), 700); return; }
     koWhistleT = koT;
     // 負けている側の得点：リプレイのあとは続きから（ボールを拾って蹴り返し、急いで戻るところを見せる）
     simT = g.hurry ? (show.saveT || simT) : Math.max(show.saveT || simT, koT - 2.6);
@@ -2059,6 +2059,20 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       ctx.fillStyle = 'rgba(0,30,0,0.3)'; ctx.beginPath(); ctx.ellipse(q.x, q.y - px * 0.2, 5.6 * px, 1.8 * px, 0, 0, Math.PI * 2); ctx.fill();
       dmFacing = Math.atan2(0, team === 0 ? 1 : -1); const r11 = sprite(lifted.x, lifted.y, q.s, info, team, facing, 1, false, true, true, null, 0, 'front'); dmFacing = null; return r11;
     }
+    if (code === 15) {   // 版1040：正面でキャッチ：ボールに正対して、両腕を前へ伸ばし、両手（グローブ）でボールをはさむ
+      { const bq0 = kpFace(p); dmFacing = Math.atan2((bq0.y - q.y) / 0.45, bq0.x - q.x); }
+      const r15 = sprite(q.x, q.y, q.s, info, team, facing, 0, false, false, false, null, 0, 'front'); dmFacing = null;
+      const px = (r15 && r15.px) ? r15.px * SPR_W / 14 : Math.max(1.4, 2.6 * q.s), bq = P3(kpBall.x, kpBall.y, kpBall.z || 0.9), gc = GKC[team];
+      const sh = [q.x - 5.5 * px, q.y - 15 * px], sh2 = [q.x + 5.5 * px, q.y - 15 * px], bx = bq.x, by = bq.y, rr = 2.2 * px;
+      { ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(bx, by, rr * 1.05, 0, 7); ctx.fill(); ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(bx, by, rr * 0.8, 0, 7); ctx.fill(); ctx.fillStyle = '#222'; ctx.fillRect(Math.round(bx - 0.6 * px), Math.round(by - 0.6 * px), Math.ceil(1.2 * px), Math.ceil(1.2 * px)); }   // 抱えたボール（両手の間に見えるように、体の手前に描く）
+      for (const [sx, sy, sd] of [[sh[0], sh[1], -1], [sh2[0], sh2[1], 1]]) {
+        const hx = bx + sd * rr * 1.35, hy = by; ctx.strokeStyle = '#000'; ctx.lineCap = 'round'; ctx.lineWidth = 3.2 * px; ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(hx, hy); ctx.stroke();
+        ctx.strokeStyle = gc.W; ctx.lineWidth = 2 * px; ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(hx, hy); ctx.stroke();
+        ctx.fillStyle = '#000'; ctx.fillRect(Math.round(hx - 1.6 * px), Math.round(hy - 1.8 * px), Math.ceil(3.2 * px), Math.ceil(3.6 * px));
+        ctx.fillStyle = '#f4f4f0'; ctx.fillRect(Math.round(hx - 1.0 * px), Math.round(hy - 1.2 * px), Math.ceil(2 * px), Math.ceil(2.4 * px)); }
+      ctx.lineCap = 'butt';
+      return r15;
+    }
     if (code === 12) {   // 正面の低い球：腰を落として、すくい上げるように抱える
       dmFacing = Math.atan2(0, team === 0 ? 1 : -1);
       const r12 = sprite(q.x, q.y, q.s, info, team, facing, 0, false, false, false, 'gkCrouch', 0, 'front'); dmFacing = null; return r12;
@@ -2360,9 +2374,9 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     }
     // 審判の笛：反則の直後、審判の口元から音の線（試合終了の笛は長めに、3回）
     const whistles = fouls.map((ft) => simT - ft);
-    if (show && show.phase === 'endOut' && !match.shootout) for (const [a, d] of [[0, 0.19], [0.52, 0.19], [1.03, 1.48]]) { const age = show.rt - a; if (age >= 0 && age <= d) whistles.push(age); }
+    if (show && show.phase === 'endOut') for (const [a, d] of [[0, 0.19], [0.52, 0.19], [1.03, 1.48]]) { const age = show.rt - a; if (age >= 0 && age <= d) whistles.push(age); }
     const W3 = [[0, 0.19], [0.52, 0.19], [1.03, 1.48]], wAt = (t0, segs) => { for (const [a, d] of segs) { const age = simT - t0 - a; if (age >= 0 && age <= d) whistles.push(age); } };   // 版1036：音（sound.js の whistle3：ピッ、ピッ、ピーーー）と同じ長さだけ線を出す
-    if (match.shootout && simT >= match.regEnd - 0.2) { wAt(match.regEnd, W3); for (const e of match.events) { if (e.t > simT + 0.1 || e.t < simT - 3) continue; if (e.type === 'sowhistle') wAt(e.t, [[0, 0.55]]); if (e.type === 'shootout') wAt(e.t, W3); } }   // 版1036：PK戦の笛（試合終了・1本ごと・決着）も、審判の口元に音の線
+    if (match.shootout && simT >= match.regEnd - 0.2) { wAt(match.regEnd, W3); for (const e of match.events) { if (e.t > simT + 0.1 || e.t < simT - 3) continue; if (e.type === 'sowhistle') wAt(e.t, [[0, 0.55]]); } }   // 版1036：PK戦の笛（試合終了・1本ごと・決着）も、審判の口元に音の線
     if (st && st.ref) for (const age of whistles) {
       if (age < 0 || age > (show && show.phase === 'endOut' || match.shootout && simT >= match.regEnd - 0.2 ? 1.6 : 1.0)) continue;
       const q = proj(st.ref.x, st.ref.y), px = Math.max(1.4, 2.6 * q.s), hx = q.x + 4 * px, hy = q.y - 19 * px;
@@ -2721,7 +2735,9 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     }
     // 判定：オフサイドは旗を上げた副審、ファウルは笛を吹いた主審をアップで。リプレイは問題の場所を
     let judgeZ = cardCam ? 1.9 : 0;   // カードの場面は主審と選手をアップで
-    if (show && show.phase === 'endOut' && st.ref) {
+    if (match.shootout && !show && simT >= match.regEnd && simT < match.regEnd + 3.0 && st.ref) {   // 版1040：PK戦になる試合の90分の笛も、ふだんの試合終了と同じく主審をアップにして、笛に合わせて両手を上げる
+      fx = st.ref.x; fy = st.ref.y - 0.8; judgeZ = 2.3;
+    } else if (show && show.phase === 'endOut' && st.ref) {
       // 試合終了の笛：両手を上げた主審をアップ → 少しして引きの画面へ
       fx = st.ref.x; fy = st.ref.y - 0.8; judgeZ = show.rt < END_T.close ? 2.3 : 1.0;
     } else if (show && show.phase === 'judge') {
@@ -2831,7 +2847,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       const ballSide = proj(st.ball.x, st.ball.y).x;
       const sig = officialSignals(st);
       if (show && show.phase === 'endOut' && show.rt > END_T.arms) sig.ref = { mode: 'both', tx: st.ref.x, ty: st.ref.y };
-      if (match.shootout) { const se = match.events.find((e) => e.type === 'shootout'); if (se && simT >= se.t + 0.2) sig.ref = { mode: 'both', tx: st.ref.x, ty: st.ref.y }; }   // 版1039：PK戦の決着：笛と同時に両手を上げる
+      if (match.shootout && !show && simT >= match.regEnd + END_T.arms && simT < match.regEnd + 3.0) sig.ref = { mode: 'both', tx: st.ref.x, ty: st.ref.y };
       items.push({ f: proj(st.ref.x, st.ref.y).f, goal: () => {
         const q = proj(st.ref.x, st.ref.y);
         const fc = Math.abs(rvx) > 0.05 ? Math.sign(proj(st.ref.x + rvx, st.ref.y).x - q.x) || 1 : (ballSide > q.x ? 1 : -1);
@@ -3983,7 +3999,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       let m = document.getElementById('soTossMsg'); if (!m) { m = document.createElement('div'); m.id = 'soTossMsg'; (document.querySelector('#match .viewport') || document.body).appendChild(m); }
       const mine = soToss.first === 0;
       m.innerHTML = `<p>コイントスの結果…</p><p class="big">${mine ? '先に' : '後で'}蹴ることになりました。</p><span class="sp-next">▶</span>`; m.hidden = false;
-      const end = () => { if (!soToss) return; m.hidden = true; const st = soToss; soToss = null; soFadeTo(true, 0, () => { $('#match').classList.remove('so-pick'); simT = match.regEnd + 2.15; evIndex = 0; while (evIndex < match.events.length && match.events[evIndex].t <= simT) evIndex++; lastDrawT = -99; try { draw(); } catch (_) {} play(); soFadeTo(false, 100); }); void st; };
+      const end = () => { if (!soToss) return; m.hidden = true; const st = soToss; soToss = null; soFadeTo(true, 0, () => { $('#match').classList.remove('so-pick'); simT = match.regEnd + 3.15; evIndex = 0; while (evIndex < match.events.length && match.events[evIndex].t <= simT) evIndex++; lastDrawT = -99; try { draw(); } catch (_) {} play(); soFadeTo(false, 100); }); void st; };
       m.onclick = end; soToss.auto = setTimeout(end, 3200);
     }
     requestAnimationFrame(tossLoop);
@@ -4016,7 +4032,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
   }
   function soBoard(t) {
     let el = document.getElementById('soBoard');
-    const on = match && match.shootout && t >= match.regEnd + 2 && !(show && show.phase && show.phase !== 'endOut');   // 版1038：リプレイ・ハイライトの間は出さない
+    const on = match && match.shootout && t >= match.regEnd + 3.05 && !(show && show.phase && show.phase !== 'endOut');   // 版1038：リプレイ・ハイライトの間は出さない
     { const mt = document.getElementById('match'); if (mt) mt.classList.toggle('so-run', !!on); }   // 版1037：PK戦の間は、右の3つのボタン（選手交代・選手・状況）を出さない
     if (!on) { if (el) el.hidden = true; const cd = document.getElementById('soCard'); if (cd) cd.hidden = true; return; }
     if (!el) { el = document.createElement('div'); el.id = 'soBoard'; const vp = document.querySelector('#match .viewport'); (vp || document.body).appendChild(el); }
@@ -4080,7 +4096,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       if (e.type === 'sowhistle' && speed < 16) SND().play('pkgo');   // 版1029：PK戦
       if (e.type === 'sokick0' && speed < 16) SND().play('shot');
       if (e.type === 'sokick' && speed < 16) { if (e.res === 'goal') SND().play('cheer'); else { if (e.res === 'save') SND().play('parry'); SND().play('ooh'); } }
-      if (e.type === 'shootout') SND().play('whistle3');
+      // 版1040：PK戦の決着の笛は、ふだんの試合終了と同じく、審判のアップに合わせて鳴らす（試合終了の所）
       if (e.type === 'fkgo' && speed < 16) SND().play('whistle');   // 版846：FKの笛   /* 版742：PKは全員がエリアの外に出てから、笛を吹いて蹴る */
       if ((e.type === 'offside' || e.type === 'foul') && !show && speed < 4) startJudge(e);
       if (e.type === 'card') { const i = idxOf(e.team, e.number); if (i >= 0) cardPanel = { t: e.t + 1.3, idx: i, color: e.color, second: e.second }; }
