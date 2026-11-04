@@ -6747,7 +6747,9 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           own.settleT = (own.settleT || 0) + DT;
           b.x += b.vx * DT; b.y += b.vy * DT;
           if ((globalThis.__Ksd3 ?? 1) && uOn(own, 'shiden') && b.z < 0.5) { const ex = own.x + (own.vx || 0) * 0.08 - b.x, ey = own.y + (own.vy || 0) * 0.08 - b.y; b.x += ex * 0.35; b.y += ey * 0.35; b.vx *= 0.7; b.vy *= 0.7; }   // 版973：紫電の遊戯：止めたボールが足から離れて転がっていかない（置き去りにしない）
-          if (own.settle === 'go') { b.vx *= 0.62; b.vy *= 0.62; }
+          const strd = (globalThis.__Kstr ?? 1) && own.settle !== 'meet' && hyp(own.vx, own.vy) > 3 && b.z < 0.4 && hyp(b.x - own.x, b.y - own.y) < 1.8;   // 版1022：走りながら受けた球は、走る向き・速さに合わせて前へ運ぶ（止めてしまうと、走る勢いで追い越してボールを置いていっていた）
+          if (strd) { b.vx = b.vx * 0.4 + own.vx * 0.6; b.vy = b.vy * 0.4 + own.vy * 0.6; }
+          else if (own.settle === 'go') { b.vx *= 0.62; b.vy *= 0.62; }
           else if (own.settle === 'meet' && own.meet && hyp(b.x - own.meet[0], b.y - own.meet[1]) < 0.45) { const dd0 = hyp(b.x - own.x, b.y - own.y); b.vx = own.vx; b.vy = own.vy; own.settle = false; own.dO = Math.min(Math.max(dd0, 0.3), 1.2); own.dV = 0; own.bdir = dd0 > 0.05 ? [(b.x - own.x) / dd0, (b.y - own.y) / dd0] : null; return; }   // 置く所まで来たら、そこからドリブルへ（勢いが余って転がっていかない・瞬間移動もしない）   // 置く所まで来たら、選手と一緒に動く（勢いが余って転がっていかない・瞬間移動もしない）
           else if (own.settleT >= 0.45) { b.vx *= 0.5; b.vy *= 0.5; }
           if (b.z > 0) { b.vz -= 9.8 * DT; b.z = Math.max(0, b.z + b.vz * DT); if (b.z === 0) b.vz = 0; }
@@ -6983,7 +6985,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         const d3 = b.byLv >= 2 ? 3 : 2; p.byT = S.t + d3; if ((p.byRunT || 0) > S.t) p.byRunT = S.t + 1.5; p.byLv = b.byLv; p.protect = Math.max(p.protect || 0, S.t + ((globalThis.__Kby5 ?? 1) ? 1.4 : 0.8)); act(p, 'bybuf', d3, { lv: b.byLv });
         if (globalThis.__Kby5 ?? 1) {   // 版996：白夜の1本は「はい、チャンス」：受けた瞬間、そばにいた相手は一瞬遅れ（ボールを見送っていた）、受け手は前を向いてゴールへ運び出す（受けた瞬間に囲まれて取られていた）
           for (const o of opps(p)) if (!o.gk && hyp(o.x - p.x, o.y - p.y) < 6) { o.lagT = Math.max(o.lagT || 0, S.t + (b.byLv >= 2 ? 0.9 : 0.7)); o.tackleCd = Math.max(o.tackleCd || 0, 0.9); }
-          if (fx(p.team, p.x) > L / 2 - 5) { const gx = fx(p.team, L) - p.x, gy = GOAL_Y - p.y, gl = hyp(gx, gy) || 1; S.dribbleDir = [gx / gl, gy / gl]; S.dribbleMode = 'break'; p.burstT = S.t + 0.5; } } }
+          if (fx(p.team, p.x) > L / 2 - 5) { if ((globalThis.__Kby6 ?? 1) && ((b.z || 0) > 0.25 || hyp(b.x - p.x, b.y - p.y) > 0.7)) p.byGo = S.t + 1.6; else { const gx = fx(p.team, L) - p.x, gy = GOAL_Y - p.y, gl = hyp(gx, gy) || 1; S.dribbleDir = [gx / gl, gy / gl]; S.dribbleMode = 'break'; p.burstT = S.t + 0.5; } } } }   // 版1022：浮いた球・足から離れた球は、まず足もとに収めてから運び出す（先に走り出して、ボールを置いていっていた）
       if (b.aoP && p.team === b.lastTeam && b.lastPlayer !== p.idx && !p.gk && p.uniq !== 'aonoouza' && P[b.lastPlayer] && P[b.lastPlayer].uniq === 'aonoouza') { p.aoFast = Math.max(p.aoFast || 0, S.t + 3.5); p.aoKeepFast = true; p.finT = S.t + 9; S.decision = Math.min(S.decision, 0.08); }   // 蒼の王座：裏で受けた味方は、打つか離すまで抜け出す足のまま（追いつかれない）   // 蒼の王座：裏で受けた味方は、そのまま抜け出す足で（追いつかれない）
       if ((p.mdFree || 0) > S.t && p.team === b.lastTeam && P[b.lastPlayer] && P[b.lastPlayer].uniq === 'midori' && !p.gk) { p.mdFree = 0; p.mdDrive = S.t + 2.5; p.protect = Math.max(p.protect || 0, S.t + 1.0); act(p, 'mdfree', 1.6, { lv: T[p.team].mdBuildLv || 1 }); if (globalThis.__mdC) globalThis.__mdC.recv = (globalThis.__mdC.recv || 0) + 1; }   /* 版449 翠の起点：フリーで受けた味方は、前を向いて落ち着いてプレーできる */
       if (b.aoP && p.team === b.lastTeam && b.lastPlayer !== p.idx && !p.gk && p.uniq !== 'aonoouza') { p.finT = S.t + 4; p.protect = Math.max(p.protect || 0, S.t + 0.8); }   // 蒼の王座・渦潮の囮の1本を受けた：迷わずゴールへ運んで、GKとの距離を詰めて打つ
@@ -8542,6 +8544,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         }
       }
       uTick();
+      { const o9 = ownerP(); if (o9 && (o9.byGo || 0) > S.t && (S.ball.z || 0) < 0.25 && !o9.settle && hyp(S.ball.x - o9.x, S.ball.y - o9.y) < 0.8) { o9.byGo = 0; if (fx(o9.team, o9.x) > L / 2 - 5) { const gx = fx(o9.team, L) - o9.x, gy = GOAL_Y - o9.y, gl = hyp(gx, gy) || 1; S.dribbleDir = [gx / gl, gy / gl]; S.dribbleMode = 'break'; o9.burstT = S.t + 0.5; } } }   // 版1022：白夜の1本を収めてから、ゴールへ運び出す
       if (S.nm) { teamState(); visionStep(); }
       computeTargets();
       mdPost();
