@@ -968,6 +968,7 @@
       if (b.kind === 'shot' && p.team === b.lastTeam && b.lastPlayer !== p.idx) return false;   // 味方のシュートには触らない（ゴールへ向かう球を、横から触ってコースを変えたり、オフサイドにしたりしない）
       if (byLock(b) && b.intended >= 0 && p.idx !== b.intended && P[b.intended] && !P[b.intended].off) return p.team !== b.lastTeam && p.gk && fx(p.team, b.x) < 5.5;   // 白夜の視界の1本：受け手が触るまで、ほかの味方も相手も触らない
       if (b.kind !== 'pass' || b.intended < 0 || p.idx === b.intended) return true;
+      if (p.team === b.lastTeam && (globalThis.__Kair ?? 1) && !p.gk && b.z > 1.2 && fx(p.team, b.x) > L - 18 && Math.abs(b.y - GOAL_Y) < 22) return true;   // 版1029：相手ゴール前に上がったクロス・放り込みは、受け手でなくても味方がヘディングで競りに行ける（攻撃側が空中戦に入ってこなかった）
       if (p.team === b.lastTeam) return !!((globalThis.__Kpsw ?? 1) && p.gk && fx(p.team, b.x) < 5.5 && Math.abs(b.y - GOAL_Y) < 9.2);   // 版937：自陣のゴールエリアを通る味方のパスは、GKが止めてよい（ゴール前を横切る球を見送らない）
       if ((globalThis.__Kfoot ?? 1) && !p.gk && b.z < 0.5 && !(p.downT > 0) && !(p.lagT > S.t)) { const dd = b.px != null ? segDist(p.x, p.y, b.px, b.py, b.x, b.y).d : hyp(p.x - b.x, p.y - b.y); if (dd < 0.45) return true; }   // 版952：固有スキルのパスでも、相手の足もと（0.45m以内）を通る低い球は、足に引っかかる（すり抜けない）
       if (b.aoIn) return false;   // 蒼の王座：発動した瞬間の、くもいへの縦パスはカットされない（くもいが体を入れて受ける）
@@ -7913,7 +7914,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
     function bdEdge(q, own, k) { const bd = q.bd; const sc = bd && bd.sc ? bd.sc : 0; return clamp(sc * 0.18, -0.18, 0.18) + (bdStr(q, false, k) - bdStr(own, true, k)) * 0.003; }
     // こぼれ球の取り合い：転がっている球に、敵と味方が同時に向かう時は、体をぶつけ合って先に触る方が決まる
     function looseDuel() {
-      const b = S.ball; if (!(globalThis.__Kbd ?? 1) || b.owner >= 0 || b.z > 1.0 || S.restart || (b.kind !== 'loose' && b.kind !== 'pass')) return;
+      const b = S.ball; if (!(globalThis.__Kbd ?? 0) || b.owner >= 0 || b.z > 1.0 || S.restart || (b.kind !== 'loose' && b.kind !== 'pass')) return;
       const near = P.filter((p) => !p.off && !p.gk && !(p.downT > 0) && !(p.slideT > 0) && hyp(p.x - b.x, p.y - b.y) < 2.4).sort((a0, c0) => hyp(a0.x - b.x, a0.y - b.y) - hyp(c0.x - b.x, c0.y - b.y));
       if (near.length < 2) return; const a = near[0], o = near.find((p) => p.team !== a.team); if (!o) return;
       if (hyp(a.x - o.x, a.y - o.y) > 1.5 || (a.lbT || 0) > S.t || (o.lbT || 0) > S.t) return;
@@ -7964,14 +7965,14 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             const dB = hyp(q.x - b.x, q.y - b.y), side = (b.x - own.x) * (q.x - own.x) + (b.y - own.y) * (q.y - own.y);
             const ov = hyp(own.vx, own.vy), bk = ov > 1.5 && ((q.x - own.x) * own.vx + (q.y - own.y) * own.vy) / ov < -0.3; if (dB > 1.2 || ((side < 0 || bk) && dB > ((globalThis.__Ktk2 ?? 1) ? 0.3 : 0.55))) continue;   /* 版915：背中側からは、ほぼ取れない（足がボールの真上に来た時だけ） */   /* 版908：走っている選手の背中側からは、足がボールに届く所（0.55m）まで来ないと取れない */
           }
-          if ((globalThis.__Kbd ?? 1) && d < 1.05 && !own.gk && !(q.bd && q.bd.o === own.idx && S.t < q.bd.end) && S.t > (q.bdTouch || 0) && !mtG && !mtC) {   // 版1028：体が触れるほど近づいたら、奪いに行く前でも肩・体が当たる（押し合いながら走る）
+          if ((globalThis.__Kbd ?? 0) && d < 1.05 && !own.gk && !(q.bd && q.bd.o === own.idx && S.t < q.bd.end) && S.t > (q.bdTouch || 0) && !mtG && !mtC) {   // 版1028：体が触れるほど近づいたら、奪いに行く前でも肩・体が当たる（押し合いながら走る）
             q.bdTouch = S.t + R.range(0.3, 0.45); const k = bdKind(q, own), sQ = bdStr(q, false, k), sA = bdStr(own, true, k), w = sQ + R.range(-12, 12) > sA ? 1 : 0, ux = (q.x - own.x) / (d || 1), uy = (q.y - own.y) / (d || 1);
             if (w) { own.x -= ux * 0.08; own.y -= uy * 0.08; } else { q.x += ux * 0.08; q.y += uy * 0.08; }
             act(q, 'bump', 0.3, { o: own.idx, k, w, lt: 1 }); act(own, 'bump', 0.3, { o: q.idx, k, w: 1 - w, atk: 1, lt: 1 }); if (globalThis.__bdLog) globalThis.__bdLog.push({ t: S.t, k: 'touch', q: q.idx, o: own.idx }); }
           if (!(q.bd && q.bd.o === own.idx && S.t < q.bd.end + 0.05) && !uOn(q, 'miyabi') && !uOn(q, 'matsuri') && !uOn(q, 'tetsurou') && !(uOn(q, 'kagenui') && (own.kgPin || 0) > S.t) && !(q.uniq === 'kinshachi' && fx(q.team, own.x) < 34) && !((own.heavyT || 0) > S.t && (globalThis.__Kab ?? 1)) && R.next() > (0.13 + pr * 0.0018) * 0.7 * (1 + DOM[q.team] * 1.5)) continue;   // 雅の後始末は、追いついたら必ず止めに行く
           if (globalThis.__hvC && (own.heavyT || 0) > S.t) globalThis.__hvC.duel++;
           let bdBonus = 0;
-          if ((globalThis.__Kbd ?? 1) && !mtG && !mtC && !own.gk && !uOn(q, 'matsuri') && !uOn(q, 'miyabi') && !uOn(q, 'tetsurou')) {   // 版1028：ボールを奪い合う時は、すぐに奪う・抜くを決めずに、まず体をぶつけ合う（並走して肩で押し合う／背負って押し合う／正面から当たる）
+          if ((globalThis.__Kbd ?? 0) && !mtG && !mtC && !own.gk && !uOn(q, 'matsuri') && !uOn(q, 'miyabi') && !uOn(q, 'tetsurou')) {   // 版1028：ボールを奪い合う時は、すぐに奪う・抜くを決めずに、まず体をぶつけ合う（並走して肩で押し合う／背負って押し合う／正面から当たる）
             const bd = q.bd && q.bd.o === own.idx && S.t < q.bd.end + 0.05 ? q.bd : null;
             if (!bd || S.t < bd.end) {
               if (!bd) { const k = bdKind(q, own); q.bd = { o: own.idx, k, t0: S.t, end: S.t + (k === 'run' ? R.range(0.7, 1.0) : k === 'back' ? R.range(0.9, 1.4) : R.range(0.45, 0.6)), nx: S.t };
@@ -8124,19 +8125,22 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       if (b.kind !== 'shot' && b.z > 1.0 && b.z < 3.3 && b.vz < 1.5) {
         const gkNear = !(postBlock(b)) && P.some((p) => p.gk && !p.off && !(p.downT > 0) && !(b.hari && b.lastTeam !== p.team && fx(p.team, b.x) >= 5.5) && fx(p.team, b.x) < 16.5 && Math.abs(b.y - GOAL_Y) < 20.2 && !(b.lastTeam === p.team && b.kind === 'pass') && b.z <= gkReachZ(p) && hyp(p.x - b.x, p.y - b.y) < 1.2 + p.jump * 0.007);
         if (!gkNear) {
-          const hc = P.filter((p) => !p.gk && !p.off && p.touchCd <= 0 && !(p.downT > 0) && !(p.slideT > 0) && passOk(p, b) && !(b.byP && p.idx === b.intended && p.team === b.lastTeam) && hyp(p.x - b.x, p.y - b.y) <= ((globalThis.__Kphy ?? 1) ? 0.45 + p.jump * 0.002 + (skZ(p, 'aerial') ? 0.15 : 0) : 1.05 + p.jump * 0.007 + (skZ(p, 'aerial') ? 0.35 : 0)) && b.z <= headZ(p));   /* 版908：頭が届くのは0.6m前後まで（設計一覧14章） */   /* v738：頭が届く高さはジャンプで決まる（E 約2.3m〜S 約2.7m） */
+          const hc = P.filter((p) => !p.gk && !p.off && p.touchCd <= 0 && !(p.downT > 0) && !(p.slideT > 0) && passOk(p, b) && !(b.byP && p.idx === b.intended && p.team === b.lastTeam) && hyp(p.x - b.x, p.y - b.y) <= ((globalThis.__Kphy ?? 1) ? ((globalThis.__Kair ?? 1) && b.z > 1.2 ? 0.7 + p.jump * 0.003 : 0.45 + p.jump * 0.002) + (skZ(p, 'aerial') ? 0.15 : 0) : 1.05 + p.jump * 0.007 + (skZ(p, 'aerial') ? 0.35 : 0)) && b.z <= headZ(p));   /* 版908：頭が届くのは0.6m前後まで（設計一覧14章） */   /* v738：頭が届く高さはジャンプで決まる（E 約2.3m〜S 約2.7m） */
+          if ((globalThis.__Kair ?? 1) && hc.length && b.z > 1.2 && new Set(hc.map((p) => p.team)).size === 1) { const t0 = hc[0].team; for (const p of P) if (p.team !== t0 && !p.gk && !p.off && p.touchCd <= 0 && !(p.downT > 0) && !(p.slideT > 0) && passOk(p, b) && b.z <= headZ(p) + 0.1 && hyp(p.x - b.x, p.y - b.y) < 1.35) hc.push(p); }   // 版1029：空中戦：片方だけが届く所でも、すぐ近く（1.35m）の相手は飛び込んで競る（攻める側も守る側も）
           const contested = new Set(hc.map((p) => p.team)).size > 1;
+          if (globalThis.__hcLog && b.z > 1.2 && hc.length) { const it = b.intended >= 0 ? P[b.intended] : null; globalThis.__hcLog.push({ kind: b.kind, atk: hc.filter((p) => p.team === b.lastTeam).length, def: hc.filter((p) => p.team !== b.lastTeam).length, itD: it ? +hyp(it.x - b.x, it.y - b.y).toFixed(1) : -1, itTeam: it ? (it.team === b.lastTeam ? 'atk' : 'def') : '-', bxf: b.lastTeam != null ? +fx(b.lastTeam, b.x).toFixed(0) : -1, z: +b.z.toFixed(1) }); }
           // 競る相手がいなければ、受け手は胸で落としてトラップ（うまい選手ほど確実）
           const rcv = b.kind === 'pass' && b.intended >= 0 ? hc.find((p) => p.idx === b.intended) : null;
           const rFree = rcv && !opps(rcv).some((q) => !q.off && hyp(q.x - rcv.x, q.y - rcv.y) < 4.5);   // 版845：まわりに相手がいない（ドフリー）
           if (rcv && !contested && b.z < (rFree ? 2.7 : 2.1) && !opps(rcv).some((q) => hyp(q.x - rcv.x, q.y - rcv.y) < 2.2) && R.next() < (rFree ? 0.85 + rcv.technique * 0.002 : 0.62 + rcv.technique * 0.0045 + Math.max(0, rcv.technique - 70) * 0.005)) {
             act(rcv, 'chest', 0.4); gainBall(rcv, 'control'); return;
           }
+          if ((globalThis.__Kair ?? 1) && hc.length && b.z > 1.35) for (const p of P) { if (p.gk || p.off || hc.includes(p) || p.downT > 0 || p.slideT > 0 || p.touchCd > 0) continue; if (hyp(p.x - b.x, p.y - b.y) < 1.7 && b.z < headZ(p) + 0.6 && (fx(p.team, b.x) > L - 20 || fx(p.team, b.x) < 20)) { act(p, 'jump', 0.55); p.touchCd = 0.35; } }   // 版1029：ゴール前の空中戦：近くにいる両チームの選手も、いっしょに跳んで競る（届かなかった方も跳んでいるのが見える）
           if (hc.length && (b.z > 1.35 || contested) && !(b.style === 'head' && !contested)) {
             let best = null, bsc = -1e9;
             for (const p of hc) { const sc = p.jump * 0.75 + p.physical * 0.3 + p.technique * 0.15 + R.next() * 26 - hyp(p.x - b.x, p.y - b.y) * 25 + (skZ(p, 'aerial') ? 28 : 0) + (p.position === 'DF' ? 6 * aura(p, 'bodyVoice') : 0) + (uOn(p, 'matsuri') ? 32 * mtF(p) : 0) + ((p.b5 || -9) > S.t - 0.5 && fx(p.team, b.x) < 18 ? 10 : 0); if (sc > bsc) { bsc = sc; best = p; } }   // 空中戦の鬼：競り合いにめっぽう強い
             for (const p of hc) if (p !== best) { act(p, 'jump', 0.55); p.touchCd = 0.4; }
-            if ((globalThis.__Kbd ?? 1) && contested) { const o = hc.filter((p) => p.team !== best.team).sort((a0, c0) => hyp(a0.x - best.x, a0.y - best.y) - hyp(c0.x - best.x, c0.y - best.y))[0];   // 版1028：空中戦の競り合い：同時に跳んだ相手と、空中で体をぶつけ合う（勝った方が頭で触る）
+            if ((globalThis.__Kbd ?? 0) && contested) { const o = hc.filter((p) => p.team !== best.team).sort((a0, c0) => hyp(a0.x - best.x, a0.y - best.y) - hyp(c0.x - best.x, c0.y - best.y))[0];   // 版1028：空中戦の競り合い：同時に跳んだ相手と、空中で体をぶつけ合う（勝った方が頭で触る）
               if (o && hyp(o.x - best.x, o.y - best.y) < 1.6) { act(best, 'airbump', 0.55, { o: o.idx, w: 1 }); act(o, 'airbump', 0.55, { o: best.idx, w: 0 }); const ux = o.x - best.x, uy = o.y - best.y, ul = hyp(ux, uy) || 1; o.x += ux / ul * 0.25; o.y += uy / ul * 0.25; ev('duel', { k: 'air', w: best.idx, l: o.idx }); } }
             header(best);
             return;
@@ -8747,6 +8751,87 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
     }
     const matchEnd = S.t; liveMap.push(+S.t.toFixed(2), +(S.liveT || 0).toFixed(2));
     ev('fulltime', { score: [...S.score] });
+    // 版1029：PK戦（カップ戦などの勝ち抜きで、90分で同点の時）。5人ずつ蹴って、決まらなければ1人ずつ（サドンデス）
+    //  全員がセンターサークルに並び、蹴る人だけがペナルティスポットへ。GKはゴールライン。1本ずつ：歩いてボールを置く → 笛 → 助走 → 蹴る → 決まる・止める・外す
+    let shootout = null, soEnd = matchEnd;
+    if (opts.shootout && S.score[0] === S.score[1]) {
+      const gl = L, spotX = L - 11, ord = [0, 1].map((t) => { const tm = T[t], ps = tm.players.filter((q) => !q.off);
+        const field = ps.filter((q) => !q.gk).sort((a0, c0) => ((c0 === tm.role.pk ? 1000 : 0) + c0.kick * 0.6 + c0.mental * 0.4 + (c0.sk.has('pkMaster') ? 30 : 0)) - ((a0 === tm.role.pk ? 1000 : 0) + a0.kick * 0.6 + a0.mental * 0.4 + (a0.sk.has('pkMaster') ? 30 : 0)));
+        return [...field, ...ps.filter((q) => q.gk)]; });
+      const first = R.next() < 0.5 ? 0 : 1, sc = [0, 0], tk = [0, 0], kicks = [];
+      const line = P.filter((q) => !q.off && !q.gk).map((q, k) => q);   // センターサークルの並び（チームごとに少し離れて）
+      const homeSpot = {}; { const a0 = line.filter((q) => q.team === 0), a1 = line.filter((q) => q.team === 1); a0.forEach((q, k) => { homeSpot[q.idx] = [L / 2 + 1.2, GOAL_Y - 1 - k * 1.25]; }); a1.forEach((q, k) => { homeSpot[q.idx] = [L / 2 + 1.2, GOAL_Y + 1 + k * 1.25]; }); }
+      const gkOf = (t) => P.find((q) => q.team === t && q.gk && !q.off) || P[t * 11];
+      const gkWait = (t) => [L - 22, GOAL_Y + (t ? 14 : -14)];
+      const resetGK = (g) => { g.diveT = 0; g.downT = 0; g.saveT = 0; g.highT = 0; g.punchT = 0; g.hiDiveT = 0; g.hold = false; g.wf = null; };
+      for (const q of P) { q.vx = q.vy = 0; resetGK(q); }
+      S.restart = null; S.celebrate = 0; S.refCard = null; Object.assign(S.ball, { owner: -1, kind: 'dead', vx: 0, vy: 0, vz: 0, drive: false, knuckle: false, spin: 0, bs: 0, intended: -1 });
+      side[0] = -1; side[1] = 1;
+      ref.x = L - 14; ref.y = GOAL_Y + 8; ar[0] = L - 0.5; ar[1] = L * 0.25;
+      const moveTo = (q, x, y, v) => { const dx = x - q.x, dy = y - q.y, d = hyp(dx, dy); if (d < 0.05) { q.vx = q.vy = 0; return true; } const st = Math.min(d, v * DT); q.x += dx / d * st; q.y += dy / d * st; q.vx = dx / d * v; q.vy = dy / d * v; q.facing = Math.sign(dx) || q.facing; return d <= st + 1e-6; };
+      const tickF = () => { S.t += DT; step++; if (rec && step % FRAME_EVERY === 0) record(); };
+      const settle = (secs, fn) => { for (let k = 0; k < Math.round(secs / DT); k++) { if (fn) fn(k * DT); tickF(); } };
+      // まず全員がセンターサークルへ歩いて集まる
+      ev('sostart', { first });
+      settle(2.0, () => {});   // 笛のあと、少し間をおいて場面を切りかえる（PK戦の並びへ）
+      for (const q of line) { q.x = homeSpot[q.idx][0]; q.y = homeSpot[q.idx][1]; q.vx = q.vy = 0; }
+      { const gd = gkOf(1 - first), gw = gkOf(first); gd.x = gl - 0.4; gd.y = GOAL_Y; gw.x = gkWait(first)[0]; gw.y = gkWait(first)[1]; }
+      Object.assign(S.ball, { x: spotX, y: GOAL_Y, z: 0, vx: 0, vy: 0, vz: 0 });
+      settle(1.5, () => {});
+      const decided = () => { const n0 = tk[0], n1 = tk[1], r0 = Math.max(0, 5 - n0), r1 = Math.max(0, 5 - n1); if (n0 <= 5 && n1 <= 5 && (n0 < 5 || n1 < 5)) return sc[0] + r0 < sc[1] || sc[1] + r1 < sc[0]; return n0 === n1 && sc[0] !== sc[1]; };
+      let t = first;
+      while (!decided() && kicks.length < 40) {
+        const kq = ord[t][tk[t] % ord[t].length], g = gkOf(1 - t), other = gkOf(t);
+        resetGK(g);
+        // 蹴る人は、センターサークルから歩いて来る（カメラの外の長い道のりは省いて、スポットの手前から映す）
+        for (const q of line) if (q !== kq && hyp(q.x - homeSpot[q.idx][0], q.y - homeSpot[q.idx][1]) > 6) { q.x = homeSpot[q.idx][0]; q.y = homeSpot[q.idx][1]; }
+        kq.x = spotX - 7.5; kq.y = GOAL_Y - 3.5; kq.vx = kq.vy = 0;
+        if (hyp(g.x - (gl - 0.4), g.y - GOAL_Y) > 6) { g.x = gl - 0.4; g.y = GOAL_Y; }
+        if (hyp(other.x - gkWait(t)[0], other.y - gkWait(t)[1]) > 6) { other.x = gkWait(t)[0]; other.y = gkWait(t)[1]; }
+        // 歩いてボールを置き、少し下がる
+        settle(4.2, () => { moveTo(kq, spotX - 2.2, GOAL_Y - 0.6, 3.2); moveTo(g, gl - 0.4, GOAL_Y, 3); moveTo(other, gkWait(t)[0], gkWait(t)[1], 3); for (const q of line) if (q !== kq) moveTo(q, homeSpot[q.idx][0], homeSpot[q.idx][1], 4); Object.assign(S.ball, { x: spotX, y: GOAL_Y, z: 0, vx: 0, vy: 0, vz: 0 }); });
+        ev('sowhistle', { team: t, player: kq.name, number: kq.number, round: tk[t] + 1 });
+        settle(1.0, () => { kq.vx = kq.vy = 0; });
+        // 助走
+        settle(0.6, () => moveTo(kq, spotX - 0.35, GOAL_Y - 0.15, 4.5));
+        // 蹴る：狙い・GKの読み・結果
+        const sideAim = R.next() < 0.5 ? -1 : 1, kq0 = kq.kick * 0.5 + kq.mental * 0.3 + kq.technique * 0.2;
+        const miss = R.next() < clamp(0.1 - (kq0 - 50) * 0.0025 + (kq.gk ? 0.1 : 0), 0.02, 0.24);
+        const guessP = (0.42 + g.mental * 0.002 + (g.sk.has('pkStopper') ? 0.12 : 0) + (uOn(g, 'ikari') ? 0.25 : 0)) * (kq.sk.has('pkMaster') ? 0.3 : 1);
+        const guess = R.next() < guessP ? sideAim : -sideAim, center = !miss && R.next() < 0.08;
+        const saved = !miss && (center ? R.next() < 0.5 : guess === sideAim && R.next() < clamp(0.24 + ((g.jump + g.technique) / 2 - 60) * 0.004 - (kq0 - 60) * 0.004 + (g.sk.has('pkStopper') ? 0.15 : 0) + (uOn(g, 'ikari') ? 0.15 : 0), 0.12, 0.75));
+        const ay = center ? GOAL_Y + R.range(-0.4, 0.4) : miss && R.next() < 0.5 ? GOAL_Y + sideAim * R.range(POST + 0.4, POST + 1.6) : GOAL_Y + sideAim * R.range(1.8, POST - 0.35);
+        const az = miss && Math.abs(ay - GOAL_Y) < POST ? R.range(BAR + 0.3, BAR + 1.4) : R.range(0.2, 1.6);
+        const sp = R.range(20, 26), tf = (gl - spotX) / sp, vy = (ay - GOAL_Y) / tf, vz = (az + 4.9 * tf * tf) / tf;
+        ev('sokick0', { team: t, player: kq.name });
+        S.kickRec = kq.idx; Object.assign(S.ball, { x: spotX, y: GOAL_Y, z: 0.05, vx: sp, vy, vz, kind: 'shot', lastTeam: t, lastPlayer: kq.idx, kicker: kq.idx, owner: -1 });
+        const res = miss ? 'miss' : saved ? 'save' : 'goal';
+        let hit = false, k0 = 0;
+        settle(2.4, (el) => {
+          k0++; if (k0 === 1 && !center) { g.diveT = 0.7; g.diveDir = guess; } if (center) { g.saveT = 0; }
+          if (g.diveT > 0) { g.diveT = Math.max(0, g.diveT - DT); g.y += guess * 3.6 * DT * (g.diveT > 0.2 ? 1 : 0.3); if (g.diveT <= 0) g.downT = 1.2; } else if (g.downT > 0) g.downT = Math.max(0.01, g.downT - DT * 0.5);
+          const b = S.ball;
+          if (!hit) { b.x += b.vx * DT; b.y += b.vy * DT; b.z = Math.max(0, b.z + b.vz * DT - 4.9 * DT * DT); b.vz -= 9.8 * DT;
+            if (res === 'save' && b.x >= gl - 1.2) { hit = true; b.vx = -R.range(4, 8); b.vy = (b.y > GOAL_Y ? 1 : -1) * R.range(3, 7); b.vz = R.range(1, 3); ev('save', { team: 1 - t, player: g.name, act: 'diveparry', so: 1 }); }
+            if (b.x >= gl) { hit = true; if (res === 'goal') { b.x = gl + 0.6; b.vx = 1.5; b.vy *= 0.1; b.vz = 0; b.z = Math.min(b.z, 2); } else { b.vx = 0; b.vy = 0; } } }
+          else { b.x += b.vx * DT; b.y += b.vy * DT; b.vx *= 0.9; b.vy *= 0.9; b.z = Math.max(0, b.z + b.vz * DT); b.vz -= 9.8 * DT; if (res === 'goal') b.x = Math.min(b.x, gl + 1.6); }
+          if (el > 0.8) moveTo(kq, kq.x - 0.5, kq.y, res === 'goal' ? 0.5 : 0.2);
+        });
+        if (res === 'goal') sc[t]++;
+        tk[t]++;
+        kicks.push({ team: t, idx: kq.idx, name: kq.name, number: kq.number, res, round: tk[t] });
+        ev('sokick', { team: t, player: kq.name, number: kq.number, res, round: tk[t], so: [...sc] });
+        // 蹴った人はセンターサークルへ戻る
+        settle(0.6, () => {}); resetGK(g); S.ball.kind = 'dead';
+        t = 1 - t;
+      }
+      const win = sc[0] > sc[1] ? 0 : 1;
+      settle(1.5, () => {});
+      ev('shootout', { score: [...sc], win });
+      settle(3.5, () => { for (const q of P) if (q.team === win && !q.off) moveTo(q, q.x + (L / 2 + 6 - q.x) * 0.3, q.y, 3); });
+      shootout = { score: sc, win, kicks, first, start: +matchEnd.toFixed(2) };
+      soEnd = S.t;
+    }
 
     const tot = stats[0].possession + stats[1].possession;
     stats.forEach((s) => {
@@ -8760,7 +8845,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       actions,
       rosterStart,
       captains: T.map((tm) => { const c = tm.role.captain || tm.players.find((q) => q.sk.has('captaincy')) || tm.players.filter((q) => !q.gk).sort((x, y) => ((y.uniq ? 100 : 0) + y.mental) - ((x.uniq ? 100 : 0) + x.mental))[0]; return Math.max(0, tm.players.indexOf(c)); }),   // 版801：キャプテン（入場の列の先頭）
-      typeLog, duration: +matchEnd.toFixed(2), halfTime: +halfStartT.toFixed(2), nominalHalf: HALF, clockScale: CLOCK_SCALE, frameDt: DT * FRAME_EVERY, liveMap,
+      typeLog, shootout, regEnd: +matchEnd.toFixed(2), duration: +soEnd.toFixed(2), halfTime: +halfStartT.toFixed(2), nominalHalf: HALF, clockScale: CLOCK_SCALE, frameDt: DT * FRAME_EVERY, liveMap,
     };
   }
 
@@ -8768,7 +8853,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
   function gameSec(m, t) {
     const lm = m && m.liveMap, cs = (m && m.clockScale) || CLOCK_SCALE; if (!lm || lm.length < 4 || !(globalThis.__Klive ?? 1)) return t * cs;
     const lt = (x) => { let lo = 0, hi = lm.length / 2 - 1; if (x <= lm[0]) return lm[1]; if (x >= lm[hi * 2]) return lm[hi * 2 + 1]; while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (lm[mid * 2] <= x) lo = mid; else hi = mid; } const t0 = lm[lo * 2], t1 = lm[hi * 2]; return lm[lo * 2 + 1] + (lm[hi * 2 + 1] - lm[lo * 2 + 1]) * (t1 > t0 ? (x - t0) / (t1 - t0) : 0); };
-    const h = m.halfTime || m.duration, nh = (m.nominalHalf || HALF) * cs, e = m.duration;
+    const h = m.halfTime || m.duration, nh = (m.nominalHalf || HALF) * cs, e = m.regEnd || m.duration; t = Math.min(t, e);   // 版1029：PK戦の間は時計を止める（90分のまま）
     if (t < h || h >= e) { const H = lt(Math.min(h, e)); return H > 0 ? (lt(t) / H) * nh * (Math.min(h, e) / (m.nominalHalf || HALF)) : t * cs; }
     const a = lt(h), z = lt(e); return nh + (z > a ? ((lt(t) - a) / (z - a)) * nh * ((e - h) / (m.nominalHalf || HALF)) : (t - h) * cs);
   }

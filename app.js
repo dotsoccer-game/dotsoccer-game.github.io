@@ -91,7 +91,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     venue = mctx.opts.venue != null ? Math.max(0, Math.min(4, mctx.opts.venue)) : 4;
     applyKits(mctx.opts.kits);
     careerChanges = []; tacChange = null; tacState = null; closeLocker();
-    match = D.simulateMatch(mine, theirs, seed, { oneHalf: !!mctx.opts.oneHalf });   // 版560：練習試合は前半だけ
+    match = D.simulateMatch(mine, theirs, seed, { oneHalf: !!mctx.opts.oneHalf, shootout: !!mctx.opts.shootout });   // 版560：練習試合は前半だけ
     { const hb = document.getElementById('htTac'); if (hb) hb.hidden = !mctx.opts.onSub; const sb = document.querySelector('#half [data-panel="subs"]'); if (sb) sb.hidden = !!mctx.opts.onSub; }
     { const ab = document.querySelector('#match aside [data-panel="subs"]'); if (ab) ab.style.display = (mctx.opts.watch || mctx.opts.lockEdit) ? 'none' : ''; }   // 観戦：選手交代はない（版622：フレンドのルーム対戦も、2つの画面で同じ試合にするため変更なし）
     // 版695：プレミアムパス：試合の早送り（1倍→2倍→4倍）。フレンドのルーム対戦（2つの画面で同じ試合）では出さない
@@ -137,7 +137,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
   let subsAt = [];
   // ハーフタイムの交代・作戦変更：同じシードで試合を計算し直す（前半はまったく同じになる）。後半はそこから続ける
   function applyHalf(changes, cb) {
-    const m2 = D.simulateMatch(mctx.mine, mctx.theirs, mctx.seed, { changes, oneHalf: !!mctx.opts.oneHalf });
+    const m2 = D.simulateMatch(mctx.mine, mctx.theirs, mctx.seed, { changes, oneHalf: !!mctx.opts.oneHalf, shootout: !!mctx.opts.shootout });
     m2.homeShort = match.homeShort; m2.awayShort = match.awayShort;
     match = m2; halfT = match.halfTime || halfT;
     prepTimeline();
@@ -356,6 +356,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       const simT0 = simT;
       simT += dt * RATE * speed * (speed < 4 ? slowAt(simT) : 1);   // 白夜の視界の間は、ゆっくり
       if (koWhistleT >= 0 && simT0 < koWhistleT && simT >= koWhistleT) { SND().play('whistle'); koWhistleT = -1; }
+      if (match.shootout && simT0 < match.regEnd && simT >= match.regEnd) { SND().play('whistle3'); flash($('#policy'), '90分で決着つかず　PK戦へ！', 3600); }   // 版1029：PK戦
       if (oohT >= 0 && simT >= oohT) { if (speed < 16) SND().play('ooh'); oohT = -1; }   // 版558：おしいシュートの「おぉー」
       if (simT >= match.duration) {
         // 試合終了（ゴール演出の途中でも、ここで締める。止まったままにならないように）
@@ -465,7 +466,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     }
     out.sort((a, b) => a.t - b.t);
     // タイムアップ
-    out.push({ t0: Math.max(0.2, match.duration - 4.5), t1: match.duration, t: match.duration, head: `90'+${addedMin(2)}`, sc: match.score.slice(), cap1: '', cap2: 'タイムアップ、ここで試合終了', end: true });
+    out.push({ t0: Math.max(0.2, (match.regEnd || match.duration) - 4.5), t1: (match.regEnd || match.duration), t: (match.regEnd || match.duration), head: `90'+${addedMin(2)}`, sc: match.score.slice(), cap1: '', cap2: 'タイムアップ、ここで試合終了', end: true });
     return out;
   }
   const DG_TR = 0.4;   // 場面の切り替え（画面が小さくなって、次の場面が広がる）
@@ -3861,6 +3862,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     if (show && show.goal && (show.phase === 'toNet' || show.phase === 'freeze' || show.phase === 'gkSad' || (show.phase === 'score' && show.rt < 0.85))) { sc = show.goal.score.slice(); sc[show.goal.team] = Math.max(0, sc[show.goal.team] - 1); }
     { const key = sc[0] + '-' + sc[1]; shownScore = key; }   // 版558：本家は点数が出る時に音を鳴らさない（観客の歓声だけ）
     $('#hs').textContent = sc[0];
+    soBoard(st.t);
     $('#as').textContent = sc[1];
   }
 
@@ -3872,7 +3874,18 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     const raw = (el / NH) * (45 + addN) * 60, base = inSecond ? 45 * 60 : 0;
     return { sec: Math.floor((base + raw) / 10) * 10, addN, added: raw >= 45 * 60, inSecond };
   }
+  // 版1029：PK戦の結果のボード（○決めた ×外した・止められた）
+  function soBoard(t) {
+    let el = document.getElementById('soBoard');
+    const on = match && match.shootout && t >= match.regEnd + 2;
+    if (!on) { if (el) el.hidden = true; return; }
+    if (!el) { el = document.createElement('div'); el.id = 'soBoard'; const vp = document.querySelector('#match .viewport'); (vp || document.body).appendChild(el); }
+    const ks = match.events.filter((e) => e.type === 'sokick' && e.t <= t), n = Math.max(5, ...[0, 1].map((k) => ks.filter((e) => e.team === k).length));
+    const row = (k) => `<div class="so-r"><b>${k ? match.awayShort : match.homeShort}</b>${Array.from({ length: n }, (_, j) => { const e = ks.filter((x) => x.team === k)[j]; return `<i class="${e ? (e.res === 'goal' ? 'g' : 'x') : ''}">${e ? (e.res === 'goal' ? '○' : '×') : ''}</i>`; }).join('')}<em>${ks.filter((x) => x.team === k && x.res === 'goal').length}</em></div>`;
+    const html = row(0) + row(1); if (el._h !== html) { el.innerHTML = html; el._h = html; } el.hidden = false;
+  }
   function clockText(t, holdHalf) {
+    if (match && match.shootout && t >= match.regEnd + 0.05) { const k = match.events.filter((e) => e.type === 'sokick' && e.t <= t).pop(); const sc = k ? k.so : [0, 0]; return `PK ${sc[0]}−${sc[1]}`; }   // 版1029：PK戦の間は、時計のかわりにPKの点
     const c = clockParts(t, holdHalf);
     return `${String(Math.floor(c.sec / 60)).padStart(2, '0')}:${String(c.sec % 60).padStart(2, '0')}${c.added ? ` +${c.addN}` : ''}`;
   }
@@ -3916,6 +3929,10 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       if (e.type === 'gk' && e.act === 'tip' && speed < 16) SND().play('parry');   /* 指先に当たった「パンッ」 */
       if (e.type === 'half') { SND().play('whistle2'); koWhistleT = e.t + 0.6; }
       if (e.type === 'pkgo' && speed < 16) SND().play('pkgo');
+      if (e.type === 'sowhistle' && speed < 16) { SND().play('whistle'); flash($('#policy'), `${e.team ? match.awayShort : match.homeShort}　${e.round}人目　${e.number} ${e.player}`, 2600); }   // 版1029：PK戦
+      if (e.type === 'sokick0' && speed < 16) SND().play('shot');
+      if (e.type === 'sokick' && speed < 16) { if (e.res === 'goal') SND().play('cheer'); else { if (e.res === 'save') SND().play('parry'); SND().play('ooh'); } }
+      if (e.type === 'shootout') { SND().play('whistle3'); flash($('#policy'), `PK戦 ${e.score[0]}−${e.score[1]}　${e.win ? match.awayShort : match.homeShort}の勝ち！`, 4500); }
       if (e.type === 'fkgo' && speed < 16) SND().play('whistle');   // 版846：FKの笛   /* 版742：PKは全員がエリアの外に出てから、笛を吹いて蹴る */
       if ((e.type === 'offside' || e.type === 'foul') && !show && speed < 4) startJudge(e);
       if (e.type === 'card') { const i = idxOf(e.team, e.number); if (i >= 0) cardPanel = { t: e.t + 1.3, idx: i, color: e.color, second: e.second }; }

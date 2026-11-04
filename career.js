@@ -881,12 +881,12 @@
     save.post = post;
   }
   // 終盤の試合を1つ決着させる
-  function settlePost(save, m, s) {
+  function settlePost(save, m, s, forceW) {
     const post = save.post, r = rng(save);
     m.s = s; m.done = true;
     if (m.a !== save.team.name && m.b !== save.team.name) { addGoals(save, 'post', m.a, s[0], r); addGoals(save, 'post', m.b, s[1], r); }
     if (m.rr) { const lg = { teams: post.playoff }; record(lg, post.playoff.findIndex((t) => t.name === m.a), post.playoff.findIndex((t) => t.name === m.b), s[0], s[1]); return; }
-    m.w = koWinner(r, lvlOf(save, m.a), lvlOf(save, m.b), s) ? m.b : m.a;
+    m.w = forceW || (koWinner(r, lvlOf(save, m.a), lvlOf(save, m.b), s) ? m.b : m.a);   // 版1029：自分の試合のPK戦は、実際に蹴った結果で
     if (m.next) {   // 準決勝の勝者は決勝へ（決勝は12月4週）
       const fin = post.matches.find((x) => x.key === m.next);
       if (fin) fin.b = m.w; else post.matches.push({ comp: m.comp, label: '決勝', key: m.next, a: m.w, b: null, week: POST_WEEKS[1], ko: true, next: null });
@@ -943,13 +943,13 @@
     const it = save.prize.items.find((x) => x.label === label); if (it) it.coins += coins; else save.prize.items.push({ label, coins });
     return coins;
   }
-  function playFixture(save, fx, myScore, playedIdx) {
+  function playFixture(save, fx, myScore, playedIdx, so) {   // so：PK戦の結果（{ score:[自分,相手], win:true/false }。版1029）
     const r = rng(save), win = myScore[0] > myScore[1] ? true : myScore[0] < myScore[1] ? false : null;
     const out = { kind: fx.kind, comp: fx.comp, label: fx.label };
     if (fx.kind === 'league') { finishRound(save, myScore, playedIdx); return out; }
     afterPlayed(save, playedIdx, r, false);
     if (fx.kind === 'cup') {
-      let w = win; if (w === null) { w = koWinner(r, teamLevel(save), fx.opp.lvl, [0, 0]) === 0; out.pk = true; }
+      let w = win; if (w === null) { w = so ? !!so.win : koWinner(r, teamLevel(save), fx.opp.lvl, [0, 0]) === 0; out.pk = true; if (so) out.pkScore = so.score.slice(); }
       out.win = w; save.cup.log.push({ label: fx.label, opp: fx.opp.name, s: myScore, win: w, pk: out.pk, week: fx.week });
       resolveCupRound(save, { win: w, s: myScore, pk: out.pk });
       if (w) { out.prize = addPrize(save, '国内カップ', 5 + save.cup.round * 3); if (save.cup.champion === save.team.name) out.prize += addPrize(save, '国内カップ 優勝', 100); }
@@ -957,9 +957,9 @@
       return out;
     }
     const m = fx.m, s = m.a === save.team.name ? myScore : [myScore[1], myScore[0]];
-    settlePost(save, m, s);
+    settlePost(save, m, s, so && myScore[0] === myScore[1] ? (so.win ? save.team.name : (m.a === save.team.name ? m.b : m.a)) : null);
     for (const m2 of postMatchesAt(save, m.week)) if (m2 !== m && m2.a !== save.team.name && m2.b !== save.team.name) { const s2 = quickScore(rng(save), lvlOf(save, m2.a), lvlOf(save, m2.b)); settlePost(save, m2, s2); }   // 版1018：自分の試合が終わったら、同じ週のほかの昇格・入れ替え戦の結果もすぐ出す
-    if (m.ko) { out.win = m.w === save.team.name; out.pk = myScore[0] === myScore[1]; if (out.win) out.prize = addPrize(save, m.comp, m.label === '決勝' ? 20 : 10); if (out.win && m.label === '決勝') out.champion = true; }
+    if (m.ko) { out.win = m.w === save.team.name; out.pk = myScore[0] === myScore[1]; if (out.pk && so) out.pkScore = so.score.slice(); if (out.win) out.prize = addPrize(save, m.comp, m.label === '決勝' ? 20 : 10); if (out.win && m.label === '決勝') out.champion = true; }
     else if (win) out.prize = addPrize(save, m.comp, 10);
     return out;
   }

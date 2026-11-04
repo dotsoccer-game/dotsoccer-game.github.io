@@ -2822,7 +2822,7 @@
         const played = mt.played.slice();
         for (const nm of subsIn) { const i = save.team.players.findIndex((q) => q.name === nm); if (i >= 0 && !played.includes(i)) played.push(i); }
         done(score, (A().match || {}).events || [], lineupRestore(played));
-      }, { venue: venueNow, kits: C.kitsFor(save, opTeamInfo.name, (meta || {}).kitSel, (meta || {}).oppSel), tut: window.__tut ? window.__tut.matchOpts(meta || {}) : null, onSub: (info) => subSheet(mt, info, ms), noIntro: true, comp: (meta || {}).comp || title, label: (meta || {}).label || '', absent: save.team.players.filter((q) => q.injury > 0 || q.suspend > 0).map((q) => ({ name: q.name, pos: q.position, number: q.number, weeks: q.injury, why: q.suspend > 0 ? '出場停止' : `ケガ（あと${q.injury}週）` })), homeName: save.team.name, awayName: opTeamInfo.name, champCheck: (meta || {}).fx ? (sc) => champView((meta || {}).fx, sc) : null, halfOthers: ((meta || {}).practice || (meta || {}).online) ? null : (my, minute) => halfOthers(my, minute), oneHalf: !!((meta || {}).practice && !(meta || {}).tut), embH: emblemURL(save.team.name, 48), embA: emblemURL(opTeamInfo.name, 48), grade: (q, k, tm) => { const sp = tm ? null : save.team.players.find((x) => x.name === q.name); if (sp) { C.ensurePts(sp); return C.rankInfo(sp.pts[k]).g; } { const op = tm ? (opp.players || []).find((x) => x.name === q.name && x.bg) : null; if (op && op.bg[k]) return op.bg[k]; } return C.rankInfo(C.toPts((q.params || q)[k])).g; } });
+      }, { venue: venueNow, kits: C.kitsFor(save, opTeamInfo.name, (meta || {}).kitSel, (meta || {}).oppSel), tut: window.__tut ? window.__tut.matchOpts(meta || {}) : null, onSub: (info) => subSheet(mt, info, ms), noIntro: true, comp: (meta || {}).comp || title, label: (meta || {}).label || '', absent: save.team.players.filter((q) => q.injury > 0 || q.suspend > 0).map((q) => ({ name: q.name, pos: q.position, number: q.number, weeks: q.injury, why: q.suspend > 0 ? '出場停止' : `ケガ（あと${q.injury}週）` })), homeName: save.team.name, awayName: opTeamInfo.name, champCheck: (meta || {}).fx ? (sc) => champView((meta || {}).fx, sc) : null, halfOthers: ((meta || {}).practice || (meta || {}).online) ? null : (my, minute) => halfOthers(my, minute), oneHalf: !!((meta || {}).practice && !(meta || {}).tut), shootout: !!(meta || {}).shootout, embH: emblemURL(save.team.name, 48), embA: emblemURL(opTeamInfo.name, 48), grade: (q, k, tm) => { const sp = tm ? null : save.team.players.find((x) => x.name === q.name); if (sp) { C.ensurePts(sp); return C.rankInfo(sp.pts[k]).g; } { const op = tm ? (opp.players || []).find((x) => x.name === q.name && x.bg) : null; if (op && op.bg[k]) return op.bg[k]; } return C.rankInfo(C.toPts((q.params || q)[k])).g; } });
       return;
     }
     const r = D.simulateMatch(mt.team, opp, seed, { frames: false });
@@ -2848,7 +2848,7 @@
       return;
     }
     if (!afterTrain) { advance(); return; }
-    runMatch('試合の日！', `${esc(fx.comp)}　${esc(fx.label)}（${fx.home ? 'ホーム' : 'アウェイ'}）`, fx.opp, (score, ev, played) => officialDone(fx, score, ev, played), { comp: fx.comp, label: fx.label, home: !!fx.home, fx });
+    runMatch('試合の日！', `${esc(fx.comp)}　${esc(fx.label)}（${fx.home ? 'ホーム' : 'アウェイ'}）`, fx.opp, (score, ev, played) => officialDone(fx, score, ev, played), { comp: fx.comp, label: fx.label, home: !!fx.home, fx, shootout: fx.kind === 'cup' || (fx.kind === 'post' && !!(fx.m && fx.m.ko)) });
   }
   // 練習試合申し込み（カルチョビットAの黒板）：相手を選ぶ
   const LG_BADGE = { regE2: ['東2', 'b-e2'], regW2: ['西2', 'b-w2'], regE1: ['東1', 'b-e1'], regW1: ['西1', 'b-w1'], d3: ['D3', 'b-d3'], d2: ['D2', 'b-d2'], d1: ['D1', 'b-d1'] };
@@ -2878,7 +2878,8 @@
     const before = save.league ? C.standings(save).map((t) => t.name) : null;
     const injBefore = new Set(save.team.players.filter((q) => q.injury > 0).map((q) => q.name));
     const champ = C.champPeek(save, fx, score);   // 版580：この試合で優勝が決まったか（記録する前に調べる）
-    const res = C.playFixture(save, fx, score, played);
+    const soE = (ev || []).find((e) => e.type === 'shootout'), so = soE ? { score: soE.score.slice(), win: soE.win === 0 } : null;   // 版1029：PK戦の結果（自分は0）
+    const res = C.playFixture(save, fx, score, played, so);
     if (!champ && res.champion) Object.assign(res, { champNow: { kind: 'cup', title: '国内カップ', n: (save.history || []).filter((h) => h.cup).length + 1 } });   // PK戦で優勝
     if (champ) res.champNow = champ;
     if (res.champNow) { (save.trophies = save.trophies || []).push({ season: save.season, kind: res.champNow.kind, title: res.champNow.title }); }
@@ -2903,7 +2904,7 @@
       return;
     }
     if (res.kind === 'cup' || res.kind === 'post') {
-      const pk = res.pk ? '（PK戦）' : '';
+      const pk = res.pk ? (res.pkScore ? `（PK ${res.pkScore[0]}−${res.pkScore[1]}）` : '（PK戦）') : '';
       const head = res.champion ? `🏆 ${esc(res.comp)} 優勝！！` : res.win === true ? `${esc(res.comp)} ${esc(res.label)} 勝利${pk}！` : res.win === false ? `${esc(res.comp)} ${esc(res.label)} 敗退${pk}…` : `${esc(res.comp)} ${esc(res.label)}`;
       store(); open();
       await storyCard({ theme: res.win === true || res.champion ? 'win' : res.win === false ? 'lose' : '', tag: esc(res.comp), title: res.champion ? '優勝！！' : res.win === true ? `${esc(res.label)} 勝利${pk}！` : res.win === false ? `${esc(res.label)} 敗退${pk}…` : esc(res.label),
@@ -2928,9 +2929,10 @@
     const lines = [];
     let t1 = w ? `監督、${a}−${b}で勝利です！` : d ? `監督、${a}−${b}の引き分けでした。` : `監督、${a}−${b}で負けてしまいました…。`;
     if (res.champion || res.champNow) t1 = `監督、優勝です！！\n${a}−${b}、本当におめでとうございます！`;
+    else if ((res.kind === 'cup' || res.kind === 'post') && d && res.pkScore) t1 = `監督、${a}−${b}で、PK戦までもつれました。\n${res.win ? `PK戦 ${res.pkScore[0]}−${res.pkScore[1]}で勝ちました！${res.label}突破です！` : `PK戦 ${res.pkScore[0]}−${res.pkScore[1]}で敗れました…。ここで敗退です。`}`;   // 版1029：PK戦
     else if (res.kind === 'cup' || res.kind === 'post') t1 += res.win ? `\n${res.label}突破です！` : '\nここで敗退です…。';
     const iss = (info.ev || []).some((e) => e.type === 'issue' && e.team === 0);
-    const t2 = w ? 'この調子でいきましょう！' : d ? '次は勝ち点3をとりにいきましょう。' : '切りかえて、次の試合に向けて練習しましょう。';
+    const t2 = w || (d && res.pkScore && res.win) ? 'この調子でいきましょう！' : d && res.pkScore ? '切りかえて、次の試合に向けて練習しましょう。' : d ? '次は勝ち点3をとりにいきましょう。' : '切りかえて、次の試合に向けて練習しましょう。';
     lines.push({ name: 'コーチ', face: staffFace('coach'), art: !!staffImg.coach, text: `${t1}\n${t2}` });
     if (got && got.length) lines.push({ name: 'コーチ', face: staffFace('coach'), art: !!staffImg.coach, text: `トレーニングカードを${got.length}枚手に入れました。${got.gapN > 0 ? '\n格上との試合だったので、多めにもらえましたね。' : ''}${got.coins ? `（コイン+${got.coins}）` : ''}`, cards: got.map((c) => ({ id: c, name: C.CARDS[c] ? C.CARDS[c].name : c })) });
     if ((info.off.condUp || []).length) { const L = info.off.condUp; lines.push({ name: 'コーチ', face: staffFace('coach'), art: !!staffImg.coach, text: `勝ったので、試合に出た選手の調子が上がりました！\n${L.slice(0, 5).join('・')}${L.length > 5 ? ` ほか${L.length - 5}人` : ''}` }); }   // 版515
