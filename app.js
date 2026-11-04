@@ -2051,13 +2051,14 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       if (Math.abs(vx) < 0.42) { vx = 0.42 * (Math.sign(vx) || sd); vy = -Math.sqrt(1 - vx * vx); }   // 真上には突き上げない（斜めに打つ）   // いつも斜め上へ（下へは打たない）
       const len = (uu < 0.22 ? 3.2 : uu < 0.32 ? 3.2 + (uu - 0.22) / 0.1 * 4.6 : 7.8) * d, fx = shX + vx * len, fy = shY + vy * len;
       const gc = (info.gk ? GKC[team] : TEAM[team]);
-      const drawArm = () => { ctx.lineCap = 'round'; ctx.strokeStyle = '#000'; ctx.lineWidth = 3.4 * d; ctx.beginPath(); ctx.moveTo(shX, shY); ctx.lineTo(fx, fy); ctx.stroke();
-        ctx.strokeStyle = gc.W; ctx.lineWidth = 2 * d; ctx.beginPath(); ctx.moveTo(shX, shY); ctx.lineTo(fx, fy); ctx.stroke(); ctx.lineCap = 'butt';
-        ctx.fillStyle = '#000'; ctx.fillRect(Math.round(fx - 2 * d), Math.round(fy - 2 * d), Math.ceil(4 * d), Math.ceil(4 * d));
-        ctx.fillStyle = '#f4f4f0'; ctx.fillRect(Math.round(fx - 1.3 * d), Math.round(fy - 1.3 * d), Math.ceil(2.6 * d), Math.ceil(2.6 * d));
-        ctx.fillStyle = '#c4c4c0'; ctx.fillRect(Math.round(fx - 1.3 * d), Math.round(fy + 0.3 * d), Math.ceil(2.6 * d), Math.ceil(1 * d)); };
+      // 版1054：腕はドットの四角で描く（なめらかな線だと棒に見えた）。袖は肩の側を太く
+      const dot = (x, y, col, w = 1) => { ctx.fillStyle = col; ctx.fillRect(Math.round(x - w * d / 2), Math.round(y - w * d / 2), Math.ceil(w * d), Math.ceil(w * d)); };
+      const steps = Math.max(2, Math.round(len / d)), pts = []; for (let i = 0; i <= steps; i++) pts.push([shX + (fx - shX) * i / steps, shY + (fy - shY) * i / steps, 2.6 - 0.6 * i / steps]);
+      const drawSleeve = () => { for (const [x, y, w] of pts) dot(x, y, '#000', w + 1.2); for (const [x, y, w] of pts) dot(x, y, gc.W, w); };
+      const drawFist = () => { dot(fx, fy, '#000', 4); dot(fx, fy - 0.2 * d, '#f4f4f0', 2.6); dot(fx, fy + 0.9 * d, '#c4c4c0', 2.6 * 0.4); };
+      if (back) drawSleeve();
       dmFacing = fa; dmHideArm = sd > 0 ? 'R' : 'L'; const r6 = sprite(lifted.x, lifted.y, q.s, info, team, 1, 0, false, false, true); dmHideArm = null; dmFacing = null; window.__gk6 = [lifted.x, lifted.y, simT];
-      drawArm();   // 背中向きでも、頭の横から斜め上に出た腕とこぶしが見える
+      if (!back) { drawSleeve(); drawFist(); } else drawFist();   // 背中向き：腕は体の向こう（先に描いた分が頭の横から少し見える）。こぶしは見せる
       return r6 || { top: lifted.y - 18 * px * 0.7, px };
     }
     // 版862：セーブの型ごとの姿勢
