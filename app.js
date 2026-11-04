@@ -205,7 +205,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
   const slowAt = (t) => { for (const w of bySlow) if (t >= w[0] && t < w[1]) return 0.3; return 1; };
   const viewHold = [];
   // 動きの印だけで、姿勢には使わないもの
-  const MARK = { ovrun: 1, recrun: 1, icpt: 1, capcall: 1, capbuf: 1, pppass: 1, skill: 1, win: 1, beat: 1, dmode: 1, dshot: 1, uniq: 1, uend: 1, tact: 1, tactbuf: 1, lcread: 1, gkplay: 1, myb: 1, sweep: 1, sjline: 1, taiko: 1, mthit: 1, mtrush: 1, mtslow: 1, mtpush: 1, kgon: 1, kgpin: 1, kgsew: 1, kgsh: 1, kgoff: 1, sdzap: 1, hrpass: 1, hrbuf: 1, cdon: 1, cdoff: 1, bycalm: 1, bypass: 1, bybuf: 1, byrun: 1, ksrun: 1, aopull: 1, uzpull: 1, aorun: 1, uzrun: 1, upoff: 1, aopost: 1, aopostend: 1, aoflash: 1, aopass: 1, kmfire: 1, kmshade: 1, kmshot: 1, kmrun: 1, kmpass: 1, ttgate: 1, ttwolf: 1, ttsteal: 1, ttpass: 1, mdfire: 1, mdlure: 1, mdpull: 1, mdrun: 1, mdpass: 1, mdfree: 1, mdguard: 1, mdbuff: 1 };
+  const MARK = { airbump: 1, ovrun: 1, recrun: 1, icpt: 1, capcall: 1, capbuf: 1, pppass: 1, skill: 1, win: 1, beat: 1, dmode: 1, dshot: 1, uniq: 1, uend: 1, tact: 1, tactbuf: 1, lcread: 1, gkplay: 1, myb: 1, sweep: 1, sjline: 1, taiko: 1, mthit: 1, mtrush: 1, mtslow: 1, mtpush: 1, kgon: 1, kgpin: 1, kgsew: 1, kgsh: 1, kgoff: 1, sdzap: 1, hrpass: 1, hrbuf: 1, cdon: 1, cdoff: 1, bycalm: 1, bypass: 1, bybuf: 1, byrun: 1, ksrun: 1, aopull: 1, uzpull: 1, aorun: 1, uzrun: 1, upoff: 1, aopost: 1, aopostend: 1, aoflash: 1, aopass: 1, kmfire: 1, kmshade: 1, kmshot: 1, kmrun: 1, kmpass: 1, ttgate: 1, ttwolf: 1, ttsteal: 1, ttpass: 1, mdfire: 1, mdlure: 1, mdpull: 1, mdrun: 1, mdpass: 1, mdfree: 1, mdguard: 1, mdbuff: 1 };
   const SKILL_NAME = { offTrap: 'オフサイドトラップ', lineDrop: 'ラインを下げろ', gkPass: 'つなぐ', gkClear: 'クリア', dfClear: 'クリア', knuckle: '無回転シュート', curve: 'カーブキック', fk: 'FKマイスター', ckMaster: 'CKマイスター', longThrow: 'ロングスロー', pkMaster: 'PKの名手', wallPass: '壁パス', slide: 'スライディング', feint: 'ボディフェイント', scissors: 'シザース', doubleScissors: 'ダブルシザース', roulette: 'マルセイユルーレット', elastico: 'エラシコ', doubleTouch: 'ダブルタッチ', bodyFeint: 'ボディフェイント', nutmeg: '股抜き', speedDribble: '高速ドリブル', cutback: '切り返し', cutIn: 'カットイン', heelLift: 'ヒールリフト', kickFeint: 'キックフェイント', dribbleShot: 'ドリブルシュート', driveShot: 'ドライブシュート', volley: 'ボレー', lob: 'ループ', direct: 'ダイレクト', bicycle: 'バイシクル', divingHeader: 'ダイビングヘッド', toeKick: 'トゥーキック', nearPost: 'ニア上ぶち抜き', powerMid: '強烈ミドル', controlShot: 'コントロールショット', superLong: '超ロングシュート', throughPass: 'スルーパス', loftedThrough: '浮き球スルーパス', noLook: 'ノールックパス', oneTouchPass: 'ワンタッチパス', heelPass: 'ヒールパス', longFeed: 'ロングフィード', earlyCross: 'アーリークロス', pinpointCross: 'ピンポイントクロス', switchPlay: 'サイドチェンジ', intercept: 'インターセプト', manMark: 'マンマーク', cover: 'カバーリング', shoulder: 'ショルダーチャージ', aerial: '空中戦の鬼', shotBlock: 'シュートブロック', pressMonster: 'プレスの鬼', recovery: '帰陣ダッシュ', superReflex: '超反応', punching: 'パンチング', rushOut: '飛び出し', pkStopper: 'PKストッパー', oneOnOne: '1対1の鬼', lowThrow: '低弾道スロー', lowPunt: '低弾道パントキック', coaching: 'コーチング', behindRun: '裏への抜け出し', postPlay: 'ポストプレー', nearRun: 'ニアに飛び込む', farWait: 'ファーで待つ', overlap: 'オーバーラップ', looseBall: 'こぼれ球の嗅覚', oneTwo: 'ワンツーの名手', captaincy: 'キャプテンシー', bigStage: '大舞台に強い', lateGrit: '終盤の粘り', clutch: '勝負強さ', moodMaker: 'ムードメーカー', fighting: '闘志', calm: '冷静', ironMan: '鉄人' };
   // いま進行中の動き（ヘディング・スライディングなど）。u は 0〜1 の進み具合
   function actionAt(i) {
@@ -3100,6 +3100,20 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
           tilt = Math.sign(ox || 1) * 0.16 * Math.sin(Math.PI * ac.u); dxs = Math.sign(ox || 1) * Math.sin(ac.u * 30) * 1.2 * q.s;
         }
         let pokePose = null;
+        let bumpFx = null;
+        if (ac && ac.a === 'bump' && ac.o != null && st.players[ac.o]) {
+          // 版1028：体をぶつけ合う：相手の方へ肩から当たり（ドン）、押し負けた方は半歩はじかれてのけぞる。並走・背負う・こぼれ球・正面のどれも
+          const o = st.players[ac.o], m = proj(o.x, o.y), sx = Math.sign(m.x - q.x) || 1, u = ac.u, lt = ac.lt ? 0.6 : 1, hit = Math.sin(Math.PI * Math.min(1, u / 0.4));
+          if (u < 0.4) { tilt = sx * 0.34 * hit * lt; dxs = sx * hit * 3.6 * q.s * lt; if (ac.k !== 'run') pokePose = 'crouch'; }
+          else if (!ac.w) { const e = Math.sin(Math.PI * (u - 0.4) / 0.6); tilt = -sx * 0.2 * e * lt; dxs = -sx * e * 2.4 * q.s * lt; }   // 押し負けた方：のけぞって半歩はじかれる
+          else { tilt = sx * 0.12 * (1 - u) * lt; pokePose = ac.k === 'back' ? 'crouch' : pokePose; }   // 押し勝った方：踏ん張って、体を当てたまま
+          if (ac.w && u < 0.32) bumpFx = [(q.x + m.x) / 2, Math.min(q.y, m.y) - 2.6 * q.s * 5.5, 2.6 * q.s * lt, u / 0.32];
+          if (u > 0.08 && u < 0.4) dusts.push([q.x - sx * 1.5 * q.s * 2.6, q.y, 2.6 * q.s, (u - 0.08) / 0.32]);
+        }
+        { const LA = actsOf[i]; if (LA) for (let k = LA.length - 1; k >= 0; k--) { const a7 = LA[k]; if (a7.t > simT) continue; if (simT - a7.t > 0.8) break;
+            if (a7.a === 'airbump' && simT - a7.t < a7.d && st.players[a7.o]) { const o = st.players[a7.o], m = proj(o.x, o.y), sx = Math.sign(m.x - q.x) || 1, u = (simT - a7.t) / a7.d, e = Math.sin(Math.PI * u);   // 版1028：空中戦：跳んだまま、相手と肩・体をぶつけ合う
+              tilt = sx * (a7.w ? 0.3 : -0.2) * e + tilt * 0.3; dxs = sx * (a7.w ? 3 : -2) * e * q.s; if (a7.w && u > 0.15 && u < 0.45) bumpFx = [(q.x + m.x) / 2, Math.min(q.y, m.y) - 2.6 * q.s * 9, 2.6 * q.s, (u - 0.15) / 0.3]; break; } } }
+        if (bumpFx) defFx.push(['bump', ...bumpFx]);
         if (ac && ac.a === 'poke' && ac.trap && ac.dx != null && !kp) {
           // トラップ（手で描いた絵・8方向）：ボールの方を向き、①受ける足を前へ出して足の内側で触れる → ②足を引いて勢いを吸収。4回に1回くらいは足裏で止める
           dmFacing = Math.atan2(ac.dy, ac.dx);
@@ -3537,6 +3551,11 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
         }
         for (let k = 0; k < (lv >= 2 ? 9 : 6); k++) { const an = k / (lv >= 2 ? 9 : 6) * 6.283 + 0.4; ctx.strokeStyle = k % 2 ? `rgba(255,224,224,${al})` : `rgba(255,112,112,${al})`; ctx.lineWidth = Math.max(2, px * 0.6); ctx.beginPath(); ctx.moveTo(x + Math.cos(an) * px * 1.5, cy + Math.sin(an) * px);
           for (let j = 1; j <= 4; j++) { const rr = px * (1.5 + j * (2 + u * 3)), jt = (((k * 5 + j * 3) % 5) - 2) * 0.13; ctx.lineTo(x + Math.cos(an + jt) * rr, cy + Math.sin(an + jt) * rr * 0.62); } ctx.stroke(); }
+        ctx.restore();
+      } else if (f[0] === 'bump') {   // 版1028：体がぶつかった所に、白い小さな衝撃（ドン）
+        const [, x, y, px0, u] = f, px = Math.max(2.2, px0) * 1.2, R = px * 3.6 * (0.6 + u * 0.8), al = 1 - u * u;
+        ctx.save(); ctx.fillStyle = `rgba(255,236,140,${0.85 * al})`; ctx.beginPath(); for (let k = 0; k < 12; k++) { const an = k / 12 * 6.283, rr = k % 2 ? R * 0.42 : R; ctx.lineTo(x + Math.cos(an) * rr, y + Math.sin(an) * rr * 0.8); } ctx.closePath(); ctx.fill();
+        ctx.fillStyle = `rgba(255,255,255,${al})`; ctx.beginPath(); for (let k = 0; k < 12; k++) { const an = k / 12 * 6.283 + 0.26, rr = k % 2 ? R * 0.22 : R * 0.6; ctx.lineTo(x + Math.cos(an) * rr, y + Math.sin(an) * rr * 0.8); } ctx.closePath(); ctx.fill();
         ctx.restore();
       } else if (f[0] === 'mtstar') {   // 祭り太鼓の壁：体がぶつかった所に、白と青の衝撃の星（凸は大きく、青い火花が飛ぶ）
         const [, x, y, px0, u, lv] = f, px = Math.max(2.4, px0) * 1.4, L2v = lv >= 2, R = px * (L2v ? 7 : 5.5) * (0.7 + u * 0.7), al = 1 - u * u;

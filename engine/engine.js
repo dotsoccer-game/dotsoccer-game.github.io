@@ -7887,11 +7887,48 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
     // 版948：その選手より先にボールへ届く相手（足もと・胸の高さ）がいるか。相手の足もとに収まった球を、こちらが受けたことにしない
     function oppFirst(p, b) { if (!(globalThis.__Kopf ?? 1)) return false; const dp = hyp(p.x - b.x, p.y - b.y);
       return P.some((q) => q.team !== p.team && !q.off && !(q.downT > 0) && !(q.slideT > 0) && b.z < (q.gk ? 2.6 : 1.9) && hyp(q.x - b.x, q.y - b.y) < Math.min(1.3, dp - 0.15)); }
+    // 版1028：体をぶつけ合うデュエル
+    //  run：並走しながら肩で押し合う / back：背負った相手と押し合う / front：正面から体を当てる
+    function bdKind(q, own) {
+      const ov = hyp(own.vx, own.vy), rx = q.x - own.x, ry = q.y - own.y, rl = hyp(rx, ry) || 1;
+      if (ov > 2.2 && Math.abs((rx * own.vx + ry * own.vy) / (ov * rl)) < 0.65) return 'run';
+      const goalSide = (fx(own.team, q.x) - fx(own.team, own.x)) > 0.2, facingBack = own.vx * sgn(own.team) < 0.8;
+      if (ov < 3.0 && goalSide && facingBack) return 'back';
+      return 'front';
+    }
+    const bdStr = (p, atk, k) => p.physical * 0.65 + (atk ? (k === 'back' ? p.technique * 0.2 + p.mental * 0.15 : p.dribble * 0.35) : p.defense * 0.35) + (skZ(p, 'shoulder') ? 14 : 0) + (atk && k === 'back' && skZ(p, 'postPlay') ? 12 : 0) + (p.cur - 70) * 0.08;
+    function bdStep(q, own, bd) {
+      const rx = q.x - own.x, ry = q.y - own.y, rl = hyp(rx, ry) || 1, ux = rx / rl, uy = ry / rl;
+      if (bd.k === 'run') {   // 横にぴったり並んで、同じ速さで走る（離れない）
+        const pull = Math.max(0, rl - 0.95) * 4; q.vx = own.vx * 0.95 - ux * pull; q.vy = own.vy * 0.95 - uy * pull; own.vx *= 0.985; own.vy *= 0.985;
+      } else if (bd.k === 'back') { own.vx *= 0.9; own.vy *= 0.9; const pull = Math.max(0, rl - 0.85) * 3; q.vx = -ux * pull; q.vy = -uy * pull; }
+      else { own.vx *= 0.93; own.vy *= 0.93; q.vx *= 0.8; q.vy *= 0.8; }
+      if (S.t < bd.nx) return;
+      bd.nx = S.t + (bd.k === 'front' ? 0.22 : R.range(0.24, 0.32));   // ドン、ドン、と何度か当たる
+      const sQ = bdStr(q, false, bd.k), sA = bdStr(own, true, bd.k), w = clamp(0.5 + (sQ - sA) * 0.012 + R.range(-0.15, 0.15), 0.1, 0.9), sh = 0.06 + Math.abs(w - 0.5) * 0.35;
+      if (w > 0.5) { own.x -= ux * sh; own.y -= uy * sh; } else { q.x += ux * sh; q.y += uy * sh; }   // 押し負けた方が、半歩はじかれる
+      act(q, 'bump', 0.3, { o: own.idx, k: bd.k, w: w > 0.5 ? 1 : 0 }); act(own, 'bump', 0.3, { o: q.idx, k: bd.k, w: w > 0.5 ? 0 : 1, atk: 1 });
+      bd.sc = (bd.sc || 0) + (w - 0.5);
+    }
+    function bdEdge(q, own, k) { const bd = q.bd; const sc = bd && bd.sc ? bd.sc : 0; return clamp(sc * 0.18, -0.18, 0.18) + (bdStr(q, false, k) - bdStr(own, true, k)) * 0.003; }
+    // こぼれ球の取り合い：転がっている球に、敵と味方が同時に向かう時は、体をぶつけ合って先に触る方が決まる
+    function looseDuel() {
+      const b = S.ball; if (!(globalThis.__Kbd ?? 1) || b.owner >= 0 || b.z > 1.0 || S.restart || (b.kind !== 'loose' && b.kind !== 'pass')) return;
+      const near = P.filter((p) => !p.off && !p.gk && !(p.downT > 0) && !(p.slideT > 0) && hyp(p.x - b.x, p.y - b.y) < 2.4).sort((a0, c0) => hyp(a0.x - b.x, a0.y - b.y) - hyp(c0.x - b.x, c0.y - b.y));
+      if (near.length < 2) return; const a = near[0], o = near.find((p) => p.team !== a.team); if (!o) return;
+      if (hyp(a.x - o.x, a.y - o.y) > 1.5 || (a.lbT || 0) > S.t || (o.lbT || 0) > S.t) return;
+      const sa = a.physical * 0.6 + a.dash * 0.25 + a.mental * 0.15 + (skZ(a, 'shoulder') ? 12 : 0) + (skZ(a, 'looseBall') ? 10 : 0), so = o.physical * 0.6 + o.dash * 0.25 + o.mental * 0.15 + (skZ(o, 'shoulder') ? 12 : 0) + (skZ(o, 'looseBall') ? 10 : 0);
+      const aw = R.next() < clamp(0.55 + (sa - so) * 0.012, 0.15, 0.9), wn = aw ? a : o, ls = aw ? o : a, ux = ls.x - wn.x, uy = ls.y - wn.y, ul = hyp(ux, uy) || 1;
+      a.lbT = o.lbT = S.t + 1.2; ls.touchCd = Math.max(ls.touchCd || 0, 0.45); ls.vx *= 0.5; ls.vy *= 0.5; ls.x += ux / ul * 0.25; ls.y += uy / ul * 0.25;
+      act(wn, 'bump', 0.35, { o: ls.idx, k: 'loose', w: 1 }); act(ls, 'bump', 0.35, { o: wn.idx, k: 'loose', w: 0 });
+      ev('duel', { k: 'loose', w: wn.idx, l: ls.idx }); if (globalThis.__bdLog) globalThis.__bdLog.push({ t: S.t, k: 'loose', q: wn.idx, o: ls.idx });
+    }
     function contest() {
       const b = S.ball;
       if (S.restart || b.kind === 'dead') return;
       if (b.x < -0.1 || b.x > L + 0.1) return;   // ゴールラインを越えた球（ネットの中・ゴールの外）には、だれも触らない
       const own = ownerP();
+      if (!own) looseDuel();
       if (own) {
         // タックル
         if (own.gk && own.hold) return;
@@ -7927,8 +7964,21 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             const dB = hyp(q.x - b.x, q.y - b.y), side = (b.x - own.x) * (q.x - own.x) + (b.y - own.y) * (q.y - own.y);
             const ov = hyp(own.vx, own.vy), bk = ov > 1.5 && ((q.x - own.x) * own.vx + (q.y - own.y) * own.vy) / ov < -0.3; if (dB > 1.2 || ((side < 0 || bk) && dB > ((globalThis.__Ktk2 ?? 1) ? 0.3 : 0.55))) continue;   /* 版915：背中側からは、ほぼ取れない（足がボールの真上に来た時だけ） */   /* 版908：走っている選手の背中側からは、足がボールに届く所（0.55m）まで来ないと取れない */
           }
-          if (!uOn(q, 'miyabi') && !uOn(q, 'matsuri') && !uOn(q, 'tetsurou') && !(uOn(q, 'kagenui') && (own.kgPin || 0) > S.t) && !(q.uniq === 'kinshachi' && fx(q.team, own.x) < 34) && !((own.heavyT || 0) > S.t && (globalThis.__Kab ?? 1)) && R.next() > (0.13 + pr * 0.0018) * 0.7 * (1 + DOM[q.team] * 1.5)) continue;   // 雅の後始末は、追いついたら必ず止めに行く
+          if ((globalThis.__Kbd ?? 1) && d < 1.05 && !own.gk && !(q.bd && q.bd.o === own.idx && S.t < q.bd.end) && S.t > (q.bdTouch || 0) && !mtG && !mtC) {   // 版1028：体が触れるほど近づいたら、奪いに行く前でも肩・体が当たる（押し合いながら走る）
+            q.bdTouch = S.t + R.range(0.3, 0.45); const k = bdKind(q, own), sQ = bdStr(q, false, k), sA = bdStr(own, true, k), w = sQ + R.range(-12, 12) > sA ? 1 : 0, ux = (q.x - own.x) / (d || 1), uy = (q.y - own.y) / (d || 1);
+            if (w) { own.x -= ux * 0.08; own.y -= uy * 0.08; } else { q.x += ux * 0.08; q.y += uy * 0.08; }
+            act(q, 'bump', 0.3, { o: own.idx, k, w, lt: 1 }); act(own, 'bump', 0.3, { o: q.idx, k, w: 1 - w, atk: 1, lt: 1 }); if (globalThis.__bdLog) globalThis.__bdLog.push({ t: S.t, k: 'touch', q: q.idx, o: own.idx }); }
+          if (!(q.bd && q.bd.o === own.idx && S.t < q.bd.end + 0.05) && !uOn(q, 'miyabi') && !uOn(q, 'matsuri') && !uOn(q, 'tetsurou') && !(uOn(q, 'kagenui') && (own.kgPin || 0) > S.t) && !(q.uniq === 'kinshachi' && fx(q.team, own.x) < 34) && !((own.heavyT || 0) > S.t && (globalThis.__Kab ?? 1)) && R.next() > (0.13 + pr * 0.0018) * 0.7 * (1 + DOM[q.team] * 1.5)) continue;   // 雅の後始末は、追いついたら必ず止めに行く
           if (globalThis.__hvC && (own.heavyT || 0) > S.t) globalThis.__hvC.duel++;
+          let bdBonus = 0;
+          if ((globalThis.__Kbd ?? 1) && !mtG && !mtC && !own.gk && !uOn(q, 'matsuri') && !uOn(q, 'miyabi') && !uOn(q, 'tetsurou')) {   // 版1028：ボールを奪い合う時は、すぐに奪う・抜くを決めずに、まず体をぶつけ合う（並走して肩で押し合う／背負って押し合う／正面から当たる）
+            const bd = q.bd && q.bd.o === own.idx && S.t < q.bd.end + 0.05 ? q.bd : null;
+            if (!bd || S.t < bd.end) {
+              if (!bd) { const k = bdKind(q, own); q.bd = { o: own.idx, k, t0: S.t, end: S.t + (k === 'run' ? R.range(0.7, 1.0) : k === 'back' ? R.range(0.9, 1.4) : R.range(0.45, 0.6)), nx: S.t };
+                ev('duel', { k, a: q.idx, o: own.idx }); if (globalThis.__bdLog) globalThis.__bdLog.push({ t: S.t, k, q: q.idx, o: own.idx }); }
+              bdStep(q, own, q.bd); continue; }
+            bdBonus = bdEdge(q, own, bd.k); q.bd = null;
+          }
           if (!mtG) { act(q, 'duel', 0.5, { o: own.idx }); act(own, 'duel', 0.5, { o: q.idx }); }
           if (uOn(q, 'matsuri') && !mtG) { q.mtCharge = null; own.mtLock = S.t + 0.8; { const hx = own.x - q.x, hy = own.y - q.y, hl = hyp(hx, hy) || 1; act(q, 'mthit', 0.8, { dx: hx / hl, dy: hy / hl, lv: q.uniqLv || 1 }); act(own, 'mtpush', 0.45, { dx: -hx / hl, dy: -hy / hl }); } act(q, 'taiko', 0.7, { lv: q.uniqLv || 1 }); if (q.uniqLv >= 2) { own.mtSlow = S.t + 2.5; act(own, 'mtslow', 2.5); } }   // 祭り太鼓の壁：ドン！（凸：ぶつかった相手はしばらく動きが鈍る）
           // ドリブル技（覚えている選手だけ）：寄せてきた相手を技でかわす
@@ -7944,6 +7994,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           else if ((own.dO || 0.5) > 0.85 && !(own.pace && own.pace.ph === 'burst')) pS += 0.04;   // 突破でボールが足から離れた瞬間は狙われる
           if (q.sk.has('fighting')) pS += S.score[q.team] < S.score[own.team] ? 0.12 : 0.06;   // 闘志
           if (q.sk.has('bigStage') && S.t >= HALF && Math.abs(S.score[0] - S.score[1]) <= 1) pS += 0.05;
+          pS += bdBonus;   // 版1028：体のぶつけ合いの勝ち負け（フィジカルが強い方が有利）
           if (skZ(q, 'shoulder') && hyp(own.vx, own.vy) > 2.5 && Math.abs((q.x - own.x) * own.vx + (q.y - own.y) * own.vy) / (hyp(own.vx, own.vy) * (hyp(q.x - own.x, q.y - own.y) || 1)) < 0.6) pS += 0.14 + (q.physical - own.physical) * 0.004;
           if (R.next() < clamp(pS + (pS < 0.2 ? (pS - 0.2) * 0.5 : 0) + (pS > 0.7 ? (pS - 0.7) * 0.5 : 0), 0.03, 0.95)) {   // 力の差が大きいと、ほぼ一方的
             stats[q.team].tackles_won++;
@@ -8085,6 +8136,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             let best = null, bsc = -1e9;
             for (const p of hc) { const sc = p.jump * 0.75 + p.physical * 0.3 + p.technique * 0.15 + R.next() * 26 - hyp(p.x - b.x, p.y - b.y) * 25 + (skZ(p, 'aerial') ? 28 : 0) + (p.position === 'DF' ? 6 * aura(p, 'bodyVoice') : 0) + (uOn(p, 'matsuri') ? 32 * mtF(p) : 0) + ((p.b5 || -9) > S.t - 0.5 && fx(p.team, b.x) < 18 ? 10 : 0); if (sc > bsc) { bsc = sc; best = p; } }   // 空中戦の鬼：競り合いにめっぽう強い
             for (const p of hc) if (p !== best) { act(p, 'jump', 0.55); p.touchCd = 0.4; }
+            if ((globalThis.__Kbd ?? 1) && contested) { const o = hc.filter((p) => p.team !== best.team).sort((a0, c0) => hyp(a0.x - best.x, a0.y - best.y) - hyp(c0.x - best.x, c0.y - best.y))[0];   // 版1028：空中戦の競り合い：同時に跳んだ相手と、空中で体をぶつけ合う（勝った方が頭で触る）
+              if (o && hyp(o.x - best.x, o.y - best.y) < 1.6) { act(best, 'airbump', 0.55, { o: o.idx, w: 1 }); act(o, 'airbump', 0.55, { o: best.idx, w: 0 }); const ux = o.x - best.x, uy = o.y - best.y, ul = hyp(ux, uy) || 1; o.x += ux / ul * 0.25; o.y += uy / ul * 0.25; ev('duel', { k: 'air', w: best.idx, l: o.idx }); } }
             header(best);
             return;
           }
