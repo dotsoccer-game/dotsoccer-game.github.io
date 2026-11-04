@@ -1791,7 +1791,9 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     const g = P3(b.x, b.y, standZ(b.x, b.y));   // 影：観客席の上なら段の上に落とす
     const r = Math.max(5.5, 9 * g.s);
     const p = P3(b.x, b.y, b.z + 0.11);
-    const pfOn = punchFist && Math.abs(simT - punchFist.at) < 0.15 && simT >= punchFist.t0 + 0.02 && simT <= punchFist.t0 + 0.1;   // 版1057：伸ばし切った瞬間だけ、こぶしに当てる   // 版1056
+    // 版1058：ボールを急にこぶしへ移すと「ガタッ」と揺れた → 当たる0.18秒前から少しずつこぶしへ寄せ、当たった後も0.15秒かけて本当の位置へ戻す
+    let pfW = 0; if (punchFist && Math.abs(simT - punchFist.at) < 0.15) { const dt = simT - (punchFist.t0 + 0.02); pfW = dt < 0 ? Math.max(0, 1 + dt / 0.18) : Math.max(0, 1 - dt / 0.15); pfW = pfW * pfW * (3 - 2 * pfW); }
+    const pfOn = pfW > 0.5;   // 版1056
     if (pfOn) ballTrail.length = 0;
     // 残像（速いほど長い）
     if (!pfOn) ballTrail.push({ x: p.x, y: p.y - r * 0.6, sp: speed });
@@ -1844,7 +1846,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     ctx.beginPath(); ctx.ellipse(g.x, g.y, r * 1.05, r * 0.42, 0, 0, Math.PI * 2); ctx.fill();
     // 球
     let cx = p.x + kjx, cy = p.y - r * 0.6 + kjy;
-    if (pfOn) { cx = punchFist.x + punchFist.sx * (r * 0.75 + punchFist.dot); cy = punchFist.y - (r * 0.75 + punchFist.dot); }   // 版1056：こぶしに当たる瞬間は、こぶしの先に
+    if (pfW > 0) { const tx = punchFist.x + punchFist.sx * (r * 0.75 + punchFist.dot), ty = punchFist.y - (r * 0.75 + punchFist.dot); cx += (tx - cx) * pfW; cy += (ty - cy) * pfW; }   // 版1058：なめらかに寄せる
     ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#222'; ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, r - 0.5, 0, Math.PI * 2); ctx.clip();
@@ -2051,7 +2053,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       // 版1057：ボールが来るまでは構えたまま。当たる直前（0.07秒前）に腕を半分伸ばし、当たった瞬間に伸ばし切る
       const hit = pe ? simT >= pe.t + 0.02 : uu >= 0.3, mid = pe ? !hit && simT >= pe.t - 0.07 : false;
       dmFacing = fa; const r6 = sprite(lifted.x, lifted.y, q.s, info, team, 1, 0, false, false, true, hit ? 'gkPunch_hit' : mid ? 'gkPunch_mid' : 'gkPunch_cock', 0, 'side'); dmFacing = null; window.__gk6 = [lifted.x, lifted.y, simT];
-      if (hit && pe && r6 && r6.dot) { const dt = r6.dot, sx = fa === 0 ? 1 : -1; punchFist = { x: lifted.x + sx * (20.5 - 11) * dt, y: lifted.y + (2.5 - 26) * dt, sx, dot: dt, t0: pe.t, at: simT }; }
+      if (pe && r6 && r6.dot) { /* 版1058：伸ばし切った時のこぶしの位置（構えの間も計算して、ボールをそこへなめらかに寄せる） */ const dt = r6.dot, sx = fa === 0 ? 1 : -1; punchFist = { x: lifted.x + sx * (20.5 - 11) * dt, y: lifted.y + (2.5 - 26) * dt, sx, dot: dt, t0: pe.t, at: simT }; }
       return r6 || { top: lifted.y - 18 * px * 0.7, px };
     }
     // 版862：セーブの型ごとの姿勢
