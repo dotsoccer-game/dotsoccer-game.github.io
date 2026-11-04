@@ -4070,7 +4070,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     { const mt = document.getElementById('match'); if (mt) mt.classList.toggle('so-run', !!on); }   // 版1037：PK戦の間は、右の3つのボタン（選手交代・選手・状況）を出さない
     if (!on) { if (el) el.hidden = true; const cd = document.getElementById('soCard'); if (cd) cd.hidden = true; return; }
     if (!el) { el = document.createElement('div'); el.id = 'soBoard'; const vp = document.querySelector('#match .viewport'); (vp || document.body).appendChild(el); }
-    const ks = match.events.filter((e) => e.type === 'sokick' && e.t <= t), n = Math.max(5, ...[0, 1].map((k) => ks.filter((e) => e.team === k).length));
+    const ks = match.events.filter((e) => e.type === 'sokick' && e.t <= t), c0 = ks.filter((e) => e.team === 0).length, c1 = ks.filter((e) => e.team === 1).length, gg = (k) => ks.filter((e) => e.team === k && e.res === 'goal').length, n = Math.max(5, c0, c1, c0 === c1 && gg(0) === gg(1) ? c0 + 1 : 0);   /* 版1064：6本目からは、その本を蹴り始める時に1つずつ枠を足す */
     const row = (k) => `<div class="so-r"><b>${k ? match.awayShort : match.homeShort}</b>${Array.from({ length: n }, (_, j) => { const e = ks.filter((x) => x.team === k)[j]; return `<i class="${e ? (e.res === 'goal' ? 'g' : 'x') : ''}">${e ? (e.res === 'goal' ? '○' : '×') : ''}</i>`; }).join('')}<em>${ks.filter((x) => x.team === k && x.res === 'goal').length}</em></div>`;
     const f0 = match.shootout.first || 0, html = row(f0) + row(1 - f0);   /* 版1035：先攻が上、後攻が下 */ if (el._h !== html) { el.innerHTML = html; el._h = html; } el.hidden = false;
     // 版1031：いま蹴る人のカード（本家の右上：ポジション・背番号・名前・能力・タイプ）

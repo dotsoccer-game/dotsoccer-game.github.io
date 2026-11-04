@@ -4285,3 +4285,6 @@ img:not([src]),img[src=""]{visibility:hidden}
 #tacSet .tq-ask>div{background:#13213b;border:.4cqh solid #c9a33a;border-radius:2cqh;padding:3cqh 4cqw;text-align:center}#tacSet .tq-ask p{margin:0 0 2cqh;font-size:3.6cqh;font-weight:800}#tacSet .tq-ask button{margin:0 .6cqw;padding:1.2cqh 2cqw;border-radius:1.2cqh;border:.3cqh solid #cfe0ff;background:#1d4a2e;font-size:3.2cqh;font-weight:800}#tacSet .tq-ask .tq-a1{background:linear-gradient(#2f66ec,#1844c0)}
 /* 版1063：戦術設定はゲームの画面（#app）の中に出し、大きさもその画面に合わせる（cqh/cqw） */
 html:not(.stage) #tacSet{position:fixed}
+
+/* 版1064：試合後のリプレイ（ハイライト）では、PK戦の表とカードを出さない */
+body.in-digest #soBoard,body.in-digest #soCard{display:none!important}
