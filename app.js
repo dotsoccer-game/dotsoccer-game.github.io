@@ -2039,16 +2039,24 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       ctx.fillStyle = 'rgba(0,30,0,0.3)';
       const px = Math.max(1.4, 2.5 * q.s);
       ctx.beginPath(); ctx.ellipse(q.x, q.y - px * 0.2, 5.2 * px, 1.7 * px, 0, 0, Math.PI * 2); ctx.fill();
-      // 版872：パンチングは片手：ボールに正対して跳び、ボールのある側の腕だけを、こぶしで突き上げる（もう片方の腕は下ろしたまま）
-      const sd = (proj(kpBall.x, kpBall.y).x - q.x) >= 0 ? 1 : -1, d = Math.max(1.4, 2.6 * q.s) * 24 / 27;
-      const colX = (c) => Math.round(lifted.x + (c - 11.5) * d), rowY = (r) => Math.round(lifted.y + (r - 28) * d);
-      const box = (c0, r0, c1, r1, col) => { ctx.fillStyle = col; ctx.fillRect(colX(c0), rowY(r0), colX(c1) - colX(c0), rowY(r1) - rowY(r0)); };
-      const a0 = sd > 0 ? 18.5 : 0, a1 = sd > 0 ? 24 : 5;   // 下ろしている腕の場所（描かない）
-      ctx.save(); ctx.beginPath(); ctx.rect(-10, -10, CW + 20, CH + 20); ctx.rect(colX(a0), rowY(11), colX(a1) - colX(a0), rowY(21) - rowY(11)); ctx.clip('evenodd');
-      dmFacing = Math.PI / 2; const r6 = sprite(lifted.x, lifted.y, q.s, info, team, 1, 0, false, false, true); dmFacing = null; ctx.restore();
-      const gc = (info.gk ? GKC[team] : TEAM[team]), c0 = sd > 0 ? 16.5 : 3.5, c1 = c0 + 4;
-      box(c0, 0, c1, 14, '#000'); box(c0 + 1, 0, c1 - 1, 14, gc.W);   // 突き上げた腕（袖）
-      box(c0 - 0.5, -4, c1 + 0.5, 1, '#000'); box(c0 + 0.5, -3, c1 - 0.5, 0, '#f4f4f0');   // こぶし（グローブ）
+      // 版1052：パンチング：ボールの方を向いて跳び、ボールのある方の腕を、肩からボールへ斜め上に突き出す（こぶしで打つ）。
+      //  最初はこぶしをあごの横に引き（短く）、跳んだ頂点でボールへ突き出す（ゲームの選手の腕に合わせた長さ）。もう片方の腕は下ろしたまま
+      const d = Math.max(1.4, 2.6 * q.s) * 24 / 27, bq = P3(kpBall.x, kpBall.y, kpBall.z || 2.2);
+      const fa = Math.atan2((proj(kpBall.x, kpBall.y).y - q.y) / 0.45, proj(kpBall.x, kpBall.y).x - q.x);
+      const sd = (bq.x - lifted.x) >= 0 ? 1 : -1, back = Math.sin(fa) < -0.2;   // back：背中が見えている（腕は体の向こう：先に描いて、頭より上に出た所だけ見せる）
+      const shX = lifted.x + sd * (back ? 3.6 : 3.2) * d, shY = lifted.y - 17.5 * d;   // 肩の高さ
+      let vx = bq.x - shX, vy = bq.y - shY; const vl = Math.hypot(vx, vy) || 1; vx /= vl; vy /= vl;
+      if (vy > -0.42) { vy = -0.42; vx = Math.sign(vx || sd) * Math.sqrt(1 - vy * vy); }
+      if (Math.abs(vx) < 0.42) { vx = 0.42 * (Math.sign(vx) || sd); vy = -Math.sqrt(1 - vx * vx); }   // 真上には突き上げない（斜めに打つ）   // いつも斜め上へ（下へは打たない）
+      const len = (uu < 0.22 ? 3.2 : uu < 0.32 ? 3.2 + (uu - 0.22) / 0.1 * 4.6 : 7.8) * d, fx = shX + vx * len, fy = shY + vy * len;
+      const gc = (info.gk ? GKC[team] : TEAM[team]);
+      const drawArm = () => { ctx.lineCap = 'round'; ctx.strokeStyle = '#000'; ctx.lineWidth = 3.4 * d; ctx.beginPath(); ctx.moveTo(shX, shY); ctx.lineTo(fx, fy); ctx.stroke();
+        ctx.strokeStyle = gc.W; ctx.lineWidth = 2 * d; ctx.beginPath(); ctx.moveTo(shX, shY); ctx.lineTo(fx, fy); ctx.stroke(); ctx.lineCap = 'butt';
+        ctx.fillStyle = '#000'; ctx.fillRect(Math.round(fx - 2 * d), Math.round(fy - 2 * d), Math.ceil(4 * d), Math.ceil(4 * d));
+        ctx.fillStyle = '#f4f4f0'; ctx.fillRect(Math.round(fx - 1.3 * d), Math.round(fy - 1.3 * d), Math.ceil(2.6 * d), Math.ceil(2.6 * d));
+        ctx.fillStyle = '#c4c4c0'; ctx.fillRect(Math.round(fx - 1.3 * d), Math.round(fy + 0.3 * d), Math.ceil(2.6 * d), Math.ceil(1 * d)); };
+      dmFacing = fa; const r6 = sprite(lifted.x, lifted.y, q.s, info, team, 1, 0, false, false, true); dmFacing = null; window.__gk6 = [lifted.x, lifted.y, simT];
+      drawArm();   // 背中向きでも、頭の横から斜め上に出た腕とこぶしが見える
       return r6 || { top: lifted.y - 18 * px * 0.7, px };
     }
     // 版862：セーブの型ごとの姿勢
