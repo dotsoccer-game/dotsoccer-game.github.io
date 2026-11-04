@@ -4897,8 +4897,8 @@
     const myI = top.findIndex((p) => p.uid === DotNet.uid);
     const row = (p, k) => `<div class="ap-rkr${p.uid === DotNet.uid ? ' me' : ''}${k < 3 ? ' top' + (k + 1) : ''}"><span class="ap-rkr-no">${k + 1}</span><img src="${embFromLook(p.emb, 48)}" alt=""><div class="ap-rkr-n"><b>${esc(p.name)}${premMark(p.prem)}</b><small>${p.mgr ? esc(p.mgr) + '監督' : ''}</small></div>${rankBadge(Math.max(0, Math.min(4, p.rank || 0)))}<b class="ap-rkr-rp">${p.rp || 0}<small>RP</small></b></div>`;
     box.innerHTML = `${apBg()}<div class="ap-top"><img src="icons/home_online.png" alt=""><div><b>全国ランキング</b><small>RPの多い監督 TOP50</small></div><button class="std-back" title="もどる"><i class="bk-ico" aria-hidden="true"></i></button></div>
-      <div class="ap-rkl">${top.length ? top.map(row).join('') : '<p class="ap-note">まだランキングを読みこめませんでした。</p>'}</div>
-      <div class="ap-rkme">あなた：${myI >= 0 ? `<b>${myI + 1}位</b>` : '<b>圏外</b>'}　${rankBadge(rankIdx(on.rp))}　<b>${on.rp}</b> RP</div>`;
+      <div class="ap-rkl">${top.length ? top.map(row).join('') : '<p class="ap-note">まだランキングに載っている監督がいないか、読みこめませんでした。（ランクマッチでRPをかせぐと載ります）</p>'}</div>
+      <div class="ap-rkme">あなた：${myI >= 0 ? `<b>${myI + 1}位</b>` : on.rp > 0 ? '<b>圏外</b>' : '<b>RPをかせぐと載ります</b>'}　${rankBadge(rankIdx(on.rp))}　<b>${on.rp}</b> RP</div>`;
     el.hidden = false; el._fit && el._fit();
     box.querySelector('.std-back').onclick = () => airport();
   }

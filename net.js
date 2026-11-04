@@ -81,10 +81,13 @@
     return withTimeout(db.collection('battles').where('to', '==', uid).limit(50).get().then((q) => q.docs.map((d) => ({ id: d.id, ...d.data() }))));
   }
   async function clearInbox(ids) { if (!(await ready())) return; await Promise.all(ids.map((id) => db.collection('battles').doc(id).delete().catch(() => {}))); }
-  async function top(n) {
+  async function top(n) {   // 版1020：RPが0の監督（まだランクマッチをしていない・開いただけの端末）はランキングに出さない
     if (!(await ready())) return [];
-    return withTimeout(db.collection('players').orderBy('rp', 'desc').limit(n || 50).get().then((q) => q.docs.map((d) => ({ uid: d.id, name: d.data().name, mgr: d.data().mgr, emb: d.data().emb, rank: d.data().rank, rp: d.data().rp, prem: !!d.data().prem }))));
+    const mp = (q) => q.docs.map((d) => ({ uid: d.id, name: d.data().name, mgr: d.data().mgr, emb: d.data().emb, rank: d.data().rank, rp: d.data().rp, prem: !!d.data().prem }));
+    try { return await withTimeout(db.collection('players').where('rp', '>', 0).orderBy('rp', 'desc').limit(n || 50).get().then(mp)); }
+    catch (_) { return withTimeout(db.collection('players').orderBy('rp', 'desc').limit((n || 50) + 50).get().then((q) => mp(q).filter((p) => (p.rp || 0) > 0).slice(0, n || 50))); }   // 念のため：絞り込みが使えない時は、読んでから外す
   }
+
   // 版618：ポスト（フレンド申請・承認・お知らせ）
   async function sendMail(to, m) {
     if (!(await ready())) return;
