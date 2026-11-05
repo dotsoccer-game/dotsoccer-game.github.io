@@ -968,8 +968,8 @@
   const EMB_COLS = [['#1f4fbf', '#e23b2b'], ['#0f7a3a', '#ffd23a'], ['#6a1fb0', '#ffffff'], ['#d9541e', '#1a1a1a'], ['#1a8fd0', '#ffffff'], ['#c41e3a', '#ffd23a'], ['#222222', '#e8e8e8'], ['#2f9e44', '#ffffff'], ['#f2b51c', '#1f3f8f'], ['#d94a7a', '#2a2a6a'], ['#0e5e6e', '#f2c94c'], ['#8b1e2e', '#f0e0b0'], ['#3a6fd8', '#ffd23a'], ['#5a2a8a', '#ffb020'], ['#e86a1a', '#ffffff'], ['#14467a', '#7fd0ff']];
   const EMB_ICONS = ['ball', 'star', 'wave', 'crown', 'bolt', 'wing'];
   function teamLook(save, name) {
-    if (!name || name === save.team.name) { const e = ensureClub(save).emb; return { ...e, ch: e.ch || (save.team.short || save.team.name || 'H')[0], me: true }; }
-    if (GUESTS[name] && GUESTS[name].emb) { const e = GUESTS[name].emb; return { ...e, ch: e.ch || (GUESTS[name].short || name)[0] }; }
+    if (!name || name === save.team.name) { const e = ensureClub(save).emb; return { ...e, ch: e.ch || (save.team.short || save.team.name || 'H')[0], me: true, ...(e.tpl ? { name: save.team.name, short: save.team.short || '' } : {}) }; }   // 版1099：テンプレートのエンブレムには、今のクラブ名を入れる
+    if (GUESTS[name] && GUESTS[name].emb) { const e = GUESTS[name].emb; return { ...e, ch: e.ch || (GUESTS[name].short || name)[0], ...(e.tpl ? { name, short: GUESTS[name].short || e.sh || '' } : {}) }; }
     const t = findTeam(save, name) || { seed: [...name].reduce((a, c) => a * 31 + c.charCodeAt(0), 7) >>> 0, short: name };
     let x = (t.seed * 2654435761 + 12345) >>> 0; const r = () => { x = (Math.imul(x, 1664525) + 1013904223) >>> 0; return ((x ^ (x >>> 15)) >>> 0) / 4294967296; };
     const [c1, c2] = EMB_COLS[Math.floor(r() * EMB_COLS.length)];

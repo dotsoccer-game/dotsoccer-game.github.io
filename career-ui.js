@@ -315,8 +315,14 @@
     if (shape === 2) { ctx.moveTo(x - s * 0.46, y - s * 0.42); ctx.lineTo(x - s * 0.16, y - s * 0.5); ctx.lineTo(x, y - s * 0.4); ctx.lineTo(x + s * 0.16, y - s * 0.5); ctx.lineTo(x + s * 0.46, y - s * 0.42); ctx.lineTo(x + s * 0.44, y + s * 0.08); ctx.quadraticCurveTo(x + s * 0.36, y + s * 0.38, x, y + s * 0.52); ctx.quadraticCurveTo(x - s * 0.36, y + s * 0.38, x - s * 0.44, y + s * 0.08); ctx.closePath(); return; }
     ctx.moveTo(x - s * 0.44, y - s * 0.48); ctx.lineTo(x + s * 0.44, y - s * 0.48); ctx.lineTo(x + s * 0.44, y + s * 0.05); ctx.quadraticCurveTo(x + s * 0.4, y + s * 0.36, x, y + s * 0.52); ctx.quadraticCurveTo(x - s * 0.4, y + s * 0.36, x - s * 0.44, y + s * 0.05); ctx.closePath();
   }
-  function drawIcon(ctx, x, y, r, icon, col) {
+  function drawIcon(ctx, x, y, r, icon, col, c2) {
     ctx.save(); ctx.translate(x, y); ctx.fillStyle = col; ctx.strokeStyle = col; ctx.lineWidth = r * 0.18;
+    if (icon === 'ball' && c2) {   // 版1099：2色のボール（主色＝本体、補助色＝五角形と縫い目）。小さくても分かる太さ
+      ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.fillStyle = col; ctx.fill(); ctx.save(); ctx.clip(); ctx.fillStyle = c2; ctx.strokeStyle = c2; ctx.lineWidth = r * 0.09;
+      const pg = (cx, cy, rr, rot) => { ctx.beginPath(); for (let a = 0; a < 5; a++) { const an = rot + a * 1.2566; ctx.lineTo(cx + Math.cos(an) * rr, cy + Math.sin(an) * rr); } ctx.closePath(); ctx.fill(); };
+      pg(0, 0, r * 0.36, -Math.PI / 2);
+      for (let a = 0; a < 5; a++) { const an = -Math.PI / 2 + a * 1.2566; ctx.beginPath(); ctx.moveTo(Math.cos(an) * r * 0.34, Math.sin(an) * r * 0.34); ctx.lineTo(Math.cos(an) * r * 0.78, Math.sin(an) * r * 0.78); ctx.stroke(); pg(Math.cos(an) * r * 1.02, Math.sin(an) * r * 1.02, r * 0.3, an + Math.PI); }
+      ctx.restore(); ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.lineWidth = r * 0.1; ctx.strokeStyle = c2; ctx.stroke(); ctx.restore(); return; }
     if (icon === 'ball') { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.fill(); ctx.strokeStyle = '#222'; ctx.lineWidth = r * 0.12; ctx.stroke(); ctx.fillStyle = '#222'; ctx.beginPath(); for (let a = 0; a < 5; a++) { const an = -Math.PI / 2 + a * 1.2566; ctx.lineTo(Math.cos(an) * r * 0.38, Math.sin(an) * r * 0.38); } ctx.fill(); for (let a = 0; a < 5; a++) { const an = -Math.PI / 2 + a * 1.2566; ctx.beginPath(); ctx.arc(Math.cos(an) * r * 0.86, Math.sin(an) * r * 0.86, r * 0.2, 0, 7); ctx.fill(); } }
     else if (icon === 'star') { ctx.beginPath(); for (let a = 0; a < 10; a++) { const an = -Math.PI / 2 + a * Math.PI / 5, rr = a % 2 ? r * 0.45 : r; ctx.lineTo(Math.cos(an) * rr, Math.sin(an) * rr); } ctx.closePath(); ctx.fill(); }
     else if (icon === 'wave') { for (let k = 0; k < 2; k++) { ctx.beginPath(); ctx.moveTo(-r, k * r * 0.6 - r * 0.2); for (let u = 0; u <= 8; u++) ctx.lineTo(-r + u * r / 4, k * r * 0.6 - r * 0.2 + Math.sin(u * 1.6) * r * 0.25); ctx.stroke(); } }
@@ -332,7 +338,127 @@
     else { ctx.beginPath(); ctx.moveTo(-r, r * 0.3); ctx.quadraticCurveTo(-r * 0.2, -r * 1.1, r, -r * 0.6); ctx.quadraticCurveTo(r * 0.1, -r * 0.2, r * 0.5, r * 0.1); ctx.quadraticCurveTo(-r * 0.1, r * 0.05, -r, r * 0.3); ctx.fill(); }
     ctx.restore();
   }
+  // ---------- 版1099：エンブレム（16種類のテンプレート）。各部を分けて描く（外枠・内枠・土台・模様・名前の帯・飾り・マーク・文字） ----------
+  //  座標は -50〜50 の正方形。tpl があるエンブレムだけこの描き方（tpl がない古いデータは、前の描き方のまま）
+  //  色の8項目：c1 土台／c2 模様／cf 外枠／ci 内枠／cd 飾り／cb 名前の帯／cm マーク／ct 文字
+  const EMB2_COLS = { c1: '#1f4fd0', c2: '#e0283a', cf: '#13234a', ci: '#ffffff', cd: '#f2c230', cb: '#13234a', cm: '#ffffff', ct: '#ffffff' };
+  const EMB2_ROLES = [['c1', '土台'], ['c2', '模様'], ['cf', '外枠'], ['ci', '内枠'], ['cd', '飾り'], ['cb', '名前の帯'], ['cm', 'マーク'], ['ct', '文字']];
+  const EMB2_PATS = [[4, '無地'], [0, '縦じま'], [8, '細じま'], [1, '左右2色'], [6, 'ななめ分割'], [2, 'ななめ帯'], [3, '横帯'], [7, 'サイド2本'], [5, '十字']];
+  const e2Shield = (top, w, yS, yB, bend) => (c) => { c.moveTo(-w, top); c.quadraticCurveTo(0, top - bend, w, top); c.lineTo(w, yS); c.quadraticCurveTo(w * 0.95, (yS + yB) / 2 + 6, 0, yB); c.quadraticCurveTo(-w * 0.95, (yS + yB) / 2 + 6, -w, yS); c.closePath(); };
+  const e2Poly = (pts) => (c) => { pts.forEach(([x, y], k) => (k ? c.lineTo(x, y) : c.moveTo(x, y))); c.closePath(); };
+  const EMB2_T = [
+    null,
+    { name: '王道の盾', out: e2Shield(-40, 42, 0, 49, 10), cy: 4, hw: 42, hh: 46, band: { k: 'top', y: -20 }, text: { k: 'rect', x: 0, y: -29.5, w: 58, h: 14 }, mark: { x: 0, y: 13, r: 15 } },
+    { name: '丸型', ring: [49, 45.6, 43.6, 31.4, 29.4], text: { k: 'arc', rx: 37.5, ry: 37.5, a0: 200, a1: 340, h: 10 }, mark: { x: 0, y: 0, r: 18 } },
+    { name: 'リボン', out: e2Shield(-42, 40, 4, 48, 0), cy: 3, hw: 40, hh: 45, rib: { y: 22, h: 15, w: 46 }, text: { k: 'rect', x: 0, y: 22, w: 70, h: 12.5 }, mark: { x: 0, y: -14, r: 15 } },
+    { name: '月桂樹', out: e2Shield(-34, 30, 4, 40, 6), cy: 3, hw: 30, hh: 37, band: { k: 'top', y: -16 }, text: { k: 'rect', x: 0, y: -24.5, w: 42, h: 11 }, mark: { x: 0, y: 12, r: 11 }, deco: 'laurel' },
+    { name: 'ウイング', out: e2Shield(-36, 28, 6, 40, 6), cy: 2, hw: 28, hh: 38, rib: { y: 29, h: 14, w: 40 }, text: { k: 'rect', x: 0, y: 29, w: 62, h: 11.5 }, mark: { x: 0, y: -9, r: 14 }, deco: 'wings' },
+    { name: 'クラシック', out: (c) => { c.moveTo(-36, -28); c.lineTo(-24, -28); c.quadraticCurveTo(-12, -35, 0, -30); c.quadraticCurveTo(12, -35, 24, -28); c.lineTo(36, -28); c.lineTo(36, 6); c.quadraticCurveTo(34, 32, 0, 48); c.quadraticCurveTo(-34, 32, -36, 6); c.closePath(); }, cy: 9, hw: 36, hh: 39, band: { k: 'top', y: -10 }, text: { k: 'rect', x: 0, y: -18, w: 52, h: 12 }, mark: { x: 0, y: 17, r: 13 }, deco: 'crown' },
+    { name: '六角形', out: e2Poly([[0, -48], [42, -24], [42, 24], [0, 48], [-42, 24], [-42, -24]]), cy: 0, hw: 42, hh: 48, plate: { y: 24, h: 15, w: 48 }, text: { k: 'rect', x: 0, y: 24, w: 72, h: 12 }, mark: { x: 0, y: -9, r: 16 } },
+    { name: 'ペナント', out: e2Poly([[-42, -46], [42, -46], [42, 14], [0, 48], [-42, 14]]), cy: 0, hw: 42, hh: 47, band: { k: 'top', y: -24 }, text: { k: 'rect', x: 0, y: -34, w: 66, h: 14 }, mark: { x: 0, y: 9, r: 14 } },
+    { name: 'オーバル', oval: [[40, 49], [37.2, 46.2], [35.4, 44.4], [26.6, 35.6], [24.8, 33.8]], text: { k: 'arc', rx: 31, ry: 40, a0: 208, a1: 332, h: 8.5 }, mark: { x: 0, y: 0, r: 14 } },
+    { name: 'ダイヤ', out: e2Poly([[0, -49], [47, 0], [0, 49], [-47, 0]]), cy: 0, hw: 47, hh: 49, rib: { y: 21, h: 14, w: 40 }, text: { k: 'rect', x: 0, y: 21, w: 62, h: 11.5 }, mark: { x: 0, y: -12, r: 14 } },
+    { name: '二段シールド', out: (c) => { c.moveTo(-40, -38); c.quadraticCurveTo(-31, -47, -20, -42); c.quadraticCurveTo(0, -50, 20, -42); c.quadraticCurveTo(31, -47, 40, -38); c.lineTo(40, 0); c.quadraticCurveTo(38, 31, 0, 48); c.quadraticCurveTo(-38, 31, -40, 0); c.closePath(); }, cy: 4, hw: 40, hh: 46, band: { k: 'top', y: -14 }, text: { k: 'rect', x: 0, y: -27, w: 58, h: 14 }, mark: { x: 0, y: 15, r: 14 } },
+    { name: 'クロス', out: e2Shield(-40, 40, 4, 48, 8), cy: 4, hw: 40, hh: 45, rib: { y: 25, h: 14, w: 46 }, text: { k: 'rect', x: 0, y: 25, w: 70, h: 11.5 }, mark: { x: 0, y: -8, r: 12 }, patFix: 5 },
+    { name: 'アーチ', out: (c) => { c.moveTo(-40, 44); c.lineTo(-40, -8); c.arc(0, -8, 40, Math.PI, 0); c.lineTo(40, 44); c.quadraticCurveTo(40, 48, 36, 48); c.lineTo(-36, 48); c.quadraticCurveTo(-40, 48, -40, 44); c.closePath(); }, cy: 0, hw: 40, hh: 48, band: { k: 'bot', y: 25 }, text: { k: 'rect', x: 0, y: 35, w: 62, h: 13 }, mark: { x: 0, y: -8, r: 17 } },
+    { name: 'ツインフラッグ', out: e2Shield(-30, 30, 6, 40, 6), cy: 4, hw: 30, hh: 36, rib: { y: 28, h: 13, w: 40 }, text: { k: 'rect', x: 0, y: 28, w: 62, h: 10.5 }, mark: { x: 0, y: -6, r: 13 }, deco: 'flags' },
+    { name: 'スクエア', out: e2Poly([[-38, -46], [38, -46], [44, -40], [44, 40], [38, 46], [-38, 46], [-44, 40], [-44, -40]]), cy: 0, hw: 44, hh: 46, band: { k: 'top', y: -25 }, text: { k: 'rect', x: 0, y: -35, w: 68, h: 13 }, mark: { x: 0, y: 10, r: 16 } },
+    { name: 'ローレルリング', out: (c) => c.arc(0, 0, 48, 0, Math.PI * 2), cy: 0, hw: 48, hh: 48, rib: { y: 29, h: 14, w: 46 }, text: { k: 'rect', x: 0, y: 29, w: 70, h: 11.5 }, mark: { x: 0, y: -6, r: 15 }, deco: 'laurelIn' },
+  ];
+  // 使っていない色の項目（編集画面で隠す）
+  function emb2Roles(lk) {
+    const T = EMB2_T[lk.tpl] || EMB2_T[1], pat = T.patFix != null ? T.patFix : lk.pat;
+    return EMB2_ROLES.filter(([k]) => !(k === 'c2' && pat === 4) && !(k === 'cd' && !T.deco) && !(k === 'cm' && (lk.icon || 'none') === 'none') && !(k === 'ct' && lk.tm === 'none'));
+  }
+  // 古いエンブレム（形・模様・3色）から、テンプレートの形へ（できるだけ見た目を引き継ぐ）
+  function emb2From(e) {
+    if (e.tpl) return { ...EMB2_COLS, tm: 'name', ...e };
+    const tpl = { 0: 1, 1: 2, 2: 6, 3: 10, 4: 7, 5: 8 }[e.shape] || 1;
+    return { ...e, tpl, c1: e.c1 || EMB2_COLS.c1, c2: e.c2 || EMB2_COLS.c2, cf: EMB2_COLS.cf, ci: EMB2_COLS.ci, cd: EMB2_COLS.cd, cb: EMB2_COLS.cb, cm: e.c3 || '#ffffff', ct: e.c3 || '#ffffff', tm: 'name' };
+  }
+  const e2Hex = (h) => { const m = /^#?([0-9a-f]{6})$/i.exec(h || ''); const n = m ? parseInt(m[1], 16) : 0; return [n >> 16, (n >> 8) & 255, n & 255]; };
+  const e2Near = (a, b) => { const p = e2Hex(a), q = e2Hex(b); return Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]) < 70; };
+  const e2Shade = (h, k) => { const [r, g, b] = e2Hex(h); return `rgb(${Math.round(r * k)},${Math.round(g * k)},${Math.round(b * k)})`; };
+  const E2FONT = '"Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP",sans-serif';
+  function drawEmblem2(ctx, x, y, s, lk) {
+    const T = EMB2_T[lk.tpl] || EMB2_T[1], col = { ...EMB2_COLS, ...lk };
+    const c = ctx; c.save(); c.translate(x, y); c.scale(s / 100, s / 100); c.lineJoin = 'round'; c.lineCap = 'round';
+    const FW = 4.2, IW = 2.2;
+    const scaled = (d) => { const kx = 1 - d / T.hw, ky = 1 - d / T.hh; c.beginPath(); c.save(); c.translate(0, T.cy); c.scale(kx, ky); c.translate(0, -T.cy); T.out(c); c.restore(); };
+    const ell = (rx, ry) => { c.beginPath(); c.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2); };
+    // --- 飾り（後ろ）：月桂樹・翼・旗 ---
+    const strokeF = (w) => { c.lineWidth = w; c.strokeStyle = col.cf; c.stroke(); };
+    const laurel = (cx0, cy0, R, a0, a1, side, leaf) => {
+      c.beginPath(); for (let k = 0; k <= 24; k++) { const a = (a0 + (a1 - a0) * k / 24) * Math.PI / 180; const px = cx0 + Math.cos(a) * R, py = cy0 + Math.sin(a) * R; k ? c.lineTo(px, py) : c.moveTo(px, py); } c.lineWidth = 2.6; c.strokeStyle = col.cd; c.stroke();
+      const n = 7; for (let k = 1; k <= n; k++) { const a = (a0 + (a1 - a0) * k / (n + 0.4)) * Math.PI / 180, px = cx0 + Math.cos(a) * R, py = cy0 + Math.sin(a) * R, tg = a + Math.PI / 2 * Math.sign(a1 - a0);
+        for (const o of [-1, 1]) { c.save(); c.translate(px, py); c.rotate(tg + o * 0.75); c.beginPath(); c.ellipse(leaf * 0.9, 0, leaf, leaf * 0.42, 0, 0, Math.PI * 2); c.fillStyle = col.cd; c.fill(); strokeF(0.9); c.restore(); } }
+    };
+    if (T.deco === 'laurel') { laurel(0, 2, 44, 98, 228, -1, 5.2); laurel(0, 2, 44, 82, -48, 1, 5.2); }
+    if (T.deco === 'wings') for (const sd of [-1, 1]) for (let k = 3; k >= 0; k--) {
+      c.beginPath(); c.moveTo(sd * 18, -18 + k * 7); c.quadraticCurveTo(sd * (40 - k * 2), -34 + k * 6, sd * (51 - k * 5), -40 + k * 12); c.quadraticCurveTo(sd * (40 - k * 4), -16 + k * 10, sd * 18, -6 + k * 7); c.closePath(); c.fillStyle = col.cd; c.fill(); strokeF(1.8); }
+    if (T.deco === 'flags') for (const sd of [-1, 1]) {
+      c.beginPath(); c.moveTo(sd * 43, -44); c.lineTo(-sd * 16, 48); c.lineWidth = 3.4; c.strokeStyle = col.cf; c.stroke();
+      c.beginPath(); c.arc(sd * 43.6, -45, 2.6, 0, 7); c.fillStyle = col.cf; c.fill();
+      c.beginPath(); c.moveTo(sd * 41.5, -40); c.lineTo(sd * 52, -38); c.lineTo(sd * 47, -32.5); c.lineTo(sd * 50, -26); c.lineTo(sd * 37.6, -29); c.closePath(); c.fillStyle = col.cd; c.fill(); strokeF(1.5); }
+    // --- 本体：外枠 → 内枠 → 土台＋模様（＋本体の中の帯） ---
+    const pat = T.patFix != null ? T.patFix : (lk.pat == null ? 4 : lk.pat);
+    const paintPat = (bx, by, bw, bh) => {   // 本体の中（クリップ済み）に模様
+      c.fillStyle = col.c2; const mx = (T.mark && T.mark.x) || 0, my = (T.mark && T.mark.y) || 0;
+      if (pat === 0) { const w = bw / 7; for (let k = 1; k < 7; k += 2) c.fillRect(bx + k * w, by, w, bh); }
+      else if (pat === 8) { const w = bw / 13; for (let k = 1; k < 13; k += 2) c.fillRect(bx + k * w, by, w, bh); }
+      else if (pat === 1) c.fillRect(0, by, bw, bh);
+      else if (pat === 6) { c.beginPath(); c.moveTo(bx, by + bh); c.lineTo(bx + bw, by + bh * 0.08); c.lineTo(bx + bw, by + bh); c.closePath(); c.fill(); }
+      else if (pat === 2) { c.beginPath(); c.moveTo(bx, by + bh * 0.62); c.lineTo(bx + bw, by + bh * 0.12); c.lineTo(bx + bw, by + bh * 0.38); c.lineTo(bx, by + bh * 0.88); c.closePath(); c.fill(); }
+      else if (pat === 3) c.fillRect(bx, my - 7, bw, 14);
+      else if (pat === 7) { c.fillRect(bx + bw * 0.1, by, bw * 0.13, bh); c.fillRect(bx + bw * 0.77, by, bw * 0.13, bh); }
+      else if (pat === 5) { c.fillRect(mx - 6.5, by, 13, bh); c.fillRect(bx, my - 6.5, bw, 13); }
+    };
+    if (T.ring || T.oval) {
+      const R = T.ring ? T.ring.map((r) => [r, r]) : T.oval;
+      ell(...R[0]); c.fillStyle = col.cf; c.fill(); ell(...R[1]); c.fillStyle = col.ci; c.fill(); ell(...R[2]); c.fillStyle = col.cb; c.fill(); ell(...R[3]); c.fillStyle = col.ci; c.fill();
+      ell(...R[4]); c.fillStyle = col.c1; c.fill(); c.save(); c.clip(); paintPat(-R[4][0], -R[4][1], R[4][0] * 2, R[4][1] * 2); c.restore();
+    } else {
+      scaled(0); c.fillStyle = col.cf; c.fill(); scaled(FW); c.fillStyle = col.ci; c.fill(); scaled(FW + IW); c.fillStyle = col.c1; c.fill();
+      c.save(); c.clip(); paintPat(-T.hw, T.cy - T.hh - 4, T.hw * 2, T.hh * 2 + 8);
+      if (T.band) { const up = T.band.k === 'top'; c.fillStyle = col.cb; if (up) c.fillRect(-60, -60, 120, T.band.y + 60); else c.fillRect(-60, T.band.y, 120, 60); c.fillStyle = col.ci; c.fillRect(-60, T.band.y - IW / 2, 120, IW); }
+      if (T.deco === 'laurelIn') { laurel(0, -4, 34, 112, 222, -1, 4.4); laurel(0, -4, 34, 68, -42, 1, 4.4); }
+      c.restore();
+    }
+    // --- 名前のリボン・帯（本体の外へはみ出す） ---
+    const ribbon = (R, tails) => {
+      const { y: ry, h, w } = R, t = h / 2;
+      if (tails) for (const sd of [-1, 1]) { c.beginPath(); c.moveTo(sd * (w - 6), ry - t + 5); c.lineTo(sd * (w + 7), ry - t + 5); c.lineTo(sd * (w + 2), ry + 3.5); c.lineTo(sd * (w + 7), ry + t + 5); c.lineTo(sd * (w - 6), ry + t + 5); c.closePath(); c.fillStyle = col.cb; c.fill(); c.fillStyle = 'rgba(0,0,0,.28)'; c.fill(); strokeF(1.8); }
+      c.beginPath(); if (tails) { c.moveTo(-w, ry - t); c.quadraticCurveTo(0, ry - t - 4, w, ry - t); c.lineTo(w, ry + t); c.quadraticCurveTo(0, ry + t - 4, -w, ry + t); } else { c.moveTo(-w, ry - t); c.lineTo(w, ry - t); c.lineTo(w - 4, ry + t); c.lineTo(-w + 4, ry + t); } c.closePath();
+      c.fillStyle = col.cb; c.fill(); strokeF(2); c.beginPath(); if (tails) { c.moveTo(-w + 2.5, ry - t + 2.4); c.quadraticCurveTo(0, ry - t - 1.6, w - 2.5, ry - t + 2.4); c.moveTo(-w + 2.5, ry + t - 2.4); c.quadraticCurveTo(0, ry + t - 6.4, w - 2.5, ry + t - 2.4); } else { c.moveTo(-w + 2.5, ry - t + 2.4); c.lineTo(w - 2.5, ry - t + 2.4); c.moveTo(-w + 5.5, ry + t - 2.4); c.lineTo(w - 5.5, ry + t - 2.4); } c.lineWidth = 1; c.strokeStyle = col.ci; c.stroke();
+    };
+    if (T.rib) ribbon(T.rib, true); if (T.plate) ribbon(T.plate, false);
+    // --- 文字：名前の帯の中央。長い名前は縮める。最小の大きさでも入らなければ略称 ---
+    if (lk.tm !== 'none') {
+      const full = String(lk.name || lk.nm || '').trim(), sh = String(lk.short || lk.sh || '').trim() || full.slice(0, 4);
+      const cand = lk.tm === 'short' ? [sh] : [full, sh];
+      const tx = T.text; c.fillStyle = col.ct; c.textAlign = 'center'; c.textBaseline = 'middle';
+      const wAt = (str, f) => { c.font = `900 ${f}px ${E2FONT}`; return c.measureText(str).width; };
+      let str = '', f = 0;
+      const avail = tx.k === 'arc' ? (() => { let L = 0, px = null, py = null; for (let k = 0; k <= 40; k++) { const a = (tx.a0 + (tx.a1 - tx.a0) * k / 40) * Math.PI / 180, qx = Math.cos(a) * tx.rx, qy = Math.sin(a) * tx.ry; if (px != null) L += Math.hypot(qx - px, qy - py); px = qx; py = qy; } return L; })() : tx.w;
+      for (const sx of cand) { if (!sx) continue; const fMax = tx.h * 0.86, fit = Math.min(fMax, fMax * avail / Math.max(1, wAt(sx, fMax) * (tx.k === 'arc' ? 1.12 : 1))); if (fit >= tx.h * 0.5 || sx === cand[cand.length - 1]) { str = sx; f = Math.max(fit, tx.h * 0.3); if (fit >= tx.h * 0.5) break; } }
+      if (str && f > 0) {
+        if (tx.k === 'rect') { c.font = `900 ${f}px ${E2FONT}`; let s2 = str; while (s2.length > 1 && c.measureText(s2).width > tx.w) s2 = s2.slice(0, -1); c.fillText(s2, tx.x, tx.y + f * 0.04); }
+        else {   // 外周のリングに沿わせる（上側）
+          c.font = `900 ${f}px ${E2FONT}`; const ws = [...str].map((ch) => c.measureText(ch).width * 1.12), tot = ws.reduce((a, b) => a + b, 0);
+          const pts = []; let L = 0, px = null, py = null; for (let k = 0; k <= 200; k++) { const a = (tx.a0 + (tx.a1 - tx.a0) * k / 200) * Math.PI / 180, qx = Math.cos(a) * tx.rx, qy = Math.sin(a) * tx.ry; if (px != null) L += Math.hypot(qx - px, qy - py); pts.push([L, qx, qy, a]); px = qx; py = qy; }
+          let at = (L - Math.min(tot, L)) / 2; [...str].forEach((ch, j) => { const mid = at + ws[j] / 2; at += ws[j]; const p = pts.find((q) => q[0] >= mid) || pts[pts.length - 1]; c.save(); c.translate(p[1], p[2]); c.rotate(Math.atan2(Math.cos(p[3]) * tx.ry, -Math.sin(p[3]) * tx.rx)); c.fillText(ch, 0, 0); c.restore(); });
+        }
+      }
+      c.textBaseline = 'alphabetic';
+    }
+    // --- 中央のマーク（ボールなど2色のマークは、主色＝マーク・補助色＝内枠。近い色なら外枠の色） ---
+    if (T.mark && (lk.icon || 'none') !== 'none') { const sub = !e2Near(col.ci, col.cm) ? col.ci : !e2Near(col.cf, col.cm) ? col.cf : (e2Hex(col.cm).reduce((a, b) => a + b, 0) > 380 ? '#13234a' : '#ffffff'); drawIcon(c, T.mark.x, T.mark.y, T.mark.r * 0.86, lk.icon, col.cm, sub); }
+    // --- 飾り（前）：王冠 ---
+    if (T.deco === 'crown') { c.beginPath(); c.moveTo(-14, -30); c.lineTo(-16, -44); c.lineTo(-8, -37); c.lineTo(0, -48); c.lineTo(8, -37); c.lineTo(16, -44); c.lineTo(14, -30); c.closePath(); c.fillStyle = col.cd; c.fill(); strokeF(1.8); for (const [bx, by] of [[-16, -45.5], [0, -49.5], [16, -45.5]]) { c.beginPath(); c.arc(bx, by, 2.4, 0, 7); c.fillStyle = col.cd; c.fill(); strokeF(1.2); } }
+    c.restore();
+  }
   function drawEmblem(ctx, x, y, s, lk) {
+    if (lk && lk.tpl) { drawEmblem2(ctx, x, y, s, lk); return; }   // 版1099：テンプレートのエンブレム
     ctx.save();
     emblemPath(ctx, x, y, s, lk.shape); ctx.fillStyle = lk.c1; ctx.fill();
     ctx.clip();
@@ -3790,29 +3916,42 @@
     const el = fullScreen('clubScreen', 'std-wrap club-wrap'), box = el.querySelector('.lk-box');
     const club = C.ensureClub(save);
     const st = { name: save.team.name, short: save.team.short || '', kit: null, kits: { home: { ...club.kit }, away: { ...club.kit2 }, gk: { ...club.gk } }, kside: 'home', emb: { ...club.emb }, err: '', home: save.hometown || '' }; st.kit = st.kits.home;
-    clubTab = opt.first ? 'name' : clubTab;
+    st.emb2 = emb2From(club.emb); st.emb2Orig = { ...st.emb2 }; st.embTouched = false; st.erole = st.erole || 'c1';   // 版1099：テンプレートのエンブレム（エンブレムの画面で変えた時だけ保存する）
+    clubTab = opt.first ? 'name' : opt.only || clubTab;
     const embOf = () => ({ ...st.emb, ch: st.emb.ch || (st.short || st.name || 'H')[0] });
+    const emb2Of = (o) => ({ ...st.emb2, name: st.name, short: st.short, ...(o || {}) });
     const embCanvas = (lk, size) => { const cv = document.createElement('canvas'); cv.width = size; cv.height = size; drawEmblem(cv.getContext('2d'), size / 2, size / 2, size * 0.92, lk); return cv.toDataURL(); };
     const sw = (key, cur) => `<div class="cl-sw">${PALETTE.map((c) => `<button data-col="${key}" data-v="${c}" class="${cur.toLowerCase() === c ? 'on' : ''}" style="background:${c}" title="${c}"></button>`).join('')}<label class="cl-pick" title="好きな色"><input type="color" data-colin="${key}" value="${cur}"><span>他の色</span></label></div>`;
     const draw = () => {
       const lk = embOf(), ps = save.team.players;
-      const preview = `<div class="cl-prev"><img class="cl-emb" src="${embCanvas(lk, 240)}" alt=""><div class="cl-name"><b>${esc(st.name || 'クラブ名')}</b><small>略称：${esc(st.short || '―')}</small></div><div class="cl-kits" id="clKits"></div></div>`;
+      const isE = clubTab === 'emb', lk2 = emb2Of(), p10 = ps[9] || ps[0] || {};
+      const hlCol = (v) => (e2Near(v, '#ff2fd0') ? '#00e5ff' : '#ff2fd0');
+      const preview = isE ? `<div class="cl-prev e2"><div class="cl-embw"><img class="cl-emb" src="${embCanvas(lk2, 260)}" alt="">${st.etab === 'color' ? `<img class="cl-emb cl-embhl" src="${embCanvas({ ...lk2, [st.erole]: hlCol(lk2[st.erole]) }, 260)}" alt="">` : ''}</div><div class="cl-name"><b>${esc(st.name || 'クラブ名')}</b><small>略称：${esc(st.short || '―')}</small></div><div class="cl-use"><small>使用イメージ</small><div><img src="${embCanvas(lk2, 64)}" alt=""><b>${p10.number || 10}</b><span>${esc(p10.name || '選手')}</span></div></div></div>`
+        : `<div class="cl-prev"><img class="cl-emb" src="${embCanvas(lk, 240)}" alt=""><div class="cl-name"><b>${esc(st.name || 'クラブ名')}</b><small>略称：${esc(st.short || '―')}</small></div><div class="cl-kits" id="clKits"></div></div>`;
       let body = '';
       if (clubTab === 'name') body = `<div class="cl-form">${!save.clubSet ? `<label>ホームタウン<select id="clHome"><option value="">（選んでください）</option>${C.PREFS.map((pf) => `<option${st.home === pf ? ' selected' : ''}>${pf}</option>`).join('')}</select></label><p class="cl-note">ホームタウンで、最初に入る地域リーグが決まります（北海道〜中部は<b>東</b>、三重〜沖縄は<b>西</b>）。あとから変えられません。</p>` : `<p class="cl-note">ホームタウン：<b>${esc(save.hometown || '高知県')}</b>（地域リーグ${(save.world && save.world.region) === 'E' ? '東' : '西'}）</p>`}<label>クラブ名<input id="clName" maxlength="12" value="${esc(st.name)}" placeholder="例：はじまりサンライズFC"></label><p class="cl-note">12文字まで。ほかのチームと同じ名前は使えません。</p><label>略称（試合の点数の横に出る名前）<input id="clShort" maxlength="6" value="${esc(st.short)}" placeholder="例：はじまり"></label><p class="cl-note">6文字まで。空にすると、クラブ名から自動で作ります。</p>${st.err ? `<p class="cl-err">${esc(st.err)}</p>` : ''}</div>`;   /* 版474：やり直し（初期化）はクラブ事務所の「退任」だけ */
       else if (clubTab === 'kit') body = `<div class="cl-form"><div class="cl-kside">${[['home', 'ホーム'], ['away', 'アウェー'], ['gk', 'GK']].map(([k, l]) => `<button data-kside="${k}" class="${st.kside === k ? 'on' : ''}">${l}</button>`).join('')}</div>${st.kside === 'gk' ? '<p class="cl-note">GK（ゴールキーパー）のユニフォームです。試合の時、GKだけこの色になります（無地）。</p>' : `<div class="cl-h">柄</div><div class="cl-opts">${KIT_PATS.map(([k, l]) => `<button data-kpat="${k}" class="${st.kit.pat === k ? 'on' : ''}">${l}</button>`).join('')}</div>`}
         <div class="cl-h">シャツの色</div>${sw('shirt', st.kit.shirt)}${st.kside === 'gk' ? '' : `<div class="cl-h">シャツの柄の色${st.kit.pat === 'solid' ? '<small>（無地のときは使いません）</small>' : ''}</div>${sw('sub', st.kit.sub)}`}<div class="cl-h">パンツの色</div>${sw('shorts', st.kit.shorts)}<div class="cl-h">ソックスの色</div>${sw('socks', st.kit.socks)}</div>`;
-      else body = `<div class="cl-form"><div class="cl-h">形</div><div class="cl-opts img">${EMB_SHAPES.map(([k, l]) => `<button data-eshape="${k}" class="${st.emb.shape === k ? 'on' : ''}"><img src="${embCanvas({ ...lk, shape: k }, 56)}" alt="">${l}</button>`).join('')}</div>
-        <div class="cl-h">模様</div><div class="cl-opts img">${EMB_PATS.map(([k, l]) => `<button data-epat="${k}" class="${st.emb.pat === k ? 'on' : ''}"><img src="${embCanvas({ ...lk, pat: k }, 56)}" alt="">${l}</button>`).join('')}</div>
-        <div class="cl-h">マーク</div><div class="cl-opts img">${EMB_ICONS.map(([k, l]) => `<button data-eicon="${k}" class="${st.emb.icon === k ? 'on' : ''}"><img src="${embCanvas({ ...lk, icon: k }, 56)}" alt="">${l}</button>`).join('')}</div>
-        <div class="cl-h">上の文字<small>（1〜2文字。空なら略称の1文字目）</small></div><input id="clCh" class="cl-ch" maxlength="2" value="${esc(st.emb.ch || '')}">
-        <div class="cl-h">土台の色</div>${sw('c1', st.emb.c1)}<div class="cl-h">模様の色</div>${sw('c2', st.emb.c2)}<div class="cl-h">マークと文字の色</div>${sw('c3', st.emb.c3)}</div>`;
+      else {   // 版1099：エンブレム（形・模様／マーク／色・文字）
+        const e = st.emb2, T = EMB2_T[e.tpl] || EMB2_T[1], et = st.etab || 'shape', roles = emb2Roles(lk2);
+        if (!roles.some(([k]) => k === st.erole)) st.erole = roles[0][0];
+        const tabs = `<div class="cl-etabs">${[['shape', '形・模様'], ['mark', 'マーク'], ['color', '色・文字']].map(([k, l]) => `<button data-etab="${k}" class="${et === k ? 'on' : ''}">${l}</button>`).join('')}</div>`;
+        let inner = '';
+        if (et === 'shape') inner = `<div class="cl-h">形</div><div class="cl-opts img e2">${EMB2_T.map((t, k) => (t ? `<button data-etpl="${k}" class="${e.tpl === k ? 'on' : ''}"><img src="${embCanvas(emb2Of({ tpl: k }), 72)}" alt="">${String(k).padStart(2, '0')} ${t.name}</button>` : '')).join('')}</div>`
+          + (T.patFix != null ? '<p class="cl-note">この形は、模様が十字で決まっています。</p>' : `<div class="cl-h">模様</div><div class="cl-opts img e2p">${EMB2_PATS.filter(([k]) => k !== 5).map(([k, l]) => `<button data-epat2="${k}" class="${(e.pat == null ? 4 : e.pat) === k ? 'on' : ''}"><img src="${embCanvas(emb2Of({ pat: k }), 60)}" alt="">${l}</button>`).join('')}</div>`);
+        else if (et === 'mark') inner = `<div class="cl-h">マークを選ぶ</div><div class="cl-opts img e2m">${EMB_ICONS.map(([k, l]) => `<button data-eicon2="${k}" class="${(e.icon || 'none') === k ? 'on' : ''}"><img src="${embCanvas(emb2Of({ icon: k }), 64)}" alt="">${l}</button>`).join('')}</div><p class="cl-note">マークの色は「色・文字」で変えられます。</p>`;
+        else inner = `<div class="cl-h">文字</div><div class="cl-opts">${[['name', 'クラブ名'], ['short', '略称'], ['none', '文字なし']].map(([k, l]) => `<button data-etm="${k}" class="${(e.tm || 'name') === k ? 'on' : ''}">${l}</button>`).join('')}</div><p class="cl-note">長い名前は小さくして入れます。入りきらない時は略称になります（名前は「名前」で変えられます）。</p>
+          <div class="cl-h">色を変える部分</div><div class="cl-roles">${roles.map(([k, l]) => `<button data-erole="${k}" class="${st.erole === k ? 'on' : ''}"><i style="background:${e[k]}"></i>${l}</button>`).join('')}</div>
+          <div class="cl-h">${(EMB2_ROLES.find(([k]) => k === st.erole) || [])[1] || ''}の色<small>（プレビューで点滅している部分）</small></div>${sw('e2:' + st.erole, e[st.erole] || '#ffffff')}`;
+        body = `<div class="cl-form e2f">${tabs}${inner}</div>`;
+      }
       const scKeep = (() => { const b0 = box.querySelector('.cl-body'), s0 = box.querySelector('.cl-side'); return [b0 ? b0.scrollTop : 0, s0 ? s0.scrollTop : 0, box._clTab]; })(); box._clTab = clubTab;   /* 版473：色などを選んでも、スクロールの位置をそのままに */
       box.innerHTML = `<div class="std cl"><div class="cl-top"><b>${opt.only ? { name: 'チーム名変更', kit: 'ユニフォーム', emb: 'エンブレム' }[opt.only] : 'クラブ設定'}</b><span>${opt.first ? 'あなたのクラブを作りましょう' : opt.only ? { name: 'クラブ名と略称', kit: 'ホーム・アウェーのユニフォーム', emb: 'クラブのエンブレム' }[opt.only] : '名前・ユニフォーム・エンブレム'}</span>${opt.first ? '' : '<button class="std-back" title="もどる（変えない）"><i class="bk-ico" aria-hidden="true"></i></button>'}</div>
-        ${preview}<div class="cl-side"><div class="std-tabs cl-tabs"${opt.only ? ' hidden' : ''}>${[['name', '名前'], ['kit', 'ユニフォーム'], ['emb', 'エンブレム']].map(([k, l]) => `<button data-ctab="${k}" class="${clubTab === k ? 'on' : ''}">${l}</button>`).join('')}</div><div class="cl-body">${body}</div><button class="cl-ok">決定</button></div></div>`;
+        ${preview}<div class="cl-side"><div class="std-tabs cl-tabs"${opt.only ? ' hidden' : ''}>${[['name', '名前'], ['kit', 'ユニフォーム'], ['emb', 'エンブレム']].map(([k, l]) => `<button data-ctab="${k}" class="${clubTab === k ? 'on' : ''}">${l}</button>`).join('')}</div><div class="cl-body">${body}</div>${isE ? `<div class="cl-btns"><button class="cl-undo">元に戻す</button><button class="cl-ok">${opt.only === 'emb' ? 'デザインを保存' : '決定'}</button></div>` : '<button class="cl-ok">決定</button>'}</div></div>`;
       if (scKeep[2] === clubTab) requestAnimationFrame(() => { const b1 = box.querySelector('.cl-body'), s1 = box.querySelector('.cl-side'); if (b1) b1.scrollTop = scKeep[0]; if (s1) s1.scrollTop = scKeep[1]; });
       // ユニフォームの見本（正面・ななめ・GKなしの3人）
       const kits = box.querySelector('#clKits');
-      for (const [view, p] of [['front', ps[9]], ['f34', ps[5]], ['side', ps[2]]]) { const cv = A().kitSprite(st.kit, p || {}, view); if (cv) { const im = document.createElement('canvas'); im.width = cv.width * 6; im.height = cv.height * 6; const c = im.getContext('2d'); c.imageSmoothingEnabled = false; c.drawImage(cv, 0, 0, im.width, im.height); kits.appendChild(im); } }
+      if (kits) for (const [view, p] of [['front', ps[9]], ['f34', ps[5]], ['side', ps[2]]]) { const cv = A().kitSprite(st.kit, p || {}, view); if (cv) { const im = document.createElement('canvas'); im.width = cv.width * 6; im.height = cv.height * 6; const c = im.getContext('2d'); c.imageSmoothingEnabled = false; c.drawImage(cv, 0, 0, im.width, im.height); kits.appendChild(im); } }
       const keep = () => { const n = box.querySelector('#clName'), sh = box.querySelector('#clShort'), ch = box.querySelector('#clCh'), hm = box.querySelector('#clHome'); if (hm) st.home = hm.value; if (n) st.name = n.value; if (sh) st.short = sh.value; if (ch) st.emb.ch = ch.value; };
       box.querySelectorAll('[data-ctab]').forEach((b) => b.onclick = () => { keep(); clubTab = b.dataset.ctab; draw(); });
       box.querySelectorAll('[data-kside]').forEach((b) => b.onclick = () => { st.kside = b.dataset.kside; st.kit = st.kits[st.kside]; draw(); });
@@ -3820,10 +3959,18 @@
       box.querySelectorAll('[data-eshape]').forEach((b) => b.onclick = () => { keep(); st.emb.shape = +b.dataset.eshape; draw(); });
       box.querySelectorAll('[data-epat]').forEach((b) => b.onclick = () => { keep(); st.emb.pat = +b.dataset.epat; draw(); });
       box.querySelectorAll('[data-eicon]').forEach((b) => b.onclick = () => { keep(); st.emb.icon = b.dataset.eicon; draw(); });
-      const setCol = (key, v) => { if (key in st.kit) st.kit[key] = v; else st.emb[key] = v; };
+      const e2set = (f) => { f(st.emb2); st.embTouched = true; draw(); };
+      box.querySelectorAll('[data-etab]').forEach((b) => b.onclick = () => { keep(); st.etab = b.dataset.etab; draw(); });
+      box.querySelectorAll('[data-etpl]').forEach((b) => b.onclick = () => { keep(); e2set((e) => { e.tpl = +b.dataset.etpl; }); });   // 形を変えても、文字と色はそのまま
+      box.querySelectorAll('[data-epat2]').forEach((b) => b.onclick = () => { keep(); e2set((e) => { e.pat = +b.dataset.epat2; }); });
+      box.querySelectorAll('[data-eicon2]').forEach((b) => b.onclick = () => { keep(); e2set((e) => { e.icon = b.dataset.eicon2; }); });
+      box.querySelectorAll('[data-etm]').forEach((b) => b.onclick = () => { keep(); e2set((e) => { e.tm = b.dataset.etm; }); });
+      box.querySelectorAll('[data-erole]').forEach((b) => b.onclick = () => { keep(); st.erole = b.dataset.erole; draw(); });
+      const undo = box.querySelector('.cl-undo'); if (undo) undo.onclick = () => { st.emb2 = { ...st.emb2Orig }; st.embTouched = false; draw(); };
+      const setCol = (key, v) => { if (key.startsWith('e2:')) { st.emb2[key.slice(3)] = v; st.embTouched = true; } else if (key in st.kit) st.kit[key] = v; else st.emb[key] = v; };
       box.querySelectorAll('[data-col]').forEach((b) => b.onclick = () => { keep(); setCol(b.dataset.col, b.dataset.v); draw(); });
       box.querySelectorAll('[data-colin]').forEach((inp) => inp.onchange = () => { keep(); setCol(inp.dataset.colin, inp.value); draw(); });
-      ['#clName', '#clShort', '#clCh'].forEach((q) => { const i = box.querySelector(q); if (i) i.oninput = () => { keep(); const pv = box.querySelector('.cl-name b'), ps2 = box.querySelector('.cl-name small'), em = box.querySelector('.cl-emb'); if (pv) pv.textContent = st.name || 'クラブ名'; if (ps2) ps2.textContent = '略称：' + (st.short || '―'); if (em) em.src = embCanvas(embOf(), 240); }; });
+      ['#clName', '#clShort', '#clCh'].forEach((q) => { const i = box.querySelector(q); if (i) i.oninput = () => { keep(); const pv = box.querySelector('.cl-name b'), ps2 = box.querySelector('.cl-name small'), em = box.querySelector('.cl-emb'); if (pv) pv.textContent = st.name || 'クラブ名'; if (ps2) ps2.textContent = '略称：' + (st.short || '―'); if (em) em.src = clubTab === 'emb' ? embCanvas(emb2Of(), 260) : embCanvas(embOf(), 240); }; });
       const rz = box.querySelector('#clReset');
       if (rz) rz.onclick = async () => { const ok = await coachAsk('監督、最初からやり直しますか？<br>育てた選手・順位は、すべて消えます。'); if (ok) { el.hidden = true; save = C.newCareer(); store(); runners.length = 0; go('home'); open(); } };
       const back = box.querySelector('.std-back'); if (back) back.onclick = () => { el.hidden = true; if (opt.onDone) opt.onDone(false); };
@@ -3832,7 +3979,7 @@
         if (!save.clubSet && !st.home) { st.err = 'ホームタウンを選んでください'; clubTab = 'name'; draw(); return; }
         if (!String(st.name).trim()) { st.err = 'クラブ名を入れてください'; clubTab = 'name'; draw(); return; }
         if (!C.renameClub(save, st.name, st.short)) { st.err = 'その名前は使えません（ほかのチームと同じ名前です）'; clubTab = 'name'; draw(); return; }
-        save.club.kit = { ...st.kits.home }; save.club.kit2 = { ...st.kits.away }; save.club.gk = { ...st.kits.gk, pat: 'solid' }; save.club.emb = { ...st.emb }; if (!save.clubSet && st.home) C.setHometown(save, st.home); save.clubSet = true;   /* 版766：ホームタウンで東西のリーグが決まる */
+        save.club.kit = { ...st.kits.home }; save.club.kit2 = { ...st.kits.away }; save.club.gk = { ...st.kits.gk, pat: 'solid' }; save.club.emb = st.embTouched ? { ...st.emb2, nm: String(st.name).trim(), sh: String(st.short).trim() } : { ...st.emb }; if (!save.clubSet && st.home) C.setHometown(save, st.home); save.clubSet = true;   /* 版766：ホームタウンで東西のリーグが決まる */
         embURL.clear(); bannerCache.clear(); store();
         el.hidden = true; if (opt.onDone) opt.onDone(true); else if (view === 'home') renderHome();
       };
@@ -4977,7 +5124,7 @@
   const rewardHTML = (rw) => `<h2>${rankBadge(rw.rank, true)} 取得のごほうび！</h2><p class="coin big">${COIN}+${rw.coins} コイン${rw.kak ? `　／　覚醒のカケラ +${rw.kak}` : ''}</p><p>特訓カード ${rw.cards.length}枚${RANK_REWARD[rw.rank].pack ? `（${RANK_REWARD[rw.rank].pack}）` : ''}</p><div class="hrow rw ap-rw">${[...new Set(rw.cards)].map((c) => { const n = rw.cards.filter((x) => x === c).length; return `<div class="ap-rwc">${artCard(c, { ups: true })}${n > 1 ? `<b>×${n}</b>` : ''}</div>`; }).join('')}</div>`;
   // ================= 版618：ポスト（フレンド申請・守備の結果・お知らせ） =================
   function ensurePost() { if (!save.mbox) save.mbox = { items: [], newsRead: {} }; return save.mbox; }   // save.post はシーズン後の大会で使っているので別の名前
-  const myCard = () => { const on = ensureOnline(), cl = C.ensureClub(save); return { name: save.team.name, mgr: save.manager || '', emb: cl.emb, fid: on.fid || '', rank: rankIdx(on.rp) }; };
+  const myCard = () => { const on = ensureOnline(), cl = C.ensureClub(save); return { name: save.team.name, mgr: save.manager || '', emb: cl.emb.tpl ? { ...cl.emb, nm: save.team.name, sh: save.team.short || '' } : cl.emb, fid: on.fid || '', rank: rankIdx(on.rp) }; };
   let postBusy = null, postAt = 0, postNews = [];
   function postUnread() { const p = ensurePost(); return p.items.filter((x) => !x.read).length + postNews.filter((x) => !p.newsRead[x.id]).length; }
   function postBadge() { const b = document.querySelector('.h2-post i'); if (!b) return; const n = postUnread(); b.textContent = n > 9 ? '9+' : String(n); b.hidden = !n; }
@@ -5546,7 +5693,7 @@
     draw();
     if (loading) { try { const r = await DotNet.cloudInfo(code()); cloud = r ? { info: r.info, at: r.at } : null; } catch (_) { flash('通信できませんでした（クラウドの情報が読めません）'); } loading = false; if (document.body.contains(scr) && !scr.querySelector('.cs-dlg')) draw(); }
   }
-  window.__career = { playerDetail: (i, o) => playerDetail(i, o), resCard: (o) => resCard(o), seasonEndCard: (o) => seasonEndCard(o), coachNews: (l) => coachNews(l), rewardCard: (r) => rewardCard(r), gachaDemo: (st, pr, fx) => gachaDemo(st, pr, fx), storyCard: (o) => storyCard(o), gotCardsHTML: (got) => `<div class="gc-cards${got.length > 8 ? ' lots' : got.length > 4 ? ' many' : ''}">${got.map((c) => artCard(c, { ups: true })).join('')}</div><p class="cp-msg gc-msg">クラブハウスの「特訓」で、選手に最大3枚セットできます。</p>`, trainResult: (o) => trainResult(o), airport, openPost, syncPost, onlineDone, setVenue: (k) => { venueNow = k; }, champDemo, champAfter, coinShop, faceFill: () => faceFill(), openGacha, venueTalk: (se) => venueTalk(se), matchFace, openOffice, cpuCard, openClub, openAssoc, open, go, stadium, advance, subSheet, labMatch, townRect, tutPractice, shop, store: () => store(), renderHome: () => renderHome(), clubhouseBg: () => clubhouseBg(), isMatchWeek: () => isMatchWeek(), get view() { return view; }, staffFace: (k) => staffFace(k), get save() { return save; }, get drill() { return clubDrill; }, faceURL, starFace, setDrill(d) { clubDrill = d; drillT0 = -1; drillSnap = true; } };
+  window.__career = { drawEmblem: (c, x, y, s, lk) => drawEmblem(c, x, y, s, lk), openClub: (o) => openClub(o), playerDetail: (i, o) => playerDetail(i, o), resCard: (o) => resCard(o), seasonEndCard: (o) => seasonEndCard(o), coachNews: (l) => coachNews(l), rewardCard: (r) => rewardCard(r), gachaDemo: (st, pr, fx) => gachaDemo(st, pr, fx), storyCard: (o) => storyCard(o), gotCardsHTML: (got) => `<div class="gc-cards${got.length > 8 ? ' lots' : got.length > 4 ? ' many' : ''}">${got.map((c) => artCard(c, { ups: true })).join('')}</div><p class="cp-msg gc-msg">クラブハウスの「特訓」で、選手に最大3枚セットできます。</p>`, trainResult: (o) => trainResult(o), airport, openPost, syncPost, onlineDone, setVenue: (k) => { venueNow = k; }, champDemo, champAfter, coinShop, faceFill: () => faceFill(), openGacha, venueTalk: (se) => venueTalk(se), matchFace, openOffice, cpuCard, openClub, openAssoc, open, go, stadium, advance, subSheet, labMatch, townRect, tutPractice, shop, store: () => store(), renderHome: () => renderHome(), clubhouseBg: () => clubhouseBg(), isMatchWeek: () => isMatchWeek(), get view() { return view; }, staffFace: (k) => staffFace(k), get save() { return save; }, get drill() { return clubDrill; }, faceURL, starFace, setDrill(d) { clubDrill = d; drillT0 = -1; drillSnap = true; } };
   window.__career.openCloud = openCloud; window.__career.cpuCard = (t, i) => cpuCard(t, i, $("#career"));
   window.__career.shop = (t) => shop(t); window.__career.premDaily = () => premDaily();
   window.__career.embURL = () => { try { return save ? embFromLook(C.ensureClub(save).emb, 96) : ''; } catch (_) { return ''; } };   // 版680：設定のアカウントIDの横に出す、自分のクラブのエンブレム
