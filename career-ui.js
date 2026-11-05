@@ -1966,6 +1966,19 @@
   // 版1059：戦術設定（監督の画像どおりの画面）：チーム戦術（戦い方のカード5枚＋細かい調整）／試合中の作戦（切り替え開始＋リード・同点・ビハインド）。
   //  「設定を反映」で保存、「元に戻す」で開いた時の設定へ、←で閉じる（反映していない変更があれば聞く）
   const TQ_SHORT = { balance: '攻守のバランスを重視', counter: '深く守り、奪ったら前へ', possession: 'パスをつないで保持', highpress: '前から奪いに行く', wing: '幅を使ってクロス' };
+  /* 版1086：チーム戦術（基本の戦い方のカード5枚＋細かい調整）の中身。戦術設定と、試合中の作戦の「チーム指示」で同じものを使う */
+  function tqTeamBody(work) {
+    const LEFT = ['line', 'width', 'compact', 'attitude'], RIGHT = ['press', 'pass', 'side'];
+    const item = (k) => { const it = C.TACTIC_ITEMS.find((x) => x.key === k); return `<div class="tq-it"><span class="tq-in">${esc(it.name)}</span><span class="tq-seg n${it.opts.length}">${it.opts.map(([v, nm]) => `<button data-k="${k}" data-v="${v}" class="${String(work[k]) === String(v) ? 'on' : ''}">${String(work[k]) === String(v) ? '✓ ' : ''}${esc(nm)}</button>`).join('')}</span></div>`; };
+    return `<div class="tq-h"><b>基本の戦い方</b><i></i></div>
+           <div class="tq-styles">${C.STYLES.map((st) => `<button class="tq-st${st.id === work.style ? ' on' : ''}" data-st="${st.id}"><span class="tq-art"><img src="img/tactics/${st.id}.png" alt=""></span><b>${esc(st.name)}</b><small>${esc(TQ_SHORT[st.id] || st.desc)}</small>${st.id === work.style ? '<em class="tq-ck">✓</em>' : ''}</button>`).join('')}</div>
+           <div class="tq-h"><b>細かい調整</b><i></i>${work.style === 'custom' ? '<small>（カスタム）</small>' : ''}</div>
+           <div class="tq-adj"><div>${LEFT.map(item).join('')}</div><div>${RIGHT.map(item).join('')}<p class="tq-note">選手の配置は変わりません。</p></div></div>`;
+  }
+  function tqTeamBind(el, work, redraw) {
+    el.querySelectorAll('.tq-st').forEach((b) => b.onclick = () => { const st = C.STYLES.find((x) => x.id === b.dataset.st); Object.assign(work, st.t, { style: st.id }); redraw(); });
+    el.querySelectorAll('.tq-seg button').forEach((b) => b.onclick = () => { const v = b.dataset.v; work[b.dataset.k] = isNaN(+v) ? v : +v; work.style = 'custom'; redraw(); });
+  }
   function openTacSet(tab0, onClose) {
     const tac = C.ensureTactics(save), snap = JSON.parse(JSON.stringify(tac));
     let work = JSON.parse(JSON.stringify(tac)), tab = tab0 === 'sit' ? 'sit' : 'tac', ask = false;
@@ -2075,8 +2088,9 @@
     const ps = mt.team.players, base = C.ensureTactics(save);
     if (!ms.on) { ms.on = [...Array(11).keys()]; ms.used = []; ms.out = []; ms.changes = []; ms.cells = (mt.team.cells || C.cellsFor(mt.team.formation)).map((c) => c && { ...c }); ms.att = base.attitude || 'balanced'; ms.cur = {}; }
     // 今回の変更（「戻る」で試合に伝える）
-    if (!ms.marks) { ms.marks = []; ms.orders = {}; ms.line = base.line ?? 3; ms.press = base.press ?? 0; }   /* 版1084：マークの指名・選手ごとの指示・ライン・プレス */
-    const plan = { subs: [], cells: ms.cells.map((c) => c && { ...c }), att: ms.att, marks: ms.marks.map((m) => ({ ...m })), orders: JSON.parse(JSON.stringify(ms.orders)), line: ms.line, press: ms.press };
+    if (!ms.marks) { ms.marks = []; ms.orders = {}; }
+    if (!ms.tq) { ms.tq = {}; for (const k of ['style', 'line', 'width', 'compact', 'attitude', 'press', 'pass', 'side']) ms.tq[k] = base[k]; if (!ms.tq.attitude) ms.tq.attitude = 'balanced'; }   /* 版1086：この試合のチーム戦術（試合中に変えても、保存はしない） */   /* 版1084：マークの指名・選手ごとの指示・ライン・プレス */
+    const plan = { subs: [], cells: ms.cells.map((c) => c && { ...c }), marks: ms.marks.map((m) => ({ ...m })), orders: JSON.parse(JSON.stringify(ms.orders)), tq: { ...ms.tq } };
     let wSel = null, wPick = false;   /* 作戦の画面で選んでいるもの：{ opp: 名前 } か { me: 位置 } */
     let page = 'board';
     let el = document.getElementById('htModal');
@@ -2182,7 +2196,19 @@
       el.querySelectorAll('.q3side .q3b').forEach((d) => d.onpointerdown = (ev) => { const j = +d.dataset.j, q = ps[j]; if (d.classList.contains('q3off')) { ev.preventDefault(); showCard(q); return; } start(ev, 'b', j, q, d); });
     };
     // 版1085：チーム指示・選手指示（白い作戦ボード。味方は丸い顔、相手は赤い丸。マークは赤い点線と「M」）
+    /* 版1086：チーム指示は、戦術設定のチーム戦術と同じ画面（カード5枚＋細かい調整）。この試合の間だけ効く */
+    const drawTeam = () => {
+      el.innerHTML = `<div id="tacSet" class="q3tq"><div class="tq-root"><div class="tq-top"><h2>試合中の作戦</h2><button class="tq-back q3back" aria-label="試合にもどる"><svg viewBox="0 0 24 24"><path d="M20 12H6M11 6l-6 6 6 6" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
+        <div class="tq-tabs q3tqtabs">${[['board', 'スカッド'], ['team', 'チーム指示'], ['player', '選手指示']].map(([k, nm]) => `<button data-pg="${k}" class="${k === 'team' ? 'on' : ''}">${nm}</button>`).join('')}</div>
+        <div class="tq-body">${tqTeamBody(plan.tq)}</div>
+        <div class="tq-foot"><button class="tq-reset">元に戻す</button><button class="tq-apply q3fin2">試合にもどる</button></div></div></div>`;
+      el.hidden = false;
+      tqTeamBind(el, plan.tq, () => drawTeam());
+      el.querySelector('.tq-reset').onclick = () => { plan.tq = { ...ms.tq }; drawTeam(); };
+      el.querySelector('.q3back').onclick = finish; bindTabs();
+    };
     const drawWhite = () => {
+      if (page === 'team' || page === 'white') return drawTeam();
       const tab = page === 'player' ? 'player' : 'team';
       const m0 = A().match || {}, oppR = ((m0.roster || [])[1] || []).slice(0, 11), oppCells = (m0.teamCells && m0.teamCells[1]) || C.cellsFor((m0.teamForm && m0.teamForm[1]) || '4-4-2');
       const theirs = (A().theirs || {}).players || [];
@@ -2257,17 +2283,17 @@
     });
     // 戻る：変わったところだけ試合に伝えて、続きから
     const finish = () => {
-      const moved = JSON.stringify(plan.cells) !== JSON.stringify(ms.cells), attCh = plan.att !== ms.att || plan.line !== ms.line || plan.press !== ms.press || JSON.stringify(plan.marks) !== JSON.stringify(ms.marks) || JSON.stringify(plan.orders) !== JSON.stringify(ms.orders);
+      const moved = JSON.stringify(plan.cells) !== JSON.stringify(ms.cells), attCh = JSON.stringify(plan.tq) !== JSON.stringify(ms.tq) || JSON.stringify(plan.marks) !== JSON.stringify(ms.marks) || JSON.stringify(plan.orders) !== JSON.stringify(ms.orders);
       if (!plan.subs.length && !moved && !attCh) { el.hidden = true; if (info.cancel) info.cancel(); return; }
       { const bb = el.querySelector('.q3back'); if (bb) bb.disabled = true; }   // 版556：ボタンが見つからずに止まって、もどれなくなっていた
       const t = base;
-      const ch = { team: 0, at: info.atHalf ? null : info.t, subs: plan.subs.map((x) => ({ slot: x.slot, player: ps[x.bench] })), tac: { attitude: plan.att, press: plan.press, pass_style: t.pass, attack_side: t.side, line_height: plan.line, marks: plan.marks.map((m) => ({ me: m.me, opp: m.opp })), orders: JSON.parse(JSON.stringify(plan.orders)), zone_width: t.width, compact: t.compact, situ: { ...t.situ } } };
+      const ch = { team: 0, at: info.atHalf ? null : info.t, subs: plan.subs.map((x) => ({ slot: x.slot, player: ps[x.bench] })), tac: { attitude: plan.tq.attitude, press: plan.tq.press, pass_style: plan.tq.pass, attack_side: plan.tq.side, line_height: plan.tq.line, marks: plan.marks.map((m) => ({ me: m.me, opp: m.opp })), orders: JSON.parse(JSON.stringify(plan.orders)), zone_width: plan.tq.width, compact: plan.tq.compact, situ: { ...t.situ } } };
       ch.tac.cells = plan.cells.map((c) => c && { ...c });   // 版1026：配置はいつも今の作戦盤のまま送る（交代だけの時に、試合前の配置へ戻っていた）
       setTimeout(() => {
         ms.changes.push(ch);
         info.apply(ms.changes, () => {
           for (const x of plan.subs) { ms.out.push(ps[ms.on[x.slot]].name); ms.on[x.slot] = x.bench; ms.used.push(x.bench); ms.subsIn.push(ps[x.bench].name); }
-          ms.cells = plan.cells; ms.att = plan.att; ms.marks = plan.marks; ms.orders = plan.orders; ms.line = plan.line; ms.press = plan.press;
+          ms.cells = plan.cells; ms.att = plan.tq.attitude; ms.marks = plan.marks; ms.orders = plan.orders; ms.tq = plan.tq;
           el.hidden = true;
         });
       }, 30);
