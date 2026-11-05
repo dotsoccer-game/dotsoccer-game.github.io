@@ -61,7 +61,7 @@
     try { const cl = C.ensureClub(save); A().applyKits([{ ...cl.kit, gk: { ...cl.gk } }, { ...cl.kit2 }]); } catch (_) {}   // 版536：観戦（D1）などで変わったユニフォームを、自分のクラブのものに戻す
     $('#cv-home').hidden = v !== 'home';
     $('#cv-club').hidden = v === 'home';
-    $('#cvBack').hidden = v === 'home';
+    $('#cvBack').hidden = v === 'home'; $('#cvBack').style.visibility = '';   /* 版1069：新しいスタメン画面は自分の←を出すので、ほかの画面では元に戻す */
     $('#clubLayer').innerHTML = '';
     $('#clubLayer').className = 'club-layer' + (v === 'club' ? '' : ' on');
     document.querySelector('#cv-club .rbtns').hidden = v !== 'club';
@@ -1624,8 +1624,8 @@
   }
   // 版1066：スタメン画面の新しい形（下書き）：マス目を見せず、縦のピッチに顔の札を並べる（イーフト風）。
   //  フォーメーションを選ぶ・選手をドラッグで入れ替える（ピッチ同士、ピッチとベンチ）・空いた所へ動かす（内部では一番近いマスに合わせる）
-  const sq3On = () => { try { return !!(window.__sq3 || localStorage.getItem('dsSq3')); } catch (_) { return !!window.__sq3; } };
-  let sq3Pick = -1, sq3Menu = false;
+  const sq3On = () => { try { return !localStorage.getItem('dsSq2'); } catch (_) { return true; } };   /* 版1069：本番もこの画面（前の画面は localStorage の dsSq2 で戻せる） */
+  let sq3Pick = -1, sq3Menu = false, sq3Res = false, sq3R = -1, sq3Multi = null;
   function renderLineup3() {
     const ps = save.team.players, tac = C.ensureTactics(save), cells = tac.cells, R = C.GRID_R, COLS = C.GRID_C;
     if (unpile(cells)) store();
@@ -1650,19 +1650,33 @@
       + arc(0.02, 1, 0.03, 0.025, -Math.PI / 2, 0) + arc(0.98, 1, 0.03, 0.025, Math.PI, Math.PI * 1.5);
     const field = `<svg class="q3fd" viewBox="0 0 100 100" preserveAspectRatio="none"><defs><radialGradient id="q3vg" cx="50%" cy="48%" r="70%"><stop offset="55%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#021a04" stop-opacity=".45"/></radialGradient><linearGradient id="q3sh" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".18"/><stop offset=".35" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity=".04"/></linearGradient></defs>${stripes}<rect width="100" height="100" fill="url(#q3sh)"/><rect width="100" height="100" fill="url(#q3vg)"/>${lines}</svg>`;   /* 版1068：芝の色を監督の画像に寄せる（深い緑の縞、奥と四隅を少し暗く） */
     const tags = (q) => ['pk', 'fk', 'ck'].filter((k) => tac.roles[k] === q.name).map((k) => `<i class="q3t t-${k}">${ROLE_TAG[k]}</i>`).join('');
-    const chip = (q, i, x, y) => `<div class="q3p${i === sq3Pick ? ' sel' : ''}${q.injury > 0 ? ' inj' : ''}${i === 0 ? ' gk' : ''}" data-i="${i}" style="left:${x}%;top:${y}%;z-index:${2 + Math.round(y)}"><div class="q3fw">${facePic(q, 'q3f', false)}<b class="q3o">${statOvr(q)}</b><span class="q3ts">${tags(q)}</span>${tac.roles.captain === q.name ? '<i class="q3c">C</i>' : ''}</div><span class="q3n${tac.roles.captain === q.name ? ' cap' : ''}">${esc(q.name)}</span></div>`;
+    const chip = (q, i, x, y) => `<div class="q3p${i === sq3Pick ? ' sel' : ''}${q.injury > 0 ? ' inj' : ''}${i === 0 ? ' gk' : ''}" data-i="${i}" style="left:${x}%;top:${y}%;z-index:${2 + Math.round(y)}"><div class="q3fw">${facePic(q, 'q3f', false)}<b class="q3o">${statOvr(q)}</b><span class="q3ts">${tags(q)}</span>${tac.roles.captain === q.name ? '<i class="q3c">C</i>' : ''}<i class="q3cd cdot ${condDot(q)}"></i>${q.suspend > 0 ? '<i class="q3sus"></i>' : ''}</div><span class="q3n${tac.roles.captain === q.name ? ' cap' : ''}">${esc(q.name)}</span></div>`;
     let dots = chip(ps[0], 0, 50, ty(0.9));
     for (let i = 1; i < 11; i++) { const c = cells[i]; if (c) dots += chip(ps[i], i, px(c.c, c.r), py(c.r)); }
-    const row = (q, i) => `<div class="q3b${i === sq3Pick ? ' sel' : ''}${q.injury > 0 ? ' inj' : ''}" data-i="${i}">${facePic(q, 'q3bf', true)}<span>${esc(q.name)}</span><b class="q3o">${statOvr(q)}</b></div>`;
+    const row = (q, i) => `<div class="q3b${i === sq3Pick ? ' sel' : ''}${q.injury > 0 ? ' inj' : ''}" data-i="${i}">${facePic(q, 'q3bf', true)}<span>${esc(q.name)}</span><i class="q3cd cdot ${condDot(q)}"></i>${q.suspend > 0 ? '<i class="q3sus"></i>' : ''}<b class="q3o">${statOvr(q)}</b></div>`;
+    /* 版1069：選んだ選手のくわしい板（前の画面と同じ中身：能力・タイプ・疲労・利き足・役割・選手データ）。リザーブを選んだ時は、その選手と放出 */
+    const PK = D.PARAMS.map((x) => x.k), rsv = save.reserve || [];
+    if (sq3R >= rsv.length) sq3R = -1;
+    let pop = '';
+    const head = (q, xb) => `<div class="s2ph"><i class="pos ${POSC[q.position]}">${q.position}</i><b>${q.number || ''}</b><span>${esc(q.name)}</span>${starHTML(C.ensureStar(q), q.totsu)}${xb}</div>`;
+    const ranks = (q) => { C.ensurePts(q); const rk = PK.map((k) => C.rankInfo(q.pts[k]).g); return `<div class="s2pr">${PK.map((k, j) => `<span title="${esc(D.PARAMS[j].name)}">${ico(k)}<i class="rk2 g-${rk[j]}">${rk[j]}</i></span>`).join('')}</div>`; };
+    const facts = (q) => `<div class="s2pt"><span class="tbadge ${TYPE_CLS[q.type] || 'ty-bal'}">${esc(q.type || '')}</span><i class="cdot ${condDot(q)}"><em class="cdn">${Math.round(q.fatigue || 0)}</em></i><small>疲労 ${Math.round(q.fatigue || 0)}%</small><span class="s2ft">利き足${footSVG(q.foot)}<b>${q.foot === 'L' ? '左' : '右'}</b></span></div>`;
+    const XB = '<button class="s2px xbtn q3px"><img class="xbtn-img" src="icons/ui_close.png" alt="×" draggable="false"></button>';
+    if (sq3R >= 0 && rsv[sq3R]) { const q = rsv[sq3R]; pop = `<div class="s2pop q3pop">${head(q, XB)}${ranks(q)}${facts(q)}<p class="q3ph">チームの選手をタップすると入れ替えます</p><button class="q3rel" data-rel="${sq3R}">放出する</button></div>`; }
+    else if (sq3Pick >= 0 && ps[sq3Pick]) { const q = ps[sq3Pick]; pop = `<div class="s2pop q3pop">${head(q, XB)}${ranks(q)}${facts(q)}<div class="s2rl">${Object.keys(ROLE_NAME).map((k) => `<button data-role="${k}" class="${tac.roles[k] === q.name ? 'on' : ''}"><i class="s2rt rt-${k}">${ROLE_TAG[k]}</i>${ROLE_NAME[k]}</button>`).join('')}</div><p class="q3ph">ほかの選手をタップすると入れ替えます</p><button class="s2pd" data-pd="${sq3Pick}">選手データを見る</button></div>`; }
+    const resRow = (q, k) => `<div class="q3r${k === sq3R ? ' sel' : ''}${sq3Multi && sq3Multi.has(q) ? ' chk' : ''}" data-r="${k}">${facePic(q, 'q3bf')}<span>${esc(q.name)}<small>${'☆'.repeat(C.ensureStar(q))}</small></span>${sq3Multi ? `<i class="q3ck">${sq3Multi.has(q) ? '✓' : ''}</i>` : `<b class="q3o">${statOvr(q)}</b>`}</div>`;
+    if (sq3Res && rsv.length > 1) rsv.sort((a, b) => ((b.gNew ? 1 : 0) - (a.gNew ? 1 : 0)) || (C.ensureStar(b) - C.ensureStar(a)) || statOvr(b) - statOvr(a));
+    const resPanel = () => `<div class="q3side q3rs"><div class="q3rh"><b class="q3h">リザーブ ${rsv.length}人</b><button class="q3rx">とじる</button></div><div class="q3rl">${rsv.map(resRow).join('')}</div>
+      <div class="q3rf">${sq3Multi ? `${[1, 2, 3].map((st) => { const n = rsv.filter((q) => C.ensureStar(q) === st).length; return n ? `<button class="q3ms" data-st="${st}">☆${st}全員</button>` : ''; }).join('')}<button class="q3mgo"${sq3Multi.size ? '' : ' disabled'}>${sq3Multi.size}人を放出</button><button class="q3mx">やめる</button>` : '<span>タップ→チームの選手をタップ／横に引っぱって置く</span><button class="q3mon">まとめて放出</button>'}</div></div>`;
     const bench = ps.slice(11), b1 = bench.slice(0, C.BENCH_N), b2 = bench.slice(C.BENCH_N);
     const fm = tac.formation && tac.formation !== 'custom' ? tac.formation : C.formationLabel(cells);
     const nRes = (save.reserve || []).length;
     L.innerHTML = `<div class="sq3"><div class="q3in">
       <div class="q3top"><h2><svg viewBox="0 0 64 64" class="q3ball"><circle cx="32" cy="32" r="28" fill="#fff" stroke="#222" stroke-width="3"/><polygon points="32,21 42,28 38,40 26,40 22,28" fill="#222"/><path d="M32 4v17M60 26l-18 2M49 56l-11-16M15 56l11-16M4 26l18 2" stroke="#222" stroke-width="3"/></svg>スタメン・配置</h2><i class="q3sep"></i><img class="q3emb" src="${emblemURL(save.team.name, 48)}" alt=""><b class="q3tm">${esc(save.team.name)}</b>
         <button class="q3back" aria-label="戻る"><svg viewBox="0 0 24 24"><path d="M20 12H6M11 6l-6 6 6 6" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
-      <div class="q3bar"><span class="q3fl">フォーメーション</span><button class="q3fm">${esc(fm)}<i>▼</i></button><button class="q3tac">戦術設定</button>${nRes ? `<button class="q3res"><span>リザーブ</span><b>${nRes}</b></button>` : ''}</div>
+      <div class="q3bar"><span class="q3fl">フォーメーション</span><button class="q3fm">${esc(fm)}<i>▼</i></button><button class="q3tac">戦術設定</button>${sqFromHome ? '<button class="q3club">クラブ設定</button>' : ''}${nRes ? `<button class="q3res"><span>リザーブ</span><b>${nRes}</b></button>` : ''}</div>
       <div class="q3main"><div class="q3pitch">${field}${dots}</div>
-        <div class="q3side"><div class="q3col"><b class="q3h">ベンチ入り</b>${b1.map((q, k) => row(q, 11 + k)).join('')}</div><i class="q3vl"></i><div class="q3col"><b class="q3h">ベンチ外</b>${b2.map((q, k) => row(q, 11 + C.BENCH_N + k)).join('')}</div></div></div>
+        ${sq3Res && rsv.length ? resPanel() : `<div class="q3side"><div class="q3col"><b class="q3h">ベンチ入り</b>${b1.map((q, k) => row(q, 11 + k)).join('')}</div><i class="q3vl"></i><div class="q3col"><b class="q3h">ベンチ外</b>${b2.map((q, k) => row(q, 11 + C.BENCH_N + k)).join('')}</div></div>`}</div>${pop}
       <p class="q3hint"><span>選手をドラッグして配置・入れ替え</span></p>
       ${sq3Menu ? `<div class="q3menu">${C.FORMATIONS.map((f) => `<button data-f="${f}" class="${f === tac.formation ? 'on' : ''}">${f}</button>`).join('')}</div>` : ''}
     </div></div>`;
@@ -1672,7 +1686,42 @@
     L.querySelector('.q3fm').onclick = () => { sq3Menu = !sq3Menu; renderLineup3(); };
     L.querySelectorAll('.q3menu [data-f]').forEach((b) => b.onclick = () => { tac.formation = b.dataset.f; tac.cells = C.cellsFor(b.dataset.f); sq3Menu = false; sq3Pick = -1; redo(); });
     L.querySelector('.q3tac').onclick = () => openTacSet('tac');
-    { const rb = L.querySelector('.q3res'); if (rb) rb.onclick = () => { const t = document.createElement('div'); t.className = 'q3toast'; t.textContent = 'リザーブとの入れ替えは、下書きではまだ動きません'; box.appendChild(t); setTimeout(() => t.remove(), 1600); }; }
+    const toast = (m) => { const t = document.createElement('div'); t.className = 'q3toast'; t.textContent = m; box.appendChild(t); setTimeout(() => t.remove(), 1600); };
+    { const rb = L.querySelector('.q3res'); if (rb) rb.onclick = () => { sq3Res = !sq3Res; sq3R = -1; sq3Multi = null; sq3Pick = -1; if (!sq3Res) for (const q of rsv) delete q.gNew; renderLineup3(); }; }
+    { const x = L.querySelector('.q3rx'); if (x) x.onclick = () => { sq3Res = false; sq3R = -1; sq3Multi = null; for (const q of rsv) delete q.gNew; renderLineup3(); }; }
+    { const cb = L.querySelector('.q3club'); if (cb) cb.onclick = () => openClub({ onDone: () => renderLineup() }); }
+    { const x = L.querySelector('.q3px'); if (x) x.onclick = (e) => { e.stopPropagation(); sq3Pick = -1; sq3R = -1; renderLineup3(); }; }
+    { const pd = L.querySelector('.q3pop .s2pd'); if (pd) pd.onclick = () => { const i = +pd.dataset.pd; sq3Pick = -1; playerDetail(i); }; }
+    L.querySelectorAll('.q3pop [data-role]').forEach((bt) => bt.onclick = () => { const q = ps[sq3Pick], k = bt.dataset.role; if (!q) return; tac.roles[k] = tac.roles[k] === q.name ? null : q.name; redo(); });
+    /* リザーブとチームの入れ替え（前の画面と同じ決まり：GKの所はGKだけ、入れ替わった選手の役割は外す） */
+    const swapRes3 = (k, i) => { const r = rsv[k]; if (!r || !ps[i]) return;
+      if (i === 0 && r.position !== 'GK') { toast('GKの所には、GKの選手しか入れられません'); return; }
+      const out = ps[i]; ps[i] = r; rsv[k] = out; { const pc = save.plan && save.plan.cards; if (pc) delete pc[i]; }
+      for (const key in (tac.roles || {})) if (tac.roles[key] === out.name) tac.roles[key] = null;
+      sq3R = -1; sq3Pick = -1; redo(); };
+    const kakOf = (q) => (C.KAKERA_OF[C.ensureStar(q)] || 1) * (1 + (q.totsu || 0));
+    { const b = L.querySelector('.q3rel'); if (b) b.onclick = async () => { const k = +b.dataset.rel, q = rsv[k]; if (!q) return; const kk = kakOf(q);
+      if (!(await coachAsk(`${esc(q.name)}を放出しますか？<br><small>ほかのクラブへ移籍します（戻ってきません）。<br>覚醒のカケラ <b>${kk}</b> をもらえます。</small>`))) return;
+      rsv.splice(k, 1); save.kakera = (save.kakera || 0) + kk; sq3R = -1; if (!rsv.length) sq3Res = false; redo(); }; }
+    { const b = L.querySelector('.q3mon'); if (b) b.onclick = () => { sq3Multi = new Set(); sq3R = -1; renderLineup3(); }; }
+    { const b = L.querySelector('.q3mx'); if (b) b.onclick = () => { sq3Multi = null; renderLineup3(); }; }
+    L.querySelectorAll('.q3ms').forEach((b) => b.onclick = () => { const st = +b.dataset.st, of = rsv.filter((q) => C.ensureStar(q) === st), all = of.every((q) => sq3Multi.has(q)); for (const q of of) { if (all) sq3Multi.delete(q); else sq3Multi.add(q); } renderLineup3(); });
+    { const b = L.querySelector('.q3mgo'); if (b) b.onclick = async () => { const list = rsv.filter((q) => sq3Multi.has(q)); if (!list.length) return; const kk = list.reduce((a, q) => a + kakOf(q), 0);
+      if (!(await coachAsk(`${list.length}人を放出しますか？<br><small>${list.length > 12 ? list.slice(0, 10).map((q) => esc(q.name)).join('・') + ` ほか${list.length - 10}人` : list.map((q) => esc(q.name)).join('・')}<br>覚醒のカケラ <b>${kk}</b> をもらえます。</small>`))) return;
+      save.reserve = rsv.filter((q) => !sq3Multi.has(q)); save.kakera = (save.kakera || 0) + kk; sq3Multi = null; sq3R = -1; if (!save.reserve.length) sq3Res = false; redo(); }; }
+    /* リザーブの札：タップで選ぶ（まとめて放出の時は印）、横に引っぱるとドラッグ（縦はスクロール） */
+    L.querySelectorAll('.q3r').forEach((el) => {
+      el.addEventListener('pointerdown', (e0) => { const k = +el.dataset.r, br = box.getBoundingClientRect(), z = box.offsetWidth / br.width; let gh = null, moved = false, dead = false;
+        const mv = (e) => { if (dead) return; const dx = e.clientX - e0.clientX, dy = e.clientY - e0.clientY;
+          if (!moved) { if (Math.hypot(dx, dy) < 8) return; if (Math.abs(dy) > Math.abs(dx) || sq3Multi) { dead = true; return; } moved = true; }
+          if (!gh) { gh = el.cloneNode(true); gh.classList.add('q3ghost'); box.appendChild(gh); el.classList.add('q3src'); }
+          gh.style.transform = `translate(${(e.clientX - br.left) * z}px,${(e.clientY - br.top) * z}px) translate(-50%,-50%)`; };
+        const up = (e) => { window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up);
+          if (gh) gh.remove(); el.classList.remove('q3src'); if (e.type === 'pointercancel' || dead) return;
+          if (!moved) { if (sq3Multi) { const q = rsv[k]; if (sq3Multi.has(q)) sq3Multi.delete(q); else sq3Multi.add(q); } else { sq3R = sq3R === k ? -1 : k; sq3Pick = -1; } renderLineup3(); return; }
+          const tg = document.elementFromPoint(e.clientX, e.clientY), to = tg && tg.closest('.q3p, .q3b'); if (to) swapRes3(k, +to.dataset.i); else renderLineup3(); };
+        window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up); });
+    });
     // ドラッグ：札をつまんで、ほかの札の上で離すと入れ替え。ピッチの空いた所で離すと、そこへ動かす（一番近いマス）
     const pitch = L.querySelector('.q3pitch');
     const swap = (i, j) => { if (i === j) return; if (swapPlayers(i, j) === false) { const t = document.createElement('div'); t.className = 'q3toast'; t.textContent = 'GKの所には、GKの選手しか入れられません'; box.appendChild(t); setTimeout(() => t.remove(), 1600); return; } sq3Pick = -1; redo(); };
@@ -1686,9 +1735,10 @@
           gh.style.transform = `translate(${(e.clientX - br.left) * k}px,${(e.clientY - br.top) * k}px) translate(-50%,-50%)`; };
         const up = (e) => { window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up);
           if (gh) gh.remove(); el.classList.remove('q3src');
-          if (!moved) { if (sq3Pick >= 0 && sq3Pick !== i) swap(sq3Pick, i); else { sq3Pick = sq3Pick === i ? -1 : i; renderLineup3(); } return; }   // タップ：1人目を選んで、2人目をタップで入れ替え
+          if (!moved) { if (sq3R >= 0) { swapRes3(sq3R, i); return; } if (sq3Pick >= 0 && sq3Pick !== i) swap(sq3Pick, i); else { sq3Pick = sq3Pick === i ? -1 : i; renderLineup3(); } return; }   // タップ：1人目を選んで、2人目をタップで入れ替え
           const tg = document.elementFromPoint(e.clientX, e.clientY), to = tg && tg.closest('.q3p, .q3b');
           if (to && +to.dataset.i !== i) { swap(i, +to.dataset.i); return; }
+          { const rr = tg && tg.closest('.q3r'); if (rr) { swapRes3(+rr.dataset.r, i); return; } }   /* チームの選手をリザーブの札へ */
           const pr = pitch.getBoundingClientRect();
           if (i >= 1 && i < 11 && e.clientX > pr.left && e.clientX < pr.right && e.clientY > pr.top && e.clientY < pr.bottom) {
             const v = ((e.clientY - pr.top) / pr.height * 100 - TY0) / (TY1 - TY0), hw = HW0 + (HW1 - HW0) * v, u = (((e.clientX - pr.left) / pr.width * 100) - 50) / (2 * hw) + 0.5;

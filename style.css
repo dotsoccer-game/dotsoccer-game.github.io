@@ -4333,3 +4333,23 @@ body.in-digest #soBoard,body.in-digest #soCard{display:none!important}
 .sq3 .q3menu{position:absolute;left:19cqw;top:17cqh;z-index:40;display:grid;grid-template-columns:repeat(3,1fr);gap:1cqh;padding:1.4cqh;background:#0f1d33;border:.4cqh solid #c9a33a;border-radius:1.2cqh;box-shadow:0 1cqh 3cqh rgba(0,0,0,.5)}
 .sq3 .q3menu button{height:6cqh;min-width:14cqw;border-radius:1cqh;border:.3cqh solid #6f86b8;background:#1d2c4c;font-weight:900;font-size:3cqh}.sq3 .q3menu button.on{background:linear-gradient(#2f6fe0,#1d4fb8);border-color:#fff}
 .sq3 .q3toast{position:absolute;left:50%;bottom:12cqh;transform:translateX(-50%);z-index:60;background:rgba(0,0,0,.85);padding:1.2cqh 3cqw;border-radius:1.2cqh;font-weight:900}
+/* 版1069：新しいスタメン画面（本番）：疲労の点・出場停止・くわしい板・リザーブの一覧 */
+.sq3 .q3cd{position:absolute;right:-1.6cqh;bottom:1.2cqh;width:2.4cqh;height:2.4cqh;box-shadow:inset -.3cqh -.3cqh 0 rgba(0,0,0,.25),0 0 0 .3cqh #fff}
+.sq3 .q3b .q3cd{position:static;flex:0 0 auto;width:2cqh;height:2cqh}
+.sq3 .q3sus{position:absolute;left:-1.2cqh;bottom:1.2cqh;width:2cqh;height:2.8cqh;border-radius:.3cqh;background:#e02a22;border:.25cqh solid #fff}.sq3 .q3b .q3sus{position:static;flex:0 0 auto}
+.sq3 .q3club{height:5.6cqh;padding:0 2.4cqw;border-radius:1cqh;border:.35cqh solid #c9a33a;background:#2a2410;font-weight:900;font-size:2.8cqh}
+.sq3 .q3pop{position:absolute;left:auto;right:2cqw;top:16cqh;z-index:45;width:42cqw;max-height:78cqh;overflow:auto}
+.sq3 .q3ph{margin:.6cqh 0;font-size:2.2cqh;color:#1d4fb8;font-weight:800;text-align:center}
+.sq3 .q3rel{display:block;width:100%;height:5.4cqh;border-radius:1cqh;border:.3cqh solid #fff;background:linear-gradient(#d33a2c,#a5241a);font-weight:900;font-size:2.6cqh;color:#fff}
+.sq3 .q3rs{flex-direction:column;gap:.8cqh;overflow:hidden}
+.sq3 .q3rh{display:flex;align-items:center;gap:1cqw}.sq3 .q3rh .q3h{flex:1;margin:0}
+.sq3 .q3rx{height:4.6cqh;padding:0 2cqw;border-radius:1cqh;border:.3cqh solid #6f86b8;background:#1d2c4c;font-weight:900;font-size:2.4cqh}
+.sq3 .q3rl{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;display:grid;grid-template-columns:1fr 1fr;gap:.8cqh 1cqw;align-content:start}
+.sq3 .q3r{display:flex;align-items:center;gap:.8cqw;height:6.4cqh;padding:0 .8cqw 0 0;border-radius:1cqh;border:.3cqh solid #3a5c8a;background:linear-gradient(#1d2c4c,#0f1d33);touch-action:pan-y;cursor:grab;overflow:hidden}
+.sq3 .q3r span{flex:1;min-width:0;font-weight:900;font-size:2.2cqh;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;flex-direction:column;line-height:1.1}.sq3 .q3r small{font-size:1.6cqh;color:#ffd84a}
+.sq3 .q3r.sel{background:linear-gradient(#2f6fe0,#1d4fb8);border-color:#fff}.sq3 .q3r.chk{border-color:#ff6a5a;background:linear-gradient(#5a1d1d,#2c0f0f)}
+.sq3 .q3ck{width:3.2cqh;height:3.2cqh;border-radius:.6cqh;border:.3cqh solid #fff;font-style:normal;font-weight:900;display:flex;align-items:center;justify-content:center}
+.sq3 .q3rf{display:flex;align-items:center;gap:1cqw;flex-wrap:wrap;font-size:2cqh;color:#cfe0ff}.sq3 .q3rf span{flex:1}
+.sq3 .q3rf button{height:4.6cqh;padding:0 1.6cqw;border-radius:1cqh;border:.3cqh solid #fff;background:#1d2c4c;font-weight:900;font-size:2.2cqh}.sq3 .q3rf .q3mgo,.sq3 .q3rf .q3mon{background:linear-gradient(#d33a2c,#a5241a)}.sq3 .q3rf button[disabled]{opacity:.45}
+.sq3 .q3ghost.q3r{width:22cqw}
+.sq3 .q3pop{color:#1b2a44;font-size:15px}.sq3 .q3pop .s2ph span{color:#1b2a44}
