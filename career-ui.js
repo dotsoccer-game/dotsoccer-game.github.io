@@ -1682,6 +1682,8 @@
     L.querySelector('.q3fm').onclick = () => { sq3Menu = !sq3Menu; renderLineup3(); };
     L.querySelectorAll('.q3menu [data-f]').forEach((b) => b.onclick = () => { tac.formation = b.dataset.f; tac.cells = C.cellsFor(b.dataset.f); sq3Menu = false; sq3Pick = -1; redo(); });
     L.querySelector('.q3tac').onclick = () => openTacSet('tac');
+    /* 版1074：ベンチ・リザーブの選手をつまんだ時も、ピッチの選手と同じ顔の札を指につけて動かす */
+    const mkGhost = (q) => { const d = document.createElement('div'); d.innerHTML = chip(q, -1, 0, 0); const g = d.firstElementChild; g.style.left = g.style.top = ''; g.style.zIndex = '999'; g.classList.add('q3ghost'); g.querySelectorAll('img.fc').forEach((im) => { const f = () => cutFace(im); im.addEventListener('load', f); if (im.complete) f(); }); return g; };
     const toast = (m) => { const t = document.createElement('div'); t.className = 'q3toast'; t.textContent = m; box.appendChild(t); setTimeout(() => t.remove(), 1600); };
     { const rb = L.querySelector('.q3res'); if (rb) rb.onclick = () => { sq3Res = !sq3Res; sq3R = -1; sq3Multi = null; sq3Pick = -1; if (!sq3Res) for (const q of rsv) delete q.gNew; renderLineup3(); }; }
     { const x = L.querySelector('.q3rx'); if (x) x.onclick = () => { sq3Res = false; sq3R = -1; sq3Multi = null; for (const q of rsv) delete q.gNew; renderLineup3(); }; }
@@ -1710,7 +1712,7 @@
       el.addEventListener('pointerdown', (e0) => { const k = +el.dataset.r, br = box.getBoundingClientRect(), z = box.offsetWidth / br.width; let gh = null, moved = false, dead = false;
         const mv = (e) => { if (dead) return; const dx = e.clientX - e0.clientX, dy = e.clientY - e0.clientY;
           if (!moved) { if (Math.hypot(dx, dy) < 8) return; if (Math.abs(dy) > Math.abs(dx) || sq3Multi) { dead = true; return; } moved = true; }
-          if (!gh) { gh = el.cloneNode(true); gh.classList.add('q3ghost'); box.appendChild(gh); el.classList.add('q3src'); }
+          if (!gh) { gh = mkGhost(rsv[k]); box.appendChild(gh); el.classList.add('q3src'); }
           gh.style.transform = `translate(${(e.clientX - br.left) * z}px,${(e.clientY - br.top) * z}px) translate(-50%,-50%)`; };
         const up = (e) => { window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up);
           if (gh) gh.remove(); el.classList.remove('q3src'); if (e.type === 'pointercancel' || dead) return;
@@ -1729,7 +1731,7 @@
         const isP = el.classList.contains('q3p'), pr0 = pitch.getBoundingClientRect(), ax0 = isP ? pr0.left + parseFloat(el.style.left) / 100 * pr0.width : e0.clientX, ay0 = isP ? pr0.top + parseFloat(el.style.top) / 100 * pr0.height : e0.clientY, gx = e0.clientX - ax0, gy = e0.clientY - ay0;
         const mv = (e) => { const dx = e.clientX - e0.clientX, dy = e.clientY - e0.clientY;
           if (!moved && Math.hypot(dx, dy) < 6) return; moved = true;
-          if (!gh) { gh = el.cloneNode(true); gh.classList.add('q3ghost'); gh.style.left = gh.style.top = ''; box.appendChild(gh); el.classList.add('q3src'); }
+          if (!gh) { gh = isP ? el.cloneNode(true) : mkGhost(ps[i]); gh.classList.add('q3ghost'); gh.style.left = gh.style.top = ''; gh.style.zIndex = '999'; box.appendChild(gh); el.classList.add('q3src'); }
           gh.style.transform = isP ? `translate(${(e.clientX - gx - br.left) * k}px,${(e.clientY - gy - br.top) * k}px) translate(-50%,-62%)` : `translate(${(e.clientX - br.left) * k}px,${(e.clientY - br.top) * k}px) translate(-50%,-50%)`; };
         const up = (e) => { window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up);
           if (gh) gh.remove(); el.classList.remove('q3src');
