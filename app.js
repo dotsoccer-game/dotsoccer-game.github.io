@@ -4457,7 +4457,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     stop(); panel(b.dataset.panel);
   }));
   // 交代・作戦の画面を開く（atHalf：ハーフタイム）。決めた内容で試合を計算し直して、今の場面から続ける
-  function openSub(atHalf) {
+  function openSub(atHalf, page) {
     if (!mctx || !mctx.opts.onSub) return;
     if (!atHalf) {
       if (show && show.phase !== 'kickoff') { flash($('#policy'), 'ゴールの演出のあとで交代できます', 2000); return; }
@@ -4466,7 +4466,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     const wasPlaying = playing; stop();
     const t = atHalf ? halfT : simT, st = stateAt(t);
     mctx.opts.onSub({
-      atHalf, t,
+      atHalf, t, page,
       minute: Math.min(90, Math.ceil((D.gameSec(match, t)) / 60)),
       stamina: st.players.slice(0, 11).map((p) => p.st),
       score: [0, 1].map((ti) => goals.filter((g) => g.t < t && g.team === ti).length),
@@ -4550,14 +4550,15 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     let el = document.getElementById('locker');
     if (el) return el;
     el = document.createElement('div'); el.id = 'locker'; el.className = 'lk-wrap'; el.hidden = true;
-    el.innerHTML = `<div class="lk-box"><canvas class="lk-room" width="640" height="360"></canvas>
+    el.innerHTML = `<div class="lk-box lk-v2"><img class="lk-bg" src="img/locker.jpg" alt=""><canvas class="lk-room" width="640" height="360" hidden></canvas>
+      <div class="lk-side"></div>
       <div class="lk-btns">
-        <button class="lk-rb" data-a="subs"><img src="icons/btn_change.png" alt=""><b>選手交代</b></button>
-        <button class="lk-rb lk-green" data-a="tac"><span class="lk-tac">${LK_TAC_SVG}</span><b>戦術</b></button>
-        <button class="lk-rb" data-a="stat"><img src="icons/btn_status.png" alt=""><b>状況</b></button>
-      </div>
-      <button class="lk-rb lk-go lk-goimg" data-a="go" title="後半開始"><img src="icons/btn_second.png" alt="後半開始"></button>
-      <div class="lk-count"><span>20</span></div>
+        <button class="lk-rb" data-a="subs"><img src="icons/lk2_subs.png" alt="選手交代"></button>
+        <button class="lk-rb" data-a="tac"><img src="icons/lk2_tac.png" alt="戦術"></button>
+        <button class="lk-rb" data-a="stat"><img src="icons/lk2_stat.png" alt="状況"></button>
+      </div><i class="lk-sline"></i>
+      <button class="lk-go2" data-a="go" title="後半開始"><img src="icons/lk2_go.png" alt="後半開始"></button>
+      <div class="lk-count"><small>後半開始まで</small><span>20</span><em>秒</em><i><u></u></i></div>
       <div class="lk-sub" hidden></div>
       <div class="lk-black"></div></div>`;
     (document.getElementById('app') || document.body).appendChild(el);   // 交代のボード（#app の中）が上に重なるように
@@ -4569,7 +4570,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       if (mctx && mctx.opts.lockEdit && (a === 'subs' || a === 'tac')) return;   // 版622：ルーム対戦は変更なし
       if (a === 'go') return lkStartSecond();
       if (a === 'stat') return lkStatus();
-      if (a === 'tac') return lkBoard();
+      if (a === 'tac') { if (mctx && mctx.opts.onSub) return openSub(true, 'team'); return lkBoard(); }   // 版1105：試合中と同じ作戦の画面（チーム指示）
       if (a === 'subs') {
         if (mctx && mctx.opts.onSub) openSub(true);
         else { panel('subs'); }
@@ -4595,7 +4596,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       if (!busy && !lk.leaving) lk.left = Math.max(0, lk.left - dt);
       const n = Math.ceil(lk.left); const ce = el.querySelector('.lk-count span');
       if (ce.textContent !== String(n)) { ce.textContent = String(n); ce.parentElement.classList.remove('pulse'); void ce.parentElement.offsetWidth; ce.parentElement.classList.add('pulse'); }
-      drawLockerRoom(el.querySelector('.lk-room').getContext('2d'), (now - lk.t0) / 1000);
+      { const u = el.querySelector('.lk-count u'); if (u) u.style.width = (100 * lk.left / LK_SEC).toFixed(1) + '%'; }   // 版1105：残りの時間のバー（部屋は絵）
       if (lk.left <= 0 && !lk.leaving && !busy) { lkStartSecond(); }
       lk.raf = requestAnimationFrame(tick);
     };

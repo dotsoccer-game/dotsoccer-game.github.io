@@ -2245,7 +2245,7 @@
     if (!ms.tq) { ms.tq = {}; for (const k of ['style', 'line', 'width', 'compact', 'attitude', 'press', 'pass', 'side']) ms.tq[k] = base[k]; if (!ms.tq.attitude) ms.tq.attitude = 'balanced'; }   /* 版1086：この試合のチーム戦術（試合中に変えても、保存はしない） */   /* 版1084：マークの指名・選手ごとの指示・ライン・プレス */
     const plan = { subs: [], cells: ms.cells.map((c) => c && { ...c }), marks: ms.marks.map((m) => ({ ...m })), orders: JSON.parse(JSON.stringify(ms.orders)), tq: { ...ms.tq } };
     let wSel = null, wPick = false;   /* 作戦の画面で選んでいるもの：{ opp: 名前 } か { me: 位置 } */
-    let page = 'board';
+    let page = info.page || 'board';   // 版1105：ロッカーの「戦術」からはチーム指示を開く
     let el = document.getElementById('htModal');
     if (!el) { el = document.createElement('div'); el.id = 'htModal'; document.getElementById('app').appendChild(el); }
     el.className = 'modal sb-wrap sb2-wrap q3sub-wrap';

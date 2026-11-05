@@ -4584,3 +4584,20 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 .ke-info{display:flex;align-items:center;gap:8px;color:#6a6050;font-weight:700;font-size:17px;margin:12px 0 0}.ke-info i{width:22px;height:22px;border-radius:50%;background:#6a6050;color:#fff;font:900 15px/22px serif;text-align:center;font-style:normal}
 .ke-gk{margin:14px 0}
 .ke .ee-btm{justify-content:center}
+/* 版1105：ハーフタイムのロッカールーム（監督のデザイン案の絵） */
+.lk-v2{background:#1d305a}
+.lk-v2 .lk-bg{position:absolute;left:0;top:0;width:1280px;height:720px}
+.lk-v2 .lk-side{position:absolute;top:0;bottom:0;right:0;left:1070px;background:linear-gradient(90deg,#26406e,#1d305a 8%);border-left:3px solid #3a5a94;border-radius:18px 0 0 18px}
+.lk-v2 .lk-btns{left:auto;right:0;width:210px;top:46px;align-items:center;gap:22px}
+.lk-v2 .lk-rb{width:136px;height:136px;border:4px solid #fff;background:#2d8a3a;box-shadow:0 5px 0 rgba(0,0,0,.35)}
+.lk-v2 .lk-rb img{inset:-2px;width:calc(100% + 4px);height:calc(100% + 4px)}
+.lk-v2 .lk-sline{position:absolute;right:28px;width:154px;top:520px;height:2px;background:rgba(255,255,255,.25)}
+.lk-go2{position:absolute;right:18px;bottom:22px;width:176px;height:130px;padding:0;border:0;background:none;cursor:pointer;z-index:2}
+.lk-go2 img{width:100%;height:100%;border-radius:18px;box-shadow:0 5px 0 rgba(0,0,0,.35)}
+.lk-go2:active{transform:translateY(3px)}
+.lk-v2 .lk-count{left:16px;bottom:14px;width:322px;height:86px;border-radius:14px;background:linear-gradient(#1c2c55,#14214a);border:2px solid #4a6aa8;display:block;padding:0}
+.lk-v2 .lk-count small{position:absolute;left:24px;top:10px;color:#fff;font:900 17px/1 "Hiragino Kaku Gothic ProN",sans-serif}
+.lk-v2 .lk-count span{position:absolute;left:30px;top:30px;font:900 48px/1 "Arial Black",sans-serif;color:#fff;text-shadow:none;min-width:50px;text-align:center}
+.lk-v2 .lk-count em{position:absolute;left:92px;top:50px;color:#fff;font:900 20px/1 sans-serif;font-style:normal}
+.lk-v2 .lk-count i{position:absolute;left:130px;right:20px;top:48px;height:16px;border-radius:8px;background:#0a1430;border:2px solid #3a4f80;overflow:hidden}
+.lk-v2 .lk-count u{display:block;height:100%;width:100%;background:linear-gradient(#5ef0ff,#16b8e8);border-radius:6px}
