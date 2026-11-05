@@ -4423,3 +4423,9 @@ body.in-digest #soBoard,body.in-digest #soCard{display:none!important}
 .sq3 .q3hint{min-height:9.6cqh;padding:0}
 .sq3 .q3show{bottom:.8cqh;height:8.4cqh;padding:0 2.6cqw;gap:1.2cqw;border-radius:4.2cqh;border-width:.45cqh;font-size:3.6cqh;box-shadow:0 .6cqh 0 rgba(0,0,0,.3)}
 .sq3 .q3show img{width:6cqh;height:6cqh}
+/* 版1079：右上の←（スタメン画面・戦術設定）を押しやすく：ボタンを大きくし、見た目のまわりにも押せる所を広げる（前は高さが画面の6%＝約23px で、端を押すと外れていた） */
+.sq3 .q3back,#tacSet .tq-back{position:relative;width:13cqh;height:7.6cqh;touch-action:manipulation}
+.sq3 .q3back::after,#tacSet .tq-back::after{content:"";position:absolute;inset:-2.4cqh -3cqh -2.4cqh -3cqh}
+.sq3 .q3back svg,#tacSet .tq-back svg{width:5.4cqh;height:5.4cqh}
+.sq3 button,#tacSet button{touch-action:manipulation}
+html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：iPhoneで2回すばやく押すと「ダブルタップで拡大」と取られ、2回目が効かないことがある → どのボタンも1回1回を押したことにする */
