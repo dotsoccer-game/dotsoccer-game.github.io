@@ -4555,7 +4555,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       <div class="lk-side"></div>
       <div class="lk-btns">
         <button class="lk-rb" data-a="subs"><img src="icons/lk2_subs.png" alt="選手交代"></button>
-        <button class="lk-rb lk-old" data-a="tac"><img src="icons/cb_tactic.png" alt=""><b>戦術</b></button>
+        <button class="lk-rb lk-old" data-a="tac"><img src="icons/cb_tactic.png" alt="戦術"></button>
         <button class="lk-rb" data-a="stat"><img src="icons/lk2_stat.png" alt="状況"></button>
       </div><i class="lk-sline"></i>
       <button class="lk-rb lk-go lk-goimg" data-a="go" title="後半開始"><img src="icons/btn_second.png" alt="後半開始"></button>
@@ -4927,10 +4927,11 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     if (!dlg) { dlg = document.createElement('div'); dlg.className = 'lk-dlg'; dlg.innerHTML = '<img class="lk-face" alt="" style="visibility:hidden"><div class="lk-band"><b class="lk-name"></b><p class="lk-text"></p><div class="lk-cards2"></div><i class="lk-more">▶</i></div>'; el.querySelector('.lk-box').appendChild(dlg); }
     if (lk) cancelAnimationFrame(lk.raf);
     lk = { t0: performance.now(), left: 99, last: performance.now(), leaving: false, raf: 0, sit: [], empty: true, talk: true };
+    lk2Key = ''; lkBuildBg(el);
     const bl = el.querySelector('.lk-black'); bl.style.transition = 'none'; bl.style.opacity = '1';
     requestAnimationFrame(() => { bl.style.transition = 'opacity .6s'; bl.style.opacity = '0'; });
     let k = -1, shown = 0, full = '', typing = 0;
-    const tick = (now) => { if (!lk || !lk.talk) return; drawLockerRoom(el.querySelector('.lk-room').getContext('2d'), (now - lk.t0) / 1000);
+    const tick = (now) => { if (!lk || !lk.talk) return; { const pc = el.querySelector('.lk-room'); pc.getContext('2d').clearRect(0, 0, pc.width, pc.height); }   // 版1109：試合のあとは、だれもいない部屋（デザイン案の絵）
       if (shown < full.length) { typing += 1; if (typing % 2 === 0) { shown++; dlg.querySelector('.lk-text').textContent = full.slice(0, shown); } dlg.querySelector('.lk-more').style.visibility = 'hidden'; } else dlg.querySelector('.lk-more').style.visibility = 'visible';
       lk.raf = requestAnimationFrame(tick); };
     lk.raf = requestAnimationFrame(tick);

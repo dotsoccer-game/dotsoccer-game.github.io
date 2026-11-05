@@ -4167,7 +4167,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         const gT = yT - p.y;
         if ((globalThis.__Kgkdr ?? 1) && Math.abs(gT) < 0.35 && !src) return;   // 体の正面に来る球には飛ばない
         { const tl = Math.abs(bb.vx) > 0.5 ? (p.x - bb.x) / bb.vx : 9;   // 版1097：ボールがもうGKの横まで来ている（0.12秒以内に横を通る・もう通った）のに、横へ離れた所を通る球には飛ばない（通り過ぎた後に横へ飛ぶと、ボールと逆へ飛んだように見える）
-          if ((globalThis.__Kgklate ?? 1) && tl < 0.12 && Math.abs(gT) > 0.9 && !src) { if (globalThis.__lateSkip) { globalThis.__lateSkip.n++; (globalThis.__lateSkip.ts ||= []).push(+S.t.toFixed(2)); }
+          if ((globalThis.__Kgklate ?? 1) && tl < 0.12 && Math.abs(gT) > gkDiveMax(p) + 0.4 && !src) {   /* 版1109：届く所の球には飛ぶ（届かない球だけ、飛ばずに崩れる。届く球まで見送って、ゆるいシュートが入っていた） */ if (globalThis.__lateSkip) { globalThis.__lateSkip.n++; (globalThis.__lateSkip.ts ||= []).push(+S.t.toFixed(2)); }
             const dd = Math.sign(gT);   // 飛ぶ代わりに：ボールの方へ手を伸ばしかけて、間に合わずに崩れる（逆を突かれた時と同じ動き。倒れている時間も飛んだ時と同じくらい）
             p.wf = { dir: dd, gd: dd, t1: S.t + 0.05, t2: S.t + 0.35, end: S.t + 1.95, shot: bb.shotT }; p.vx *= 0.2; p.vy *= 0.2; p.lateDive = null; p.dvShot = bb.shotT;
             if (rec) { actions.push({ t: +S.t.toFixed(2), i: p.idx, a: 'lose', d: 0.4, dx: 0, dy: dd, o: p.idx, wf: 1 }); actions.push({ t: +(S.t + 0.4).toFixed(2), i: p.idx, a: 'fall', d: 1.5, dx: 0, dy: dd, wf: 1 }); }
@@ -7441,7 +7441,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             // 正面へのゆるいシュートは、相手が誰でも止める
             { const gl = fx(p.team, 0), yGl = b.y + b.vy * ((gl - b.x) / (b.vx || 1e-6)); if ((Math.abs(yGl - p.y) < 1.1 || Math.abs(yAt - p.y) < 0.8) && sp < 15.5 && !b.knuckle && !b.curveAll && !(b.drive > 0 && b.driveOn)) prob = Math.max(prob, 0.62 + skill * 0.0035); }   // GKの正面に来たゆるい球は止める（下手なGKはたまにこぼす）   // シュート技（トゥーキック・ニア上など）はGKが反応しにくい
             // 版929：ゆるい球（時速47km未満）は、体の届く所に来たら、誰が蹴っても止める（ボテボテのシュートがGKの前を抜けない）
-            if ((globalThis.__Kslow ?? 1) && sp < 13 && !b.knuckle && !(b.drive > 0 && b.driveOn) && !(p.downT > 0)) prob = Math.max(prob, 0.95 - Math.max(0, sp - 8) * 0.04);
+            let slowF = 0; if ((globalThis.__Kslow ?? 1) && sp < 13 && !b.knuckle && !(b.drive > 0 && b.driveOn) && !(p.downT > 0)) { slowF = 0.95 - Math.max(0, sp - 8) * 0.04; prob = Math.max(prob, slowF); }
             // 構えているGKに、地面を転がるゆるいシュート（コロコロ）は通用しない
             const rolling = b.z < 0.4 && b.vz < 1 && sp < 12.5 && fx(p.team, p.x) < 6 && !(b.csPlace && b.csGkNear > 0.5);   // ニア寄りのGKの逆を突くコロコロは別
             if (rolling) prob = Math.max(prob, 0.96);
@@ -7471,7 +7471,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             if (b.guren && !b.pkShot) prob -= (b.guren >= 2 ? 0.14 : 0.1) * (b.grF ?? 1);   // 紅蓮の牙：正面に来ても、勢いでGKの手をはじく
             if (b.tsukiShot) prob = Math.max(prob, 0) + (b.csPlace ? 0.26 : 0.14);   // 月影の抜け出し（無凸）の後のシュートは、GKも待ち構えて止めやすい（エースのかとうより決定力は下）
             if (globalThis.__gkp && off < 0.2 && shotD > 16) globalThis.__gkp.push({ prob, skill, shotD, sp, corner, pace, trick, kq: P[b.kicker].kick * 0.6 + P[b.kicker].technique * 0.4, base: 0.27 + (skill - 50) * 0.0058 + (1 - Math.min(1, off)) * 0.32, drive: b.drive > 0 && b.driveOn, guren: !!b.guren, kn: !!b.knuckle });
-            if (!ik && !b.pkStop && !rolling && !b.conv) prob *= globalThis.__Kgkm ?? 0.68;   // 版966：GKを全体に少し弱く（引き分けより、勝ったり負けたりする方が面白い）。白亜の城壁・PKストッパー・コロコロ・クロスの処理は別
+            if (!ik && !b.pkStop && !rolling && !b.conv) prob *= globalThis.__Kgkm ?? 0.68;
+            if (globalThis.__Kslf ?? 1) prob = Math.max(prob, slowF);   // 版1109：ゆるい球は必ず止める、の決まりは、全体を弱くする（×0.68）より後で効かせる（ボテボテのシュートがGKの横を抜けていた）   // 版966：GKを全体に少し弱く（引き分けより、勝ったり負けたりする方が面白い）。白亜の城壁・PKストッパー・コロコロ・クロスの処理は別
             return { prob, skill, shotD, oneGK, rolling };
     }
     // カットインの角度：前から内側へ 25°〜90°（真横）の5つから選ぶ（ゲームとカットイン確認画面で同じ計算）

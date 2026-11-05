@@ -4605,3 +4605,19 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 #locker .lk-v2 .lk-ppl{position:absolute;left:0;top:0;right:auto;bottom:auto;width:1280px!important;height:720px!important;image-rendering:pixelated;z-index:1}
 .lk-v2 .lk-rb.lk-old{background:radial-gradient(circle at 45% 35%,#f4f7ef,#c6d2c0 70%)}.lk-v2 .lk-rb.lk-old img{inset:8px;width:calc(100% - 16px);height:calc(100% - 16px);object-fit:contain}
 .lk-v2 .lk-go{right:37px;bottom:30px;width:136px;height:136px}
+/* 版1109：試合のあとのロッカー（話すだけ）：ボタン・残り時間は出さない */
+.lk-talk .lk-v2 .lk-side,.lk-talk .lk-v2 .lk-btns,.lk-talk .lk-v2 .lk-go,.lk-talk .lk-v2 .lk-count,.lk-talk .lk-v2 .lk-sline{display:none!important}
+/* 版1109：クラブ設定（名前・はじめての設定）も、エンブレム・ユニフォームの画面と同じ見た目に */
+.std.cl{background:#f3ead6}
+.cl-top{background:linear-gradient(#123a8c,#0b2463);border-bottom:3px solid #e0b030;height:68px}
+.cl-top b{font-size:32px}.cl-top span{color:#ffe08a}
+.cl-prev{border:3px solid #d8c69a;border-radius:14px;background:radial-gradient(ellipse at 50% 30%,#2f8e3a,#16572a 70%,#0f4220)}
+.cl-name b{font-size:34px}.cl-name small{color:#d6edd0}
+.cl-side{background:transparent;border-radius:0;overflow:visible}
+.cl-tabs{background:transparent!important;padding:0 0 0 0!important;display:flex;gap:8px}
+.cl-tabs button{height:50px;border-radius:12px 12px 0 0!important;border:2px solid #cdbb90!important;border-bottom:0!important;background:linear-gradient(#fbf4e2,#efe3c6)!important;color:#13234a!important;font-weight:900!important;font-size:22px!important;box-shadow:none!important}
+.cl-tabs button.on{background:linear-gradient(#2a64d8,#1a46b0)!important;color:#fff!important;border:3px solid #e0b030!important;border-bottom:0!important}
+.cl-body{background:#fbf6ea;border:2px solid #d9c9a0;border-radius:0 14px 14px 14px}
+.cl-form label{color:#13234a}.cl-form input:not([type=color]),.cl-form select{border:2px solid #9aa6c4!important;border-radius:10px!important;background:#fff}
+.cl-form select{font:700 20px/1.2 "Hiragino Kaku Gothic ProN",sans-serif;padding:8px 10px;max-width:520px}
+.cl-ok{background:linear-gradient(#2c6ae0,#1440a8)!important;border:3px solid #fff!important;border-radius:14px!important;box-shadow:0 3px 0 rgba(0,0,0,.35),0 0 0 2px #0b2463!important;font-size:24px!important}
