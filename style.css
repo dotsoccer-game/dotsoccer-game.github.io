@@ -4419,3 +4419,7 @@ body.in-digest #soBoard,body.in-digest #soCard{display:none!important}
 .sq3 .q3show img{width:4cqh;height:4cqh}
 .sq3 .q3nt{margin-top:-1.2cqh;min-width:12cqh;padding:.3cqh 1.2cqh;border-radius:3cqh;border:.3cqh solid #fff;font-size:2cqh;text-align:center;position:relative}
 .sq3 .q3bt{font-style:normal;font-size:1.6cqh;padding:.3cqh .8cqh;border-width:.25cqh;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+/* 版1078：右下の切りかえボタンを大きく（下の行を高くして、右の板とは重ならないように） */
+.sq3 .q3hint{min-height:9.6cqh;padding:0}
+.sq3 .q3show{bottom:.8cqh;height:8.4cqh;padding:0 2.6cqw;gap:1.2cqw;border-radius:4.2cqh;border-width:.45cqh;font-size:3.6cqh;box-shadow:0 .6cqh 0 rgba(0,0,0,.3)}
+.sq3 .q3show img{width:6cqh;height:6cqh}
