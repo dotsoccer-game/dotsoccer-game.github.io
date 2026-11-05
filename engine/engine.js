@@ -567,13 +567,32 @@
         if (c.compact || c.zone_width || c.cells) {
           const cellsNow = c.cells || tm.cellsNow || teamsIn[ch.team].cells; tm.cellsNow = cellsNow;   // 版1026：配置を変えなかった指示（交代だけなど）は、今の配置のまま（試合前の配置に戻していた：作戦盤と試合で左右が逆になっていた）
           const sl = buildSlots({ formation: c.formation || teamsIn[ch.team].formation, cells: cellsNow, compact: c.compact || teamsIn[ch.team].compact, zone_width: c.zone_width || teamsIn[ch.team].zone_width });
-          tm.players.forEach((p, i) => { p.slot = sl[i] ? (side[ch.team] < 0 ? mirSlot(sl[i]) : sl[i]) : p.slot; p.slot0 = null; if (!p.gk) slotPos(p); });
+          tm.players.forEach((p, i) => { p.slot = sl[i] ? (side[ch.team] < 0 ? mirSlot(sl[i]) : sl[i]) : p.slot; p.slot0 = null; p.ordShift = 0; if (!p.gk) slotPos(p); });
         }
       }
       for (const sb of ch.subs || []) {
         const k = tm.players.findIndex((p) => p.slotIdx === sb.slot), old = tm.players[k];   // 名簿の位置で探す（退場者がいても正しい選手を替える）
         if (!old || !sb.player || k === 0 && sb.player.position !== 'GK' || tm.subsLeft <= 0) continue;
         doSub(tm, k, sb.player);
+      }
+      // 版1084：試合中の作戦：マンマークの指名（味方の名簿の位置 me → 相手の名前 opp）と、選手ごとの指示（攻撃参加・守備）
+      if (ch.tac && Array.isArray(ch.tac.marks)) {
+        for (const p of tm.players) if (p.vsMarkBy === 'order') { p.vsMark = null; p.vsMarkBy = null; }
+        for (const m of ch.tac.marks.slice(0, 2)) { const p = tm.players.find((q) => q.slotIdx === m.me && !q.off && !q.gk); if (p && m.opp) { p.vsMark = m.opp; p.vsMarkBy = 'order'; } }
+      }
+      if (ch.tac && ch.tac.orders) {
+        for (const p of tm.players) {
+          if (p.gk) continue;
+          if (!p.ord0) p.ord0 = { goal_wait: p.goal_wait, run_space: p.run_space, overlap: p.overlap, support: p.support, press: p.press, zone_man: p.zone_man };
+          const o = ch.tac.orders[p.slotIdx] || {}, a = clamp(o.att | 0, -1, 1), d = clamp(o.def | 0, -1, 1), b = p.ord0;
+          // 攻撃参加：積極的＝ゴール前で待つ・裏へ走る・追い越す・攻めに顔を出すが増え、守備に戻るのが遅くなる（ordAtt）。控える＝その反対
+          p.goal_wait = clamp(b.goal_wait + a * 25, 0, 100); p.run_space = clamp(b.run_space + a * 25, 0, 100); p.overlap = clamp(b.overlap + a * 30, 0, 100); p.support = clamp(b.support + a * 15, 0, 100);
+          // 守備：プレスに行く＝寄せが強く速い／待つ＝持ち場を守って寄せない
+          p.press = clamp(b.press + d * 30, 0, 100); p.ordAtt = a; p.ordDef = d;
+          // 立ち位置も前後にずらす（積極的＝4m前、控える＝4m後ろ）。何度指示しても、ずれは1回分だけ
+          const sh = a * 4, dd = sh - (p.ordShift || 0);
+          if (dd && p.slot) { p.slot = { ...p.slot, rel: clamp(p.slot.rel + dd, -4, 44) }; if (p.slot0) p.slot0 = { ...p.slot0, rel: clamp(p.slot0.rel + dd, -4, 44) }; p.ordShift = sh; if (typeof slotPos === 'function') slotPos(p); }
+        }
       }
     }
     // キャプテンシー（キャプテン＝最初に持っている選手）：味方全員のスタミナの減りが少し遅い
@@ -3491,7 +3510,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           }
           // 版878：プレスバック：中盤で受けた相手の背中側（ボールより前）にいたMF・FWの1人が、全速で戻って後ろから挟む（見えない所から来られると、相手はあわてる）
           if (own && !own.gk) { const ox = fx(tm.ti, own.x); if (ox > 22 && ox < 78 && S.t - (own.recvT ?? -9) < 2.5) {
-            const pb = tm.players.filter((p) => !p.gk && !p.off && !pressers.has(p.idx) && (p.position === 'MF' || p.position === 'FW') && fx(tm.ti, p.x) > ox + 1.5).map((p) => ({ p, d: hyp(p.x - own.x, p.y - own.y) })).filter((r) => r.d < 14 && r.p.cur > 30).sort((a, c) => a.d - c.d)[0];
+            const pb = tm.players.filter((p) => !p.gk && !p.off && !pressers.has(p.idx) && !(p.ordAtt > 0) && (p.position === 'MF' || p.position === 'FW') &&   /* 版1084：攻撃参加「積極的」の選手は、プレスバックで戻らない */ fx(tm.ti, p.x) > ox + 1.5).map((p) => ({ p, d: hyp(p.x - own.x, p.y - own.y) })).filter((r) => r.d < 14 && r.p.cur > 30).sort((a, c) => a.d - c.d)[0];
             if (pb) { pressers.add(pb.p.idx); if (globalThis.__tacLog && S.t - (pb.p.pbLog ?? -9) > 4) { pb.p.pbLog = S.t; globalThis.__tacLog.push(['pressback', +S.t.toFixed(1), tm.ti, pb.p.idx]); } pb.p.pbT = S.t; } } }
           // シュートレンジ（ゴールから約30m）に入られたら、いちばん近いDFが必ず寄せて打たせない（原理原則）
           if (own && fx(tm.ti, own.x) < 32 && Math.abs(own.y - GOAL_Y) < 24) {   // いちばん早く寄せられる選手（DFでもMFでも）が、シュートコースを切りに行く
@@ -8888,6 +8907,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
     });
     return {
       home: T[0].name, away: T[1].name, homeShort: T[0].short, awayShort: T[1].short, score: S.score, stats, events, frames,
+      teamCells: teamsIn.map((t) => (Array.isArray(t.cells) ? t.cells.map((c) => c && { r: c.r, c: c.c }) : null)), teamForm: teamsIn.map((t) => t.formation || null),   /* 版1084：作戦の画面で相手の並びを出す */
       roster: [P.slice(0, 11), P.slice(11, 22)].map((ps) => ps.map((p) => ({ params: Object.fromEntries(PARAM_KEYS.map((k) => [k, p[k] - (p.moodAdd || 0)])), name: p.name, number: p.number, type: p.type, position: p.position, hair: p.hair, hairColor: p.hairColor, skin: p.skin, gk: p.gk, skills: [...p.sk], uniq: p.uniq || undefined, passive: p.passive || undefined, faceKey: p.faceKey || undefined, cpuTid: p.cpuTid || undefined, cpuNo: p.cpuNo ?? undefined }))),
       uniqLog,
       actions,

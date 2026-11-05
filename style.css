@@ -4448,3 +4448,28 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 .sq3 .q3att b{font-size:3.4cqh;font-weight:900}.sq3 .q3att small{font-size:2.2cqh;color:#5a6680;font-weight:700}
 .sq3 .q3att.on{background:linear-gradient(#fff3c4,#f4d46a);border-color:#c9a33a}
 .vs-go.wait{animation:simspin2 1s ease-in-out infinite;opacity:.8}@keyframes simspin2{50%{transform:scale(.9)}}
+/* 版1084：試合中の作戦（マークの指名・選手ごとの指示・チームの指示） */
+.sq3 .q3fin2{height:5.6cqh;padding:0 3cqw;border-radius:1cqh;border:.35cqh solid #c9e25a;background:linear-gradient(#3fae4a,#23812f);font-weight:900;font-size:3cqh;margin-left:1.4cqw}
+.sq3 .q3w{cursor:pointer}
+.sq3 .q3opp{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;z-index:60;cursor:pointer}
+.sq3 .q3opp b{width:5.2cqh;height:5.2cqh;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ff7a6a,#c8281c);border:.4cqh solid #fff;color:#fff;font-weight:900;font-size:2.4cqh;display:flex;align-items:center;justify-content:center;box-shadow:0 .4cqh 0 rgba(0,0,0,.35)}
+.sq3 .q3opp span{margin-top:.2cqh;padding:0 .8cqh;border-radius:1cqh;background:rgba(80,10,10,.85);color:#fff;font-weight:800;font-size:1.6cqh;white-space:nowrap}
+.sq3 .q3opp.sel b{border-color:#ffd84a;box-shadow:0 0 1.4cqh #ffd84a}.sq3 .q3opp.mk b{border-color:#ffd84a}
+.sq3 .q3mkl{position:absolute;inset:0;width:100%;height:100%;z-index:55;pointer-events:none}.sq3 .q3mkl line{stroke:#ffd84a;stroke-width:.6;stroke-dasharray:1.6 1;vector-effect:non-scaling-stroke;stroke-width:3}
+.sq3 .q3oa,.sq3 .q3od,.sq3 .q3om{position:absolute;font-style:normal;font-weight:900;font-size:1.5cqh;padding:0 .5cqh;border-radius:.5cqh;border:.2cqh solid #fff;color:#fff;white-space:nowrap}
+.sq3 .q3oa{left:-3.4cqh;top:0}.sq3 .q3od{left:-3.4cqh;top:2.6cqh}.sq3 .q3om{right:-2.4cqh;top:0;background:#c9a33a}
+.sq3 .q3oa.up,.sq3 .q3od.up{background:#e0602a}.sq3 .q3oa.dn,.sq3 .q3od.dn{background:#2f6fe0}
+.sq3 .q3wp{gap:.8cqh}
+.sq3 .q3dh small{font-size:2.2cqh;color:#5a6680;font-weight:800}
+.sq3 .q3wx{width:5cqh;height:5cqh;border-radius:50%;border:.3cqh solid #c9c2ae;background:#fff;color:#1b2a44;font-weight:900;font-size:2.8cqh;box-shadow:none}
+.sq3 .q3wq{margin:.4cqh 0 0;font-weight:900;font-size:2.6cqh}
+.sq3 .q3wex{margin:0;font-size:2.1cqh;color:#5a6680;font-weight:700}
+.sq3 .q3seg{display:flex;border-radius:1cqh;overflow:hidden;border:.3cqh solid #9aa7bd}
+.sq3 .q3seg button{flex:1;height:5.2cqh;border:0;border-left:.25cqh solid #c9c2ae;background:#fff;color:#1b2a44;font-weight:900;font-size:2.3cqh;box-shadow:none;border-radius:0}.sq3 .q3seg button:first-child{border-left:0}
+.sq3 .q3seg button.on{background:linear-gradient(#2f6fe0,#1d4fb8);color:#fff}
+.sq3 .q3wl{display:grid;grid-template-columns:1fr 1fr;gap:.6cqh .6cqw;overflow-y:auto;min-height:0}
+.sq3 .q3wm{display:flex;align-items:center;justify-content:flex-start;gap:.6cqw;height:6cqh;padding:0 .6cqw;border-radius:1cqh;border:.3cqh solid #c9c2ae;background:#fff;color:#1b2a44;box-shadow:none;font-weight:900;font-size:2.1cqh}
+.sq3 .q3wm .q3rf{width:5cqh;height:5cqh}.sq3 .q3wm small{margin-left:auto;font-size:1.6cqh;color:#5a6680}.sq3 .q3wm.on{background:linear-gradient(#fff3c4,#f4d46a);border-color:#c9a33a}
+.sq3 .q3wnone{height:5cqh;border-radius:1cqh;border:.3cqh solid #9aa7bd;background:#fff;color:#1b2a44;font-weight:900;font-size:2.4cqh;box-shadow:none}.sq3 .q3wnone[disabled]{opacity:.4}
+.sq3 .q3wmk{display:flex;flex-direction:column;gap:.5cqh;font-weight:800;font-size:2.2cqh}.sq3 .q3wmk span{display:flex;align-items:center;gap:1cqw}.sq3 .q3wmk button{width:3.6cqh;height:3.6cqh;padding:0;border-radius:50%;border:.25cqh solid #c9c2ae;background:#fff;box-shadow:none;font-size:2cqh}
+.sq3 .q3opp b{width:4.6cqh;height:4.6cqh;font-size:2.1cqh}.sq3 .q3opp span{font-size:1.5cqh}
