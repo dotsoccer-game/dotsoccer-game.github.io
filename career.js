@@ -1020,6 +1020,7 @@
   function ensureClub(save) {
     if (!save.club) save.club = { kit: { ...KIT_DEFAULT }, emb: { ...EMB_DEFAULT } };
     save.club.kit = { ...KIT_DEFAULT, ...save.club.kit }; save.club.emb = { ...EMB_DEFAULT, ...save.club.emb };
+    if (!save.club.emb.tpl) { const e = save.club.emb; save.club.emb = { ...e, tpl: { 0: 1, 1: 2, 2: 6, 3: 10, 4: 7, 5: 8 }[e.shape] || 1, tm: 'name', prev: { shape: e.shape, pat: e.pat, icon: e.icon, c1: e.c1, c2: e.c2, c3: e.c3, ch: e.ch } }; delete save.club.emb.c3; }   // 版1102：前のエンブレムも、見本の絵のエンブレムに置きかえる（土台・模様の色は引き継ぐ。前の形は prev に残す）
     if (!save.club.kit2) { const k = save.club.kit; save.club.kit2 = { pat: 'solid', shirt: '#f4f4f0', sub: k.shirt, shorts: k.shirt, socks: '#f4f4f0' }; }   // アウェーのユニフォーム（はじめは白）
     if (!save.club.gk) save.club.gk = { pat: 'solid', shirt: '#f2c230', sub: '#2a2a2a', shorts: '#2a2a2a', socks: '#f2c230' };   // 版651：GKのユニフォーム
     return save.club;
