@@ -83,7 +83,40 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
   let onMatchDone = null, mctx = null;
   const SND = () => window.DotSound || { play() {}, crowd() {}, bgm() {} };   // 版499：サウンド
   let hitAll = [], skAll = [], lastShotEv = null, goalSnd = false, introChant = false, chantOn = false, chantUntil = 0, chantNext = 0, lastShotSimT = 0, shownScore = '', dribOwner = -1, dribT = 0, kickAll = [], kickPtr = 0, koWhistleT = -1, oohT = -1, chipHeard = new Map();
+  // 版1073：試合の計算（2〜3秒かかる）を別の働き手（Web Worker）でする。試合前の画面を開いた時に先に計算を始めておき（presim）、
+  //  「試合開始」を押した時に同じ条件の計算が終わっていればそのまま使う。まだなら終わるまで待つ（その間も画面は止まらない）。使えない時は今までどおりその場で計算
+  const simW = { w: null, id: 0, wait: new Map(), cache: new Map() };
+  const simKey = (args) => { try { return JSON.stringify(args); } catch (_) { return null; } };
+  const simFlags = () => { const f = {}; for (const k of Object.keys(globalThis)) if (k.startsWith('__') && ['boolean', 'number', 'string'].includes(typeof globalThis[k])) f[k] = globalThis[k]; return f; };
+  function simRun(args) {
+    const key = simKey(args); if (!key) return null;
+    const hit = simW.cache.get(key); if (hit) return hit;
+    try {
+      if (!simW.w) { if (location.protocol === 'file:' || typeof Worker === 'undefined') return null; const v = ((document.querySelector('script[src*="engine.js"]') || {}).src || '').split('v=')[1] || ''; simW.src = 'engine.js?v=' + v; simW.w = new Worker('engine/simworker.js?v=' + v);
+        simW.w.onmessage = (e) => { const r = simW.wait.get(e.data.id); if (!r) return; simW.wait.delete(e.data.id); if (e.data.err) r.no(new Error(e.data.err)); else r.ok(e.data.m); };
+        simW.w.onerror = () => { for (const r of simW.wait.values()) r.no(new Error('worker')); simW.wait.clear(); simW.w = null; }; }
+      const id = ++simW.id, p = new Promise((ok, no) => simW.wait.set(id, { ok, no }));
+      simW.w.postMessage({ id, src: simW.src, flags: simFlags(), args });
+      simW.cache.clear(); simW.cache.set(key, p); p.catch(() => { if (simW.cache.get(key) === p) simW.cache.delete(key); });
+      return p;
+    } catch (_) { return null; }
+  }
+  const simOpts = (o) => ({ oneHalf: !!o.oneHalf, shootout: !!o.shootout, soForce: o.soForce, soGkFirst: o.soGkFirst });
+  function presim(mine, theirs, seed, opts) { simRun([mine, theirs, seed, simOpts(opts || {})]); }
   function startWith(mine, theirs, seed, homeShort, awayShort, done, opts) {
+    const o = opts || {};
+    if (o.asyncSim) {
+      const p = simRun([mine, theirs, seed, simOpts(o)]);
+      if (p) {
+        let prep = null; const tm = setTimeout(() => { prep = document.createElement('div'); prep.className = 'sim-prep'; prep.innerHTML = '<i></i><span>試合の準備中…</span>'; (document.getElementById('app') || document.body).appendChild(prep); }, 150);
+        const go = (m) => { clearTimeout(tm); if (prep) prep.remove(); startWith2(mine, theirs, seed, homeShort, awayShort, done, opts, m); };
+        p.then(go, () => go(null));
+        return;
+      }
+    }
+    startWith2(mine, theirs, seed, homeShort, awayShort, done, opts, null);
+  }
+  function startWith2(mine, theirs, seed, homeShort, awayShort, done, opts, pre) {
     closePlv();
     { const dc = document.getElementById('digestCtl'); if (dc) dc.style.display = 'none'; }
     onMatchDone = done || null;
@@ -91,7 +124,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     venue = mctx.opts.venue != null ? Math.max(0, Math.min(4, mctx.opts.venue)) : 4;
     applyKits(mctx.opts.kits);
     careerChanges = []; tacChange = null; tacState = null; soPicked = false; soBench = false; soToss = null; { const mt = document.getElementById('match'); if (mt) mt.classList.remove('so-pick', 'so-run'); const sp = document.getElementById('soPick'); if (sp) sp.hidden = true; const tm = document.getElementById('soTossMsg'); if (tm) tm.hidden = true; } closeLocker();
-    match = D.simulateMatch(mine, theirs, seed, { oneHalf: !!mctx.opts.oneHalf, shootout: !!mctx.opts.shootout, soForce: mctx.opts.soForce, soGkFirst: mctx.opts.soGkFirst });   // 版560：練習試合は前半だけ
+    match = pre || D.simulateMatch(mine, theirs, seed, { oneHalf: !!mctx.opts.oneHalf, shootout: !!mctx.opts.shootout, soForce: mctx.opts.soForce, soGkFirst: mctx.opts.soGkFirst });   // 版560：練習試合は前半だけ
     { const hb = document.getElementById('htTac'); if (hb) hb.hidden = !mctx.opts.onSub; const sb = document.querySelector('#half [data-panel="subs"]'); if (sb) sb.hidden = !!mctx.opts.onSub; }
     { const ab = document.querySelector('#match aside [data-panel="subs"]'); if (ab) ab.style.display = (mctx.opts.watch || mctx.opts.lockEdit) ? 'none' : ''; }   // 観戦：選手交代はない（版622：フレンドのルーム対戦も、2つの画面で同じ試合にするため変更なし）
     // 版695：プレミアムパス：試合の早送り（1倍→2倍→4倍）。フレンドのルーム対戦（2つの画面で同じ試合）では出さない
@@ -4873,7 +4906,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
   // 版1041：確認画面用：好きな時刻の絵を出す（止めたまま）／そこから再生
   function labPeek(t, snap) { if (!match) return; stop(); if (show && show.phase !== "endOut") show = null; koWhistleT = -1; if (snap) lastDrawT = -99; simT = Math.max(0, Math.min(t, match.duration)); evIndex = 0; while (evIndex < match.events.length && match.events[evIndex].t <= simT) evIndex++; try { draw(); } catch (err) { showErr(err, '確認画面'); } }
   function labPlay() { if (match && !playing) play(); }
-  window.__app = { labPeek, labPlay, champDemo, applyKits, artSprite, kitSprite, kitCol, lockerTalk, startWith, showScreen, stop, spriteCanvas, SPR: { W: SPR_W, H: SPR_H }, get match() { return match; }, catchUp, get simT() { return simT; }, get playing() { return playing; }, RATE };
+  window.__app = { presim, labPeek, labPlay, champDemo, applyKits, artSprite, kitSprite, kitCol, lockerTalk, startWith, showScreen, stop, spriteCanvas, SPR: { W: SPR_W, H: SPR_H }, get match() { return match; }, catchUp, get simT() { return simT; }, get playing() { return playing; }, RATE };
   window.__demo = { simT: () => simT, showPh: () => (show ? show.phase + (show.phase === "sub" ? "#" + show.rt.toFixed(2) + "k" + show.k + "n" + show.list.length : "") : null), playingNow: () => playing, poses: (list) => {
     ctx.fillStyle = '#45a31d'; ctx.fillRect(0, 0, CW, CH);
     list.forEach((pz, k) => { sprite(90 + k * 165, 270, 4.2, match.roster[0][9], 0, 1, 0, false, false, false, pz === 'side' ? null : pz, 0, 'side'); ctx.fillStyle = '#fff'; ctx.font = '12px sans-serif'; ctx.fillText(pz, 60 + k * 165, 300); });

@@ -2982,8 +2982,11 @@
   async function runMatch(title, sub, opTeamInfo, done, meta) {
     venueNow = venueOf(opTeamInfo, meta); try { venImg('side'); venImg('goal'); loadCrowd(); } catch (_) {}   // 版603：会場の絵を先に読む
     if (!(meta && meta.skipPre)) lineupKeep();
+    /* 版1073：相手と試合の種は先に決め、試合前の画面を開いた時に試合の計算を始めておく（「試合開始」で止まらないように） */
+    const opp = C.opponentTeam(save, opTeamInfo), seed = 1 + Math.floor(Math.random() * 999999), soOpt = { oneHalf: !!((meta || {}).practice && !(meta || {}).tut), shootout: !!(meta || {}).shootout };
+    try { A().presim(C.matchTeam(save).team, opp, seed, soOpt); } catch (_) {}
     const how = meta && meta.skipPre ? 'watch' : await preMatch(opTeamInfo, meta || { comp: title, label: '', home: true });
-    const mt = C.matchTeam(save), opp = C.opponentTeam(save, opTeamInfo), seed = 1 + Math.floor(Math.random() * 999999);
+    const mt = C.matchTeam(save);
     if (how === 'watch') {
       cancelAnimationFrame(raf);
       const ms = { subsIn: [] }, subsIn = ms.subsIn;
@@ -2992,7 +2995,7 @@
         const played = mt.played.slice();
         for (const nm of subsIn) { const i = save.team.players.findIndex((q) => q.name === nm); if (i >= 0 && !played.includes(i)) played.push(i); }
         done(score, (A().match || {}).events || [], lineupRestore(played));
-      }, { venue: venueNow, kits: C.kitsFor(save, opTeamInfo.name, (meta || {}).kitSel, (meta || {}).oppSel), tut: window.__tut ? window.__tut.matchOpts(meta || {}) : null, onSub: (info) => subSheet(mt, info, ms), noIntro: true, comp: (meta || {}).comp || title, label: (meta || {}).label || '', absent: save.team.players.filter((q) => q.injury > 0 || q.suspend > 0).map((q) => ({ name: q.name, pos: q.position, number: q.number, weeks: q.injury, why: q.suspend > 0 ? '出場停止' : `ケガ（あと${q.injury}週）` })), homeName: save.team.name, awayName: opTeamInfo.name, champCheck: (meta || {}).fx ? (sc) => champView((meta || {}).fx, sc) : null, halfOthers: ((meta || {}).practice || (meta || {}).online) ? null : (my, minute) => halfOthers(my, minute), oneHalf: !!((meta || {}).practice && !(meta || {}).tut), shootout: !!(meta || {}).shootout, soPick: !!(meta || {}).shootout, embH: emblemURL(save.team.name, 48), embA: emblemURL(opTeamInfo.name, 48), grade: (q, k, tm) => { const sp = tm ? null : save.team.players.find((x) => x.name === q.name); if (sp) { C.ensurePts(sp); return C.rankInfo(sp.pts[k]).g; } { const op = tm ? (opp.players || []).find((x) => x.name === q.name && x.bg) : null; if (op && op.bg[k]) return op.bg[k]; } return C.rankInfo(C.toPts((q.params || q)[k])).g; } });
+      }, { venue: venueNow, kits: C.kitsFor(save, opTeamInfo.name, (meta || {}).kitSel, (meta || {}).oppSel), tut: window.__tut ? window.__tut.matchOpts(meta || {}) : null, onSub: (info) => subSheet(mt, info, ms), noIntro: true, comp: (meta || {}).comp || title, label: (meta || {}).label || '', absent: save.team.players.filter((q) => q.injury > 0 || q.suspend > 0).map((q) => ({ name: q.name, pos: q.position, number: q.number, weeks: q.injury, why: q.suspend > 0 ? '出場停止' : `ケガ（あと${q.injury}週）` })), homeName: save.team.name, awayName: opTeamInfo.name, champCheck: (meta || {}).fx ? (sc) => champView((meta || {}).fx, sc) : null, halfOthers: ((meta || {}).practice || (meta || {}).online) ? null : (my, minute) => halfOthers(my, minute), oneHalf: !!((meta || {}).practice && !(meta || {}).tut), shootout: !!(meta || {}).shootout, asyncSim: true, soPick: !!(meta || {}).shootout, embH: emblemURL(save.team.name, 48), embA: emblemURL(opTeamInfo.name, 48), grade: (q, k, tm) => { const sp = tm ? null : save.team.players.find((x) => x.name === q.name); if (sp) { C.ensurePts(sp); return C.rankInfo(sp.pts[k]).g; } { const op = tm ? (opp.players || []).find((x) => x.name === q.name && x.bg) : null; if (op && op.bg[k]) return op.bg[k]; } return C.rankInfo(C.toPts((q.params || q)[k])).g; } });
       return;
     }
     const r = D.simulateMatch(mt.team, opp, seed, { frames: false });

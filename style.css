@@ -4356,3 +4356,6 @@ body.in-digest #soBoard,body.in-digest #soCard{display:none!important}
 
 /* 版1070：名前を小さく（ピッチの札・ベンチの一覧）。ベンチの疲労の点も小さく */
 .sq3 .q3b .q3cd{width:1.6cqh;height:1.6cqh}.sq3 .q3b .q3o{min-width:4cqh;height:3.2cqh;font-size:2.1cqh}
+
+/* 版1073：試合の準備中（計算を待つ間。画面は止まらない） */
+.sim-prep{position:absolute;inset:0;z-index:900;display:flex;align-items:center;justify-content:center;gap:14px;background:rgba(0,0,0,.35);color:#fff;font:900 20px/1 system-ui,sans-serif}.sim-prep i{width:26px;height:26px;border-radius:50%;border:4px solid rgba(255,255,255,.35);border-top-color:#fff;animation:simspin .8s linear infinite}@keyframes simspin{to{transform:rotate(360deg)}}
