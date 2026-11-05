@@ -1625,7 +1625,7 @@
   // 版1066：スタメン画面の新しい形（下書き）：マス目を見せず、縦のピッチに顔の札を並べる（イーフト風）。
   //  フォーメーションを選ぶ・選手をドラッグで入れ替える（ピッチ同士、ピッチとベンチ）・空いた所へ動かす（内部では一番近いマスに合わせる）
   const sq3On = () => { try { return !localStorage.getItem('dsSq2'); } catch (_) { return true; } };   /* 版1069：本番もこの画面（前の画面は localStorage の dsSq2 で戻せる） */
-  let sq3Pick = -1, sq3Menu = false, sq3Res = false, sq3R = -1, sq3Multi = null, sq3Swap = false, sq3Role = null;   /* 版1075：sq3Swap＝「入れ替える」を押した後、sq3Role＝役割設定（選んでいる役割） */
+  let sq3Type = false, sq3Pick = -1, sq3Menu = false, sq3Res = false, sq3R = -1, sq3Multi = null, sq3Swap = false, sq3Role = null;   /* 版1075：sq3Swap＝「入れ替える」を押した後、sq3Role＝役割設定（選んでいる役割） */
   function renderLineup3() {
     const ps = save.team.players, tac = C.ensureTactics(save), cells = tac.cells, R = C.GRID_R, COLS = C.GRID_C;
     /* 版1072：置いた所そのまま（マスに合わせない）なので、重なりを直す処理（unpile）はしない */
@@ -1646,10 +1646,10 @@
       + arc(0.02, 1, 0.03, 0.025, -Math.PI / 2, 0) + arc(0.98, 1, 0.03, 0.025, Math.PI, Math.PI * 1.5);
     const field = `<svg class="q3fd" viewBox="0 0 100 100" preserveAspectRatio="none"><defs><radialGradient id="q3vg" cx="50%" cy="48%" r="70%"><stop offset="55%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#021a04" stop-opacity=".45"/></radialGradient><linearGradient id="q3sh" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".18"/><stop offset=".35" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity=".04"/></linearGradient></defs>${stripes}<rect width="100" height="100" fill="url(#q3sh)"/><rect width="100" height="100" fill="url(#q3vg)"/>${lines}</svg>`;   /* 版1068：芝の色を監督の画像に寄せる（深い緑の縞、奥と四隅を少し暗く） */
     const tags = (q) => ['pk', 'fk', 'ck'].filter((k) => tac.roles[k] === q.name).map((k) => `<i class="q3t t-${k}">${ROLE_TAG[k]}</i>`).join('');
-    const chip = (q, i, x, y) => `<div class="q3p${i === sq3Pick ? ' sel' : ''}${q.injury > 0 ? ' inj' : ''}${i === 0 ? ' gk' : ''}" data-i="${i}" style="left:${x}%;top:${y}%;z-index:${2 + Math.round(y)}"><div class="q3fw">${facePic(q, 'q3f', false)}<b class="q3o g-${D.grade(statOvr(q))}">${statOvr(q)}</b><span class="q3ts">${tags(q)}</span>${tac.roles.captain === q.name ? '<i class="q3c">C</i>' : ''}<i class="q3cd cdot ${condDot(q)}"></i>${q.suspend > 0 ? '<i class="q3sus"></i>' : ''}</div><span class="q3n${tac.roles.captain === q.name ? ' cap' : ''}">${esc(q.name)}</span></div>`;
+    const chip = (q, i, x, y) => `<div class="q3p${i === sq3Pick ? ' sel' : ''}${q.injury > 0 ? ' inj' : ''}${i === 0 ? ' gk' : ''}" data-i="${i}" style="left:${x}%;top:${y}%;z-index:${2 + Math.round(y)}"><div class="q3fw">${facePic(q, 'q3f', false)}<b class="q3o g-${D.grade(statOvr(q))}">${statOvr(q)}</b><span class="q3ts">${tags(q)}</span>${tac.roles.captain === q.name ? '<i class="q3c">C</i>' : ''}<i class="q3cd cdot ${condDot(q)}"></i>${q.suspend > 0 ? '<i class="q3sus"></i>' : ''}</div>${sq3Type ? `<span class="q3nt tbadge ${TYPE_CLS[q.type] || 'ty-bal'}">${esc(q.type || '')}</span>` : `<span class="q3n${tac.roles.captain === q.name ? ' cap' : ''}">${esc(q.name)}</span>`}</div>`;
     let dots = chip(ps[0], 0, 50, ty(0.9));
     for (let i = 1; i < 11; i++) { const c = cells[i]; if (c) dots += chip(ps[i], i, px(c.c, c.r), py(c.r)); }
-    const row = (q, i) => `<div class="q3b${i === sq3Pick ? ' sel' : ''}${q.injury > 0 ? ' inj' : ''}" data-i="${i}">${facePic(q, 'q3bf', true)}<span>${esc(q.name)}</span><i class="q3cd cdot ${condDot(q)}"></i>${q.suspend > 0 ? '<i class="q3sus"></i>' : ''}<b class="q3o g-${D.grade(statOvr(q))}">${statOvr(q)}</b></div>`;
+    const row = (q, i) => `<div class="q3b${i === sq3Pick ? ' sel' : ''}${q.injury > 0 ? ' inj' : ''}" data-i="${i}">${facePic(q, 'q3bf', true)}${sq3Type ? `<span><em class="q3bt tbadge ${TYPE_CLS[q.type] || 'ty-bal'}">${esc(q.type || '')}</em></span>` : `<span>${esc(q.name)}</span>`}<i class="q3cd cdot ${condDot(q)}"></i>${q.suspend > 0 ? '<i class="q3sus"></i>' : ''}<b class="q3o g-${D.grade(statOvr(q))}">${statOvr(q)}</b></div>`;
     /* 版1069：選んだ選手のくわしい板（前の画面と同じ中身：能力・タイプ・疲労・利き足・役割・選手データ）。リザーブを選んだ時は、その選手と放出 */
     const PK = D.PARAMS.map((x) => x.k), rsv = save.reserve || [];
     if (sq3R >= rsv.length) sq3R = -1;
@@ -1680,7 +1680,7 @@
       <div class="q3bar"><span class="q3fl">フォーメーション</span><button class="q3fm">${esc(fm)}<i>▼</i></button><button class="q3tac">戦術設定</button><button class="q3role${sq3Role ? ' on' : ''}">役割設定</button>${sqFromHome ? '<button class="q3club">クラブ設定</button>' : ''}${nRes ? `<button class="q3res"><span>リザーブ</span><b>${nRes}</b></button>` : ''}</div>
       <div class="q3main"><div class="q3pitch">${field}${dots}</div>
         ${side || (sq3Res && rsv.length ? resPanel() : `<div class="q3side"><div class="q3col"><b class="q3h">ベンチ入り</b>${b1.map((q, k) => row(q, 11 + k)).join('')}</div><i class="q3vl"></i><div class="q3col"><b class="q3h">ベンチ外</b>${b2.map((q, k) => row(q, 11 + C.BENCH_N + k)).join('')}</div></div>`)}</div>${pop}
-      <p class="q3hint"><span>選手をドラッグして配置・入れ替え</span></p>
+      <p class="q3hint"><span>選手をドラッグして配置・入れ替え</span></p><button class="q3show" title="表示の切りかえ"><img src="icons/ui_change.png" alt=""><span>${sq3Type ? 'タイプ' : '名前'}</span></button>
       ${sq3Menu ? `<div class="q3menu">${C.FORMATIONS.map((f) => `<button data-f="${f}" class="${f === tac.formation ? 'on' : ''}">${f}</button>`).join('')}</div>` : ''}
     </div></div>`;
     L.querySelectorAll('img.fc').forEach((im) => { const f = () => cutFace(im); im.addEventListener('load', f); if (im.complete) f(); });
@@ -1698,6 +1698,7 @@
     { const x = L.querySelector('.q3px'); if (x) x.onclick = (e) => { e.stopPropagation(); sq3Pick = -1; sq3R = -1; sq3Swap = false; renderLineup3(); }; }
     { const pd = L.querySelector('.q3dd'); if (pd) pd.onclick = () => { const i = +pd.dataset.pd; sq3Pick = -1; playerDetail(i); }; }
     { const b = L.querySelector('.q3dsw'); if (b) b.onclick = () => { sq3Swap = !sq3Swap; renderLineup3(); }; }
+    { const b = L.querySelector('.q3show'); if (b) b.onclick = () => { sq3Type = !sq3Type; renderLineup3(); }; }   /* 版1077：右下の切りかえ：名前⇔タイプ */
     { const b = L.querySelector('.q3role'); if (b) b.onclick = () => { sq3Role = sq3Role ? null : 'captain'; sq3Pick = -1; sq3Swap = false; sq3R = -1; renderLineup3(); }; }
     L.querySelectorAll('.q3rr').forEach((b) => b.onclick = () => { sq3Role = b.dataset.rk; renderLineup3(); });
     { const b = L.querySelector('.q3rdone'); if (b) b.onclick = () => { sq3Role = null; renderLineup3(); }; }

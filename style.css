@@ -4414,3 +4414,8 @@ body.in-digest #soBoard,body.in-digest #soCard{display:none!important}
 .sq3 .q3rr .s2rt{display:inline-flex;justify-content:center;min-width:5.4cqh}
 .sq3 .q3rr span{flex:0 0 17cqh;white-space:nowrap}
 .sq3 .q3rr b{text-align:left}
+/* 版1077：右下の切りかえボタン（名前⇔タイプ）。タイプは名前の札の所に、タイプの色の札で出す */
+.sq3 .q3show{position:absolute;right:2cqw;bottom:.8cqh;z-index:20;height:6cqh;padding:0 1.6cqw;gap:.8cqw;border-radius:3cqh;border:.35cqh solid #fff;background:linear-gradient(#2f6fe0,#1d4fb8);color:#fff;font-weight:900;font-size:2.4cqh}
+.sq3 .q3show img{width:4cqh;height:4cqh}
+.sq3 .q3nt{margin-top:-1.2cqh;min-width:12cqh;padding:.3cqh 1.2cqh;border-radius:3cqh;border:.3cqh solid #fff;font-size:2cqh;text-align:center;position:relative}
+.sq3 .q3bt{font-style:normal;font-size:1.6cqh;padding:.3cqh .8cqh;border-width:.25cqh;max-width:100%;overflow:hidden;text-overflow:ellipsis}
