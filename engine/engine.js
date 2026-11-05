@@ -3493,10 +3493,12 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           let extra = 0;
           // 負け・引き分けで70分過ぎ：全体で前から追い込む（パスの出し先にも寄せてミスを誘う）
           const urg = tm.urg;
-          const hiP = plv > 0 && own && bF > L * 0.45, ownHalf = own && !own.gk && bF < L * 0.55, koD = (tm.koDef || 0) > S.t && own && !own.gk, maxX = hiP || ownHalf || koD ? 2 : plv < 0 && bF > L * 0.5 ? 0 : (urg ? 2 : 1);   /* 版1090：自陣に運ばれてきたら、近くの2人も寄せに行く（ドリブルを1人で止めさせない） */
+          const sdW = own && own.team !== tm.ti && own.uniq === 'shiden' ? Math.min(3, own.sdWarn || 0) : 0, sdWarnOn = sdW > 0 && bF < L * 0.6;   // 版1098：警戒：点を取られた紫電の遊戯の選手には、相手陣に入った所から複数で寄せる（1点ごとに、寄せる人数と距離が増える）
+          const hiP = plv > 0 && own && bF > L * 0.45, ownHalf = own && !own.gk && bF < L * 0.55, koD = (tm.koDef || 0) > S.t && own && !own.gk, maxX = sdWarnOn ? 1 + sdW : hiP || ownHalf || koD ? 2 : plv < 0 && bF > L * 0.5 ? 0 : (urg ? 2 : 1);   /* 版1090：自陣に運ばれてきたら、近くの2人も寄せに行く（ドリブルを1人で止めさせない） */
           for (let k = 1; k < ranked.length && extra < maxX; k++) {   // 寄せるのは1人（＋近くにいれば2人目まで）。全員で囲まない。版1088：前からは相手陣で3人まで
             const { p, d } = ranked[k];
             if (hiP && d < 24 && !p.gk && p.slot && p.slot.line >= 1) { pressers.add(p.idx); extra++; continue; }
+            if (sdWarnOn && d < 10 + sdW * 4 && !p.gk) { pressers.add(p.idx); extra++; continue; }
             if (ownHalf && d < (bF < 35 ? 13 : 10) && !p.gk && !p.markHard) { pressers.add(p.idx); extra++; continue; }
             if (koD && d < 20 && !p.gk && p.slot && p.slot.line >= 1) { pressers.add(p.idx); extra++; continue; }   // 版1091：キックオフ直後：FW・MFの2人がすぐ寄せる
             const pr = clamp(p.press + tm.mods.press + tm.tac.press + DOM[tm.ti] * 50 + urg * 40 + (skZ(p, 'pressMonster') ? 40 : 0), 0, 100);
@@ -5304,7 +5306,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       S.ball.brk = !emptyNet && (p.tsukiRecv > 0 || (p.uFireT && S.t - p.uFireT < 7 && p.uniq === 'tsukikage'));   // 抜け出してからの1対1のシュート
       S.ball.tsukiShot = p.uniq === 'tsukikage' && !(p.uniqLv >= 2) && S.t - Math.max(p.tsukiRecv || -99, p.uFireT || -99) < 8;   // 月影の抜け出し（無凸）：抜け出した後の決定力は控えめ（エースのかとうより下）
       if ((p.hariT || 0) > S.t) { S.ball.gkPen += p.hariLv >= 2 ? 0.3 : 0.22; }   // 針の穴通しの1本から：シュートの補正は若干だけ   // 最強のラストパス：受けたら1点   // 針の穴通しの1本を受けて：決めきる
-      S.ball.gkPen += uOn(p, 'guren') ? (p.uniqLv >= 2 ? 1.1 : 0.95) * grF(p) : uOn(p, 'kage') ? (p.uniqLv >= 2 ? 0.8 : 0.65) : uOn(p, 'shiden') ? (S.t - (p.sdBeat || -9) < 1.5 ? 0.35 : 0.06) : uOn(p, 'tsukikage') && p.uniqLv >= 2 ? 0.09 : 0;   // GKが反応しにくい（月影の抜け出し：抜け出した勢いのまま1対1を決める）
+      S.ball.gkPen += uOn(p, 'guren') ? (p.uniqLv >= 2 ? 1.1 : 0.95) * grF(p) : uOn(p, 'kage') ? (p.uniqLv >= 2 ? 0.8 : 0.65) : uOn(p, 'shiden') ? (S.t - (p.sdBeat || -9) < 1.5 ? (globalThis.__Ksdgp ?? 0.15) : 0.06) : uOn(p, 'tsukikage') && p.uniqLv >= 2 ? 0.09 : 0;   // GKが反応しにくい（月影の抜け出し：抜け出した勢いのまま1対1を決める）
       S.ball.uDelay = uOn(p, 'guren') ? 0.15 * uP(p) * grF(p) : 0; S.ball.grF = uOn(p, 'guren') ? grF(p) : 1; S.ball.pkShot = !!S.pk; S.ball.guren = uOn(p, 'guren') ? p.uniqLv || 1 : 0;   // 紅蓮の牙のシュート（2＝凸：GKはキャッチできない）
       S.fkDirect = false;
       S.ball.oneOnOne = oneOnOne;
@@ -6773,6 +6775,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             if (!had) { stats[scorer].shots++; stats[scorer].shots_on_target++; ev('shot', { team: scorer, player: k.name, number: k.number, d: +(b.shotFrom || 0).toFixed(1), on: true, conv: true }); } }   // 版1019：クロス・こぼれ球がそのまま入ったゴールも、シュート（枠内）1本に数える
           const g = { t: S.t, clock: Math.round(S.t * CLOCK_SCALE), player: k.team === scorer ? k.name : 'オウンゴール', number: k.number, assist };
           stats[scorer].goals.push(g);
+          if (k.team === scorer && k.uniq === 'shiden' && (globalThis.__Ksdw ?? 1)) k.sdWarn = (k.sdWarn || 0) + 1;   // 版1098：紫電の遊戯の選手に点を取られるたびに、相手は警戒を強める
           ev('goal', { team: scorer, player: g.player, number: k.number, assist, score: [...S.score], kind: b.kind, style: b.style || '', speed: Math.round(hyp(b.vx, b.vy) * 3.6), dist: b.shotFrom ? Math.round(b.shotFrom) : -1, knuckle: !!b.knuckle, conv: !!b.conv, hurry, roll: b.z < 0.4 && hyp(b.vx, b.vy) < 18, gkOut: (() => { const g = T[goalTeam].players[0]; return g.downT > 0 || g.diveT > 0 || fx(goalTeam, g.x) > 6; })() }); if (globalThis.__gkLog) { const g = T[goalTeam].players[0]; globalThis.__gkLog.push({ k: 'goal', pk: !!S.ball.pkShot, curve: !!S.ball.curveAll, kind: S.ball.kind, sinceShot: +(S.t - (S.ball.shotT ?? -9)).toFixed(2), lastTouch: S.ball.lastPlayer, kicker: S.ball.kicker, t: S.t, dive: g.diveT > 0 || g.downT > 0 ? (g.diveDir || 0) : 0, by: +(S.ball.y - GOAL_Y).toFixed(1), gy: +(g.y - GOAL_Y).toFixed(1), gx: +fx(goalTeam, g.x).toFixed(1), style: S.ball.style || '', dist: S.ball.shotFrom ? +S.ball.shotFrom.toFixed(0) : -1 }); }
           // 失点の時、得点者に一番近い守備者が遠ければ「マークが甘い」
           const nd = nearestOpp(k, k.x, k.y).d;
@@ -7800,6 +7803,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       let pS = k === 'heelLift' ? clamp(0.4 - bPen + ((own.technique * 0.6 + own.dribble * 0.4) - (q.defense * 0.6 + q.jump * 0.4)) * 0.009 + (fit ? 0.08 : 0) + (q.stun > 0 ? 0.15 : 0) + uD, 0.1, uD > 0 ? 0.97 : 0.9)   // 版666：ヒールリフトはテクニックが大事。跳べる相手（ジャンプ）には頭で止められやすい
         : k === 'nutmeg' ? clamp(0.4 - bPen + ((own.dribble + own.technique) / 2 - q.defense) * 0.012 + (fit ? 0.05 : 0) + (q.stun > 0 ? 0.15 : 0) + uD, 0.08, uD > 0 ? 0.97 : 0.92)
         : clamp(0.4 - bPen + (own.dribble - q.defense) * 0.006 + (own.technique - 60) * 0.002 + (fit ? 0.07 : 0) + (q.stun > 0 ? 0.15 : 0) + uD, 0.1, uD > 0 ? 0.97 : 0.9);
+      if (own.uniq === 'shiden' && own.sdWarn && (globalThis.__Ksdw ?? 1)) pS = clamp(pS - Math.min(3, own.sdWarn) * (globalThis.__Ksdwp ?? 0.1), 0.1, 0.97);   // 版1098：警戒：点を取られた後は、技を読まれやすい（1点ごとに10%）
       if (q.gk) pS = clamp(0.45 + ((own.dribble + own.technique) / 2 - (q.vision + q.speed + q.technique) / 3) * 0.006 + uD * 0.5, 0.25, 0.8);   // 版1095：GKをフェイントでかわす：ドリブル・テクニックと、GKの判断・速さ・テクニックの差で決まる（最大8割）
       if (brainOn() && (globalThis.__K1v1 ?? 1)) {   // 版904：1対1の構え：半身で構えて遅らせている相手は抜きにくい。勢いよく飛び込んできた相手は、かわしやすい
         const rx = own.x - q.x, ry = own.y - q.y, rl = hyp(rx, ry) || 1, cl = ((q.vx || 0) * rx + (q.vy || 0) * ry) / rl;
@@ -8034,7 +8038,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             const dB = hyp(q.x - b.x, q.y - b.y), side = (b.x - own.x) * (q.x - own.x) + (b.y - own.y) * (q.y - own.y);
             const ov = hyp(own.vx, own.vy), bk = ov > 1.5 && ((q.x - own.x) * own.vx + (q.y - own.y) * own.vy) / ov < -0.3;
             /* 版1089：横・後ろから並走して追いついた守備：抜け出されそうな時は、肩で当たってボールをつつき出すか、止めるために反則をする（独走で何人も抜けないように） */
-            if ((dB > 1.2 || side < 0 || bk) && d < 1.6 && ov > 4 && !own.gk && !uOn(own, 'shiden') && (q.chaseCd || 0) < S.t) {   /* 版1092：紫電の遊戯はボールが足に吸いつくので、並走からはつつけない */
+            if ((dB > 1.2 || side < 0 || bk) && d < 1.6 && ov > 4 && !own.gk && (!uOn(own, 'shiden') || ((own.sdWarn || 0) >= 2 && (globalThis.__Ksdw ?? 1))) && (q.chaseCd || 0) < S.t) {   /* 版1098：2点取られた後は、並走からもつつきに来る */   /* 版1092：紫電の遊戯はボールが足に吸いつくので、並走からはつつけない */
               q.chaseCd = S.t + 0.8; const gdist = fx(q.team, own.x), nb2 = S.dRun && S.dRun.p === own.idx ? S.dRun.beaten.length : 0;
               const rate = clamp(0.22 + nb2 * 0.12 + (q.physical - own.physical) * 0.004 + (q.defense - own.dribble) * 0.003, 0.08, 0.6);
               if (R.next() < rate) {
@@ -8078,7 +8082,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           else if ((own.dO || 0.5) > 0.85 && !(own.pace && own.pace.ph === 'burst')) pS += 0.04;   // 突破でボールが足から離れた瞬間は狙われる
           if (q.sk.has('fighting')) pS += S.score[q.team] < S.score[own.team] ? 0.12 : 0.06;   // 闘志
           if (q.sk.has('bigStage') && S.t >= HALF && Math.abs(S.score[0] - S.score[1]) <= 1) pS += 0.05;
-          if (!uOn(own, 'shiden')) pS += nBeat * 0.18 + (nBeat >= 2 ? 0.1 : 0);   // 版1092：紫電の遊戯の間は、何人抜いても条件は同じ   // 版1089：抜いた人数が多いほど、体勢もタッチも乱れて取られやすい
+          if (!uOn(own, 'shiden')) pS += nBeat * 0.18 + (nBeat >= 2 ? 0.1 : 0); else if (own.sdWarn && (globalThis.__Ksdw ?? 1)) pS += nBeat * 0.06 * Math.min(3, own.sdWarn);   // 版1098：警戒されている紫電の遊戯は、続けて抜くほど次の相手に読まれる   // 版1092：紫電の遊戯の間は、何人抜いても条件は同じ   // 版1089：抜いた人数が多いほど、体勢もタッチも乱れて取られやすい
           pS += bdBonus;   // 版1028：体のぶつけ合いの勝ち負け（フィジカルが強い方が有利）
           if (skZ(q, 'shoulder') && hyp(own.vx, own.vy) > 2.5 && Math.abs((q.x - own.x) * own.vx + (q.y - own.y) * own.vy) / (hyp(own.vx, own.vy) * (hyp(q.x - own.x, q.y - own.y) || 1)) < 0.6) pS += 0.14 + (q.physical - own.physical) * 0.004;
           if (R.next() < clamp(pS + (pS < 0.2 ? (pS - 0.2) * 0.5 : 0) + (pS > 0.7 ? (pS - 0.7) * 0.5 : 0), 0.03, 0.95)) {   // 力の差が大きいと、ほぼ一方的
