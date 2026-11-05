@@ -2474,7 +2474,7 @@
           <div class="lv2-head"><div class="lv2-t"><b>LIVE</b><span>${esc(meta.comp)}</span>${meta.label ? `<i></i><span>${esc(meta.label)}</span>` : ''}</div>
             <div class="lv2-m"><img src="${emblemURL(home.name, 64)}" alt=""><span>${esc((C.findTeam(save, home.name) || {}).short || home.name.replace(/FC$/, ''))}</span>${lgBadge(lgH)}<em>×</em><img src="${emblemURL(away.name, 64)}" alt=""><span>${esc((C.findTeam(save, away.name) || {}).short || away.name.replace(/FC$/, ''))}</span>${lgBadge(lgA)}</div>
             <div class="lv2-s">${ICO.stad}<span>${esc(stad)}</span></div></div>
-          <div class="rbtns lv-btns"><button data-a="lineup"><span>${rbLineupSVG()}</span><b>スタメン</b></button><button data-a="tac"><span>${RB_TAC_SVG}</span><b>戦術</b></button><button data-a="kit" class="lv-kit lv-kitimg" title="ユニフォーム"><img src="icons/off_kit.png" alt="ユニフォーム"></button><button data-a="ko" class="lv-ko lv-koimg" title="試合開始"><img src="icons/btn_kickoff.png" alt="試合開始"></button></div>`;
+          <div class="rbtns lv-btns"><button data-a="lineup" class="lv-kitimg" title="スタメン"><img src="icons/cb_lineup.png" alt="スタメン"></button><button data-a="tac" class="lv-kitimg" title="戦術"><img src="icons/cb_tactic.png" alt="戦術"></button><button data-a="kit" class="lv-kit lv-kitimg" title="ユニフォーム"><img src="icons/off_kit.png" alt="ユニフォーム"></button><button data-a="ko" class="lv-ko lv-koimg" title="試合開始"><img src="icons/btn_kickoff.png" alt="試合開始"></button></div>`;
         el.hidden = false;
         try { A().applyKits(C.kitsFor(save, op.name, meta.kitSel, meta.oppSel)); } catch (_) {}   // 版482：並んでいる選手も、この試合のユニフォームで
         const cv = el.querySelector('canvas'), ctx2 = cv.getContext('2d');

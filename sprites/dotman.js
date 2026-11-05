@@ -551,7 +551,9 @@ const VIEWS = {
         // 胴の前に重なる腕は、ふちを胴の上に描かず、影の色で形を見せる
         const over = cross || (Math.abs(Math.cos(facing)) > 0.9 && !sideRun) || (Math.abs(Hd.x - PX) < 3.5 && Math.abs(S.x - PX) < 3.5);   // 横向きの腕は胴に重なる
         if (spec && spec.br) fillShape(buf, (x, y) => capsule(S, E, 1.3)(x, y) || capsule(E, Hd, 1.2)(x, y), bbOf([S, E, Hd], 2), P.shirt, P.shirtD);   // 背中の走り：肩は描かず、ひじから先だけ（胴の後ろから少し出る）
-        else fillShape(buf, (x, y) => capsule(S, E, 1.5)(x, y) || capsule(E, Hd, 1.4)(x, y), bbOf([S, E, Hd], 2), over ? P.shirtD : P.shirt, null, { soft: true });
+        else { /* 版1080：袖は手の少し手前で止める（前は袖が手の外側の角まで来て、手の横にシャツの色の点が残り、ペンギンの手のように見えた） */
+          const Hs = { x: Hd.x - (Hd.x - E.x) * 0.3, y: Hd.y - (Hd.y - E.y) * 0.3 };
+          fillShape(buf, (x, y) => capsule(S, E, 1.5)(x, y) || capsule(E, Hs, 1.4)(x, y), bbOf([S, E, Hs], 2), over ? P.shirtD : P.shirt, null, { soft: true }); }
         fillShape(buf, ellipse({ x: Hd.x, y: Hd.y + 0.5 }, 1.5, 1.0), bbOf([Hd], 2), P.glove || P.skin, null, { soft: true });
       } });
     }
