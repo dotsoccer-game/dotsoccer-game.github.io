@@ -1118,6 +1118,7 @@
       if (k[1]) { k[1].x = fx(kickTeam, 50.5); k[1].y = W / 2 + 6; }
       Object.assign(S.ball, { x: L / 2, y: W / 2, z: 0, vx: 0, vy: 0, vz: 0, owner: taker.idx, kind: 'owned', lastTeam: kickTeam, lastPlayer: taker.idx, intended: -1, offside: false });
       S.poss = kickTeam;
+      T[1 - kickTeam].koDef = S.t + 8; T[kickTeam].koDef = 0;   // 版1091：キックオフ直後の8秒は、守る側が中央を固めてすぐ寄せる
       S.restart = null; S.celebrate = 0;
       S.decision = 0.6;
       S.dribbleDir = null;
@@ -3492,11 +3493,12 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           let extra = 0;
           // 負け・引き分けで70分過ぎ：全体で前から追い込む（パスの出し先にも寄せてミスを誘う）
           const urg = tm.urg;
-          const hiP = plv > 0 && own && bF > L * 0.45, ownHalf = own && !own.gk && bF < L * 0.55, maxX = hiP || ownHalf ? 2 : plv < 0 && bF > L * 0.5 ? 0 : (urg ? 2 : 1);   /* 版1090：自陣に運ばれてきたら、近くの2人も寄せに行く（ドリブルを1人で止めさせない） */
+          const hiP = plv > 0 && own && bF > L * 0.45, ownHalf = own && !own.gk && bF < L * 0.55, koD = (tm.koDef || 0) > S.t && own && !own.gk, maxX = hiP || ownHalf || koD ? 2 : plv < 0 && bF > L * 0.5 ? 0 : (urg ? 2 : 1);   /* 版1090：自陣に運ばれてきたら、近くの2人も寄せに行く（ドリブルを1人で止めさせない） */
           for (let k = 1; k < ranked.length && extra < maxX; k++) {   // 寄せるのは1人（＋近くにいれば2人目まで）。全員で囲まない。版1088：前からは相手陣で3人まで
             const { p, d } = ranked[k];
             if (hiP && d < 24 && !p.gk && p.slot && p.slot.line >= 1) { pressers.add(p.idx); extra++; continue; }
             if (ownHalf && d < (bF < 35 ? 13 : 10) && !p.gk && !p.markHard) { pressers.add(p.idx); extra++; continue; }
+            if (koD && d < 20 && !p.gk && p.slot && p.slot.line >= 1) { pressers.add(p.idx); extra++; continue; }   // 版1091：キックオフ直後：FW・MFの2人がすぐ寄せる
             const pr = clamp(p.press + tm.mods.press + tm.tac.press + DOM[tm.ti] * 50 + urg * 40 + (skZ(p, 'pressMonster') ? 40 : 0), 0, 100);
             if (pr >= 35 && d < 3 + pr * 0.07 + urg * 4) { pressers.add(p.idx); extra++; }
           }
@@ -4057,6 +4059,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           if (p.ckRun && p.ckRun.until <= S.t) p.ckRun = null;
           if (p.ckRun && p.ckRun.until > S.t && !own && b.intended !== p.idx && !S.restart) { tx = fx(tm.ti, p.ckRun.to[0]); ty = p.ckRun.to[1]; u = true; }   // 版878：CKのおとり：ニアへ全力で走る
           if (p.fGo && p.fShot === b.shotT && p.fTgt && !own && !chasing[p.idx] && (b.kind === 'shot' || (b.kind === 'loose' && S.t - (b.shotT ?? -9) < 2.5)) && !(S.restart)) { tx = p.fTgt[0]; ty = p.fTgt[1]; u = true; }   // 版878：シュートを打ったら、決めた所へ最後まで詰める（ほかの動きより優先）
+          if ((tm.koDef || 0) > S.t && !attacking && !pressers.has(p.idx) && !p.gk) { ty = GOAL_Y + (ty - GOAL_Y) * 0.65; if (p.slot && p.slot.line >= 1 && own) tx = Math.min(tx, fx(tm.ti, own.x) - 6); }   // 版1091：キックオフ直後：ほかの選手は横幅を絞って中央を固め、ボールより後ろで待つ
           targets[p.idx] = [fx(tm.ti, clamp(tx, offOk ? -4 : 0.8, offOk ? L + 4 : L - 0.8)), clamp(ty, offOk ? -3.5 : 1, offOk ? W + 3.5 : W - 1)];
           urgent[p.idx] = u;
         }
