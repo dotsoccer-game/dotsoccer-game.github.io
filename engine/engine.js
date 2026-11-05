@@ -553,6 +553,20 @@
       doSub(tm, k, tm.bench.splice(j, 1)[0]);
       return true;
     }
+    // 版1088：攻撃の姿勢（チーム全体：攻撃的＋0.7、守備的−0.7）＋選手ごとの攻撃参加（−1〜＋1）＋守備（−1〜＋1）を、選手の数値に入れる
+    //  攻撃参加：ゴール前で待つ・裏へ走る・追い越す・攻めに顔を出す（±25〜30／1段）、立ち位置（±4m）。守備：寄せの強さ（±30）
+    function applyOrd(tm) {
+      const tb = tm.attitude === 'attacking' ? 0.7 : tm.attitude === 'defensive' ? -0.7 : 0, ords = tm.orders || {};
+      for (const p of tm.players) {
+        if (p.gk) continue;
+        if (!p.ord0) p.ord0 = { goal_wait: p.goal_wait, run_space: p.run_space, overlap: p.overlap, support: p.support, press: p.press };
+        const o = ords[p.slotIdx] || {}, oa = clamp(o.att | 0, -1, 1), d = clamp(o.def | 0, -1, 1), a = clamp(oa + tb * (p.position === 'FW' ? 0.6 : 1), -1.5, 1.5), b = p.ord0;
+        p.goal_wait = clamp(b.goal_wait + a * 25, 0, 100); p.run_space = clamp(b.run_space + a * 25, 0, 100); p.overlap = clamp(b.overlap + a * 30, 0, 100); p.support = clamp(b.support + a * 15, 0, 100);
+        p.press = clamp(b.press + d * 30, 0, 100); p.ordAtt = oa; p.ordDef = d;
+        const sh = Math.round((oa * 4 + tb * (p.position === 'FW' ? 5 : 9)) * 10) / 10, dd = sh - (p.ordShift || 0);   // 立ち位置：個別の指示±4m、攻撃の姿勢で±6m前後（FWは±3.5m）
+        if (dd && p.slot) { p.slot = { ...p.slot, rel: clamp(p.slot.rel + dd, -4, 44) }; if (p.slot0) p.slot0 = { ...p.slot0, rel: clamp(p.slot0.rel + dd, -4, 44) }; p.ordShift = sh; if (typeof slotPos === 'function') slotPos(p); }
+      }
+    }
     // ハーフタイムの変更（交代・作戦）。前半は同じシードなら毎回同じになるので、後半からだけ変わる
     function applyHalfChange(ch) {
       const tm = T[ch.team];
@@ -580,20 +594,8 @@
         for (const p of tm.players) if (p.vsMarkBy === 'order') { p.vsMark = null; p.vsMarkBy = null; }
         for (const m of ch.tac.marks.slice(0, 2)) { const p = tm.players.find((q) => q.slotIdx === m.me && !q.off && !q.gk); if (p && m.opp) { p.vsMark = m.opp; p.vsMarkBy = 'order'; } }
       }
-      if (ch.tac && ch.tac.orders) {
-        for (const p of tm.players) {
-          if (p.gk) continue;
-          if (!p.ord0) p.ord0 = { goal_wait: p.goal_wait, run_space: p.run_space, overlap: p.overlap, support: p.support, press: p.press, zone_man: p.zone_man };
-          const o = ch.tac.orders[p.slotIdx] || {}, a = clamp(o.att | 0, -1, 1), d = clamp(o.def | 0, -1, 1), b = p.ord0;
-          // 攻撃参加：積極的＝ゴール前で待つ・裏へ走る・追い越す・攻めに顔を出すが増え、守備に戻るのが遅くなる（ordAtt）。控える＝その反対
-          p.goal_wait = clamp(b.goal_wait + a * 25, 0, 100); p.run_space = clamp(b.run_space + a * 25, 0, 100); p.overlap = clamp(b.overlap + a * 30, 0, 100); p.support = clamp(b.support + a * 15, 0, 100);
-          // 守備：プレスに行く＝寄せが強く速い／待つ＝持ち場を守って寄せない
-          p.press = clamp(b.press + d * 30, 0, 100); p.ordAtt = a; p.ordDef = d;
-          // 立ち位置も前後にずらす（積極的＝4m前、控える＝4m後ろ）。何度指示しても、ずれは1回分だけ
-          const sh = a * 4, dd = sh - (p.ordShift || 0);
-          if (dd && p.slot) { p.slot = { ...p.slot, rel: clamp(p.slot.rel + dd, -4, 44) }; if (p.slot0) p.slot0 = { ...p.slot0, rel: clamp(p.slot0.rel + dd, -4, 44) }; p.ordShift = sh; if (typeof slotPos === 'function') slotPos(p); }
-        }
-      }
+      if (ch.tac && ch.tac.orders) tm.orders = ch.tac.orders;
+      applyOrd(tm);   // 版1088：攻撃の姿勢（チーム全体）と選手ごとの指示を、選手の動きの数値に入れ直す
     }
     // キャプテンシー（キャプテン＝最初に持っている選手）：味方全員のスタミナの減りが少し遅い
     // ムードメーカー：チーム全体のメンタルが上がる
@@ -606,6 +608,7 @@
       if (cap) { const bonus = clamp(Math.round((cap.mental - 50) / 12), 0, 3); if (bonus) for (const p of tm.players) if (p !== cap) p.mental = Math.min(99, p.mental + bonus); }   // メンタルの強いキャプテンは、まわりを落ち着かせる
       if (tm.players.some((p) => p.sk.has('moodMaker'))) for (const p of tm.players) p.mental = Math.min(99, p.mental + 6);
       teamPas(tm);
+      applyOrd(tm);   // 版1088：試合のはじめから、攻撃の姿勢を選手の動きに入れる
     }
     // 力の差（チームの平均能力の差）：圧倒的に強いチームは、迷わず縦に速く攻めて、打てば入る
     const teamRating = (tm) => tm.players.reduce((a, p) => a + PARAM_KEYS.reduce((x, k) => x + p[k], 0) / PARAM_KEYS.length, 0) / tm.players.length;
@@ -1074,7 +1077,7 @@
 
     // ---------- 配置 ----------
     function lineX(team, attacking) {
-      const lh = clamp(team.line_height + team.mods.line + (team.urg ? 1.5 : 0) + (teamU(team.ti, 'sakurajima') ? 1.3 : 0) + (team.pas && team.pas.has('backCover') ? 0.35 * Math.max(...team.players.map((m) => (m.pasK === 'backCover' ? (m.passive >= 2 ? 1.6 : 1) : 0))) : 0), 1, 5);   // 桜島の号令：ラインが一斉に上がる／背後の安心：少し高く保てる
+      const lh = clamp(team.line_height + team.mods.line + (team.attitude === 'defensive' ? -1.2 : team.attitude === 'attacking' ? 0.6 : 0) + (!attacking && (team.tac.press || 0) > 0 && fx(team.ti, S.ball.x) > L * 0.45 ? 1.5 : !attacking && (team.tac.press || 0) < 0 && fx(team.ti, S.ball.x) > L * 0.5 ? -0.8 : 0) + (team.urg ? 1.5 : 0)   /* 版1088：守備的は全体を下げる。プレス前から＝相手陣で持たれたら全体を押し上げる、控えめ＝下がって待つ */ + (teamU(team.ti, 'sakurajima') ? 1.3 : 0) + (team.pas && team.pas.has('backCover') ? 0.35 * Math.max(...team.players.map((m) => (m.pasK === 'backCover' ? (m.passive >= 2 ? 1.6 : 1) : 0))) : 0), 1, 5);   // 桜島の号令：ラインが一斉に上がる／背後の安心：少し高く保てる
       const base = [0, 16, 21, 25, 31, 37][Math.floor(lh)] + (lh % 1) * (lh < 3 ? 4.5 : 6);   // 版875：低いラインの設定でも、もう少し高く
       const bx = fx(team.ti, S.ball.x);
       if (attacking) return clamp(base + 8 + (bx - 40) * 0.5, 14, 60);
@@ -3440,7 +3443,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           else if (ox > L - 40 && (!tm.ovl || tm.ovl.until < S.t) && S.t >= (tm.ovlNext || 0)) {
             tm.ovlNext = S.t + 1.2;
             const behindS = S.score[tm.ti] < S.score[1 - tm.ti];
-            const want = 0.3 + tm.pat * 0.35 + (tm.attitude === 'attacking' ? 0.2 : 0) - (tm.attitude === 'defensive' ? 0.25 : 0) + (behindS ? 0.2 : 0) + ((tm.accelT || 0) > S.t ? 0.3 : 0) + DOM[tm.ti] * 0.3;
+            const want = 0.3 + tm.pat * 0.35 + (tm.attitude === 'attacking' ? 0.4 : 0) - (tm.attitude === 'defensive' ? 0.35 : 0) + (behindS ? 0.2 : 0) + ((tm.accelT || 0) > S.t ? 0.3 : 0) + DOM[tm.ti] * 0.3;
             if (!globalThis.__noOvl && R.next() < want) {
               const n = clamp(Math.round(1.6 + want * 1.6), 2, 4), sdB = Math.sign(own.y - GOAL_Y) || 1;
               const widest = tm.players.filter((m) => !m.off && !m.gk && m.slot && m.slot.line >= 1 && Math.sign(m.y - GOAL_Y) === -sdB).sort((a, c) => Math.abs(c.y - GOAL_Y) - Math.abs(a.y - GOAL_Y))[0];   // 逆サイドの大外は残す
@@ -3462,7 +3465,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         if (attacking && own && own.team === tm.ti && !own.gk && !S.restart && !S.setPiece && fx(tm.ti, own.x) > L - 24 && Math.abs(own.y - GOAL_Y) > 11) {
           const ns = Math.sign(own.y - GOAL_Y) || 1, ol = offL;
           const spots = [[L - 5.5, GOAL_Y + ns * 2.5, 1], [L - 7.5, GOAL_Y - ns * 4.5, 1], [L - 11, GOAL_Y - ns * 0.5, 1], [L - 15.5, GOAL_Y + ns * 2, 0]];
-          const nB = 3 + (tm.attitude === 'attacking' || S.score[tm.ti] < S.score[1 - tm.ti] ? 1 : 0) - (tm.attitude === 'defensive' ? 1 : 0);
+          const nB = 3 + (tm.attitude === 'attacking' ? 2 : S.score[tm.ti] < S.score[1 - tm.ti] ? 1 : 0) - (tm.attitude === 'defensive' ? 1 : 0);   /* 版1088：攻撃的はゴール前に2人多く */
           const cand = tm.players.filter((m) => m !== own && !m.gk && !m.off && m.slot && (m.slot.line >= 1 || (m.ovUntil || 0) > S.t) && !((m.run > 0) && m.otRun && S.t < m.otRun.until && m.uniq));
           const R2 = {}, used = new Set();
           for (const [i, sp] of spots.slice(0, Math.max(3, nB)).entries()) { let bm = null, bc = 1e9; for (const m of cand) { if (used.has(m.idx)) continue; const c = hyp(fx(tm.ti, m.x) - sp[0], m.y - sp[1]) - (sp[2] && m.position === 'FW' ? 12 : 0) - (!sp[2] && m.position === 'MF' ? 6 : 0) + (m.slot.line === 0 ? 8 : 0); if (c < bc) { bc = c; bm = m; } } if (bm && bc < 70) { used.add(bm.idx); R2[bm.idx] = [Math.min(sp[0], ol - 0.3), sp[1]]; } }
@@ -3480,15 +3483,19 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             const cand = ranked.filter((r) => r.d < d0 + 5 && r.p.slot).map((r) => ({ r, c: r.d + 0.45 * Math.abs(cy + (r.p.slot.y - GOAL_Y) * 0.55 - own.y) })).sort((a0, c0) => a0.c - c0.c);
             if (cand[0] && cand[0].r !== ranked[0]) { const k0 = ranked.indexOf(cand[0].r); ranked.splice(k0, 1); ranked.unshift(cand[0].r); }
           }
-          if (ranked[0]) pressers.add(ranked[0].p.idx);
+          /* 版1088：プレスの方針。前から＝相手陣で持たれたら2〜3人で囲む。控えめ＝相手陣では寄せずに構える（ハーフウェーラインまで引いて待つ） */
+          const plv = Math.sign(tm.tac.press || 0), bF = fx(tm.ti, target.x);
+          if (ranked[0] && !(plv < 0 && own && bF > L * 0.5 && ranked[0].d > 3.5)) pressers.add(ranked[0].p.idx);
           // 2人目：ボールとゴールを結ぶ線上に入って中央を締める（カバー）
           { const cv = ranked.slice(1, 5).find((r) => skZ(r.p, 'cover') && r.d < 24);   // カバーリング：少し離れていても2人目としてカバーに入る
             if (cv) coverer[tm.ti] = cv.p.idx; else if (ranked[1] && ranked[1].d < 18) coverer[tm.ti] = ranked[1].p.idx; else coverer[tm.ti] = -1; }
           let extra = 0;
           // 負け・引き分けで70分過ぎ：全体で前から追い込む（パスの出し先にも寄せてミスを誘う）
           const urg = tm.urg;
-          for (let k = 1; k < ranked.length && extra < (urg ? 2 : 1); k++) {   // 寄せるのは1人（＋近くにいれば2人目まで）。全員で囲まない
+          const hiP = plv > 0 && own && bF > L * 0.45, maxX = hiP ? 2 : plv < 0 && bF > L * 0.5 ? 0 : (urg ? 2 : 1);
+          for (let k = 1; k < ranked.length && extra < maxX; k++) {   // 寄せるのは1人（＋近くにいれば2人目まで）。全員で囲まない。版1088：前からは相手陣で3人まで
             const { p, d } = ranked[k];
+            if (hiP && d < 24 && !p.gk && p.slot && p.slot.line >= 1) { pressers.add(p.idx); extra++; continue; }
             const pr = clamp(p.press + tm.mods.press + tm.tac.press + DOM[tm.ti] * 50 + urg * 40 + (skZ(p, 'pressMonster') ? 40 : 0), 0, 100);
             if (pr >= 35 && d < 3 + pr * 0.07 + urg * 4) { pressers.add(p.idx); extra++; }
           }
@@ -3555,6 +3562,14 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             const q = P.find((x) => x.team !== tm.ti && x.name === p.vsMark && !x.off && !x.gk); if (!q) continue;
             for (const o of tm.players) if (o.mark === q.idx) o.mark = -1;
             p.mark = q.idx; p.markHard = true; hard.add(p.idx); taken.add(q.idx);
+          }
+          { /* 版1088：プレス「前から」：相手陣で持たれたら、ボールの近くの受け手2人に、近くのMF・FWがぴったり付く（短いパスの出し先を消して、蹴らせる・奪う） */
+            const ow0 = ownerP();
+            if ((tm.tac.press || 0) > 0 && ow0 && ow0.team !== tm.ti && !ow0.gk && fx(tm.ti, ow0.x) > L * 0.45) {
+              const rcv = P.filter((q) => q.team !== tm.ti && !q.off && !q.gk && q !== ow0 && !taken.has(q.idx)).map((q) => ({ q, d: hyp(q.x - ow0.x, q.y - ow0.y) })).filter((r) => r.d < 22).sort((x, y) => x.d - y.d).slice(0, 2);
+              for (const { q } of rcv) { let best = null, bd = 14; for (const p of tm.players) { if (p.gk || p.off || hard.has(p.idx) || !p.slot || p.slot.line < 1) continue; const d = hyp(p.x - q.x, p.y - q.y); if (d < bd) { bd = d; best = p; } }
+                if (best) { best.mark = q.idx; best.markHard = true; hard.add(best.idx); taken.add(q.idx); } }
+            }
           }
           for (const p of tm.players) {   // 版800：マンマーカー：相手のエース（いちばん点を取りそうなFW）に、どこまでもついて行く
             if (p.markHard || p.gk || p.off || p.type !== 'マンマーカー') continue;
@@ -3738,7 +3753,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
               if (s.line === 0 && bxf > 60) tx = Math.max(tx, Math.min(bxf - 28, L / 2 + 8));
             }
             // 幅を取る：サイドの選手はタッチライン際に張って相手の守備を広げる
-            if (wide && !p.run) ty += (p.slot.y > GOAL_Y ? 1 : -1) * (6 + tm.tac.side * 3) - shiftY * 0.5;
+            if (wide && !p.run) ty += (p.slot.y > GOAL_Y ? 1 : -1) * (6 + tm.tac.side * 5) - shiftY * 0.5;
             if (p.ovUntil > S.t && p.ovSide) { tx = Math.min(Math.max(tx, bxf + 9), offL - 1); ty = GOAL_Y + p.ovSide * 29; u = true; }   // 版837：オーバーラップの走り（ボールの外側を追い越す）
             // サイドの深い所にボール → ゴール前へ飛び込む（ニア・ファー・こぼれ球）
             const bWide = bxf > L - 32 && Math.abs(b.y - GOAL_Y) > 11;
@@ -4825,7 +4840,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       const bx = fx(p.team, p.x), offL = offsideLine(p.team); let n = 0;
       const cand = mates(p).filter((m) => m !== p && !m.gk && !m.off && m.slot && (m.slot.line >= 1 || (Math.abs(m.slot.y - GOAL_Y) >= 9 && Math.sign(m.slot.y - GOAL_Y) === Math.sign(p.y - GOAL_Y) && fx(p.team, m.x) > bx - 10)) && fx(p.team, m.x) > bx - 18 && hyp(m.x - p.x, m.y - p.y) < 45)
         .sort((a, c) => (fx(p.team, c.x) - fx(p.team, a.x)) * 0.1 + (c.speed - a.speed) * 0.02);
-      const maxN = 3 + (T[p.team].attitude === 'attacking' ? 1 : 0) - (T[p.team].attitude === 'defensive' ? 1 : 0);
+      const maxN = 3 + (T[p.team].attitude === 'attacking' ? 2 : 0) - (T[p.team].attitude === 'defensive' ? 1 : 0);
       for (const m of cand) {
         if (n >= maxN) break;
         if (m.otRun && S.t < m.otRun.until && m.run > 0) continue;
@@ -5722,9 +5737,9 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         if (S.nm && (globalThis.__Kprot ?? 1) && S.t - (p.protT ?? -9) < 1.6 && P[p.protFrom] && danger < 0.8) { const pf = P[p.protFrom]; if ((q.x - p.x) * (pf.x - p.x) + (q.y - p.y) * (pf.y - p.y) < 0) v += 0.6; }   // 版901：プロテクトの後は、相手が寄ってきたのと逆側へ
         if (S.nm && (globalThis.__Kdraw ?? 1) && (S.t - (p.recvT ?? -9)) > 0.8 && hyp(p.vx, p.vy) > 1.5 && nearestOpp(p, p.x, p.y).d < 5 && recvOpp > 5 && danger < 0.6) v += 0.7;   // 版901：ドライブで相手を引きつけたら、空いた味方へ離す
         if (S.dribbleMode === 'carry' && p.carryFW === q.idx && danger < 0.5) v += 0.45;   // 運びながら意識していた前のFWへ、コースが空いた瞬間に縦パス
-        if (tm.tac.side) v += Math.abs(py - GOAL_Y) > 14 ? tm.tac.side * 0.3 : -tm.tac.side * 0.15;
+        if (tm.tac.side) v += Math.abs(py - GOAL_Y) > 14 ? tm.tac.side * (tm.tac.side > 0 ? 0.9 : 1.3) : -tm.tac.side * (tm.tac.side > 0 ? 0.5 : 1.0);   /* 版1088：攻める場所を強く（サイド＝外の味方へ、中央＝中の味方へ） */
         // サイドの深い位置からはゴール前へクロス
-        if (xf > L - 36 && Math.abs(p.y - GOAL_Y) > 12 && pxf > L - 18 && Math.abs(py - GOAL_Y) < 12) v += 1.9 + (skZ(q, 'nearRun') || skZ(q, 'farWait') ? 0.7 : 0) + (q.type === 'ストライカー' && q.position === 'FW' ? 0.6 : 0) + ((globalThis.__Kcrs ?? 1) ? clamp(((q.jump || 50) * 0.6 + (q.kick || 50) * 0.4 - 60) / 25, -0.5, 1.2) : 0);   // 版973：ジャンプ力とキック力（ヘディングシュート）が高い味方へは、相手がいてもクロス
+        if (xf > L - 36 && Math.abs(p.y - GOAL_Y) > 12 && pxf > L - 18 && Math.abs(py - GOAL_Y) < 12) v += 1.9 + (tm.tac.side || 0) * 0.6 + (skZ(q, 'nearRun') || skZ(q, 'farWait') ? 0.7 : 0) + (q.type === 'ストライカー' && q.position === 'FW' ? 0.6 : 0) + ((globalThis.__Kcrs ?? 1) ? clamp(((q.jump || 50) * 0.6 + (q.kick || 50) * 0.4 - 60) / 25, -0.5, 1.2) : 0);   // 版973：ジャンプ力とキック力（ヘディングシュート）が高い味方へは、相手がいてもクロス
         if (skZ(p, 'postPlay') && pressure >= 1 && d < 16 && danger < 0.3 && fx(p.team, q.x) > xf - 8) v += 0.8;   // ポストプレー：背負って、上がってきた味方へ落とす
         if (q.dcUntil > S.t) v -= 2.2;
         if ((q.stDg || 0) > S.t && through) v += 2.0;
