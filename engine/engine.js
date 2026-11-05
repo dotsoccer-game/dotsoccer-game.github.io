@@ -245,7 +245,7 @@
     ikari:      { sw: 'シュートを打たれたとき', se: 'セービングが大きく上がる。1対1とPKはさらに強い', st: '強いシュートでも、はじかずにキャッチ', name: '白亜の城壁', chip: ['#f6f8fc', '#8fa4c4', '#1c2638'],     who: 'れんの',   face: 'yokohama_1', hair: '#ffffff', skin: 0,  type: 'ゴールキーパー',     when: 'シュートを打たれたとき（1対1・PKはさらに強い）', what: '純粋な守備的GKの極み。シュートへの反応と手の届く範囲が飛躍的に上がり、ほかのGKを遥かに凌ぐセービングを見せる。反応が速く、キャッチ率も高い。はじく時も手の届く範囲が広く、相手のいない外へ正確に逃がす。1対1とPKでは、さらに止める。凸すると、止める力はそのままに、至近距離や紅蓮の牙（覚醒）のシュートでも、はじかずにがっちり抱える（こぼれ球を詰めさせない）', dur: 1.5, cd: 2, ch: 1 },
     aonoouza:   { sw: '最前線のくもいへ縦パスが出たとき', se: '下りて受けてCBを釣り出し、空いた裏へ走る味方にパスを通す', st: '釣り出すCB・走る味方が2人に', name: '蒼の王座', chip: ['#04264e', '#3391ff', '#e0eeff'],       who: 'くもい',   face: 'kyoto_9', hair: '#2a8cff',     type: '偽9番',              when: '最前線で相手CBに張りついているくもいへ、味方から縦パス（34m以内のグラウンダー）が出たとき（受ける前に発動）', what: '手前に下りて受ける司令塔。下りてくるくもいにCBが釣り出され、DFラインの裏に穴が空く。受けたらくるっと前を向き（寄せられても取られにくい）、その穴へ走り込む2列目の味方に、正確な縦パス・スルーパスを通す。出したら自分もゴール前へ入り直す（凸：釣り出すCBが2人、走り込む味方も2人、パスがさらに正確）', dur: 6, cd: 14, ch: 0.85 },
     uzushio:    { sw: '相手陣内で、後ろの味方がボールを持ったとき', se: '裏へ何度も走ってDFを下げ、空いた手前で味方に打たせる', st: '引きつけるDFが3人に', name: '渦潮の囮', chip: ['#4e2504', '#ff8f33', '#ffeee0'],       who: 'てらだ',   face: 'hiroshima_9', hair: '#ff7300', type: 'デコイラン',         when: '相手陣内（相手ゴールから約50m以内）で、2列目の味方が自分より後ろでボールを持ったとき', what: '奥へ走って手前を空ける囮。DFラインの裏へ、ニアからファー・ファーからニアへ斜めに何度も走り直し（渦を巻くように）、相手DF2人を下げさせる。空いたDFラインの手前（バイタルエリア）に2列目の味方が入ってきて受け、前を向いてシュートかラストパス。走っている間、てらだにはほとんどパスが来ない（自分は点を取らず、味方に取らせる）（凸：引きつけるDFが3人、渦を巻く時間も長く、2列目のMFも1人一緒に駆け上がる）', dur: 7, cd: 6, ch: 1 },
-    shiden:     { sw: '相手陣内でドリブルを仕掛けたとき', se: 'ドリブル突破が大きく決まりやすくなり、抜いた後のパス・シュートも正確に', st: '抜いた勢いで次の相手もかわす', name: '紫電の遊戯', chip: ['#4e0404', '#ff7070', '#ffe0e0'],     who: 'かまた',   face: 'kobe_7', hair: '#ff8c8c', skin: 2,      type: 'ファンタジスタ',     when: 'ドリブルで仕掛けたとき（相手陣内）', what: 'フェイント系の技はいつでも全部使える。発動中はドリブル突破の成功率が大きく上がり、フェイントを連続で何回でも出せる。抜いた後のノールックのラストパス・シュートも正確になる。凸すると、抜いた勢いのまま次の相手も置き去りにする', dur: 10, cd: 14, ch: 1 },
+    shiden:     { sw: '相手陣内でドリブルを仕掛けたとき', se: 'ドリブル突破が大きく決まりやすくなり、抜いた後のパス・シュートも正確に', st: '抜いた勢いで次の相手もかわす', name: '紫電の遊戯', chip: ['#4e0404', '#ff7070', '#ffe0e0'],     who: 'かまた',   face: 'kobe_7', hair: '#ff8c8c', skin: 2,      type: 'ファンタジスタ',     when: 'ドリブルで仕掛けたとき（相手陣内）', what: 'フェイント系の技はいつでも全部使える。発動中はドリブル突破の成功率が大きく上がり、フェイントを連続で何回でも出せる。抜いた後のノールックのラストパス・シュートも正確になる。凸すると、抜いた勢いのまま次の相手も置き去りにする', dur: 10, cd: 7, ch: 1 },
     kage:       { sw: '相手陣内で、前にFWがいる時にボールを持ったとき', se: '相手に見失われ、FWが一番打ちやすい所へ取られないパスを刺す', st: '見失わせる時間が長く、さらに正確に', name: '影の一刺し', chip: ['#212731', '#90aedf', '#e8eef7'],   who: 'かめい',   face: 'tokyo_8', hair: '#b8bec8', skin: 1,     type: 'シャドー',           when: '相手陣内（センターフォワードの後ろ）で、前に味方のFWがいる時にボールを持ったとき', what: 'ストライカーを活かす影。影のように気配を消して（銀色の残像）、寄せてくる相手は一瞬かめいを見失い、囲まれずに前を向ける。同時に前のFWが、ゴール前の打てる所へ動き出す。かめいはFWがいちばん打ちやすい所へ、相手に取られない1本（銀の光の尾）を刺し、受けたFWはトラップせずにそのまま打つ。刺したかめいはそのままゴール前へ走り込み、FWが打てない時はかめいへ返して、かめいが決める。FWにDFが寄ったら、空いた背後のスペースへ自分で抜けて打つ（凸：見失わせる時間が長く、パスもシュートもさらに正確）', dur: 4, cd: 8, ch: 1 },
     tetsurou:   { sw: '自陣ゴール前の真ん中に相手が来たとき', se: '素早く寄せてボールを奪い、すぐ縦パスでカウンターの起点に', st: '守る範囲が広く、さらに速く寄せる', name: '鉄狼の関所', chip: ['#1e2733', '#618dd1', '#e8eef7'],     who: 'さかぐち', face: 'sapporo_7', hair: '#6c7f9c',   type: 'アンカー',           when: '自陣のゴール前の真ん中（バイタルエリア）に、相手がボールを運んできた・パスを通そうとしたとき', what: '関所を閉じる（鋼色の門）。狼のような速さで寄せて、ほぼ確実にボールを奪い切る（ドリブルの技もほとんど通じない）。そばを通るパスにも足が届いてカットする。奪ったら、すぐ前の味方へ正確な縦パスを出して、カウンターの起点になる（凸：関所が広く、寄せがさらに速く、奪った後のパスがさらに正確）', dur: 3, cd: 10, ch: 1 },
     midori:     { sw: '自陣でボールを持ち、相手がプレスに来るとき', se: 'プレスを引きつけて、空いた味方へつなぐ。発動するたびにチームのパスが良くなっていく', st: '引きつける相手が3人に', name: '翠の起点', chip: ['#044e24', '#33ff8d', '#e0ffee'],       who: 'むらおか', face: 'sendai_2', hair: '#00a84a',    type: 'ビルドアップ型',     when: '自陣でボールを持ち、相手がプレスに来られる所にいるとき', what: '誘い込んで、組み立てる。わざとボールを晒して相手のプレスを引き寄せ（翠の点線）、相手のDFラインも押し上げさせて陣形を前のめりにする。引きつけ切った瞬間、食いつかれて空いたフリーの味方へつなぐ（翠の光の尾）。受けた味方は前を向いて落ち着いてプレーでき、しばらくはチーム全体のパスがつながりやすい（数的優位）。組み立てている間もDFは守備の形を保つので、取られても崩れない。発動するたびに、チーム全員のパスの精度と速さ、ボールの持ちやすさ、仕掛けやすさが積み重なって上がっていく（試合の間ずっと）（凸：引き寄せる相手が3人、ラインがさらに上がり、つながりやすい時間が長い）', dur: 5, cd: 11, ch: 1 },
@@ -4310,7 +4310,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             if (dot < 0.87 && !opps(p).some((o) => !o.off && !o.gk && hyp(o.x - p.x, o.y - p.y) < 3.5 && ((o.x - p.x) * ux + (o.y - p.y) * uy) > 0.5 && Math.abs(-(o.x - p.x) * uy + (o.y - p.y) * ux) < 1.4)) {
               const k = 0.07, nx = S.dribbleDir[0] * (1 - k) + ux * k, ny = S.dribbleDir[1] * (1 - k) + uy * k, nl = hyp(nx, ny) || 1; S.dribbleDir = [nx / nl, ny / nl]; }
           }
-          vmax *= (uOn(p, 'shiden') ? 1.2 : Math.min(0.9, 0.69 + p.dribble * 0.0023)) - ((globalThis.__Kab ?? 1) ? Math.max(0, 85 - p.dribble) * (globalThis.__Kab9 ?? 0.004) : 0);   // 版935：ドリブルが85より低いと、ボールを持つと遅くなる（60で約8割・40で約7割）   // ドリブルが上手いほど速く運べる（S 約0.94、E 約0.86。全力疾走より少し遅い）
+          vmax *= (uOn(p, 'shiden') ? 1.1 : Math.min(0.9, 0.69 + p.dribble * 0.0023)) - ((globalThis.__Kab ?? 1) ? Math.max(0, 85 - p.dribble) * (globalThis.__Kab9 ?? 0.004) : 0);   // 版935：ドリブルが85より低いと、ボールを持つと遅くなる（60で約8割・40で約7割）   // ドリブルが上手いほど速く運べる（S 約0.94、E 約0.86。全力疾走より少し遅い）
           if (S.dribbleMode === 'carry') {
             vmax *= 0.58 + p.technique * 0.0015;   // 運ぶドリブル：足元に置いたまま、ゆっくり
             { const v0 = hyp(p.vx, p.vy); if ((globalThis.__Kphy ?? 1) && v0 > 3 && S.t - (p.recvT ?? -9) < 0.8 && !opps(p).some((o) => !o.gk && hyp(o.x - p.x, o.y - p.y) < 3)) vmax = Math.max(vmax, Math.min(v0 * 0.92, maxSpeed(p) * 0.8)); }   // 版908：走りながら受けた直後は、勢いを残したまま（いきなり歩く速さにしない）
@@ -4322,7 +4322,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             // 突破のドリブル：緩急。前に相手がいる間は普通のドリブル（巡航）で間合いを測り、2.5〜5mまで来たら前傾してグン！と一気に加速して置き去りにする
             if (p.pace && S.t > p.pace.until) p.pace = null;
             const fr = opps(p).filter((q) => !q.gk && ((q.x - p.x) * S.dribbleDir[0] + (q.y - p.y) * S.dribbleDir[1]) > 0.5).map((q) => ({ q, d: hyp(q.x - p.x, q.y - p.y) })).filter((o) => o.d < 8).sort((x, y) => x.d - y.d)[0];
-            if (p.pace) vmax = maxSpeed(p) * (uOn(p, 'shiden') ? 1.2 : Math.min(0.9, 0.72 + p.dribble * 0.002));   /* 版1089：ボールを持つと全力疾走より遅い（守る側が追いつける） */
+            if (p.pace) vmax = maxSpeed(p) * (uOn(p, 'shiden') ? 1.1 : Math.min(0.9, 0.72 + p.dribble * 0.002));   /* 版1089：ボールを持つと全力疾走より遅い（守る側が追いつける） */
             else if (fr) {
               vmax *= ((globalThis.__Kphy ?? 1) && fr.d > 5 ? 0.85 : 0.6) + p.dribble * 0.0016;   /* 版908b：間合いを測る減速は、相手が5m以内に来てから */   // 巡航：ドリブルが上手いほど速いまま間合いを詰められる
               if (fr.d < 5 && fr.d > 2.5 && zr(p, 'pace') > 0 && (p.paceCd || 0) < S.t && R.next() < 0.3 * (0.4 + p.dribble / 100) * (zr(p, 'pace') === 2 ? 1.6 : 1)) {
@@ -4338,7 +4338,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           if (p.sdStart != null && S.t - p.sdStart > 3) { p.sdCd = S.t + 4; p.sdStart = null; p.sdOn = 0; }
           if (skZ(p, 'speedDribble') && !((p.sdCd || 0) > S.t) && !(p.sdStart == null && (p.skLock || 0) > S.t) && nearestOpp(p, p.x, p.y).d > (zr(p, 'speedDribble') === 2 ? 3.5 : 4.5)) {   // どこで使うかは「スキルのエリア設定」の表で決める
             if (p.sdStart == null) p.sdStart = S.t;
-            vmax = Math.max(vmax, maxSpeed(p) * (uOn(p, 'shiden') ? 1.2 : Math.min(0.9, 0.72 + p.dribble * 0.002)));   // 版1090：ドリブルSで0.9倍まで。高速ドリブル：大きく蹴り出して、全力疾走のまま運ぶ
+            vmax = Math.max(vmax, maxSpeed(p) * (uOn(p, 'shiden') ? 1.1 : Math.min(0.9, 0.72 + p.dribble * 0.002)));   // 版1090：ドリブルSで0.9倍まで。高速ドリブル：大きく蹴り出して、全力疾走のまま運ぶ
             // 高速ドリブル：ボールを大きく前へ蹴り出しては、全力で追いつく（前傾したまま走り切る）
             if (S.t - (p.sdAct || 0) > 0.45) { act(p, 'sdrun', 0.5); p.sdAct = S.t; }
             p.sdOn = S.t + 0.25;
@@ -5532,7 +5532,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         const spotSafe = rn && (() => { const tR = hyp(spot[0] - rn.x, spot[1] - rn.y) / maxSpeed(rn);
           let tD = 99; for (const o of opps(p)) { if (o.gk && hyp(spot[0] - o.x, spot[1] - o.y) > 8) continue; tD = Math.min(tD, hyp(spot[0] - o.x, spot[1] - o.y) / maxSpeed(o)); }
           return tD > tR + 0.15; })();
-        if (rn && running && laneOK && spotSafe && !rn.off && fx(p.team, rn.x) < offL2 + 0.2 && hyp(spot[0] - p.x, spot[1] - p.y) < 24 && R.next() < 0.45 + (p.pass + p.vision) / 300 + DOM[p.team] * 0.3) { if (skZ(p, 'throughPass') || skZ(p, 'wallPass')) S.oneTouchBoost = true; if (skZ(p, 'wallPass') && !((p.skLock || 0) > S.t)) act(p, 'skill', 1.2, { k: 'wallPass' }); startPass(p, rn, false); S.oneTouchBoost = false; return; }
+        if (rn && running && laneOK && spotSafe && !rn.off && !(p.uniq === 'shiden' && fx(p.team, p.x) > L / 2 - 15 && hyp(L - fx(p.team, p.x), GOAL_Y - p.y) > 22) && fx(p.team, rn.x) < offL2 + 0.2 && hyp(spot[0] - p.x, spot[1] - p.y) < 24 && R.next() < 0.45 + (p.pass + p.vision) / 300 + DOM[p.team] * 0.3) { if (skZ(p, 'throughPass') || skZ(p, 'wallPass')) S.oneTouchBoost = true; if (skZ(p, 'wallPass') && !((p.skLock || 0) > S.t)) act(p, 'skill', 1.2, { k: 'wallPass' }); startPass(p, rn, false); S.oneTouchBoost = false; return; }
       }
       // 版894：背負って受けたFW（くさび）：明らかなシュートでなければ、前を向いた後ろの味方へ落とす（落としたら裏へ）
       if (S.nm && p.layoff && p.layoff.until > S.t && !S.setPiece && !canShootHere && (globalThis.__Klf ?? 1)) {
@@ -5938,7 +5938,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       const sharp = 0.3 + p.vision / 40;   // E（40）1.3／C（65）1.9／S（90）2.55：低いと良し悪しの差が見えず、色々なプレーを選んでしまう
       let sum = 0;
       let sdCtx = null;
-      if (uOn(p, 'shiden')) for (const o of opts) {   // 紫電の遊戯：発動したら、ゴール前まで1人で運ぶ。パスは、ゴール前でフリーの味方への決定的な1本だけ。打てる所まで来たら打つ
+      if (uOn(p, 'shiden') || (p.uniq === 'shiden' && xf > L / 2 - 15)) for (const o of opts) {   // 版1094：発動していない時も、相手陣では同じく自分で運ぶ。紫電の遊戯：発動したら、ゴール前まで1人で運ぶ。パスは、ゴール前でフリーの味方への決定的な1本だけ。打てる所まで来たら打つ
         // GKとの距離を、詰められるだけ詰めてから打つ（前が空いている間は運ぶ。GKが出てきた・前をふさがれた・ゴール目の前、で打つ）
         const inRange = dGoal < 21;
         if (sdCtx === null) { const gq = opps(p).find((q) => q.gk); let spF = 9;
@@ -6261,11 +6261,13 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           for (const o of opts) if (o.kind === 'dribble' && !o.wait && !o.freeRun) o.ww = Math.min(o.ww, bp * k0); }
       }
       // 版898：持ちすぎない：受けてから2.5秒以上持っている、または相手2人以上に寄せられている時は、通るパスがあればドリブルを控えてつなぐ
-      if (S.nm && !p.gk && !S.setPiece && (globalThis.__Khold ?? 1)) {
+      const sdMode = p.uniq === 'shiden' && xf > L / 2 - 15;   // 版1094：紫電の遊戯の選手は、相手陣では自分でゴール前まで運ぶ
+      if (S.nm && !p.gk && !S.setPiece && (globalThis.__Khold ?? 1) && !sdMode) {
         const held = S.t - (p.recvT ?? S.t), crowd = opps(p).filter((o) => !o.off && !o.gk && hyp(o.x - p.x, o.y - p.y) < 4).length;
         const okPass = opts.some((o) => o.kind === 'pass' && o.q && !o.q.gk && (o.danger ?? 1) < 0.6);
         if (okPass && (held > (globalThis.__Kholdt ?? 2.5) || crowd >= 2)) for (const o of opts) if (o.kind === 'dribble' && !o.wait) o.ww *= crowd >= 2 ? (globalThis.__Kholdc ?? 0.3) : (globalThis.__Kholdk ?? 0.35);
       }
+      if (sdMode && dGoal > 22 && opts.some((o) => o.kind === 'dribble' && o.ww > 0)) for (const o of opts) if (o.kind === 'pass') o.ww = 0;   // 版1094：ゴール前（22m）までは、パスを選ばずに運ぶ。ゴール前でラストパスかシュート
       for (const o of opts) sum += o.ww;
       let r = R.next() * sum, pick = opts[opts.length - 1];
       for (const o of opts) { r -= o.ww; if (r <= 0) { pick = o; break; } }
@@ -8904,7 +8906,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         // GKの飛ぶ先：止める時はボールの所、読みが当たって決められる時は届かずに手前、外れた時は反対へ
         const stay = center && saved, gTo = stay ? GOAL_Y : saved ? ay : guess === sideAim ? GOAL_Y + sideAim * Math.min(2.4, Math.abs(ay - GOAL_Y) - 0.9) : GOAL_Y + guess * R.range(1.8, 2.5);
         const tc = Math.max(0.3, (gl - 0.9 - spotX) / sp), gv = (gTo - g.y) / tc;
-        const lean = !stay && !saved && Math.sign(gTo - GOAL_Y) !== Math.sign(ay - GOAL_Y) && Math.abs(ay - GOAL_Y) > 0.6;   // 版1093：ボールと逆へ動く時は、飛ばずに重心だけ
+        const lean = false;   // 版1094：PKは逆へ飛んでよい（監督）。普通の試合だけ、逆へ飛ばずに重心が逆にかかる
         ev('sokick0', { team: t, player: kq.name });
         S.kickRec = kq.idx; Object.assign(S.ball, { x: spotX, y: GOAL_Y, z: 0.05, vx: sp, vy, vz, kind: 'shot', lastTeam: t, lastPlayer: kq.idx, kicker: kq.idx, owner: -1 });
         let hit = false, k0 = 0, told = false, gT = 0;   // 版1037
