@@ -475,7 +475,7 @@
     const rl = art2Role[tpl], cols = ART2_KEYS.map((k) => (k ? e2Hex(art2Col(lk, k)) : null)), out = c.createImageData(W, W), o = out.data;
     for (let i = 0; i < rl.length; i++) { const k = rl[i]; if (!k) continue; const cc = cols[k] || cols[1]; o[i * 4] = cc[0]; o[i * 4 + 1] = cc[1]; o[i * 4 + 2] = cc[2]; o[i * 4 + 3] = 255; }
     c.putImageData(out, 0, 0);
-    if (art2Cache.size > 120) art2Cache.clear(); art2Cache.set(key, cv); return cv;
+    if (art2Cache.size > 24) { for (const [k0, c0] of art2Cache) { art2Cache.delete(k0); c0.width = 0; c0.height = 0; if (art2Cache.size <= 16) break; } } art2Cache.set(key, cv); return cv;   // 版1107：大きな絵（420×420）をため込みすぎない（iPhoneの絵のメモリが足りなくなると、選手の絵が出なくなる）
   }
   function drawEmblemArt(ctx, x, y, s, lk) {
     const cv = art2Canvas(lk), W = cv.width; ctx.save(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'; ctx.drawImage(cv, x - s / 2, y - s / 2, s, s);
@@ -3946,7 +3946,7 @@
     const club = C.ensureClub(save), name = save.team.name, short = save.team.short || '';
     const st = { e: emb2From(club.emb), tab: 'shape', role: 'c1' }; if (st.tab === 'mark') st.tab = 'shape'; st.orig = { ...st.e };
     const lkOf = (o) => ({ ...st.e, name, short, ...(o || {}) });
-    const cv = (lk, size) => { const c = document.createElement('canvas'); c.width = size; c.height = size; drawEmblem(c.getContext('2d'), size / 2, size / 2, size * 0.92, lk); return c.toDataURL(); };
+    const cv = (lk, size) => { const c = document.createElement('canvas'); c.width = size; c.height = size; drawEmblem(c.getContext('2d'), size / 2, size / 2, size * 0.92, lk); const u = c.toDataURL(); c.width = 0; c.height = 0; return u; };
     const hl = (v) => (e2Near(v, '#ff2fd0') ? '#00e5ff' : '#ff2fd0');
     const mkThumb = (k) => { const c = document.createElement('canvas'); c.width = 84; c.height = 84; const x = c.getContext('2d'); drawEmblem(x, 42, 42, 78, lkOf({ tpl: 8, tm: 'none', icon: 'none' })); const e = st.e, sub = !e2Near(e.ci, e.cm) ? e.ci : !e2Near(e.cf, e.cm) ? e.cf : '#13234a'; if (k !== 'none') drawIcon(x, 42, 40, 22, k, e.cm, sub); return c.toDataURL(); };   // マークを大きく見せる見本
     const p10 = save.team.players[9] || save.team.players[0] || {};
@@ -4025,8 +4025,8 @@
     const club = C.ensureClub(save), name = save.team.name;
     const st = { kits: { home: { ...club.kit }, away: { ...club.kit2 }, gk: { ...club.gk, pat: 'solid' } }, side: 'home', role: 'shirt' }; st.orig = JSON.parse(JSON.stringify(st.kits));
     const ps = save.team.players, pf = ps[9] || ps[0] || {}, pg = ps.find((q) => q.position === 'GK') || ps[0] || {};
-    const art = (kit, w, h, only) => { const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d'); if (only === 'shirt') drawKitArt(x, kit, 0, 0, w, 'shirt'); else drawKitArt(x, kit, 0, h * 0.05, h * 0.95); return c.toDataURL(); };
-    const sprite = (kit, p, view) => { try { const k = A().kitSprite(kit, p, view); if (!k) return ''; const c2 = document.createElement('canvas'); c2.width = k.width * 5; c2.height = k.height * 5; const x = c2.getContext('2d'); x.imageSmoothingEnabled = false; x.drawImage(k, 0, 0, c2.width, c2.height); return c2.toDataURL(); } catch (_) { return ''; } };
+    const art = (kit, w, h, only) => { const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d'); if (only === 'shirt') drawKitArt(x, kit, 0, 0, w, 'shirt'); else drawKitArt(x, kit, 0, h * 0.05, h * 0.95); const u = c.toDataURL(); c.width = 0; c.height = 0; return u; };
+    const sprite = (kit, p, view) => { try { const k = A().kitSprite(kit, p, view); if (!k) return ''; const c2 = document.createElement('canvas'); c2.width = k.width * 5; c2.height = k.height * 5; const x = c2.getContext('2d'); x.imageSmoothingEnabled = false; x.drawImage(k, 0, 0, c2.width, c2.height); const u = c2.toDataURL(); c2.width = 0; c2.height = 0; k.width = 0; k.height = 0; return u; } catch (_) { return ''; } };
     const embS = (() => { try { return emblemURL(name, 48); } catch (_) { return ''; } })();
     const draw = () => {
       const kit = st.kits[st.side], gk = st.side === 'gk', noPat = gk || kit.pat === 'solid';

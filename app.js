@@ -1400,6 +1400,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
   // 向きは5種（side 横 / f34 斜め前 / front 正面 / b34 斜め後ろ / back 背中）＋左右反転で8方向
   const SPR_W = 18, SPR_H = 24;
   const sprCache = new Map();
+  { const get0 = sprCache.get.bind(sprCache), set1 = Map.prototype.set.bind(sprCache); sprCache.get = (k) => { const v = get0(k); if (v !== undefined) { sprCache.delete(k); set1(k, v); } return v; }; }   // 版1107：使った絵は「新しい」側へ（捨てる時は、しばらく使っていない絵から）
   { const set0 = sprCache.set.bind(sprCache); sprCache.set = (k, v) => { set0(k, v); if (sprCache.size > 1500) { let n = 400; for (const [key, c] of sprCache) { sprCache.delete(key); if (c && c.width) { c.width = 0; c.height = 0; } if (--n <= 0) break; } } return sprCache; }; }   // 絵のため込みすぎを防ぐ
   function shade(hex, k) {
     const n = parseInt(hex.slice(1), 16), r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;

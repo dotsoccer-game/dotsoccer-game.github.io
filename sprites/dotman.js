@@ -598,7 +598,7 @@ const VIEWS = {
       const inner = side === 'L' ? c1 + 1 : c0 - 1; if (R[r][inner] && R[r][inner] !== '.' && R[r][inner] !== 'o') R[r][inner] = 'o'; }
     return R.map((r) => r.join(''));
   }
-  function frame(opt) { const k = JSON.stringify(opt); let f = cache.get(k); if (!f) { f = opt.pat && opt.pat !== 'solid' && opt.sub ? patterned(opt) : render(opt); cache.set(k, f); if (cache.size > CACHE_MAX) { let n = 400; for (const [key, v] of cache) { cache.delete(key); if (v && v.cv && v.cv.width) { v.cv.width = 0; v.cv.height = 0; } if (--n <= 0) break; } } } return f; }
+  function frame(opt) { const k = JSON.stringify(opt); let f = cache.get(k); if (f) { cache.delete(k); cache.set(k, f); }   /* 版1107：使った絵は「新しい」側へ（よく使う絵を捨てて、描く途中の選手の絵が消えていた） */ if (!f) { f = opt.pat && opt.pat !== 'solid' && opt.sub ? patterned(opt) : render(opt); cache.set(k, f); if (cache.size > CACHE_MAX) { let n = 400; for (const [key, v] of cache) { cache.delete(key); if (v && v.cv && v.cv.width && !v.keep) { v.cv.width = 0; v.cv.height = 0; } if (--n <= 0) break; } } } return f; }
   // ユニフォームの柄：無地の絵を描いてから、シャツの色のドットだけを柄に合わせてサブの色に塗りかえる（影の濃さはそのまま）
   //  vstripe 縦じま / hstripe 横じま / band 胸に太い横線 / sash ななめのたすき / half 左右で2色
   const SENT = '#8e1a7c';
@@ -613,7 +613,7 @@ const VIEWS = {
     const toneOf = (i) => { for (const [t, k] of tones) if (d[i] === t[0] && d[i + 1] === t[1] && d[i + 2] === t[2]) return k; return 0; };
     let x0 = w, x1 = -1, y0 = h, y1 = -1;
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = (y * w + x) * 4; if (d[i + 3] && toneOf(i)) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; } }
-    if (x1 < 0) { const b2 = Object.assign({}, opt); delete b2.pat; delete b2.sub; return frame(b2); }
+    if (x1 < 0) { const b2 = Object.assign({}, opt); delete b2.pat; delete b2.sub; const f2 = frame(b2), cv2 = document.createElement('canvas'); cv2.width = f2.cv.width; cv2.height = f2.cv.height; cv2.getContext('2d').drawImage(f2.cv, 0, 0); return Object.assign({}, f2, { cv: cv2 }); }   // 版1107：同じ絵（キャンバス）を2つの名前で覚えない（片方を捨てた時に、もう片方の絵まで消えて、選手が見えなくなった）
     const bw = x1 - x0 + 1, bh = y1 - y0 + 1, mx = (x0 + x1) / 2;
     const on = (x, y) => {
       const u = x - x0, v = y - y0;
