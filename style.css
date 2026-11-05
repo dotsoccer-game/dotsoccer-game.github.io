@@ -4315,16 +4315,16 @@ body.in-digest #soBoard,body.in-digest #soCard{display:none!important}
 .sq3 .q3ts{position:absolute;left:-4.4cqh;top:1.4cqh;display:flex;flex-direction:column;gap:.4cqh}
 .sq3 .q3t{display:block;font-style:normal;font-weight:900;font-size:1.8cqh;padding:.1cqh .6cqh;border-radius:.6cqh;border:.2cqh solid #fff}.sq3 .t-pk{background:#d33a2c}.sq3 .t-fk{background:#2f9a4a}.sq3 .t-ck{background:#2f6fe0}
 .sq3 .q3c{position:absolute;left:-3cqh;bottom:.6cqh;width:3.4cqh;height:3.4cqh;border-radius:50%;background:#1d4fb8;border:.3cqh solid #fff;font-style:normal;font-weight:900;font-size:2cqh;display:flex;align-items:center;justify-content:center}
-.sq3 .q3n{margin-top:-1.4cqh;min-width:17cqh;padding:.3cqh 1.4cqh;border-radius:1.4cqh;background:linear-gradient(#1d2c4c,#0f1d33);border:.3cqh solid #6f86b8;font-weight:900;font-size:2.9cqh;text-align:center;white-space:nowrap;position:relative}.sq3 .q3n.cap{border-color:#c9a33a}
+.sq3 .q3n{margin-top:-1.2cqh;min-width:12cqh;padding:.15cqh 1.1cqh;border-radius:1.2cqh;background:linear-gradient(#1d2c4c,#0f1d33);border:.3cqh solid #6f86b8;font-weight:900;font-size:2.2cqh;text-align:center;white-space:nowrap;position:relative}.sq3 .q3n.cap{border-color:#c9a33a}
 .sq3 .q3p.sel .q3n,.sq3 .q3b.sel{background:linear-gradient(#2f6fe0,#1d4fb8);border-color:#fff}
 .sq3 .q3p.inj .q3f{filter:grayscale(1) brightness(.7)}
 .sq3 .q3side{flex:1;display:flex;gap:1cqw;border:.4cqh solid #c9a33a;border-radius:1.2cqh;padding:1cqh 1cqw;background:rgba(5,20,12,.5);min-height:0;overflow:auto}
 .sq3 .q3col{flex:1;display:flex;flex-direction:column;gap:.9cqh;min-width:0}
 .sq3 .q3vl{width:.25cqh;background:rgba(201,163,58,.6);margin:5cqh 0 1cqh}
 .sq3 .q3h{display:block;text-align:center;font-weight:900;font-size:2.8cqh;padding:.4cqh 0;margin:0 .6cqw .4cqh;background:linear-gradient(#5a4a1a,#2c2408);border:.3cqh solid #c9a33a;transform:skewX(-10deg)}
-.sq3 .q3b{display:flex;align-items:center;gap:.8cqw;height:6.4cqh;padding:0 .8cqw 0 0;border-radius:1cqh;border:.3cqh solid #3a5c8a;background:linear-gradient(#1d2c4c,#0f1d33);touch-action:none;cursor:grab;overflow:hidden}
+.sq3 .q3b{display:flex;align-items:center;gap:.5cqw;height:6.4cqh;padding:0 .8cqw 0 0;border-radius:1cqh;border:.3cqh solid #3a5c8a;background:linear-gradient(#1d2c4c,#0f1d33);touch-action:none;cursor:grab;overflow:hidden}
 .sq3 .q3bf{width:6.4cqh;height:6.4cqh;object-fit:cover;object-position:50% 20%;image-rendering:pixelated;flex:0 0 auto}
-.sq3 .q3b span{flex:1;min-width:0;font-weight:900;font-size:2.4cqh;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sq3 .q3b span{flex:1;min-width:0;font-weight:900;font-size:2cqh;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sq3 .q3b .q3o{flex:0 0 auto}
 .sq3 .q3hint{margin:0;padding:.4cqh 0 1cqh;display:flex;align-items:center;justify-content:center;gap:2cqw;font-weight:900;font-size:2.7cqh}.sq3 .q3hint::before,.sq3 .q3hint::after{content:"";flex:0 0 22%;height:.25cqh;background:linear-gradient(90deg,transparent,#c9a33a)}.sq3 .q3hint::after{transform:scaleX(-1)}
 .sq3 .q3src{opacity:.35}
@@ -4353,3 +4353,6 @@ body.in-digest #soBoard,body.in-digest #soCard{display:none!important}
 .sq3 .q3rf button{height:4.6cqh;padding:0 1.6cqw;border-radius:1cqh;border:.3cqh solid #fff;background:#1d2c4c;font-weight:900;font-size:2.2cqh}.sq3 .q3rf .q3mgo,.sq3 .q3rf .q3mon{background:linear-gradient(#d33a2c,#a5241a)}.sq3 .q3rf button[disabled]{opacity:.45}
 .sq3 .q3ghost.q3r{width:22cqw}
 .sq3 .q3pop{color:#1b2a44;font-size:15px}.sq3 .q3pop .s2ph span{color:#1b2a44}
+
+/* 版1070：名前を小さく（ピッチの札・ベンチの一覧）。ベンチの疲労の点も小さく */
+.sq3 .q3b .q3cd{width:1.6cqh;height:1.6cqh}.sq3 .q3b .q3o{min-width:4cqh;height:3.2cqh;font-size:2.1cqh}
