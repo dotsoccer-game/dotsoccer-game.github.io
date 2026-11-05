@@ -2191,7 +2191,11 @@
       const seg = (key, val, opts) => `<div class="q3seg">${opts.map(([v, nm]) => `<button data-${key}="${v}" class="${val === v ? 'on' : ''}">${nm}</button>`).join('')}</div>`;
       let side = '';
       if (wSel && wSel.opp) { const q = oppR.find((x) => x.name === wSel.opp) || {}, cur = markOn(wSel.opp);
-        side = `<div class="q3dh"><b>${esc(q.name || '')}<small> ${esc(q.position || '')}・${esc(q.type || '')}</small></b><button class="q3wx">×</button></div><p class="q3wq">この選手を、誰がマークする？</p>
+        const raw = ((A().theirs || {}).players || []).find((x) => x.name === q.name), pv = raw || q.params || {}, PKs = D.PARAMS.map((x) => x.k), ov = Math.round(PKs.reduce((t, k) => t + (+pv[k] || 0), 0) / PKs.length);   /* 版1084：相手の総合力・タイプ・能力ランク */
+        side = `<div class="q3dh"><b>${q.number ? q.number + ' ' : ''}${esc(q.name || '')}</b><b class="q3o g-${D.grade(ov)}">${ov}</b><button class="q3wx">×</button></div>
+          <div class="q3wty"><i class="pos ${POSC[q.position] || ''}">${esc(q.position || '')}</i><span class="tbadge ${TYPE_CLS[q.type] || 'ty-bal'}">${esc(q.type || '')}</span></div>
+          <div class="q3dr q3wr">${PKs.map((k, j) => { const g = D.grade(+pv[k] || 0); return `<span title="${esc(D.PARAMS[j].name)} ${pv[k] ?? ''}">${ico(k)}<i class="rk2 g-${g}">${g}</i></span>`; }).join('')}</div>
+          <p class="q3wq">この選手を、誰がマークする？</p>
           <div class="q3wl">${[...Array(10).keys()].map((i) => i + 1).map((k) => { const p2 = ps[on[k]]; return `<button class="q3wm${cur && cur.me === k ? ' on' : ''}" data-mk="${k}">${facePic(p2, 'q3rf')}<span>${esc(p2.name)}</span><small>${esc(p2.position)}</small></button>`; }).join('')}</div>
           <button class="q3wnone"${cur ? '' : ' disabled'}>マークしない</button><p class="q3dhint">マークできるのは2人まで（${plan.marks.length}/2）</p>`; }
       else if (wSel && wSel.me != null) { const k = wSel.me, q = ps[on[k]], o = ordOf(k), mk = markOf(k), pos = q.position;

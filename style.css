@@ -4473,3 +4473,9 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 .sq3 .q3wnone{height:5cqh;border-radius:1cqh;border:.3cqh solid #9aa7bd;background:#fff;color:#1b2a44;font-weight:900;font-size:2.4cqh;box-shadow:none}.sq3 .q3wnone[disabled]{opacity:.4}
 .sq3 .q3wmk{display:flex;flex-direction:column;gap:.5cqh;font-weight:800;font-size:2.2cqh}.sq3 .q3wmk span{display:flex;align-items:center;gap:1cqw}.sq3 .q3wmk button{width:3.6cqh;height:3.6cqh;padding:0;border-radius:50%;border:.25cqh solid #c9c2ae;background:#fff;box-shadow:none;font-size:2cqh}
 .sq3 .q3opp b{width:4.6cqh;height:4.6cqh;font-size:2.1cqh}.sq3 .q3opp span{font-size:1.5cqh}
+/* 版1084：作戦の画面：相手の総合力・タイプ・能力ランク */
+.sq3 .q3dh .q3o{flex:0 0 auto;font-size:2.8cqh;height:4.2cqh;min-width:6cqh}
+.sq3 .q3wty{display:flex;align-items:center;gap:1cqw}.sq3 .q3wty .pos{font-style:normal;font-weight:900;font-size:2cqh;padding:.3cqh 1cqw;border-radius:.6cqh;color:#fff}.sq3 .q3wty .tbadge{font-size:2.1cqh;padding:.4cqh 1.6cqw}
+.sq3 .q3wr{grid-template-columns:repeat(12,1fr);padding:.6cqh .4cqw;gap:0}
+.sq3 .q3wr .pico{width:3.6cqh;height:3.4cqh}.sq3 .q3wr .rk2{font-size:2.3cqh!important;-webkit-text-stroke:.18cqh #222}
+.sq3 .q3wl .q3wm{height:5.2cqh}.sq3 .q3wl .q3wm .q3rf{width:4.4cqh;height:4.4cqh}
