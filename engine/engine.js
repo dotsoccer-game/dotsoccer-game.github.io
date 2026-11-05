@@ -4164,11 +4164,18 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         const yT = ahead ? (sp0 ? curveYAt(bb, p.x) : bb.y + bb.vy * (p.x - bb.x) / bb.vx) : (Math.abs(bb.vx) > 0.5 ? (sp0 ? curveYAt(bb, gl) : bb.y + bb.vy * (gl - bb.x) / bb.vx) : bb.y);
         const gT = yT - p.y;
         if ((globalThis.__Kgkdr ?? 1) && Math.abs(gT) < 0.35 && !src) return;   // 体の正面に来る球には飛ばない
+        { const tl = Math.abs(bb.vx) > 0.5 ? (p.x - bb.x) / bb.vx : 9;   // 版1097：ボールがもうGKの横まで来ている（0.12秒以内に横を通る・もう通った）のに、横へ離れた所を通る球には飛ばない（通り過ぎた後に横へ飛ぶと、ボールと逆へ飛んだように見える）
+          if ((globalThis.__Kgklate ?? 1) && tl < 0.12 && Math.abs(gT) > 0.9 && !src) { if (globalThis.__lateSkip) { globalThis.__lateSkip.n++; (globalThis.__lateSkip.ts ||= []).push(+S.t.toFixed(2)); }
+            const dd = Math.sign(gT);   // 飛ぶ代わりに：ボールの方へ手を伸ばしかけて、間に合わずに崩れる（逆を突かれた時と同じ動き。倒れている時間も飛んだ時と同じくらい）
+            p.wf = { dir: dd, gd: dd, t1: S.t + 0.05, t2: S.t + 0.35, end: S.t + 1.95, shot: bb.shotT }; p.vx *= 0.2; p.vy *= 0.2; p.lateDive = null; p.dvShot = bb.shotT;
+            if (rec) { actions.push({ t: +S.t.toFixed(2), i: p.idx, a: 'lose', d: 0.4, dx: 0, dy: dd, o: p.idx, wf: 1 }); actions.push({ t: +(S.t + 0.4).toFixed(2), i: p.idx, a: 'fall', d: 1.5, dx: 0, dy: dd, wf: 1 }); }
+            return; } }
         if (Math.abs(gT) >= 0.35 && Math.sign(gT) !== Math.sign(dir)) { if (globalThis.__dirFix) globalThis.__dirFix.push(+gT.toFixed(2)); dir = Math.sign(gT); dist = Math.max(0.6, Math.abs(gT)); }
       }
       if (globalThis.__dvLog && p.gk) { const bb = S.ball, gl = fx(p.team, 0), tl = Math.abs(bb.vx) > 0.3 ? (p.x - bb.x) / bb.vx : -1; globalThis.__dvLog.push({ t: S.t, team: p.team, dir, dist, tHit, kind: bb.kind, last: bb.lastTeam, sp: hyp(bb.vx, bb.vy), z: bb.z || 0, bxf: fx(p.team, bb.x), gxf: fx(p.team, p.x), gy: p.y - GOAL_Y, by: bb.y - GOAL_Y, yAt: tl > 0 ? bb.y + bb.vy * tl - GOAL_Y : null, tl, own: bb.owner, src: (new Error().stack.split('\n')[2] || '').replace(/.*engine.js:/, '').replace(/\)$/, '') }); }
       p.diveT = 0.7; p.diveDir = dir; p.diveAt = S.t;
       dist = Math.min(dist, gkDiveMax(p));
+      p.diveStopY = (globalThis.__Kdvstop ?? 1) ? p.y + dir * (dist + 0.35) : null;   // 版1097：飛ぶ先（ボールの通る所＋35cm）で横へ流れるのを止める（ボールを越えて飛びすぎ、ボールと逆の所に倒れて見えた）
       const v = clamp(dist / Math.max(tHit, 0.18), 3, 5.2 + p.speed * 0.015 + p.jump * 0.025);
       p.vy = dir * v; p.vx *= 0.3;
     }
@@ -4248,7 +4255,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         if (p.diveT > 0) {
           p.diveT -= DT;
           p.x += p.vx * DT; p.y += p.vy * DT; p.vx *= 0.9; p.vy *= 0.88;
-          if (p.diveT <= 0) { p.diveT = 0; p.downT = 0.8; p.vx = p.vy = 0; }
+          if (p.diveStopY != null && (p.y - p.diveStopY) * (p.diveDir || 0) > 0) { p.y = p.diveStopY; p.vy = 0; }
+          if (p.diveT <= 0) { p.diveT = 0; p.downT = 0.8; p.vx = p.vy = 0; p.diveStopY = null; }
           continue;
         }
         // 股を抜かれたDFの素早い反応：振り返ってボールへ全力（加速は瞬発力の鋭いダッシュ）
