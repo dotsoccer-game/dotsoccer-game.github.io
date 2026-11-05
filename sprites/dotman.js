@@ -601,18 +601,19 @@ const VIEWS = {
   function frame(opt) { const k = JSON.stringify(opt); let f = cache.get(k); if (!f) { f = opt.pat && opt.pat !== 'solid' && opt.sub ? patterned(opt) : render(opt); cache.set(k, f); if (cache.size > CACHE_MAX) { let n = 400; for (const [key, v] of cache) { cache.delete(key); if (v && v.cv && v.cv.width) { v.cv.width = 0; v.cv.height = 0; } if (--n <= 0) break; } } } return f; }
   // ユニフォームの柄：無地の絵を描いてから、シャツの色のドットだけを柄に合わせてサブの色に塗りかえる（影の濃さはそのまま）
   //  vstripe 縦じま / hstripe 横じま / band 胸に太い横線 / sash ななめのたすき / half 左右で2色
+  const SENT = '#8e1a7c';
   function patterned(opt) {
-    const base = Object.assign({}, opt); delete base.pat; delete base.sub;
+    const base = Object.assign({}, opt); delete base.pat; delete base.sub; base.shirt = SENT;   // 版1104：シャツだけ目印の色で描いて、シャツのドットだけ見分ける（パンツ・ソックスがシャツと同じ色でも、柄が付かない）
     const f = frame(base), src = f.cv, w = src.width, h = src.height;
     const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
     const c = cv.getContext('2d'); c.drawImage(src, 0, 0);
     const im = c.getImageData(0, 0, w, h), d = im.data;
-    const sh = hex(opt.shirt || '#1e64e6'), sub = hex(opt.sub);
-    const tones = [[sh, 1], [mul(sh, 0.78), 0.78], [mul(sh, 1.3), 1.3], [mul(sh, 0.82), 0.82]];
+    const sh = hex(opt.shirt || '#1e64e6'), sub = hex(opt.sub), se = hex(SENT);
+    const tones = [[se, 1], [mul(se, 0.78), 0.78], [mul(se, 1.3), 1.3], [mul(se, 0.82), 0.82]];
     const toneOf = (i) => { for (const [t, k] of tones) if (d[i] === t[0] && d[i + 1] === t[1] && d[i + 2] === t[2]) return k; return 0; };
     let x0 = w, x1 = -1, y0 = h, y1 = -1;
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = (y * w + x) * 4; if (d[i + 3] && toneOf(i)) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; } }
-    if (x1 < 0) return f;
+    if (x1 < 0) { const b2 = Object.assign({}, opt); delete b2.pat; delete b2.sub; return frame(b2); }
     const bw = x1 - x0 + 1, bh = y1 - y0 + 1, mx = (x0 + x1) / 2;
     const on = (x, y) => {
       const u = x - x0, v = y - y0;
@@ -625,8 +626,8 @@ const VIEWS = {
     };
     for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
       const i = (y * w + x) * 4; if (!d[i + 3]) continue;
-      const k = toneOf(i); if (!k || !on(x, y)) continue;
-      const t = mul(sub, k); d[i] = t[0]; d[i + 1] = t[1]; d[i + 2] = t[2];
+      const k = toneOf(i); if (!k) continue;
+      const t = mul(on(x, y) ? sub : sh, k); d[i] = t[0]; d[i + 1] = t[1]; d[i + 2] = t[2];
     }
     c.putImageData(im, 0, 0);
     return Object.assign({}, f, { cv });
