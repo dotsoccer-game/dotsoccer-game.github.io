@@ -1969,9 +1969,9 @@
   /* 版1086：チーム戦術（基本の戦い方のカード5枚＋細かい調整）の中身。戦術設定と、試合中の作戦の「チーム指示」で同じものを使う */
   function tqTeamBody(work) {
     const LEFT = ['line', 'width', 'compact', 'attitude'], RIGHT = ['press', 'pass', 'side'];
-    const item = (k) => { const it = C.TACTIC_ITEMS.find((x) => x.key === k); return `<div class="tq-it"><span class="tq-in">${esc(it.name)}</span><span class="tq-seg n${it.opts.length}">${it.opts.map(([v, nm]) => `<button data-k="${k}" data-v="${v}" class="${String(work[k]) === String(v) ? 'on' : ''}">${String(work[k]) === String(v) ? '✓ ' : ''}${esc(nm)}</button>`).join('')}</span></div>`; };
+    const item = (k) => { const it = C.TACTIC_ITEMS.find((x) => x.key === k); return `<div class="tq-it"><span class="tq-in">${esc(it.name)}</span><span class="tq-seg n${it.opts.length}">${it.opts.map(([v, nm]) => `<button data-k="${k}" data-v="${v}" class="${String(work[k]) === String(v) ? 'on' : ''}">${esc(nm)}</button>`).join('')}</span></div>`; };
     return `<div class="tq-h"><b>基本の戦い方</b><i></i></div>
-           <div class="tq-styles">${C.STYLES.map((st) => `<button class="tq-st${st.id === work.style ? ' on' : ''}" data-st="${st.id}"><span class="tq-art"><img src="img/tactics/${st.id}.png" alt=""></span><b>${esc(st.name)}</b><small>${esc(TQ_SHORT[st.id] || st.desc)}</small>${st.id === work.style ? '<em class="tq-ck">✓</em>' : ''}</button>`).join('')}</div>
+           <div class="tq-styles">${C.STYLES.map((st) => `<button class="tq-st${st.id === work.style ? ' on' : ''}" data-st="${st.id}"><span class="tq-art"><img src="img/tactics/${st.id}.png" alt=""></span><b>${esc(st.name)}</b><small>${esc(TQ_SHORT[st.id] || st.desc)}</small></button>`).join('')}</div>
            <div class="tq-h"><b>細かい調整</b><i></i>${work.style === 'custom' ? '<small>（カスタム）</small>' : ''}</div>
            <div class="tq-adj"><div>${LEFT.map(item).join('')}</div><div>${RIGHT.map(item).join('')}<p class="tq-note">選手の配置は変わりません。</p></div></div>`;
   }
@@ -1985,13 +1985,13 @@
     let el = document.getElementById('tacSet'); if (!el) { el = document.createElement('div'); el.id = 'tacSet'; (document.documentElement.classList.contains('stage') && document.getElementById('app') || document.body).appendChild(el); }   /* 版1063：ゲームの画面（#app）の中に出す（両側の緑・Dynamic Islandをよける） */
     const SIT_NM = { keep: 'そのまま', defend: '守備重視', attack: '攻撃重視', allout: '総攻撃' }, SIT_HD = { lead: 'リード', draw: '同点', behind: 'ビハインド' };
     const LEFT = ['line', 'width', 'compact', 'attitude'], RIGHT = ['press', 'pass', 'side'];
-    const item = (k) => { const it = C.TACTIC_ITEMS.find((x) => x.key === k); return `<div class="tq-it"><span class="tq-in">${esc(it.name)}</span><span class="tq-seg n${it.opts.length}">${it.opts.map(([v, nm]) => `<button data-k="${k}" data-v="${v}" class="${String(work[k]) === String(v) ? 'on' : ''}">${String(work[k]) === String(v) ? '✓ ' : ''}${esc(nm)}</button>`).join('')}</span></div>`; };
+    const item = (k) => { const it = C.TACTIC_ITEMS.find((x) => x.key === k); return `<div class="tq-it"><span class="tq-in">${esc(it.name)}</span><span class="tq-seg n${it.opts.length}">${it.opts.map(([v, nm]) => `<button data-k="${k}" data-v="${v}" class="${String(work[k]) === String(v) ? 'on' : ''}">${esc(nm)}</button>`).join('')}</span></div>`; };
     const changed = () => JSON.stringify(work) !== JSON.stringify(snap);
     const draw = () => {
       const si = work.situ || { from: 70, lead: 'keep', draw: 'keep', behind: 'attack' }; work.situ = si;
       const body = tab === 'tac'
         ? `<div class="tq-h"><b>基本の戦い方</b><i></i></div>
-           <div class="tq-styles">${C.STYLES.map((st) => `<button class="tq-st${st.id === work.style ? ' on' : ''}" data-st="${st.id}"><span class="tq-art"><img src="img/tactics/${st.id}.png" alt=""></span><b>${esc(st.name)}</b><small>${esc(TQ_SHORT[st.id] || st.desc)}</small>${st.id === work.style ? '<em class="tq-ck">✓</em>' : ''}</button>`).join('')}</div>
+           <div class="tq-styles">${C.STYLES.map((st) => `<button class="tq-st${st.id === work.style ? ' on' : ''}" data-st="${st.id}"><span class="tq-art"><img src="img/tactics/${st.id}.png" alt=""></span><b>${esc(st.name)}</b><small>${esc(TQ_SHORT[st.id] || st.desc)}</small></button>`).join('')}</div>
            <div class="tq-h"><b>細かい調整</b><i></i>${work.style === 'custom' ? '<small>（カスタム）</small>' : ''}</div>
            <div class="tq-adj"><div>${LEFT.map(item).join('')}</div><div>${RIGHT.map(item).join('')}<p class="tq-note">選手の配置は変わりません。</p></div></div>`
         : `<div class="tq-from"><span class="tq-fl">切り替え開始</span>${C.SITU_FROM.map(([v, nm]) => `<button data-sf="${v}" class="${si.from === v ? 'on' : ''}">${si.from === v ? '✓ ' : ''}${esc(/^残り/.test(nm) ? nm.replace('から', '') : nm)}</button>`).join('')}</div>
