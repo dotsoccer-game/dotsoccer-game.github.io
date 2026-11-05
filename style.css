@@ -4479,3 +4479,29 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 .sq3 .q3wr{grid-template-columns:repeat(12,1fr);padding:.6cqh .4cqw;gap:0}
 .sq3 .q3wr .pico{width:3.6cqh;height:3.4cqh}.sq3 .q3wr .rk2{font-size:2.3cqh!important;-webkit-text-stroke:.18cqh #222}
 .sq3 .q3wl .q3wm{height:5.2cqh}.sq3 .q3wl .q3wm .q3rf{width:4.4cqh;height:4.4cqh}
+/* 版1085：試合中の画面のタブ（スカッド／チーム指示／選手指示）と白い作戦ボード */
+.sq3 .q3tabs{display:flex;margin-left:2cqw;border-radius:1cqh;overflow:hidden;border:.3cqh solid #c9d3e6}
+.sq3 .q3tabs button{height:5.6cqh;padding:0 2.2cqw;border:0;border-left:.25cqh solid #c9d3e6;border-radius:0;background:#f4f6fa;color:#1b2a44;font-weight:900;font-size:2.8cqh;box-shadow:none}.sq3 .q3tabs button:first-child{border-left:0}
+.sq3 .q3tabs button.on{background:linear-gradient(#2f6fe0,#1d4fb8);color:#fff}
+.sq3 .q3fin2{margin-left:auto}
+.sq3 .q3bh{display:flex;align-items:center;gap:1cqw}.sq3 .q3bh .q3h{flex:1;margin:0}.sq3 .q3bh .q3left{margin:0;height:4.6cqh;padding:0 1.2cqw;font-size:2.1cqh;gap:.8cqw}.sq3 .q3bh .q3left b{font-size:3.2cqh}
+.sq3 .q3wbd{background:#e9ecef;border:.6cqh solid #dfe3e8;box-shadow:inset 0 0 0 .3cqh #c5ccd4;border-radius:1.6cqh}
+.sq3 .q3wt{position:absolute;transform:translate(-50%,-60%);display:flex;flex-direction:column;align-items:center;cursor:pointer}
+.sq3 .q3wc{position:relative;width:7.4cqh;height:7.4cqh;border-radius:50%;background:radial-gradient(circle at 50% 35%,#5aa0f0,#1d4fb8);border:.4cqh solid #fff;box-shadow:0 .4cqh 0 rgba(0,0,0,.25);overflow:visible}
+.sq3 .q3wc .q3f{position:absolute;inset:0;width:100%;height:100%;border-radius:50%;object-fit:cover;object-position:50% 15%}
+.sq3 .q3wt .q3n{margin-top:-.8cqh;min-width:10cqh;font-size:2cqh;padding:.1cqh 1cqh}
+.sq3 .q3wt.sel .q3wc{border-color:#5be3ff;box-shadow:0 0 1.4cqh #5be3ff}.sq3 .q3wt.sel .q3n{background:linear-gradient(#2f6fe0,#1d4fb8);border-color:#5be3ff}
+.sq3 .q3wbd .q3mkl line{stroke:#e0402a;stroke-dasharray:6 4;stroke-width:3}
+.sq3 .q3mt{position:absolute;transform:translate(-50%,-50%);z-index:58;font-style:normal;font-weight:900;font-size:1.8cqh;padding:0 .6cqh;border-radius:.4cqh;background:#f05a28;color:#fff}
+.sq3 .q3wbd.pick .q3opp b{animation:q3pk .9s ease-in-out infinite}@keyframes q3pk{50%{box-shadow:0 0 1.8cqh #ffd84a;transform:scale(1.08)}}
+.sq3 .q3pdh{display:flex;align-items:center;gap:1.2cqw;padding-bottom:1cqh;border-bottom:.2cqh solid #e0d8c0}
+.sq3 .q3pfc{flex:0 0 auto;width:9cqh;height:9cqh;border-radius:50%;background:radial-gradient(circle at 50% 35%,#5aa0f0,#1d4fb8);border:.4cqh solid #fff;box-shadow:0 0 0 .3cqh #9ab;overflow:hidden}.sq3 .q3pfc .q3f{width:100%;height:100%;object-fit:cover;object-position:50% 15%}
+.sq3 .q3pdh>div{flex:1;min-width:0;display:flex;flex-direction:column}.sq3 .q3pdh>div b{font-size:3.6cqh;font-weight:900}.sq3 .q3pdh>div small{font-size:2.2cqh;color:#5a6680;font-weight:800}
+.sq3 .q3mhd{display:flex;align-items:baseline;justify-content:space-between}.sq3 .q3mhd small{font-size:2cqh;color:#5a6680;font-weight:800}
+.sq3 .q3mb{display:flex;align-items:center;gap:1cqw;padding:1cqh 1cqw;border-radius:1.2cqh;border:.3cqh solid #c9c2ae;background:#fff}
+.sq3 .q3mbn{flex:0 0 auto;width:6cqh;height:6cqh;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ff7a6a,#c8281c);border:.35cqh solid #fff;color:#fff;font-weight:900;font-size:2.8cqh;display:flex;align-items:center;justify-content:center}
+.sq3 .q3mb>div{flex:1;min-width:0;display:flex;flex-direction:column}.sq3 .q3mb>div b{font-size:2.8cqh;font-weight:900}.sq3 .q3mb>div small{font-size:1.9cqh;color:#5a6680;font-weight:800}
+.sq3 .q3mb button{height:4.6cqh;padding:0 1.6cqw;border-radius:1cqh;border:.3cqh solid #1d4fb8;background:#fff;color:#1d4fb8;font-weight:900;font-size:2.3cqh;box-shadow:none}.sq3 .q3mb .q3mrm{border-color:#9aa7bd;color:#45526b}
+.sq3 .q3mb0 span{flex:1;font-weight:800;font-size:2.3cqh;color:#5a6680}.sq3 .q3mb .q3mch.on{background:#fff3c4;border-color:#c9a33a;color:#6a4a00}
+.sq3 .q3reset{align-self:center;width:80%;height:6cqh;margin-top:auto;border-radius:1.2cqh;border:.35cqh solid #1b2a44;background:#fff;color:#1b2a44;font-weight:900;font-size:3cqh}
+.sq3 .q3big{font-size:2.4cqh!important;line-height:1.6;text-align:left!important;color:#1b2a44!important}

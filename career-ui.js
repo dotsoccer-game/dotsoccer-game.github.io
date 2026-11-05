@@ -1643,7 +1643,11 @@
       + ln([[0.23, 1.2], [0.23, 0.83], [0.77, 0.83], [0.77, 1.2]]) + ln([[0.37, 1.2], [0.37, 0.93], [0.63, 0.93], [0.63, 1.2]]) + arc(0.5, 0.86, 0.12, 0.08, Math.PI * 1.17, Math.PI * 1.83)
       + arc(0.02, 1, 0.03, 0.025, -Math.PI / 2, 0) + arc(0.98, 1, 0.03, 0.025, Math.PI, Math.PI * 1.5);
     const field = `<svg class="q3fd" viewBox="0 0 100 100" preserveAspectRatio="none"><defs><radialGradient id="q3vg" cx="50%" cy="48%" r="70%"><stop offset="55%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#021a04" stop-opacity=".45"/></radialGradient><linearGradient id="q3sh" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".18"/><stop offset=".35" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity=".04"/></linearGradient></defs>${stripes}<rect width="100" height="100" fill="url(#q3sh)"/><rect width="100" height="100" fill="url(#q3vg)"/>${lines}</svg>`;   /* 版1068：芝の色を監督の画像に寄せる（深い緑の縞、奥と四隅を少し暗く） */
-    return { TY0, TY1, HW0, HW1, tx, ty, RV, VR, CU, px, py, field };
+    /* 版1085：作戦ボード（白いボードに緑の線）。試合中の作戦の画面で使う */
+    const lnB = (pts) => `<polyline points="${pts.map(([u, v]) => P(u, v)).join(' ')}" fill="none" stroke="#1f6b35" stroke-width="2.4" vector-effect="non-scaling-stroke"/>`;
+    const arcB = (cu, cv, ru, rv, a0, a1) => lnB(Array.from({ length: 25 }, (_, k) => { const a = a0 + (a1 - a0) * k / 24; return [cu + Math.cos(a) * ru, cv + Math.sin(a) * rv]; }));
+    const board = `<svg class="q3fd" viewBox="0 0 100 100" preserveAspectRatio="none"><rect width="100" height="100" fill="#fbfbf7"/>${lnB([[0.02, 0.02], [0.02, 1.2]]) + lnB([[0.98, 0.02], [0.98, 1.2]]) + lnB([[0.02, 0.02], [0.98, 0.02]]) + arcB(0.5, 0.02, 0.16, 0.12, 0, Math.PI) + lnB([[0.23, 1.2], [0.23, 0.83], [0.77, 0.83], [0.77, 1.2]]) + lnB([[0.37, 1.2], [0.37, 0.93], [0.63, 0.93], [0.63, 1.2]]) + arcB(0.5, 0.86, 0.12, 0.08, Math.PI * 1.17, Math.PI * 1.83) + arcB(0.02, 1, 0.03, 0.025, -Math.PI / 2, 0) + arcB(0.98, 1, 0.03, 0.025, Math.PI, Math.PI * 1.5)}<circle cx="${tx(0.5, 0.02)}" cy="${ty(0.02)}" r=".7" fill="#1f6b35"/></svg>`;
+    return { TY0, TY1, HW0, HW1, tx, ty, RV, VR, CU, px, py, field, board };
   }
   function renderLineup3() {
     const ps = save.team.players, tac = C.ensureTactics(save), cells = tac.cells, R = C.GRID_R, COLS = C.GRID_C;
@@ -2073,7 +2077,7 @@
     // 今回の変更（「戻る」で試合に伝える）
     if (!ms.marks) { ms.marks = []; ms.orders = {}; ms.line = base.line ?? 3; ms.press = base.press ?? 0; }   /* 版1084：マークの指名・選手ごとの指示・ライン・プレス */
     const plan = { subs: [], cells: ms.cells.map((c) => c && { ...c }), att: ms.att, marks: ms.marks.map((m) => ({ ...m })), orders: JSON.parse(JSON.stringify(ms.orders)), line: ms.line, press: ms.press };
-    let wSel = null;   /* 作戦の画面で選んでいるもの：{ opp: 名前 } か { me: 位置 } */
+    let wSel = null, wPick = false;   /* 作戦の画面で選んでいるもの：{ opp: 名前 } か { me: 位置 } */
     let page = 'board';
     let el = document.getElementById('htModal');
     if (!el) { el = document.createElement('div'); el.id = 'htModal'; document.getElementById('app').appendChild(el); }
@@ -2110,24 +2114,27 @@
     const subChip = (k, G, cells, on, mini) => { const q = ps[on[k]], isNew = plan.subs.some((t) => t.slot === k); const x = k ? G.px(cells[k].c, cells[k].r) : 50, y = k ? G.py(cells[k].r) : G.ty(0.9);
       return `<div class="q3p${isNew ? ' new' : ''}${mini ? ' q3mn' : ''}" data-k="${k}" style="left:${x}%;top:${y}%;z-index:${2 + Math.round(y)}"><div class="q3fw">${facePic(q, 'q3f', false)}${mini ? '' : `<b class="q3o g-${D.grade(statOvr(q))}">${statOvr(q)}</b>`}${isNew ? '<i class="q3in2">IN</i>' : ''}</div><span class="q3n">${esc(q.name)}</span>${mini ? '' : `<span class="q3bat">${battery(stamOf(k))}</span>`}</div>`; };
     const topBar = (title) => `<div class="q3top"><h2><svg viewBox="0 0 64 64" class="q3ball"><circle cx="32" cy="32" r="28" fill="#fff" stroke="#222" stroke-width="3"/><polygon points="32,21 42,28 38,40 26,40 22,28" fill="#222"/><path d="M32 4v17M60 26l-18 2M49 56l-11-16M15 56l11-16M4 26l18 2" stroke="#222" stroke-width="3"/></svg>${title}</h2><i class="q3sep"></i><img class="q3emb" src="${emblemURL(save.team.name, 48)}" alt=""><b class="q3tm">${esc(save.team.name)}</b><button class="q3back" aria-label="戻る"><svg viewBox="0 0 24 24"><path d="M20 12H6M11 6l-6 6 6 6" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>`;
+    /* 版1085：上のタブ（スカッド＝選手交代・配置／チーム指示／選手指示）と「試合にもどる」 */
+    const tabBar = (cells) => `<div class="q3bar"><span class="q3fl">フォーメーション</span><b class="q3fmv">${esc(C.formationLabel(cells))}</b>
+      <div class="q3tabs">${[['board', 'スカッド'], ['team', 'チーム指示'], ['player', '選手指示']].map(([k, nm]) => `<button data-pg="${k}" class="${(page === 'white' ? 'team' : page) === k ? 'on' : ''}">${nm}</button>`).join('')}</div>
+      <button class="q3fin2">試合にもどる</button></div>`;
+    const bindTabs = () => { el.querySelectorAll('[data-pg]').forEach((b) => b.onclick = () => { page = b.dataset.pg; wSel = null; wPick = false; draw(); }); el.querySelector('.q3fin2').onclick = finish; };
     const draw = () => {
-      if (page === 'white') return drawWhite();
+      if (page !== 'board') return drawWhite();
       const on = onPitch(), cells = plan.cells, G = q3Geo(ROWS, COLS);
       let dots = subChip(0, G, cells, on); for (let k = 1; k < 11; k++) dots += subChip(k, G, cells, on);
       const onSet = new Set(on);
       const outIdx = [...Array(11).keys()].filter((j) => !onSet.has(j));
       const bench = ps.slice(11, 18).map((q, i) => ({ q, j: i + 11 })).filter((x) => !onSet.has(x.j)).concat(outIdx.map((j) => ({ q: ps[j], j, out: true })))
         .map(({ q, j, out }) => { const gone = out || ms.out.includes(q.name) || q.injury > 0; return `<div class="q3b${gone ? ' q3off' : ''}" data-j="${j}">${facePic(q, 'q3bf', true)}<span>${esc(q.name)}</span>${gone ? `<em class="q3bo">${out || ms.out.includes(q.name) ? '交代済' : 'ケガ'}</em>` : `<i class="q3cd cdot ${condDot(q)}"></i><b class="q3o g-${D.grade(statOvr(q))}">${statOvr(q)}</b>`}</div>`; }).join('');
-      el.innerHTML = `<div class="sq3 q3sub"><div class="q3in">${topBar('選手交代')}
-          <div class="q3bar"><span class="q3fl">フォーメーション</span><b class="q3fmv">${esc(C.formationLabel(cells))}</b><div class="q3left">交代枠 残り<b>${Math.max(0, left())}</b></div></div>
-          <div class="q3main"><div class="q3pitch">${G.field}${dots}</div><div class="q3side"><div class="q3col"><b class="q3h">ベンチ</b>${bench}</div></div></div>
+      el.innerHTML = `<div class="sq3 q3sub"><div class="q3in">${topBar('試合中の作戦')}
+          ${tabBar(cells)}
+          <div class="q3main"><div class="q3pitch">${G.field}${dots}</div><div class="q3side"><div class="q3col"><div class="q3bh"><b class="q3h">ベンチ</b><div class="q3left">交代枠 残り<b>${Math.max(0, left())}</b></div></div>${bench}</div></div></div>
           <p class="q3hint"><span>${left() > 0 ? '控えの選手を、代えたい選手へドラッグ' : '交代枠はもうありません'}　／　タップで選手カード</span></p>
-          <button class="q3show q3rot" title="作戦の画面へ"><img src="icons/ui_change.png" alt=""><span>作戦</span></button>
         </div></div><div class="sb2-box q3cardhost"></div>`;
       el.hidden = false; fitBox();
       el.querySelectorAll('img.fc').forEach((im) => { const f = () => cutFace(im); im.addEventListener('load', f); if (im.complete) f(); });
-      el.querySelector('.q3back').onclick = () => { if (info.atHalf) finish(); else { page = 'white'; draw(); } };   // ハーフタイムは戦術がロッカールームの別ボタンなので、そのまま戻る
-      el.querySelector('.q3rot').onclick = () => { page = 'white'; draw(); };
+      el.querySelector('.q3back').onclick = finish; bindTabs();
       bindDrag();
     };
     // ドラッグ：控え→ピッチの選手で交代、ピッチの選手→ほかの選手で位置を入れ替え、空いている所で離すとその位置へ（指を離した所ぴったり）。動かさずに離したらカード
@@ -2174,62 +2181,72 @@
       el.querySelectorAll('.q3pitch .q3p').forEach((d) => d.onpointerdown = (ev) => { const k = +d.dataset.k; start(ev, 'p', k, ps[onPitch()[k]], d); });
       el.querySelectorAll('.q3side .q3b').forEach((d) => d.onpointerdown = (ev) => { const j = +d.dataset.j, q = ps[j]; if (d.classList.contains('q3off')) { ev.preventDefault(); showCard(q); return; } start(ev, 'b', j, q, d); });
     };
-    // 版1084：作戦の画面：ピッチに味方（顔）と相手（赤い丸）。相手をタップ→「誰がマークする？」、味方をタップ→その選手への指示。右の板はチーム全体の指示
+    // 版1085：チーム指示・選手指示（白い作戦ボード。味方は丸い顔、相手は赤い丸。マークは赤い点線と「M」）
     const drawWhite = () => {
+      const tab = page === 'player' ? 'player' : 'team';
       const m0 = A().match || {}, oppR = ((m0.roster || [])[1] || []).slice(0, 11), oppCells = (m0.teamCells && m0.teamCells[1]) || C.cellsFor((m0.teamForm && m0.teamForm[1]) || '4-4-2');
+      const theirs = (A().theirs || {}).players || [];
       const on = onPitch(), G = q3Geo(ROWS, COLS);
       const myPos = (k) => (k ? [G.px(plan.cells[k].c, plan.cells[k].r), G.py(plan.cells[k].r)] : [50, G.ty(0.9)]);
-      const oppPos = (k) => { if (!k) return [50, G.ty(0.02)]; const c = oppCells[k] || { r: 4, c: 7 }, r2 = Math.min(ROWS - 1 + 0.9, (ROWS - 1) - c.r + 0.9), c2 = Math.min(COLS - 1 + 0.4, (COLS - 1) - c.c + 0.9);   /* 味方の札と重ならないよう、少し奥・右にずらして置く */ return [G.tx(G.CU(c2), Math.max(0.03, G.RV(r2))), G.ty(Math.max(0.03, G.RV(r2)))]; };
+      const oppPos = (k) => { if (!k) return [50, G.ty(0.02)]; const c = oppCells[k] || { r: 4, c: 7 }, r2 = Math.min(ROWS - 1 + 0.9, (ROWS - 1) - c.r + 0.9), c2 = Math.min(COLS - 1 + 0.4, (COLS - 1) - c.c + 0.9); return [G.tx(G.CU(c2), Math.max(0.03, G.RV(r2))), G.ty(Math.max(0.03, G.RV(r2)))]; };
       const markOf = (k) => plan.marks.find((m) => m.me === k), markOn = (nm) => plan.marks.find((m) => m.opp === nm);
       const ordOf = (k) => plan.orders[k] || { att: 0, def: 0 };
+      const oppInfo = (nm) => { const q = oppR.find((x) => x.name === nm) || {}, raw = theirs.find((x) => x.name === nm), pv = raw || q.params || {}, PKs = D.PARAMS.map((x) => x.k); return { q, pv, PKs, ov: Math.round(PKs.reduce((t, k) => t + (+pv[k] || 0), 0) / PKs.length) }; };
       let dots = '';
-      for (let k = 0; k < 11; k++) { const q = ps[on[k]], [x, y] = myPos(k), o = ordOf(k), mk = markOf(k), sel = wSel && wSel.me === k;
-        dots += `<div class="q3p q3mn q3w${sel ? ' sel' : ''}" data-me="${k}" style="left:${x}%;top:${y}%;z-index:${2 + Math.round(y)}"><div class="q3fw">${facePic(q, 'q3f', false)}${o.att ? `<i class="q3oa ${o.att > 0 ? 'up' : 'dn'}">${o.att > 0 ? '攻↑' : '攻↓'}</i>` : ''}${o.def ? `<i class="q3od ${o.def > 0 ? 'up' : 'dn'}">${o.def > 0 ? 'プ↑' : '待'}</i>` : ''}${mk ? '<i class="q3om">M</i>' : ''}</div><span class="q3n">${esc(q.name)}</span></div>`; }
+      for (let k = 0; k < 11; k++) { const q = ps[on[k]], [x, y] = myPos(k), o = ordOf(k), sel = wSel && wSel.me === k;
+        dots += `<div class="q3wt${sel ? ' sel' : ''}" data-me="${k}" style="left:${x}%;top:${y}%;z-index:${2 + Math.round(y)}"><div class="q3wc">${facePic(q, 'q3f', false)}${o.att ? `<i class="q3oa ${o.att > 0 ? 'up' : 'dn'}">${o.att > 0 ? '攻↑' : '攻↓'}</i>` : ''}${o.def ? `<i class="q3od ${o.def > 0 ? 'up' : 'dn'}">${o.def > 0 ? 'プ↑' : '待'}</i>` : ''}</div><span class="q3n">${esc(q.name)}</span></div>`; }
       oppR.forEach((q, k) => { if (q.gk) return; const [x, y] = oppPos(k), sel = wSel && wSel.opp === q.name, mk = markOn(q.name);
         dots += `<div class="q3opp${sel ? ' sel' : ''}${mk ? ' mk' : ''}" data-opp="${esc(q.name)}" style="left:${x}%;top:${y}%"><b>${q.number || ''}</b><span>${esc(q.name)}</span></div>`; });
-      const lines = plan.marks.map((m) => { const k2 = oppR.findIndex((q) => q.name === m.opp); if (k2 < 0) return ''; const [x1, y1] = myPos(m.me), [x2, y2] = oppPos(k2); return `<line x1="${x1}" y1="${y1 - 3}" x2="${x2}" y2="${y2}" />`; }).join('');
+      const mlines = plan.marks.map((m) => { const k2 = oppR.findIndex((q) => q.name === m.opp); if (k2 < 0) return ''; const [x1, y1] = myPos(m.me), [x2, y2] = oppPos(k2); return `<line x1="${x1}" y1="${y1 - 2}" x2="${x2}" y2="${y2}" />`; }).join('');
+      const mtags = plan.marks.map((m) => { const k2 = oppR.findIndex((q) => q.name === m.opp); if (k2 < 0) return ''; const [x1, y1] = myPos(m.me), [x2, y2] = oppPos(k2); return `<i class="q3mt" style="left:${(x1 + x2) / 2}%;top:${(y1 - 2 + y2) / 2 - 3}%">M</i>`; }).join('');
       const seg = (key, val, opts) => `<div class="q3seg">${opts.map(([v, nm]) => `<button data-${key}="${v}" class="${val === v ? 'on' : ''}">${nm}</button>`).join('')}</div>`;
       let side = '';
-      if (wSel && wSel.opp) { const q = oppR.find((x) => x.name === wSel.opp) || {}, cur = markOn(wSel.opp);
-        const raw = ((A().theirs || {}).players || []).find((x) => x.name === q.name), pv = raw || q.params || {}, PKs = D.PARAMS.map((x) => x.k), ov = Math.round(PKs.reduce((t, k) => t + (+pv[k] || 0), 0) / PKs.length);   /* 版1084：相手の総合力・タイプ・能力ランク */
-        side = `<div class="q3dh"><b>${q.number ? q.number + ' ' : ''}${esc(q.name || '')}</b><b class="q3o g-${D.grade(ov)}">${ov}</b><button class="q3wx">×</button></div>
+      if (tab === 'team') { const opt = [['attacking', '攻撃的'], ['balanced', 'バランス'], ['defensive', '守備的']], li = C.TACTIC_ITEMS.find((x) => x.key === 'line'), pr = C.TACTIC_ITEMS.find((x) => x.key === 'press');
+        side = `<div class="q3dh"><b>チーム指示</b></div><p class="q3wq">攻守の意識</p>${seg('ta', plan.att, opt)}<p class="q3wq">ラインの高さ</p>${seg('tl', plan.line, li.opts)}<p class="q3wq">プレス</p>${seg('tp', plan.press, pr.opts)}
+          <p class="q3dhint">選手ごとの指示とマークは「選手指示」で</p>`; }
+      else if (wSel && wSel.me != null) { const k = wSel.me, q = ps[on[k]], o = ordOf(k), mk = markOf(k);
+        const ex = q.position === 'FW' ? ['前に残って守備に戻らない。裏へ走り、ゴール前で待つ', '少し下がって受け、守備にも戻る'] : q.position === 'MF' ? ['前へ追い越して攻めに加わる（守備は手薄に）', '持ち場に残って、後ろを支える'] : ['サイドを駆け上がる・前へ持ち上がる', '上がらずに、守備に専念する'];
+        let mbox; if (mk) { const oi = oppInfo(mk.opp); mbox = `<div class="q3mb"><b class="q3mbn">${oi.q.number || ''}</b><div><b>${esc(mk.opp)}</b><small>${esc(oi.q.position || '')}・${esc(oi.q.type || '')}</small></div><button class="q3mch">変更</button><button class="q3mrm">解除</button></div>`; }
+        else mbox = `<div class="q3mb q3mb0"><span>${wPick ? '相手（赤い丸）をタップ' : 'なし'}</span><button class="q3mch${wPick ? ' on' : ''}">${wPick ? 'やめる' : '設定'}</button></div>`;
+        side = `<div class="q3pdh"><span class="q3pfc">${facePic(q, 'q3f', false)}</span><div><b>${esc(q.name)}</b><small>${esc(q.position)}・${esc(q.type || '')}</small></div><button class="q3wx">×</button></div>
+          <p class="q3wq">攻撃参加</p>${seg('att', o.att, [[-1, '控えめ'], [0, 'ふつう'], [1, '積極的に']])}<p class="q3wex">${o.att > 0 ? ex[0] : o.att < 0 ? ex[1] : 'いつもどおり'}</p>
+          <p class="q3wq">守備</p>${seg('def', o.def, [[-1, '待つ'], [0, 'ふつう'], [1, 'プレスに行く']])}<p class="q3wex">${o.def > 0 ? '相手に強く速く寄せる（疲れやすい）' : o.def < 0 ? '持ち場を守って、むやみに寄せない' : 'いつもどおり'}</p>
+          <div class="q3mhd"><p class="q3wq">マークする相手</p><small>マーク設定 ${plan.marks.length}/2</small></div>${mbox}
+          <p class="q3dhint">味方を選んで指示。相手をタップしてマーク設定。</p><button class="q3reset">元に戻す</button>`; }
+      else if (wSel && wSel.opp) { const oi = oppInfo(wSel.opp), q = oi.q, cur = markOn(wSel.opp);
+        side = `<div class="q3dh"><b>${q.number ? q.number + ' ' : ''}${esc(q.name || '')}</b><b class="q3o g-${D.grade(oi.ov)}">${oi.ov}</b><button class="q3wx">×</button></div>
           <div class="q3wty"><i class="pos ${POSC[q.position] || ''}">${esc(q.position || '')}</i><span class="tbadge ${TYPE_CLS[q.type] || 'ty-bal'}">${esc(q.type || '')}</span></div>
-          <div class="q3dr q3wr">${PKs.map((k, j) => { const g = D.grade(+pv[k] || 0); return `<span title="${esc(D.PARAMS[j].name)} ${pv[k] ?? ''}">${ico(k)}<i class="rk2 g-${g}">${g}</i></span>`; }).join('')}</div>
+          <div class="q3dr q3wr">${oi.PKs.map((k, j) => { const g = D.grade(+oi.pv[k] || 0); return `<span title="${esc(D.PARAMS[j].name)}">${ico(k)}<i class="rk2 g-${g}">${g}</i></span>`; }).join('')}</div>
           <p class="q3wq">この選手を、誰がマークする？</p>
           <div class="q3wl">${[...Array(10).keys()].map((i) => i + 1).map((k) => { const p2 = ps[on[k]]; return `<button class="q3wm${cur && cur.me === k ? ' on' : ''}" data-mk="${k}">${facePic(p2, 'q3rf')}<span>${esc(p2.name)}</span><small>${esc(p2.position)}</small></button>`; }).join('')}</div>
-          <button class="q3wnone"${cur ? '' : ' disabled'}>マークしない</button><p class="q3dhint">マークできるのは2人まで（${plan.marks.length}/2）</p>`; }
-      else if (wSel && wSel.me != null) { const k = wSel.me, q = ps[on[k]], o = ordOf(k), mk = markOf(k), pos = q.position;
-        const ex = pos === 'FW' ? ['前に残って守備に戻らない。裏へ走り、ゴール前で待つ', '少し下がって受け、守備にも戻る'] : pos === 'MF' ? ['前へ追い越して攻めに加わる（守備は手薄に）', '持ち場に残って、後ろを支える'] : ['サイドを駆け上がる・前へ持ち上がる', '上がらずに、守備に専念する'];
-        side = `<div class="q3dh"><b>${esc(q.name)}<small> ${esc(pos)}・${esc(q.type || '')}</small></b><button class="q3wx">×</button></div>
-          <p class="q3wq">攻撃参加</p>${seg('att', o.att, [[-1, '控える'], [0, 'ふつう'], [1, '積極的に']])}<p class="q3wex">${o.att > 0 ? ex[0] : o.att < 0 ? ex[1] : 'いつもどおり'}</p>
-          <p class="q3wq">守備</p>${seg('def', o.def, [[-1, '待つ'], [0, 'ふつう'], [1, 'プレスに行く']])}<p class="q3wex">${o.def > 0 ? '相手に強く速く寄せる（疲れやすい）' : o.def < 0 ? '持ち場を守って、むやみに寄せない' : 'いつもどおり'}</p>
-          ${mk ? `<p class="q3wq">マーク：${esc(mk.opp)}</p><button class="q3wnone q3wun">マークを外す</button>` : '<p class="q3dhint">相手（赤い丸）をタップすると、マークを指名できます</p>'}`; }
-      else { const opt = [['attacking', '攻撃的'], ['balanced', 'バランス'], ['defensive', '守備的']], li = C.TACTIC_ITEMS.find((x) => x.key === 'line'), pr = C.TACTIC_ITEMS.find((x) => x.key === 'press');
-        side = `<div class="q3dh"><b>チームの指示</b></div><p class="q3wq">攻守の意識</p>${seg('ta', plan.att, opt)}<p class="q3wq">ラインの高さ</p>${seg('tl', plan.line, li.opts)}<p class="q3wq">プレス</p>${seg('tp', plan.press, pr.opts)}
-          <p class="q3wq">マーク</p><div class="q3wmk">${plan.marks.length ? plan.marks.map((m, i) => `<span>${esc(ps[on[m.me]].name)} → ${esc(m.opp)}<button data-rm="${i}">×</button></span>`).join('') : '<small>なし（相手の赤い丸をタップ）</small>'}</div>`; }
-      el.innerHTML = `<div class="sq3 q3sub"><div class="q3in">${topBar('試合中の作戦')}
-          <div class="q3bar"><span class="q3fl">フォーメーション</span><b class="q3fmv">${esc(C.formationLabel(plan.cells))}</b><button class="q3tosub">選手交代へ</button><button class="q3fin2">試合にもどる</button></div>
-          <div class="q3main"><div class="q3pitch q3pmini">${G.field}<svg class="q3mkl" viewBox="0 0 100 100" preserveAspectRatio="none">${lines}</svg>${dots}</div>
+          <button class="q3wnone"${cur ? '' : ' disabled'}>マークしない</button><p class="q3dhint">マーク設定 ${plan.marks.length}/2</p>`; }
+      else side = `<div class="q3dh"><b>選手指示</b></div><p class="q3dhint q3big">味方の選手をタップすると、攻撃参加・守備・マークを指示できます。<br>相手の赤い丸をタップすると、その選手の能力を見て、誰がマークするか決められます。</p>
+          <div class="q3wmk">${plan.marks.length ? plan.marks.map((m, i) => `<span>${esc(ps[on[m.me]].name)} → ${esc(m.opp)}<button data-rm="${i}">×</button></span>`).join('') : ''}</div>`;
+      el.innerHTML = `<div class="sq3 q3sub"><div class="q3in">${topBar('試合中の作戦')}${tabBar(plan.cells)}
+          <div class="q3main"><div class="q3pitch q3wbd${wPick ? ' pick' : ''}">${G.board}<svg class="q3mkl" viewBox="0 0 100 100" preserveAspectRatio="none">${mlines}</svg>${mtags}${dots}</div>
             <div class="q3side q3dp q3wp">${side}</div></div>
-          <p class="q3hint"><span>相手をタップ→マークを指名　／　味方をタップ→その選手への指示</span></p>
         </div></div>`;
       el.hidden = false;
       el.querySelectorAll('img.fc').forEach((im) => { const f = () => cutFace(im); im.addEventListener('load', f); if (im.complete) f(); });
       const redraw = () => draw();
-      el.querySelectorAll('[data-me]').forEach((b) => b.onclick = () => { const k = +b.dataset.me; if (!k) return; wSel = wSel && wSel.me === k ? null : { me: k }; redraw(); });
-      el.querySelectorAll('[data-opp]').forEach((b) => b.onclick = () => { const nm = b.dataset.opp; wSel = wSel && wSel.opp === nm ? null : { opp: nm }; redraw(); });
-      el.querySelectorAll('[data-mk]').forEach((b) => b.onclick = () => { const k = +b.dataset.mk, nm = wSel.opp; plan.marks = plan.marks.filter((m) => m.opp !== nm && m.me !== k); if (plan.marks.length >= 2) { toastS('マークできるのは2人までです'); return; } plan.marks.push({ me: k, opp: nm }); wSel = null; redraw(); });
-      { const b = el.querySelector('.q3wnone:not(.q3wun)'); if (b) b.onclick = () => { plan.marks = plan.marks.filter((m) => m.opp !== wSel.opp); wSel = null; redraw(); }; }
-      { const b = el.querySelector('.q3wun'); if (b) b.onclick = () => { plan.marks = plan.marks.filter((m) => m.me !== wSel.me); redraw(); }; }
+      const setMark = (k, nm) => { const had = markOf(k); plan.marks = plan.marks.filter((m) => m.me !== k && m.opp !== nm); if (plan.marks.length >= 2) { if (had) plan.marks.push(had); toastS('マークできるのは2人までです'); return false; } plan.marks.push({ me: k, opp: nm }); return true; };
+      el.querySelectorAll('[data-me]').forEach((b) => b.onclick = () => { const k = +b.dataset.me; if (!k) return; page = 'player'; wPick = false; wSel = wSel && wSel.me === k ? null : { me: k }; redraw(); });
+      el.querySelectorAll('[data-opp]').forEach((b) => b.onclick = () => { const nm = b.dataset.opp;
+        if (tab === 'player' && wSel && wSel.me != null) { if (setMark(wSel.me, nm)) wPick = false; redraw(); return; }   /* 味方を選んでいる時：その選手のマークにする */
+        page = 'player'; wPick = false; wSel = wSel && wSel.opp === nm ? null : { opp: nm }; redraw(); });
+      el.querySelectorAll('[data-mk]').forEach((b) => b.onclick = () => { if (setMark(+b.dataset.mk, wSel.opp)) wSel = null; redraw(); });
+      { const b = el.querySelector('.q3wnone'); if (b) b.onclick = () => { plan.marks = plan.marks.filter((m) => m.opp !== wSel.opp); wSel = null; redraw(); }; }
+      { const b = el.querySelector('.q3mrm'); if (b) b.onclick = () => { plan.marks = plan.marks.filter((m) => m.me !== wSel.me); redraw(); }; }
+      { const b = el.querySelector('.q3mch'); if (b) b.onclick = () => { wPick = !wPick; redraw(); }; }
+      { const b = el.querySelector('.q3reset'); if (b) b.onclick = () => { const k = wSel.me; delete plan.orders[k]; plan.marks = plan.marks.filter((m) => m.me !== k); wPick = false; redraw(); }; }
       el.querySelectorAll('[data-att]').forEach((b) => b.onclick = () => { const k = wSel.me; plan.orders[k] = { ...ordOf(k), att: +b.dataset.att }; redraw(); });
       el.querySelectorAll('[data-def]').forEach((b) => b.onclick = () => { const k = wSel.me; plan.orders[k] = { ...ordOf(k), def: +b.dataset.def }; redraw(); });
       el.querySelectorAll('[data-ta]').forEach((b) => b.onclick = () => { plan.att = b.dataset.ta; redraw(); });
       el.querySelectorAll('[data-tl]').forEach((b) => b.onclick = () => { plan.line = +b.dataset.tl; redraw(); });
       el.querySelectorAll('[data-tp]').forEach((b) => b.onclick = () => { plan.press = +b.dataset.tp; redraw(); });
       el.querySelectorAll('[data-rm]').forEach((b) => b.onclick = () => { plan.marks.splice(+b.dataset.rm, 1); redraw(); });
-      { const b = el.querySelector('.q3wx'); if (b) b.onclick = () => { wSel = null; redraw(); }; }
-      el.querySelector('.q3back').onclick = finish; el.querySelector('.q3fin2').onclick = finish;
-      el.querySelector('.q3tosub').onclick = () => { page = 'board'; wSel = null; draw(); };
+      { const b = el.querySelector('.q3wx'); if (b) b.onclick = () => { wSel = null; wPick = false; redraw(); }; }
+      el.querySelector('.q3back').onclick = finish; bindTabs();
     };
     // 「はい／いいえ」の確認
     const ask = (html) => new Promise((res) => {
