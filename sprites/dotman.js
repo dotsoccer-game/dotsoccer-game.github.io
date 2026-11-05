@@ -554,7 +554,7 @@ const VIEWS = {
         else { /* 版1080：袖は手の少し手前で止める（前は袖が手の外側の角まで来て、手の横にシャツの色の点が残り、ペンギンの手のように見えた） */
           const Hs = { x: Hd.x - (Hd.x - E.x) * 0.3, y: Hd.y - (Hd.y - E.y) * 0.3 };
           fillShape(buf, (x, y) => capsule(S, E, 1.5)(x, y) || capsule(E, Hs, 1.4)(x, y), bbOf([S, E, Hs], 2), over ? P.shirtD : P.shirt, null, { soft: true }); }
-        fillShape(buf, ellipse({ x: Hd.x, y: Hd.y + 0.5 }, 1.5, 1.0), bbOf([Hd], 2), P.glove || P.skin, null, { soft: true });
+        fillShape(buf, ellipse({ x: Hd.x, y: Hd.y + 0.5 }, 1.1, 1.0), bbOf([Hd], 2), P.glove || P.skin, null, { soft: true });   /* 版1081：手を細く（横に膨らんで腕の線から飛び出さないように） */
       } });
     }
     arms.sort((a, b) => a.z - b.z);
