@@ -102,7 +102,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     } catch (_) { return null; }
   }
   const simOpts = (o) => ({ oneHalf: !!o.oneHalf, shootout: !!o.shootout, soForce: o.soForce, soGkFirst: o.soGkFirst });
-  function presim(mine, theirs, seed, opts) { simRun([mine, theirs, seed, simOpts(opts || {})]); }
+  function presim(mine, theirs, seed, opts) { return simRun([mine, theirs, seed, simOpts(opts || {})]); }
   function startWith(mine, theirs, seed, homeShort, awayShort, done, opts) {
     const o = opts || {};
     if (o.asyncSim) {

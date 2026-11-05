@@ -4429,3 +4429,22 @@ body.in-digest #soBoard,body.in-digest #soCard{display:none!important}
 .sq3 .q3back svg,#tacSet .tq-back svg{width:5.4cqh;height:5.4cqh}
 .sq3 button,#tacSet button{touch-action:manipulation}
 html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：iPhoneで2回すばやく押すと「ダブルタップで拡大」と取られ、2回目が効かないことがある → どのボタンも1回1回を押したことにする */
+/* 版1082：試合中の交代画面・作戦画面（新しいスタメン画面と同じ形） */
+#htModal.q3sub-wrap{background:#0f1d33;padding:0}
+#htModal.q3sub-wrap .sq3{z-index:1}
+.q3cardhost{pointer-events:none;z-index:5}.q3cardhost .sb2-cov{pointer-events:auto}
+.sq3 .q3fmv{min-width:14cqw;height:5.6cqh;display:inline-flex;align-items:center;justify-content:center;border-radius:1cqh;border:.35cqh solid #c9a33a;background:#0f1d33;font-weight:900;font-size:3.4cqh}
+.sq3 .q3left{margin-left:auto;display:flex;align-items:center;gap:1.4cqw;height:5.6cqh;padding:0 2.4cqw;border-radius:3cqh;border:.35cqh solid #c9e25a;background:#13261a;font-weight:900;font-size:2.8cqh}.sq3 .q3left b{color:#ffe25a;font-size:4.2cqh;font-style:italic}
+.sq3 .q3tosub{margin-left:auto;height:5.6cqh;padding:0 3cqw;border-radius:1cqh;border:.35cqh solid #7fb0ff;background:linear-gradient(#2f6fe0,#1d4fb8);font-weight:900;font-size:3cqh}
+.sq3 .q3bat{margin-top:.2cqh;display:block;line-height:0}.sq3 .q3bat .bat{transform:scale(.9);transform-origin:50% 0}
+.sq3 .q3in2{position:absolute;left:-3.6cqh;top:0;padding:.2cqh .8cqh;border-radius:.6cqh;background:#2fb84a;border:.25cqh solid #fff;font-style:normal;font-weight:900;font-size:1.9cqh}
+.sq3 .q3p.new .q3n{border-color:#5be06a}
+.sq3 .q3b .q3bo{font-style:normal;font-size:1.8cqh;font-weight:900;color:#ffb0a0;flex:0 0 auto}
+.sq3 .q3b.q3off{opacity:.55}
+.sq3.q3sub .q3side .q3col{gap:.7cqh}
+.sq3.q3sub .q3pitch{flex-basis:66%}
+.sq3 .q3pmini .q3fw{width:7cqh;height:7cqh}.sq3 .q3pmini .q3n{font-size:1.8cqh;min-width:9cqh}
+.sq3 .q3att{display:flex;flex-direction:column;align-items:flex-start!important;justify-content:center;gap:.4cqh;height:10cqh;padding:0 2cqw;border-radius:1.2cqh;border:.35cqh solid #c9c2ae;background:#fff;color:#1b2a44;text-align:left}
+.sq3 .q3att b{font-size:3.4cqh;font-weight:900}.sq3 .q3att small{font-size:2.2cqh;color:#5a6680;font-weight:700}
+.sq3 .q3att.on{background:linear-gradient(#fff3c4,#f4d46a);border-color:#c9a33a}
+.vs-go.wait{animation:simspin2 1s ease-in-out infinite;opacity:.8}@keyframes simspin2{50%{transform:scale(.9)}}

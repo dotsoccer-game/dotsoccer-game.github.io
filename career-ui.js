@@ -1626,10 +1626,8 @@
   //  フォーメーションを選ぶ・選手をドラッグで入れ替える（ピッチ同士、ピッチとベンチ）・空いた所へ動かす（内部では一番近いマスに合わせる）
   const sq3On = () => { try { return !localStorage.getItem('dsSq2'); } catch (_) { return true; } };   /* 版1069：本番もこの画面（前の画面は localStorage の dsSq2 で戻せる） */
   let sq3Type = false, sq3Pick = -1, sq3Menu = false, sq3Res = false, sq3R = -1, sq3Multi = null, sq3Swap = false, sq3Role = null;   /* 版1075：sq3Swap＝「入れ替える」を押した後、sq3Role＝役割設定（選んでいる役割） */
-  function renderLineup3() {
-    const ps = save.team.players, tac = C.ensureTactics(save), cells = tac.cells, R = C.GRID_R, COLS = C.GRID_C;
-    /* 版1072：置いた所そのまま（マスに合わせない）なので、重なりを直す処理（unpile）はしない */
-    const L = $('#clubLayer'); { const bk = $('#cvBack'); if (bk) bk.style.visibility = 'hidden'; }
+  /* 版1082：新しいスタメン画面のピッチ（台形・縞・線）と、マスの番号⇔画面の％の変換。試合中の交代画面・作戦画面でも使う */
+  function q3Geo(R, COLS) {
     /* 版1067：ピッチは奥がせまい台形（監督の画像の角度）。u＝横0〜1、v＝縦0（奥）〜1（手前）→ 画面の％ */
     const TY0 = 2, TY1 = 99, HW0 = 43.5, HW1 = 49.5, tx = (u, v) => 50 + (u - 0.5) * 2 * (HW0 + (HW1 - HW0) * v), ty = (v) => TY0 + (TY1 - TY0) * v;
     /* 縦の位置：使っている列（DF・MF・FWなど）を、奥から手前まで等間隔に並べる（重ならないように）。使っていない行はその間を割る */
@@ -1645,6 +1643,13 @@
       + ln([[0.23, 1.2], [0.23, 0.83], [0.77, 0.83], [0.77, 1.2]]) + ln([[0.37, 1.2], [0.37, 0.93], [0.63, 0.93], [0.63, 1.2]]) + arc(0.5, 0.86, 0.12, 0.08, Math.PI * 1.17, Math.PI * 1.83)
       + arc(0.02, 1, 0.03, 0.025, -Math.PI / 2, 0) + arc(0.98, 1, 0.03, 0.025, Math.PI, Math.PI * 1.5);
     const field = `<svg class="q3fd" viewBox="0 0 100 100" preserveAspectRatio="none"><defs><radialGradient id="q3vg" cx="50%" cy="48%" r="70%"><stop offset="55%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#021a04" stop-opacity=".45"/></radialGradient><linearGradient id="q3sh" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".18"/><stop offset=".35" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity=".04"/></linearGradient></defs>${stripes}<rect width="100" height="100" fill="url(#q3sh)"/><rect width="100" height="100" fill="url(#q3vg)"/>${lines}</svg>`;   /* 版1068：芝の色を監督の画像に寄せる（深い緑の縞、奥と四隅を少し暗く） */
+    return { TY0, TY1, HW0, HW1, tx, ty, RV, VR, CU, px, py, field };
+  }
+  function renderLineup3() {
+    const ps = save.team.players, tac = C.ensureTactics(save), cells = tac.cells, R = C.GRID_R, COLS = C.GRID_C;
+    /* 版1072：置いた所そのまま（マスに合わせない）なので、重なりを直す処理（unpile）はしない */
+    const L = $('#clubLayer'); { const bk = $('#cvBack'); if (bk) bk.style.visibility = 'hidden'; }
+    const { TY0, TY1, HW0, HW1, tx, ty, RV, VR, CU, px, py, field } = q3Geo(R, COLS);   /* 版1082：ピッチの形は q3Geo（試合中の交代画面と同じ） */
     const tags = (q) => ['pk', 'fk', 'ck'].filter((k) => tac.roles[k] === q.name).map((k) => `<i class="q3t t-${k}">${ROLE_TAG[k]}</i>`).join('');
     const chip = (q, i, x, y) => `<div class="q3p${i === sq3Pick ? ' sel' : ''}${q.injury > 0 ? ' inj' : ''}${i === 0 ? ' gk' : ''}" data-i="${i}" style="left:${x}%;top:${y}%;z-index:${2 + Math.round(y)}"><div class="q3fw">${facePic(q, 'q3f', false)}<b class="q3o g-${D.grade(statOvr(q))}">${statOvr(q)}</b><span class="q3ts">${tags(q)}</span>${tac.roles.captain === q.name ? '<i class="q3c">C</i>' : ''}<i class="q3cd cdot ${condDot(q)}"></i>${q.suspend > 0 ? '<i class="q3sus"></i>' : ''}</div>${sq3Type ? `<span class="q3nt tbadge ${TYPE_CLS[q.type] || 'ty-bal'}">${esc(q.type || '')}</span>` : `<span class="q3n${tac.roles.captain === q.name ? ' cap' : ''}">${esc(q.name)}</span>`}</div>`;
     let dots = chip(ps[0], 0, 50, ty(0.9));
@@ -2070,7 +2075,7 @@
     let page = 'board';
     let el = document.getElementById('htModal');
     if (!el) { el = document.createElement('div'); el.id = 'htModal'; document.getElementById('app').appendChild(el); }
-    el.className = 'modal sb-wrap sb2-wrap';
+    el.className = 'modal sb-wrap sb2-wrap q3sub-wrap';
     const left = () => 3 - ms.used.length - plan.subs.length;
     const onPitch = () => { const a = ms.on.slice(); for (const x of plan.subs) a[x.slot] = x.bench; return a; };
     const stamOf = (k) => { const x = plan.subs.find((y) => y.slot === k); return x ? Math.round(100 - (ps[x.bench].fatigue || 0) * 0.5) : Math.round(info.stamina[k]); };
@@ -2088,7 +2093,7 @@
     // 選手カード（タップで表示・もう一度タップか外側で閉じる）
     const showCard = (q) => {
       const i = idxOf(q); if (i < 0) return;
-      const box = el.querySelector('.sb2-box');
+      const box = el.querySelector('.sb2-box');   /* 版1082：選手カードは今までどおり 1080×600 の箱（拡大縮小）に出す */
       let ov = box.querySelector('.sb2-cov');
       if (!ov) { ov = document.createElement('div'); ov.className = 'sb2-cov'; box.appendChild(ov); }
       const render = (j) => {
@@ -2098,89 +2103,91 @@
       };
       render(i);
     };
+    /* 版1082：交代の画面と作戦の画面を、新しいスタメン画面と同じ形に（台形のピッチ・顔の札・右にベンチ・右上の←・右下のボタン） */
+    const toastS = (m) => { const box = el.querySelector('.sq3'); if (!box) return; const t = document.createElement('div'); t.className = 'q3toast'; t.textContent = m; box.appendChild(t); setTimeout(() => t.remove(), 1600); };
+    const subChip = (k, G, cells, on, mini) => { const q = ps[on[k]], isNew = plan.subs.some((t) => t.slot === k); const x = k ? G.px(cells[k].c, cells[k].r) : 50, y = k ? G.py(cells[k].r) : G.ty(0.9);
+      return `<div class="q3p${isNew ? ' new' : ''}${mini ? ' q3mn' : ''}" data-k="${k}" style="left:${x}%;top:${y}%;z-index:${2 + Math.round(y)}"><div class="q3fw">${facePic(q, 'q3f', false)}${mini ? '' : `<b class="q3o g-${D.grade(statOvr(q))}">${statOvr(q)}</b>`}${isNew ? '<i class="q3in2">IN</i>' : ''}</div><span class="q3n">${esc(q.name)}</span>${mini ? '' : `<span class="q3bat">${battery(stamOf(k))}</span>`}</div>`; };
+    const topBar = (title) => `<div class="q3top"><h2><svg viewBox="0 0 64 64" class="q3ball"><circle cx="32" cy="32" r="28" fill="#fff" stroke="#222" stroke-width="3"/><polygon points="32,21 42,28 38,40 26,40 22,28" fill="#222"/><path d="M32 4v17M60 26l-18 2M49 56l-11-16M15 56l11-16M4 26l18 2" stroke="#222" stroke-width="3"/></svg>${title}</h2><i class="q3sep"></i><img class="q3emb" src="${emblemURL(save.team.name, 48)}" alt=""><b class="q3tm">${esc(save.team.name)}</b><button class="q3back" aria-label="戻る"><svg viewBox="0 0 24 24"><path d="M20 12H6M11 6l-6 6 6 6" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>`;
     const draw = () => {
       if (page === 'white') return drawWhite();
-      const on = onPitch(), cells = plan.cells;
-      const occ = {}; for (let i = 1; i < 11; i++) if (cells[i]) occ[cells[i].r + ':' + cells[i].c] = i;
-      let grid = '';
-      for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) grid += `<i class="sb2-gc z-${C.zoneOf(r)}${occ[r + ':' + c] ? '' : ' free'}" data-r="${r}" data-c="${c}" style="left:${c * CW}px;top:${cy(r) - CH / 2}px;width:${CW}px;height:${CH}px"></i>`;
-      const zl = [['FW', 8], ['MF', 4.5], ['DF', 1]].map(([z, r]) => `<b class="sb2-zl l" style="top:${cy(r) - 22}px">${z}</b><b class="sb2-zl r" style="top:${cy(r) - 22}px">${z}</b>`).join('');
-      const pl = (k, x, y, zone) => { const q = ps[on[k]], isNew = plan.subs.some((t) => t.slot === k); return `<div class="sb2-p${isNew ? ' new' : ''}" data-k="${k}" style="left:${x}px;top:${y}px"><b class="sb2-tag ${ZC[zone]}">${esc(q.name)}</b><span class="sb2-face">${facePic(q, 'sb2-fci', false)}</span>${battery(stamOf(k))}</div>`; };
-      let dots = pl(0, PW / 2, ROWS * CH + CH * 1.2, 'GK');
-      for (let k = 1; k < 11; k++) dots += pl(k, cx(cells[k].c), cy(cells[k].r), C.zoneOf(cells[k].r));
+      const on = onPitch(), cells = plan.cells, G = q3Geo(ROWS, COLS);
+      let dots = subChip(0, G, cells, on); for (let k = 1; k < 11; k++) dots += subChip(k, G, cells, on);
       const onSet = new Set(on);
-      const outIdx = [...Array(11).keys()].filter((j) => !onSet.has(j));   // 版997：交代で下がった選手（ベンチに戻って「交代済」）。入った選手はピッチにいるので、ベンチには出さない（前は「出場中」として薄く残り、表示がずれて見えた）
-      const bench = ps.slice(11, 18).map((q, i) => ({ q, j: i + 11 })).filter((x) => !onSet.has(x.j)).concat(outIdx.map((j) => ({ q: ps[j], j, out: true }))).map(({ q, j, out }) => { const pend = out && !ms.out.includes(q.name), gone = out || ms.out.includes(q.name) || q.injury > 0; return `<div class="sb2-b${gone ? ' off' : ''}" data-j="${j}"${out ? ' data-out="1"' : ''}><b class="sb2-tag ${ZC[q.position]}">${esc(q.name)}</b><span class="sb2-face">${facePic(q, 'sb2-fci', false)}</span>${out ? `<em>${pend ? '交代予定' : '交代済'}</em>` : gone ? `<em>${q.injury > 0 ? 'ケガ' : '交代済'}</em>` : ''}</div>`; }).join('');
-      el.innerHTML = `<div class="sb2-box">
-          <div class="sb2-board">
-            <div class="sb2-head"><img src="${emblemURL(save.team.name, 48)}" alt=""><b>${esc(save.team.name)}</b><em>［${esc(C.formationLabel(cells))}］</em></div>
-            <div class="sb2-pitch" style="width:${PW}px;height:${PH}px">${grid}<i class="sb2-pa"></i><i class="sb2-ga"></i>${zl}${dots}
-              <div class="sb2-left">交代枠残り<b>${Math.max(0, left())}</b></div></div>
-            <div class="sb2-bench">${bench}</div>
-            <div class="sb2-slots">${'<i></i>'.repeat(7)}</div>
-            <p class="sb2-tip">${left() > 0 ? '控えの選手を、代えたい選手へドラッグ' : '交代枠はもうありません'}　／　タップで選手カード</p>
-          </div>
-          <button class="sb2-round sb2-back sb2-img" title="もどる"><img src="icons/ui_back.png" alt="もどる"></button>
-          <button class="sb2-round sb2-rot sb2-img" title="作戦ボード"><img src="icons/ui_change.png" alt="作戦ボード"></button>
-        </div>`;
-      el.hidden = false;
-      fitBox();
-      el.querySelector('.sb2-back').onclick = () => { if (info.atHalf) finish(); else { page = 'white'; draw(); } };   // ハーフタイムは戦術がロッカールームの別ボタンなので、そのまま戻る
-      el.querySelector('.sb2-rot').onclick = () => { page = 'white'; draw(); };
+      const outIdx = [...Array(11).keys()].filter((j) => !onSet.has(j));
+      const bench = ps.slice(11, 18).map((q, i) => ({ q, j: i + 11 })).filter((x) => !onSet.has(x.j)).concat(outIdx.map((j) => ({ q: ps[j], j, out: true })))
+        .map(({ q, j, out }) => { const gone = out || ms.out.includes(q.name) || q.injury > 0; return `<div class="q3b${gone ? ' q3off' : ''}" data-j="${j}">${facePic(q, 'q3bf', true)}<span>${esc(q.name)}</span>${gone ? `<em class="q3bo">${out || ms.out.includes(q.name) ? '交代済' : 'ケガ'}</em>` : `<i class="q3cd cdot ${condDot(q)}"></i><b class="q3o g-${D.grade(statOvr(q))}">${statOvr(q)}</b>`}</div>`; }).join('');
+      el.innerHTML = `<div class="sq3 q3sub"><div class="q3in">${topBar('選手交代')}
+          <div class="q3bar"><span class="q3fl">フォーメーション</span><b class="q3fmv">${esc(C.formationLabel(cells))}</b><div class="q3left">交代枠 残り<b>${Math.max(0, left())}</b></div></div>
+          <div class="q3main"><div class="q3pitch">${G.field}${dots}</div><div class="q3side"><div class="q3col"><b class="q3h">ベンチ</b>${bench}</div></div></div>
+          <p class="q3hint"><span>${left() > 0 ? '控えの選手を、代えたい選手へドラッグ' : '交代枠はもうありません'}　／　タップで選手カード</span></p>
+          <button class="q3show q3rot" title="作戦の画面へ"><img src="icons/ui_change.png" alt=""><span>作戦</span></button>
+        </div></div><div class="sb2-box q3cardhost"></div>`;
+      el.hidden = false; fitBox();
+      el.querySelectorAll('img.fc').forEach((im) => { const f = () => cutFace(im); im.addEventListener('load', f); if (im.complete) f(); });
+      el.querySelector('.q3back').onclick = () => { if (info.atHalf) finish(); else { page = 'white'; draw(); } };   // ハーフタイムは戦術がロッカールームの別ボタンなので、そのまま戻る
+      el.querySelector('.q3rot').onclick = () => { page = 'white'; draw(); };
       bindDrag();
     };
-    // ドラッグ：控え→ピッチの選手で交代、ピッチの選手→空いているマスで移動（選手どうしなら入れ替え）。動かさずに離したらカード
+    // ドラッグ：控え→ピッチの選手で交代、ピッチの選手→ほかの選手で位置を入れ替え、空いている所で離すとその位置へ（指を離した所ぴったり）。動かさずに離したらカード
     const bindDrag = () => {
-      const box = el.querySelector('.sb2-box');
-      const start = (ev, kind, id, q) => {
+      const box = el.querySelector('.sq3'), pitch = el.querySelector('.q3pitch'), G = q3Geo(ROWS, COLS);
+      const start = (ev, kind, id, q, src) => {
         if (ev.button > 0) return;
         ev.preventDefault();
-        const sx = ev.clientX, sy = ev.clientY; let ghost = null, over = null;
-        const toBox = (x, y) => { const r = box.getBoundingClientRect(), k = r.width / 1080; return [(x - r.left) / k, (y - r.top) / k]; };
-        const targetAt = (x, y) => { const hit = document.elementsFromPoint(x, y); for (const h of hit) { if (h.classList && (h.classList.contains('sb2-p') || h.classList.contains('sb2-gc'))) return h; const pp = h.closest && h.closest('.sb2-p'); if (pp) return pp; } return null; };
+        const br = box.getBoundingClientRect(), z = box.offsetWidth / br.width, isP = kind === 'p';
+        const pr0 = pitch.getBoundingClientRect(), ax0 = isP ? pr0.left + parseFloat(src.style.left) / 100 * pr0.width : ev.clientX, ay0 = isP ? pr0.top + parseFloat(src.style.top) / 100 * pr0.height : ev.clientY, gx = ev.clientX - ax0, gy = ev.clientY - ay0;
+        let ghost = null;
         const move = (e) => {
-          if (!ghost && Math.hypot(e.clientX - sx, e.clientY - sy) < 8) return;
-          if (!ghost) {
-            if (kind === 'b' && (left() <= 0 || ev.currentTarget && false)) { /* 枠がないときは動かさない */ }
-            ghost = document.createElement('div'); ghost.className = 'sb2-ghost'; ghost.innerHTML = `<b class="sb2-tag ${ZC[q.position]}">${esc(q.name)}</b>${facePic(q, 'sb2-fci', false)}`; box.appendChild(ghost);
-          }
-          const [x, y] = toBox(e.clientX, e.clientY); ghost.style.left = x + 'px'; ghost.style.top = y + 'px';
-          const t = targetAt(e.clientX, e.clientY);
-          if (over !== t) { if (over) over.classList.remove('hov'); over = t; if (over && !(kind === 'b' && !over.classList.contains('sb2-p'))) over.classList.add('hov'); }
+          if (!ghost && Math.hypot(e.clientX - ev.clientX, e.clientY - ev.clientY) < 8) return;
+          if (!ghost) { if (isP) { ghost = src.cloneNode(true); } else { const d = document.createElement('div'); d.innerHTML = `<div class="q3p"><div class="q3fw">${facePic(q, 'q3f', false)}<b class="q3o g-${D.grade(statOvr(q))}">${statOvr(q)}</b></div><span class="q3n">${esc(q.name)}</span></div>`; ghost = d.firstElementChild; ghost.querySelectorAll('img.fc').forEach((im) => { const f = () => cutFace(im); im.addEventListener('load', f); if (im.complete) f(); }); }
+            ghost.classList.add('q3ghost'); ghost.style.left = ghost.style.top = ''; ghost.style.zIndex = '999'; box.appendChild(ghost); src.classList.add('q3src'); }
+          ghost.style.transform = isP ? `translate(${(e.clientX - gx - br.left) * z}px,${(e.clientY - gy - br.top) * z}px) translate(-50%,-62%)` : `translate(${(e.clientX - br.left) * z}px,${(e.clientY - br.top) * z}px) translate(-50%,-50%)`;
         };
         const up = async (e) => {
           removeEventListener('pointermove', move); removeEventListener('pointerup', up); removeEventListener('pointercancel', up);
-          if (over) over.classList.remove('hov');
           if (!ghost) { showCard(q); return; }
-          ghost.remove();
-          const t = targetAt(e.clientX, e.clientY);
-          if (!t) return;
+          ghost.remove(); src.classList.remove('q3src');
+          if (e.type === 'pointercancel') return;
+          const tg = document.elementFromPoint(e.clientX, e.clientY), to = tg && tg.closest('.q3fw, .q3n') && tg.closest('.q3p');
           if (kind === 'b') {
-            if (!t.classList.contains('sb2-p') || left() <= 0) return;
-            const k = +t.dataset.k, out = ps[onPitch()[k]];
-            if ((k === 0) !== (q.position === 'GK')) return;
+            if (!to) return; if (left() <= 0) { toastS('交代枠はもうありません'); return; }
+            const k = +to.dataset.k, out = ps[onPitch()[k]];
+            if ((k === 0) !== (q.position === 'GK')) { toastS('GKはGKとしか交代できません'); return; }
             const ok = await ask(`${esc(out.name)}に代えて<br>${esc(q.name)}を起用しますか？`);
             if (ok) { const old = plan.subs.findIndex((x) => x.slot === k); if (old >= 0) plan.subs.splice(old, 1); plan.subs.push({ slot: k, bench: id }); }
             draw(); return;
           }
-          const k = id; if (k === 0) return;
-          if (t.classList.contains('sb2-gc') && t.classList.contains('free')) { plan.cells[k] = { r: +t.dataset.r, c: +t.dataset.c }; draw(); return; }
-          if (t.classList.contains('sb2-p')) { const k2 = +t.dataset.k; if (k2 > 0 && k2 !== k) { const tmp = plan.cells[k]; plan.cells[k] = plan.cells[k2]; plan.cells[k2] = tmp; draw(); } }
+          const k = id; if (k === 0) { draw(); return; }
+          if (to && +to.dataset.k !== k) { const k2 = +to.dataset.k; if (k2 > 0) { const tmp = plan.cells[k]; plan.cells[k] = plan.cells[k2]; plan.cells[k2] = tmp; } draw(); return; }
+          const pr = pitch.getBoundingClientRect(), AX = e.clientX - gx, AY = e.clientY - gy;
+          if (e.clientX > pr.left && e.clientX < pr.right && e.clientY > pr.top && e.clientY < pr.bottom) {
+            const v = ((AY - pr.top) / pr.height * 100 - G.TY0) / (G.TY1 - G.TY0), hw = G.HW0 + (G.HW1 - G.HW0) * v, u = (((AX - pr.left) / pr.width * 100) - 50) / (2 * hw) + 0.5;
+            const fc = (u - 0.08) / 0.84 * (COLS - 1), fr = G.VR(v);
+            plan.cells[k] = { r: Math.round(Math.max(0, Math.min(ROWS - 1, fr)) * 100) / 100, c: Math.round(Math.max(0, Math.min(COLS - 1, fc)) * 100) / 100 };
+          }
+          draw();
         };
         addEventListener('pointermove', move); addEventListener('pointerup', up); addEventListener('pointercancel', up);
       };
-      el.querySelectorAll('.sb2-p').forEach((d) => d.onpointerdown = (ev) => { const k = +d.dataset.k; start(ev, 'p', k, ps[onPitch()[k]]); });
-      el.querySelectorAll('.sb2-b').forEach((d) => d.onpointerdown = (ev) => { const j = +d.dataset.j, q = ps[j]; if (d.classList.contains('off')) { ev.preventDefault(); showCard(q); return; } start(ev, 'b', j, q); });
+      el.querySelectorAll('.q3pitch .q3p').forEach((d) => d.onpointerdown = (ev) => { const k = +d.dataset.k; start(ev, 'p', k, ps[onPitch()[k]], d); });
+      el.querySelectorAll('.q3side .q3b').forEach((d) => d.onpointerdown = (ev) => { const j = +d.dataset.j, q = ps[j]; if (d.classList.contains('q3off')) { ev.preventDefault(); showCard(q); return; } start(ev, 'b', j, q, d); });
     };
-    // 作戦ボード（カルチョビットAのホワイトボード）：攻守の意識だけ
+    // 作戦の画面（攻守の意識）：戦術設定と同じ形
     const drawWhite = () => {
-      const opt = [['attacking', '攻撃的'], ['balanced', 'バランス'], ['defensive', '守備的']];
-      el.innerHTML = `<div class="sb-room"><div class="wb">
-          <div class="wb-pitch">${plan.cells.map((c, i) => { if (!i) return '<i class="wb-dot z-GK" style="left:6px;top:50%"></i>'; const z = C.zoneOf(c.r); return `<i class="wb-dot z-${z}" style="left:${30 + c.r * 40}px;top:${18 + c.c * 18}px"></i>`; }).join('')}<i class="wb-half"></i><i class="wb-circle"></i><i class="wb-box l"></i><i class="wb-box r"></i><span class="wb-dir">攻撃方向 →</span><span class="wb-vs">${esc(mt.opp || '')}戦</span></div>
-          <div class="wb-side"><p class="wb-title">攻守の意識</p>${opt.map(([v, nm]) => `<button class="wb-btn${plan.att === v ? ' on' : ''}" data-v="${v}">${plan.att === v ? '<i class="wb-ball">⚽</i>' : ''}${nm}</button>`).join('')}</div>
-        </div><button class="sb-round sb-back" title="試合にもどる"><i class="bk-ico" aria-hidden="true"></i></button></div>`;
-      el.querySelectorAll('.wb-btn').forEach((b) => b.onclick = () => { plan.att = b.dataset.v; draw(); });
-      el.querySelector('.sb-back').onclick = finish;
+      const opt = [['attacking', '攻撃的', '人数をかけて前へ。点を取りに行く'], ['balanced', 'バランス', '攻めと守りを半分ずつ'], ['defensive', '守備的', '後ろを固めて、失点しない']];
+      const on = onPitch(), G = q3Geo(ROWS, COLS); let dots = subChip(0, G, plan.cells, on, true); for (let k = 1; k < 11; k++) dots += subChip(k, G, plan.cells, on, true);
+      el.innerHTML = `<div class="sq3 q3sub"><div class="q3in">${topBar('試合中の作戦')}
+          <div class="q3bar"><span class="q3fl">フォーメーション</span><b class="q3fmv">${esc(C.formationLabel(plan.cells))}</b><button class="q3tosub">選手交代へ</button></div>
+          <div class="q3main"><div class="q3pitch q3pmini">${G.field}${dots}</div>
+            <div class="q3side q3dp"><div class="q3dh"><b>攻守の意識</b></div>${opt.map(([v, nm, ds]) => `<button class="q3att${plan.att === v ? ' on' : ''}" data-v="${v}"><b>${plan.att === v ? '✓ ' : ''}${nm}</b><small>${ds}</small></button>`).join('')}
+              <p class="q3dhint">試合にもどると、すぐに切り替わります</p><button class="q3rdone q3fin">試合にもどる</button></div></div>
+          <p class="q3hint"><span>配置と交代は「選手交代へ」から</span></p>
+        </div></div>`;
+      el.hidden = false;
+      el.querySelectorAll('img.fc').forEach((im) => { const f = () => cutFace(im); im.addEventListener('load', f); if (im.complete) f(); });
+      el.querySelectorAll('.q3att').forEach((b) => b.onclick = () => { plan.att = b.dataset.v; draw(); });
+      el.querySelector('.q3back').onclick = finish; el.querySelector('.q3fin').onclick = finish;
+      el.querySelector('.q3tosub').onclick = () => { page = 'board'; draw(); };
     };
     // 「はい／いいえ」の確認
     const ask = (html) => new Promise((res) => {
@@ -2193,7 +2200,7 @@
     const finish = () => {
       const moved = JSON.stringify(plan.cells) !== JSON.stringify(ms.cells), attCh = plan.att !== ms.att;
       if (!plan.subs.length && !moved && !attCh) { el.hidden = true; if (info.cancel) info.cancel(); return; }
-      { const bb = el.querySelector('.sb2-back') || el.querySelector('.sb-back'); if (bb) bb.disabled = true; }   // 版556：ボタンが見つからずに止まって、もどれなくなっていた
+      { const bb = el.querySelector('.q3back'); if (bb) bb.disabled = true; }   // 版556：ボタンが見つからずに止まって、もどれなくなっていた
       const t = base;
       const ch = { team: 0, at: info.atHalf ? null : info.t, subs: plan.subs.map((x) => ({ slot: x.slot, player: ps[x.bench] })), tac: { attitude: plan.att, press: t.press, pass_style: t.pass, attack_side: t.side, line_height: t.line, zone_width: t.width, compact: t.compact, situ: { ...t.situ } } };
       ch.tac.cells = plan.cells.map((c) => c && { ...c });   // 版1026：配置はいつも今の作戦盤のまま送る（交代だけの時に、試合前の配置へ戻っていた）
@@ -2514,7 +2521,9 @@
         const steps = [[0, 'v0'], [700, 'v1'], [1100, 'v2'], [1500, 'v3'], [2000, 'v4'], [7600, 'v5'], [10400, 'v6']];
         const timers = steps.map(([ms, cls]) => setTimeout(() => vs.classList.add(cls), ms));
         let t0 = 0, done = false, holdAt = 0;
-        const finish = () => { if (done) return; done = true; timers.forEach(clearTimeout); cancelAnimationFrame(liveRaf); el.hidden = true; resolve('watch'); };
+        /* 版1083：→（または自動）で進む時、試合の計算がまだなら、この画面のまま（動いたまま）待ってから選手入場へ（前はホームの上に「試合の準備中…」が出ていた） */
+        const finish = () => { if (done) return; done = true; const go = () => { timers.forEach(clearTimeout); cancelAnimationFrame(liveRaf); el.hidden = true; resolve('watch'); };
+          let w = null; try { w = meta.waitSim && meta.waitSim(); } catch (_) {} if (w && w.then) { const bt = el.querySelector('.vs-go'); if (bt) bt.classList.add('wait'); w.then(go, go); } else go(); };
         if (window.__tut) window.__tut.onVs(el, meta);   // チュートリアル：TOTOの説明（説明の間は、絵を止める）
         const loop = (now) => {
           if (!t0) t0 = now;
@@ -3002,7 +3011,8 @@
     /* 版1073：相手と試合の種は先に決め、試合前の画面を開いた時に試合の計算を始めておく（「試合開始」で止まらないように） */
     const opp = C.opponentTeam(save, opTeamInfo), seed = 1 + Math.floor(Math.random() * 999999), soOpt = { oneHalf: !!((meta || {}).practice && !(meta || {}).tut), shootout: !!(meta || {}).shootout };
     try { A().presim(C.matchTeam(save).team, opp, seed, soOpt); } catch (_) {}
-    const how = meta && meta.skipPre ? 'watch' : await preMatch(opTeamInfo, meta || { comp: title, label: '', home: true });
+    if (!(meta && meta.skipPre)) { if (!meta) meta = { comp: title, label: '', home: true }; meta.waitSim = () => A().presim(C.matchTeam(save).team, opp, seed, soOpt); }   /* 版1083：試合前の画面の最後で、計算が終わるまで待つ（スタメンを変えていたら、ここで計算し直す） */
+    const how = meta && meta.skipPre ? 'watch' : await preMatch(opTeamInfo, meta);
     const mt = C.matchTeam(save);
     if (how === 'watch') {
       cancelAnimationFrame(raf);
