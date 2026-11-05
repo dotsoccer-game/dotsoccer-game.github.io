@@ -3968,7 +3968,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
               if (S.nm && own && !own.gk && (globalThis.__Kdelay ?? 1)) {   // 版887：遅らせる（#30・#38）：後ろに味方のカバーがいない時は飛び込まず、ゴール側2.5mに立って前に進ませない。カバーが来たら寄せ切る。ゴール前・後ろ向きの相手には寄せ切る
                 const gxf = fx(tm.ti, own.x), cover = tm.players.some((m) => m !== p && !m.off && !m.gk && fx(tm.ti, m.x) < gxf - 1 && hyp(m.x - own.x, m.y - own.y) < 9);
                 const facing = ((own.vx || 0) * -sgn(tm.ti) > -0.3) && !opps(own).some(() => false);
-                if (!cover && gxf > 24 && facing && !(own.y < 4 || own.y > W - 4)) { gap = 2.5; p.jockeyT = S.t; }
+                if (p.jkO !== own.idx || S.t - (p.jkLast ?? -9) > 0.6) { p.jkO = own.idx; p.jkStart = S.t; } p.jkLast = S.t;   /* 版1089：構えて遅らせるのは1.2秒まで。ゴールに近い所（32m以内）や、もう誰かが抜かれている時は、すぐ奪いに行く */
+                if (!cover && gxf > 32 && S.t - p.jkStart < 1.2 && !(S.dRun && S.dRun.p === own.idx && S.dRun.beaten.length) && facing && !(own.y < 4 || own.y > W - 4)) { gap = 2.5; p.jockeyT = S.t; }
               }
               tx = fx(tm.ti, ax + (dx / dl) * gap); ty = ay + (dy / dl) * gap; u = true;
               if (S.nm && own && !own.gk && (globalThis.__Kfun ?? 1) && Math.abs(own.y - GOAL_Y) > 6 && fx(tm.ti, own.x) > 22) { ty += Math.sign(GOAL_Y - own.y) * (globalThis.__Kfun ?? 1) * 0.9; p.funT = S.t; }   // 版901：内側に立って外へ追い込む（ワンサイドカット）
@@ -4293,7 +4294,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             if (dot < 0.87 && !opps(p).some((o) => !o.off && !o.gk && hyp(o.x - p.x, o.y - p.y) < 3.5 && ((o.x - p.x) * ux + (o.y - p.y) * uy) > 0.5 && Math.abs(-(o.x - p.x) * uy + (o.y - p.y) * ux) < 1.4)) {
               const k = 0.07, nx = S.dribbleDir[0] * (1 - k) + ux * k, ny = S.dribbleDir[1] * (1 - k) + uy * k, nl = hyp(nx, ny) || 1; S.dribbleDir = [nx / nl, ny / nl]; }
           }
-          vmax *= 0.8 + p.dribble * 0.0016 - ((globalThis.__Kab ?? 1) ? Math.max(0, 85 - p.dribble) * (globalThis.__Kab9 ?? 0.004) : 0);   // 版935：ドリブルが85より低いと、ボールを持つと遅くなる（60で約8割・40で約7割）   // ドリブルが上手いほど速く運べる（S 約0.94、E 約0.86。全力疾走より少し遅い）
+          vmax *= 0.76 + p.dribble * 0.0013 - ((globalThis.__Kab ?? 1) ? Math.max(0, 85 - p.dribble) * (globalThis.__Kab9 ?? 0.004) : 0);   // 版935：ドリブルが85より低いと、ボールを持つと遅くなる（60で約8割・40で約7割）   // ドリブルが上手いほど速く運べる（S 約0.94、E 約0.86。全力疾走より少し遅い）
           if (S.dribbleMode === 'carry') {
             vmax *= 0.58 + p.technique * 0.0015;   // 運ぶドリブル：足元に置いたまま、ゆっくり
             { const v0 = hyp(p.vx, p.vy); if ((globalThis.__Kphy ?? 1) && v0 > 3 && S.t - (p.recvT ?? -9) < 0.8 && !opps(p).some((o) => !o.gk && hyp(o.x - p.x, o.y - p.y) < 3)) vmax = Math.max(vmax, Math.min(v0 * 0.92, maxSpeed(p) * 0.8)); }   // 版908：走りながら受けた直後は、勢いを残したまま（いきなり歩く速さにしない）
@@ -4305,7 +4306,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             // 突破のドリブル：緩急。前に相手がいる間は普通のドリブル（巡航）で間合いを測り、2.5〜5mまで来たら前傾してグン！と一気に加速して置き去りにする
             if (p.pace && S.t > p.pace.until) p.pace = null;
             const fr = opps(p).filter((q) => !q.gk && ((q.x - p.x) * S.dribbleDir[0] + (q.y - p.y) * S.dribbleDir[1]) > 0.5).map((q) => ({ q, d: hyp(q.x - p.x, q.y - p.y) })).filter((o) => o.d < 8).sort((x, y) => x.d - y.d)[0];
-            if (p.pace) vmax = maxSpeed(p) * (0.96 + p.dribble * 0.001);
+            if (p.pace) vmax = maxSpeed(p) * (0.8 + p.dribble * 0.0006);   /* 版1089：ボールを持つと全力疾走より遅い（守る側が追いつける） */
             else if (fr) {
               vmax *= ((globalThis.__Kphy ?? 1) && fr.d > 5 ? 0.85 : 0.6) + p.dribble * 0.0016;   /* 版908b：間合いを測る減速は、相手が5m以内に来てから */   // 巡航：ドリブルが上手いほど速いまま間合いを詰められる
               if (fr.d < 5 && fr.d > 2.5 && zr(p, 'pace') > 0 && (p.paceCd || 0) < S.t && R.next() < 0.3 * (0.4 + p.dribble / 100) * (zr(p, 'pace') === 2 ? 1.6 : 1)) {
@@ -4321,7 +4322,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           if (p.sdStart != null && S.t - p.sdStart > 3) { p.sdCd = S.t + 4; p.sdStart = null; p.sdOn = 0; }
           if (skZ(p, 'speedDribble') && !((p.sdCd || 0) > S.t) && !(p.sdStart == null && (p.skLock || 0) > S.t) && nearestOpp(p, p.x, p.y).d > (zr(p, 'speedDribble') === 2 ? 3.5 : 4.5)) {   // どこで使うかは「スキルのエリア設定」の表で決める
             if (p.sdStart == null) p.sdStart = S.t;
-            vmax = Math.max(vmax, maxSpeed(p) * 1.02);   // 高速ドリブル：大きく蹴り出して、全力疾走のまま運ぶ
+            vmax = Math.max(vmax, maxSpeed(p) * 0.86);   // 版1089：0.86倍まで。高速ドリブル：大きく蹴り出して、全力疾走のまま運ぶ
             // 高速ドリブル：ボールを大きく前へ蹴り出しては、全力で追いつく（前傾したまま走り切る）
             if (S.t - (p.sdAct || 0) > 0.45) { act(p, 'sdrun', 0.5); p.sdAct = S.t; }
             p.sdOn = S.t + 0.25;
@@ -8003,7 +8004,19 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           }
           if ((globalThis.__Kphy ?? 1) && !mtG && !mtC && !uOn(q, 'miyabi') && !uOn(q, 'tetsurou')) {   // 版908：奪えるのはボールに足が届く時だけ（ボールまで約1m）。持っている選手の体の向こう側（背中側）からは、体を通り抜けて取れない（設計一覧14章）
             const dB = hyp(q.x - b.x, q.y - b.y), side = (b.x - own.x) * (q.x - own.x) + (b.y - own.y) * (q.y - own.y);
-            const ov = hyp(own.vx, own.vy), bk = ov > 1.5 && ((q.x - own.x) * own.vx + (q.y - own.y) * own.vy) / ov < -0.3; if (dB > 1.2 || ((side < 0 || bk) && dB > ((globalThis.__Ktk2 ?? 1) ? 0.3 : 0.55))) continue;   /* 版915：背中側からは、ほぼ取れない（足がボールの真上に来た時だけ） */   /* 版908：走っている選手の背中側からは、足がボールに届く所（0.55m）まで来ないと取れない */
+            const ov = hyp(own.vx, own.vy), bk = ov > 1.5 && ((q.x - own.x) * own.vx + (q.y - own.y) * own.vy) / ov < -0.3;
+            /* 版1089：横・後ろから並走して追いついた守備：抜け出されそうな時は、肩で当たってボールをつつき出すか、止めるために反則をする（独走で何人も抜けないように） */
+            if ((dB > 1.2 || side < 0 || bk) && d < 1.6 && ov > 4 && !own.gk && (q.chaseCd || 0) < S.t) {
+              q.chaseCd = S.t + 0.8; const gdist = fx(q.team, own.x), nb2 = S.dRun && S.dRun.p === own.idx ? S.dRun.beaten.length : 0;
+              const rate = clamp(0.22 + nb2 * 0.12 + (q.physical - own.physical) * 0.004 + (q.defense - own.dribble) * 0.003, 0.08, 0.6);
+              if (R.next() < rate) {
+                if (gdist < 60 && R.next() < 0.45) { commitFoul(q, own); return; }   // 止めるための反則（自陣寄りほど）
+                const ux = b.x - q.x, uy = b.y - q.y, ud = hyp(ux, uy) || 1, a2 = Math.atan2(uy, ux) + R.range(-0.5, 0.5), v2 = R.range(3, 5.5);
+                Object.assign(b, { owner: -1, kind: 'loose', vx: Math.cos(a2) * v2 + own.vx * 0.4, vy: Math.sin(a2) * v2 + own.vy * 0.4, vz: 0, lastTeam: q.team, lastPlayer: q.idx, intended: -1 });
+                act(q, 'poke', 0.35, { dx: ux / ud, dy: uy / ud }); act(own, 'lose', 0.6, { o: q.idx }); own.touchCd = 0.5; own.stun = 0.5; S.dribbleDir = null; own.settle = false; ev('tackle', { team: q.team, player: q.name, took: 0, i: q.idx, o: own.idx, chase: 1 }); return;
+              }
+            }
+            if (dB > 1.2 || ((side < 0 || bk) && dB > ((globalThis.__Ktk2 ?? 1) ? 0.3 : 0.55))) continue;   /* 版915：背中側からは、ほぼ取れない（足がボールの真上に来た時だけ） */   /* 版908：走っている選手の背中側からは、足がボールに届く所（0.55m）まで来ないと取れない */
           }
           if ((globalThis.__Kbd ?? 0) && d < 1.05 && !own.gk && !(q.bd && q.bd.o === own.idx && S.t < q.bd.end) && S.t > (q.bdTouch || 0) && !mtG && !mtC) {   // 版1028：体が触れるほど近づいたら、奪いに行く前でも肩・体が当たる（押し合いながら走る）
             q.bdTouch = S.t + R.range(0.3, 0.45); const k = bdKind(q, own), sQ = bdStr(q, false, k), sA = bdStr(own, true, k), w = sQ + R.range(-12, 12) > sA ? 1 : 0, ux = (q.x - own.x) / (d || 1), uy = (q.y - own.y) / (d || 1);
@@ -8023,7 +8036,9 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           if (!mtG) { act(q, 'duel', 0.5, { o: own.idx }); act(own, 'duel', 0.5, { o: q.idx }); }
           if (uOn(q, 'matsuri') && !mtG) { q.mtCharge = null; own.mtLock = S.t + 0.8; { const hx = own.x - q.x, hy = own.y - q.y, hl = hyp(hx, hy) || 1; act(q, 'mthit', 0.8, { dx: hx / hl, dy: hy / hl, lv: q.uniqLv || 1 }); act(own, 'mtpush', 0.45, { dx: -hx / hl, dy: -hy / hl }); } act(q, 'taiko', 0.7, { lv: q.uniqLv || 1 }); if (q.uniqLv >= 2) { own.mtSlow = S.t + 2.5; act(own, 'mtslow', 2.5); } }   // 祭り太鼓の壁：ドン！（凸：ぶつかった相手はしばらく動きが鈍る）
           // ドリブル技（覚えている選手だけ）：寄せてきた相手を技でかわす
-          if (!mtG && R.next() < (uOn(own, 'shiden') ? 1 : (dribbleCtx(own, q).list.some((k) => zr(own, k) === 2) ? 0.85 : 0.6) * (uOn(q, 'matsuri') ? 0.5 : 1)) && skillMove(own, q)) return;   // 紫電の遊戯：競り合いになったら、必ず先に技で抜きにいく   // 祭り太鼓の壁に体を当てられると、技を出す余裕も少ない   // 積極的なエリアでは、競り合いになったらほぼ仕掛ける
+          /* 版1089：1人のドリブルで何人も続けて抜けないように。この持ち上がりで抜いた人数が増えるほど、次の相手に取られやすくなり、技も出にくい（現実では2人抜ければ上出来） */
+          const nBeat = S.dRun && S.dRun.p === own.idx ? S.dRun.beaten.length : 0;
+          if (!mtG && R.next() < (uOn(own, 'shiden') ? (nBeat >= 3 ? 0.4 : 1) : (dribbleCtx(own, q).list.some((k) => zr(own, k) === 2) ? 0.85 : 0.6) * (uOn(q, 'matsuri') ? 0.5 : 1) * Math.max(0.15, 1 - nBeat * 0.35)) && skillMove(own, q)) return;   // 紫電の遊戯：競り合いになったら、必ず先に技で抜きにいく   // 祭り太鼓の壁に体を当てられると、技を出す余裕も少ない   // 積極的なエリアでは、競り合いになったらほぼ仕掛ける
           if (uOn(q, 'matsuri') && !mtG) { q.mtGrip = { o: own.idx, at: S.t + 0.25 }; own.mtHeld = S.t + 0.25; return; }   // 祭り太鼓の壁：ぶつかったら、まず体を当てたまま押し込む（すぐには奪わない）
           let pS = ((own.kgPin || 0) > S.t ? 0.3 : 0) + 0.55 + (S.t - (own.beatT ?? -9) < 2 && !(own.uniq && own.uOn > S.t) ? 0.1 : 0) + (q.defense + q.physical - own.dribble - own.physical) * ((globalThis.__Kab ?? 1) ? (globalThis.__Kab5 ?? 0.009) : 0.005) - (own.physical - 55) * 0.003 + (own.cur - q.cur) * -0.002 + uDuel(q, own) - ((own.tsukiGuard || 0) > S.t ? 0.15 : 0);   // 国内屈指のアタッカーの抜け出しは、カバーに来ても止めにくい
           // ショルダーチャージ：並走している相手に肩から当たって体を入れる（フィジカル勝負）
@@ -8035,6 +8050,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           else if ((own.dO || 0.5) > 0.85 && !(own.pace && own.pace.ph === 'burst')) pS += 0.04;   // 突破でボールが足から離れた瞬間は狙われる
           if (q.sk.has('fighting')) pS += S.score[q.team] < S.score[own.team] ? 0.12 : 0.06;   // 闘志
           if (q.sk.has('bigStage') && S.t >= HALF && Math.abs(S.score[0] - S.score[1]) <= 1) pS += 0.05;
+          pS += nBeat * 0.18 + (nBeat >= 2 ? 0.1 : 0);   // 版1089：抜いた人数が多いほど、体勢もタッチも乱れて取られやすい
           pS += bdBonus;   // 版1028：体のぶつけ合いの勝ち負け（フィジカルが強い方が有利）
           if (skZ(q, 'shoulder') && hyp(own.vx, own.vy) > 2.5 && Math.abs((q.x - own.x) * own.vx + (q.y - own.y) * own.vy) / (hyp(own.vx, own.vy) * (hyp(q.x - own.x, q.y - own.y) || 1)) < 0.6) pS += 0.14 + (q.physical - own.physical) * 0.004;
           if (R.next() < clamp(pS + (pS < 0.2 ? (pS - 0.2) * 0.5 : 0) + (pS > 0.7 ? (pS - 0.7) * 0.5 : 0), 0.03, 0.95)) {   // 力の差が大きいと、ほぼ一方的
