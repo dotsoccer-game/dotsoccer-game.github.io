@@ -1633,12 +1633,8 @@
     /* 版1067：ピッチは奥がせまい台形（監督の画像の角度）。u＝横0〜1、v＝縦0（奥）〜1（手前）→ 画面の％ */
     const TY0 = 2, TY1 = 99, HW0 = 43.5, HW1 = 49.5, tx = (u, v) => 50 + (u - 0.5) * 2 * (HW0 + (HW1 - HW0) * v), ty = (v) => TY0 + (TY1 - TY0) * v;
     /* 縦の位置：使っている列（DF・MF・FWなど）を、奥から手前まで等間隔に並べる（重ならないように）。使っていない行はその間を割る */
-    const used = [...new Set(cells.slice(1, 11).filter(Boolean).map((x) => x.r))].sort((a, b) => b - a), VT = 0.11, VB = 0.72;
-    let AN = used.map((r, k) => [r, used.length > 1 ? VT + (VB - VT) * k / (used.length - 1) : 0.4]);
-    if (!AN.length || AN[0][0] < R - 1) AN.unshift([R - 1, Math.max(0.03, (AN[0] ? AN[0][1] : VT) - 0.06 * ((R - 1) - (AN[0] ? AN[0][0] : R - 1)))]);
-    if (AN[AN.length - 1][0] > 0) { const l = AN[AN.length - 1]; AN.push([0, Math.min(0.8, l[1] + 0.06 * l[0])]); }
-    const RV = (r) => { for (let k = 0; k < AN.length - 1; k++) { const [r0, v0] = AN[k], [r1, v1] = AN[k + 1]; if (r <= r0 && r >= r1) return r0 === r1 ? v0 : v0 + (v1 - v0) * (r0 - r) / (r0 - r1); } return AN[AN.length - 1][1]; };
-    const VR = (v) => { if (v <= AN[0][1]) return AN[0][0]; for (let k = 0; k < AN.length - 1; k++) { const [r0, v0] = AN[k], [r1, v1] = AN[k + 1]; if (v >= v0 && v <= v1) return v1 === v0 ? r0 : r0 - (r0 - r1) * (v - v0) / (v1 - v0); } return 0; };
+    /* 版1071：縦の位置は行ごとに決まった所（ほかの選手を動かしても、ほかの札は動かない） */
+    const VT = 0.08, VB = 0.78, RV = (r) => VT + (VB - VT) * (R - 1 - r) / (R - 1), VR = (v) => (R - 1) - (v - VT) / (VB - VT) * (R - 1);
     const CU = (c) => 0.08 + c / (COLS - 1) * 0.84;
     const px = (c, r) => tx(CU(c), RV(r)), py = (r) => ty(RV(r));
     const P = (u, v) => `${tx(u, v).toFixed(2)},${ty(v).toFixed(2)}`;
@@ -1729,21 +1725,26 @@
       el.addEventListener('pointerdown', (e0) => {
         e0.preventDefault(); const i = +el.dataset.i, br = box.getBoundingClientRect(), k = box.offsetWidth / br.width;
         let gh = null, moved = false;
+        /* 版1071：つまんだ所と札の足もと（置く位置）のずれを覚えておき、離した時は札の足もとの位置に置く（指の下の札がそのまま置かれる） */
+        const isP = el.classList.contains('q3p'), pr0 = pitch.getBoundingClientRect(), ax0 = isP ? pr0.left + parseFloat(el.style.left) / 100 * pr0.width : e0.clientX, ay0 = isP ? pr0.top + parseFloat(el.style.top) / 100 * pr0.height : e0.clientY, gx = e0.clientX - ax0, gy = e0.clientY - ay0;
         const mv = (e) => { const dx = e.clientX - e0.clientX, dy = e.clientY - e0.clientY;
           if (!moved && Math.hypot(dx, dy) < 6) return; moved = true;
           if (!gh) { gh = el.cloneNode(true); gh.classList.add('q3ghost'); gh.style.left = gh.style.top = ''; box.appendChild(gh); el.classList.add('q3src'); }
-          gh.style.transform = `translate(${(e.clientX - br.left) * k}px,${(e.clientY - br.top) * k}px) translate(-50%,-50%)`; };
+          gh.style.transform = isP ? `translate(${(e.clientX - gx - br.left) * k}px,${(e.clientY - gy - br.top) * k}px) translate(-50%,-62%)` : `translate(${(e.clientX - br.left) * k}px,${(e.clientY - br.top) * k}px) translate(-50%,-50%)`; };
         const up = (e) => { window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up);
           if (gh) gh.remove(); el.classList.remove('q3src');
           if (!moved) { if (sq3R >= 0) { swapRes3(sq3R, i); return; } if (sq3Pick >= 0 && sq3Pick !== i) swap(sq3Pick, i); else { sq3Pick = sq3Pick === i ? -1 : i; renderLineup3(); } return; }   // タップ：1人目を選んで、2人目をタップで入れ替え
-          const tg = document.elementFromPoint(e.clientX, e.clientY), to = tg && tg.closest('.q3p, .q3b');
+          const tg = document.elementFromPoint(e.clientX, e.clientY), to = tg && ((tg.closest('.q3fw, .q3n') && tg.closest('.q3p')) || tg.closest('.q3b'));   /* 版1071：ほかの選手の顔か名前の上で離した時だけ入れ替え */
           if (to && +to.dataset.i !== i) { swap(i, +to.dataset.i); return; }
           { const rr = tg && tg.closest('.q3r'); if (rr) { swapRes3(+rr.dataset.r, i); return; } }   /* チームの選手をリザーブの札へ */
           const pr = pitch.getBoundingClientRect();
+          const AX = e.clientX - gx, AY = e.clientY - gy;
           if (i >= 1 && i < 11 && e.clientX > pr.left && e.clientX < pr.right && e.clientY > pr.top && e.clientY < pr.bottom) {
-            const v = ((e.clientY - pr.top) / pr.height * 100 - TY0) / (TY1 - TY0), hw = HW0 + (HW1 - HW0) * v, u = (((e.clientX - pr.left) / pr.width * 100) - 50) / (2 * hw) + 0.5;
-            const c = Math.max(0, Math.min(COLS - 1, Math.round((u - 0.08) / 0.84 * (COLS - 1)))), r = Math.max(0, Math.min(R - 1, Math.round(VR(v))));
-            if (!cells.some((x, j) => j && j !== i && x && x.r === r && x.c === c)) { cells[i] = { r, c }; tac.formation = 'custom'; }
+            const v = ((AY - pr.top) / pr.height * 100 - TY0) / (TY1 - TY0), hw = HW0 + (HW1 - HW0) * v, u = (((AX - pr.left) / pr.width * 100) - 50) / (2 * hw) + 0.5;
+            const fc = (u - 0.08) / 0.84 * (COLS - 1), fr = VR(v);
+            /* 一番近いマス。ほかの選手がいたら、そのまわりで一番近い空いたマス */
+            let best = null, bd = 1e9; for (let r = 0; r < R; r++) for (let c = 0; c < COLS; c++) { if (cells.some((x, j) => j && j !== i && x && x.r === r && x.c === c)) continue; const d = (c - fc) ** 2 + ((r - fr) * 1.6) ** 2; if (d < bd) { bd = d; best = { r, c }; } }
+            if (best) { cells[i] = best; tac.formation = 'custom'; }
             redo(); return; }
           renderLineup3(); };
         window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
