@@ -4601,3 +4601,7 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 .lk-v2 .lk-count em{position:absolute;left:92px;top:50px;color:#fff;font:900 20px/1 sans-serif;font-style:normal}
 .lk-v2 .lk-count i{position:absolute;left:130px;right:20px;top:48px;height:16px;border-radius:8px;background:#0a1430;border:2px solid #3a4f80;overflow:hidden}
 .lk-v2 .lk-count u{display:block;height:100%;width:100%;background:linear-gradient(#5ef0ff,#16b8e8);border-radius:6px}
+/* 版1106 */
+.lk-v2 .lk-ppl{position:absolute;left:0;top:0;width:1280px;height:720px;image-rendering:pixelated;z-index:1}
+.lk-v2 .lk-rb.lk-old{background:radial-gradient(circle at 45% 35%,#f4f7ef,#c6d2c0 70%)}.lk-v2 .lk-rb.lk-old img{inset:8px;width:calc(100% - 16px);height:calc(100% - 16px);object-fit:contain}
+.lk-v2 .lk-go{right:37px;bottom:30px;width:136px;height:136px}

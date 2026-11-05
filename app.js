@@ -4550,14 +4550,14 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     let el = document.getElementById('locker');
     if (el) return el;
     el = document.createElement('div'); el.id = 'locker'; el.className = 'lk-wrap'; el.hidden = true;
-    el.innerHTML = `<div class="lk-box lk-v2"><img class="lk-bg" src="img/locker.jpg" alt=""><canvas class="lk-room" width="640" height="360" hidden></canvas>
+    el.innerHTML = `<div class="lk-box lk-v2"><img class="lk-bg" src="img/locker.jpg" alt=""><canvas class="lk-room lk-ppl" width="1280" height="720"></canvas>
       <div class="lk-side"></div>
       <div class="lk-btns">
         <button class="lk-rb" data-a="subs"><img src="icons/lk2_subs.png" alt="選手交代"></button>
-        <button class="lk-rb" data-a="tac"><img src="icons/lk2_tac.png" alt="戦術"></button>
+        <button class="lk-rb lk-old" data-a="tac"><img src="icons/cb_tactic.png" alt=""><b>戦術</b></button>
         <button class="lk-rb" data-a="stat"><img src="icons/lk2_stat.png" alt="状況"></button>
       </div><i class="lk-sline"></i>
-      <button class="lk-go2" data-a="go" title="後半開始"><img src="icons/lk2_go.png" alt="後半開始"></button>
+      <button class="lk-rb lk-go lk-goimg" data-a="go" title="後半開始"><img src="icons/btn_second.png" alt="後半開始"></button>
       <div class="lk-count"><small>後半開始まで</small><span>20</span><em>秒</em><i><u></u></i></div>
       <div class="lk-sub" hidden></div>
       <div class="lk-black"></div></div>`;
@@ -4597,6 +4597,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       const n = Math.ceil(lk.left); const ce = el.querySelector('.lk-count span');
       if (ce.textContent !== String(n)) { ce.textContent = String(n); ce.parentElement.classList.remove('pulse'); void ce.parentElement.offsetWidth; ce.parentElement.classList.add('pulse'); }
       { const u = el.querySelector('.lk-count u'); if (u) u.style.width = (100 * lk.left / LK_SEC).toFixed(1) + '%'; }   // 版1105：残りの時間のバー（部屋は絵）
+      drawLockerPeople(el.querySelector('.lk-ppl').getContext('2d'), (now - lk.t0) / 1000);   // 版1106：選手・スタッフはゲームのドット絵
       if (lk.left <= 0 && !lk.leaving && !busy) { lkStartSecond(); }
       lk.raf = requestAnimationFrame(tick);
     };
@@ -4718,6 +4719,26 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     items.sort((a, b) => a.d - b.d).forEach((it) => it.f());
     // 薄い影で奥行き
     const g = c.createLinearGradient(0, 0, 0, 360); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.12)'); c.fillStyle = g; c.fillRect(0, 0, 640, 360);
+  }
+  // 版1106：デザイン案の部屋（絵）の上に、ゲームのドット絵の選手・監督・トレーナーを描く（1280×720の座標。y は足もと）
+  const LK2_SEATS = [[186, 452, 'f34'], [258, 418, 'f34'], [332, 388, 'f34'], [408, 342, 'f34'], [590, 330, 'back'], [632, 334, 'back'], [705, 362, 'back'], [768, 362, 'back'], [845, 342, 'back'], [897, 332, 'back']];
+  const LK2_LIE = [[612, 528], [888, 528]], LK2_STAFF = [[660, 470], [935, 470]];
+  function lkMan(c, key, o, x, y, sc) {
+    if (!DM.on) return; let cv = sprCache.get(key);
+    if (!cv) { const F = DotMan.frame({ pose: 'stand', frame: 0, ...o }); cv = document.createElement('canvas'); cv.width = SPR_W; cv.height = SPR_H; cv.getContext('2d').drawImage(F.cv, F.px - 9, F.py - 24, SPR_W, SPR_H, 0, 0, SPR_W, SPR_H); sprCache.set(key, cv); }
+    c.drawImage(cv, Math.round(x - SPR_W * sc / 2), Math.round(y - SPR_H * sc), Math.round(SPR_W * sc), Math.round(SPR_H * sc));
+  }
+  function drawLockerPeople(c, t) {
+    c.clearRect(0, 0, 1280, 720); c.imageSmoothingEnabled = false;
+    const S = 3.4, sit = lk ? lk.sit : lkSeats(), order = sit.filter((s) => s.pose !== 'lie').map((s) => s.k), lie = sit.filter((s) => s.pose === 'lie').map((s) => s.k);
+    lkMan(c, 'lk2coach', { facing: Math.PI / 2 + 0.7, shirt: '#1d2a52', shorts: '#1d2a52', socks: '#1d2a52', hair: HAIR[2], skin: SKIN[1] }, 735, 278, S);   // 監督（ホワイトボードの前）
+    const seat = (k, j) => { const p = LK2_SEATS[j]; if (!p) return; const info = rinfo(0, k, halfT), gk = info.position === 'GK', spr = spriteCanvas(info, 0, p[2], 0, false, gk); if (!spr) return;
+      const bob = Math.sin(t * 2.2 + j * 0.7) > 0.92 ? S : 0, cut = 7, h = SPR_H - cut;
+      c.drawImage(spr, 0, 0, SPR_W, h, Math.round(p[0] - SPR_W * S / 2), Math.round(p[1] - h * S - bob), Math.round(SPR_W * S), Math.round(h * S)); };
+    order.forEach((k, j) => seat(k, j));
+    lie.forEach((k, j) => { const p = LK2_LIE[j]; if (!p) return; const info = rinfo(0, k, halfT), spr = spriteCanvas(info, 0, 'front', 0, false, info.position === 'GK'); if (!spr) return;
+      c.save(); c.translate(p[0], p[1]); c.rotate(-Math.PI / 2); c.drawImage(spr, -SPR_W * S / 2, -SPR_H * S / 2, SPR_W * S, SPR_H * S); c.restore(); });
+    for (const [x, y] of LK2_STAFF) lkMan(c, 'lk2staff', { facing: Math.PI / 2 + 0.6, shirt: '#f4f4f0', shorts: '#e8e8e2', socks: '#f4f4f0', hair: HAIR[1], skin: SKIN[1] }, x, y, S);
   }
   function lkStaff(c, x, y, t) {
     if (!DM.on) return;
