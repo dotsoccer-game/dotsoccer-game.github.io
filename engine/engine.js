@@ -4310,7 +4310,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             if (dot < 0.87 && !opps(p).some((o) => !o.off && !o.gk && hyp(o.x - p.x, o.y - p.y) < 3.5 && ((o.x - p.x) * ux + (o.y - p.y) * uy) > 0.5 && Math.abs(-(o.x - p.x) * uy + (o.y - p.y) * ux) < 1.4)) {
               const k = 0.07, nx = S.dribbleDir[0] * (1 - k) + ux * k, ny = S.dribbleDir[1] * (1 - k) + uy * k, nl = hyp(nx, ny) || 1; S.dribbleDir = [nx / nl, ny / nl]; }
           }
-          vmax *= (uOn(p, 'shiden') ? 1.1 : Math.min(0.9, 0.69 + p.dribble * 0.0023)) - ((globalThis.__Kab ?? 1) ? Math.max(0, 85 - p.dribble) * (globalThis.__Kab9 ?? 0.004) : 0);   // 版935：ドリブルが85より低いと、ボールを持つと遅くなる（60で約8割・40で約7割）   // ドリブルが上手いほど速く運べる（S 約0.94、E 約0.86。全力疾走より少し遅い）
+          vmax *= (uOn(p, 'shiden') ? 1.0 : Math.min(0.9, 0.69 + p.dribble * 0.0023)) - ((globalThis.__Kab ?? 1) ? Math.max(0, 85 - p.dribble) * (globalThis.__Kab9 ?? 0.004) : 0);   // 版935：ドリブルが85より低いと、ボールを持つと遅くなる（60で約8割・40で約7割）   // ドリブルが上手いほど速く運べる（S 約0.94、E 約0.86。全力疾走より少し遅い）
           if (S.dribbleMode === 'carry') {
             vmax *= 0.58 + p.technique * 0.0015;   // 運ぶドリブル：足元に置いたまま、ゆっくり
             { const v0 = hyp(p.vx, p.vy); if ((globalThis.__Kphy ?? 1) && v0 > 3 && S.t - (p.recvT ?? -9) < 0.8 && !opps(p).some((o) => !o.gk && hyp(o.x - p.x, o.y - p.y) < 3)) vmax = Math.max(vmax, Math.min(v0 * 0.92, maxSpeed(p) * 0.8)); }   // 版908：走りながら受けた直後は、勢いを残したまま（いきなり歩く速さにしない）
@@ -4322,7 +4322,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             // 突破のドリブル：緩急。前に相手がいる間は普通のドリブル（巡航）で間合いを測り、2.5〜5mまで来たら前傾してグン！と一気に加速して置き去りにする
             if (p.pace && S.t > p.pace.until) p.pace = null;
             const fr = opps(p).filter((q) => !q.gk && ((q.x - p.x) * S.dribbleDir[0] + (q.y - p.y) * S.dribbleDir[1]) > 0.5).map((q) => ({ q, d: hyp(q.x - p.x, q.y - p.y) })).filter((o) => o.d < 8).sort((x, y) => x.d - y.d)[0];
-            if (p.pace) vmax = maxSpeed(p) * (uOn(p, 'shiden') ? 1.1 : Math.min(0.9, 0.72 + p.dribble * 0.002));   /* 版1089：ボールを持つと全力疾走より遅い（守る側が追いつける） */
+            if (p.pace) vmax = maxSpeed(p) * (uOn(p, 'shiden') ? 1.0 : Math.min(0.9, 0.72 + p.dribble * 0.002));   /* 版1089：ボールを持つと全力疾走より遅い（守る側が追いつける） */
             else if (fr) {
               vmax *= ((globalThis.__Kphy ?? 1) && fr.d > 5 ? 0.85 : 0.6) + p.dribble * 0.0016;   /* 版908b：間合いを測る減速は、相手が5m以内に来てから */   // 巡航：ドリブルが上手いほど速いまま間合いを詰められる
               if (fr.d < 5 && fr.d > 2.5 && zr(p, 'pace') > 0 && (p.paceCd || 0) < S.t && R.next() < 0.3 * (0.4 + p.dribble / 100) * (zr(p, 'pace') === 2 ? 1.6 : 1)) {
@@ -4338,7 +4338,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           if (p.sdStart != null && S.t - p.sdStart > 3) { p.sdCd = S.t + 4; p.sdStart = null; p.sdOn = 0; }
           if (skZ(p, 'speedDribble') && !((p.sdCd || 0) > S.t) && !(p.sdStart == null && (p.skLock || 0) > S.t) && nearestOpp(p, p.x, p.y).d > (zr(p, 'speedDribble') === 2 ? 3.5 : 4.5)) {   // どこで使うかは「スキルのエリア設定」の表で決める
             if (p.sdStart == null) p.sdStart = S.t;
-            vmax = Math.max(vmax, maxSpeed(p) * (uOn(p, 'shiden') ? 1.1 : Math.min(0.9, 0.72 + p.dribble * 0.002)));   // 版1090：ドリブルSで0.9倍まで。高速ドリブル：大きく蹴り出して、全力疾走のまま運ぶ
+            vmax = Math.max(vmax, maxSpeed(p) * (uOn(p, 'shiden') ? 1.0 : Math.min(0.9, 0.72 + p.dribble * 0.002)));   // 版1090：ドリブルSで0.9倍まで。高速ドリブル：大きく蹴り出して、全力疾走のまま運ぶ
             // 高速ドリブル：ボールを大きく前へ蹴り出しては、全力で追いつく（前傾したまま走り切る）
             if (S.t - (p.sdAct || 0) > 0.45) { act(p, 'sdrun', 0.5); p.sdAct = S.t; }
             p.sdOn = S.t + 0.25;
@@ -5944,11 +5944,12 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         if (sdCtx === null) { const gq = opps(p).find((q) => q.gk); let spF = 9;
           for (const q of opps(p)) { if (q.gk) continue; const rx = q.x - p.x, ry = q.y - p.y, dd = hyp(rx, ry); if (dd < 9 && (rx * dir[0] + ry * dir[1]) / (dd || 1) > 0.45) spF = Math.min(spF, dd); }
           const gkD = gq ? hyp(gq.x - p.x, gq.y - p.y) : 99;
-          sdCtx = { shootNow: dGoal < 9 || gkD < 4.2 || (inRange && spF < 2.2), carry: dGoal < 26 && spF >= 2.2, spF, gkD }; }
+          const gkGo = (p.sdGkGo || 0) > S.t;   // 版1095：GKまでかわしに行くと決めた時は、打たずにGKへ向かう
+          sdCtx = { shootNow: !gkGo && (dGoal < 9 || gkD < 4.2 || (inRange && spF < 2.2)), carry: gkGo || (dGoal < 26 && spF >= 2.2), spF, gkD, gkGo }; }
         const { shootNow, carry } = sdCtx;
         if (o.kind === 'dribble') o.w *= shootNow ? 0.15 : carry ? (o.mode === 'break' ? 5 : 1.2) : o.mode === 'break' ? 4 : 1.5;
         else if (o.kind === 'pass') { const qd = o.q ? hyp(L - fx(p.team, o.q.x), GOAL_Y - o.q.y) : 99; o.w *= inRange && (o.danger ?? 1) < 0.45 && qd < dGoal - (carry && !shootNow ? 6 : 2) ? 2.2 : xf > L - 17 && (o.danger ?? 1) < 0.35 && o.q && fx(p.team, o.q.x) > xf - 2 ? 1 : 0.015; }
-        else if (o.kind === 'shot') o.w *= shootNow ? 4 : carry ? 0.06 : dGoal < 17 ? 3 : dGoal < 21 ? 1.6 : dGoal < 25 ? 0.4 : 0.1;
+        else if (o.kind === 'shot') o.w *= sdCtx.gkGo ? 0.001 : shootNow ? 4 : carry ? 0.06 : dGoal < 17 ? 3 : dGoal < 21 ? 1.6 : dGoal < 25 ? 0.4 : 0.1;
         else o.w *= 0.2;
       }
       { const c = condLv(p.team) || (p.uniq === 'minato' && !(p.uCd > S.t) && !(p.cdRem > 0) && !S.setPiece && xf > 22 ? (p.uniqLv >= 2 ? 2 : 1) : 0);   // 合図の1本（おおかわ）も、ショートパスから
@@ -7775,7 +7776,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
     function skillMove(own, q, force) {
       const b = S.ball;
       if (!q || own.gk || (own.skillCd || 0) > S.t || (own.skLock || 0) > S.t || (S.charge && S.charge.p === own.idx)) return false;
-      const { ctx, list } = dribbleCtx(own, q);
+      const { ctx, list: list0 } = dribbleCtx(own, q), list = q.gk ? list0.filter((k) => k !== 'heelLift') : list0;   // 版1095：GKには、ヒールリフト（浮かせる技）は使わない（手で取られる）
       if (globalThis.__forceSkill && !list.length) list.push(globalThis.__forceSkill);   // 確認用：技を持っていない選手も、選んだ技を使う
       if (!list.length) return false;
       // 場面に合う技を優先（狭い所はダブルタッチ等、サイドはヒールリフト等、ゴール前はキックフェイント等）
@@ -7791,6 +7792,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       let pS = k === 'heelLift' ? clamp(0.4 - bPen + ((own.technique * 0.6 + own.dribble * 0.4) - (q.defense * 0.6 + q.jump * 0.4)) * 0.009 + (fit ? 0.08 : 0) + (q.stun > 0 ? 0.15 : 0) + uD, 0.1, uD > 0 ? 0.97 : 0.9)   // 版666：ヒールリフトはテクニックが大事。跳べる相手（ジャンプ）には頭で止められやすい
         : k === 'nutmeg' ? clamp(0.4 - bPen + ((own.dribble + own.technique) / 2 - q.defense) * 0.012 + (fit ? 0.05 : 0) + (q.stun > 0 ? 0.15 : 0) + uD, 0.08, uD > 0 ? 0.97 : 0.92)
         : clamp(0.4 - bPen + (own.dribble - q.defense) * 0.006 + (own.technique - 60) * 0.002 + (fit ? 0.07 : 0) + (q.stun > 0 ? 0.15 : 0) + uD, 0.1, uD > 0 ? 0.97 : 0.9);
+      if (q.gk) pS = clamp(0.45 + ((own.dribble + own.technique) / 2 - (q.vision + q.speed + q.technique) / 3) * 0.006 + uD * 0.5, 0.25, 0.8);   // 版1095：GKをフェイントでかわす：ドリブル・テクニックと、GKの判断・速さ・テクニックの差で決まる（最大8割）
       if (brainOn() && (globalThis.__K1v1 ?? 1)) {   // 版904：1対1の構え：半身で構えて遅らせている相手は抜きにくい。勢いよく飛び込んできた相手は、かわしやすい
         const rx = own.x - q.x, ry = own.y - q.y, rl = hyp(rx, ry) || 1, cl = ((q.vx || 0) * rx + (q.vy || 0) * ry) / rl;
         if (S.t - (q.jockeyT ?? -9) < 0.5) pS -= 0.08; else if (cl > 3.5) pS += 0.08;
@@ -8677,8 +8679,16 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           if ((own.moveQ && own.moveQ.length) || own.moveEnd) S.decision = Math.max(S.decision, 0.25);
           else if (own.cutInShot && S.t >= own.cutInShot) { own.cutInShot = 0; S.decision = Math.min(S.decision, 0.05); own.wantShot = S.t + 0.6; }   // 技の足さばきの途中では次のプレーを選ばない
           if (!own.gk && S.decision > 0.05 && !S.setPiece && fx(own.team, own.x) > L - 24 && emptyGoal(own)) S.decision = 0;
+          // 版1095：紫電の遊戯：GKと1対1になったら、時々（5割）は打たずにGKへ向かい、フェイントでGKまでかわして無人のゴールへ流し込む
+          if ((globalThis.__Ksdgk ?? 1) && uOn(own, 'shiden') && !S.setPiece && S.forceShot == null) {
+            const g = opps(own).find((q) => q.gk && !q.off && !(q.downT > 0) && !(q.diveT > 0)), dG = g ? hyp(g.x - own.x, g.y - own.y) : 99, dGl = hyp(L - fx(own.team, own.x), GOAL_Y - own.y);
+            const alone = g && gkInFront(g, own) && !opps(own).some((o) => !o.gk && !o.off && ((hyp(o.x - own.x, o.y - own.y) < 3.5 && fx(own.team, o.x) > fx(own.team, own.x) - 0.5) || segDist(o.x, o.y, own.x, own.y, g.x, g.y).d < 1.5));   // 前とGKまでの間に相手がいない（後ろから追ってくる相手は振り切れる）
+            if (!alone) own.sdGkGo = 0;
+            else if (S.t - (own.sdGkT ?? -9) > 4 && dG < 11 && dGl < 24) { own.sdGkT = S.t; own.sdGkGo = R.next() < (globalThis.__Ksdgkp ?? 0.5) ? S.t + 3.5 : 0; }   // 1回の1対1につき1度だけ決める
+            if ((own.sdGkGo || 0) > S.t && dG < 4.2 && dG > 1.2 && !((own.skillCd || 0) > S.t)) { own.sdGkGo = 0; if (skillMove(own, g)) { own.sdGkRound = S.t; if (globalThis.__sdGk) { globalThis.__sdGk.n++; globalThis.__sdGkT && globalThis.__sdGkT.push(S.t); } } }
+          }
           // 版942：ドリブルでGKに近づきすぎない。エリアの中でGKが目の前（5m以内）に来たら、GKのいない側へすぐ打つ（GKの足もとまで運んでから打たない）
-          if ((globalThis.__Kgkc ?? 1) && !own.gk && !S.setPiece && S.forceShot == null && fx(own.team, own.x) > L - 17 && Math.abs(own.y - GOAL_Y) < 16 && hyp(own.vx, own.vy) > 1.2) {
+          if ((globalThis.__Kgkc ?? 1) && !own.gk && !S.setPiece && S.forceShot == null && !((own.sdGkGo || 0) > S.t) && fx(own.team, own.x) > L - 17 && Math.abs(own.y - GOAL_Y) < 16 && hyp(own.vx, own.vy) > 1.2) {
             const g = opps(own).find((q) => q.gk && !q.off && !(q.downT > 0)), dG = g ? hyp(g.x - own.x, g.y - own.y) : 99;
             // 版943：基本は、PKマーク（ゴールから約11m）の辺りまで来たら打つ。ドリブルとテクニックがとても高く、技で崩すタイプ（ファンタジスタ・アタッカー・紫電の遊戯）だけは、GKをかわしに行ってもよい
             const techT = (own.dribble >= 88 && own.technique >= 85 && (own.type === 'ファンタジスタ' || own.type === 'アタッカー')) || uOn(own, 'shiden');
