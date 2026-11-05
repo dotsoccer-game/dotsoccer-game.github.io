@@ -3492,10 +3492,11 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           let extra = 0;
           // 負け・引き分けで70分過ぎ：全体で前から追い込む（パスの出し先にも寄せてミスを誘う）
           const urg = tm.urg;
-          const hiP = plv > 0 && own && bF > L * 0.45, maxX = hiP ? 2 : plv < 0 && bF > L * 0.5 ? 0 : (urg ? 2 : 1);
+          const hiP = plv > 0 && own && bF > L * 0.45, ownHalf = own && !own.gk && bF < L * 0.55, maxX = hiP || ownHalf ? 2 : plv < 0 && bF > L * 0.5 ? 0 : (urg ? 2 : 1);   /* 版1090：自陣に運ばれてきたら、近くの2人も寄せに行く（ドリブルを1人で止めさせない） */
           for (let k = 1; k < ranked.length && extra < maxX; k++) {   // 寄せるのは1人（＋近くにいれば2人目まで）。全員で囲まない。版1088：前からは相手陣で3人まで
             const { p, d } = ranked[k];
             if (hiP && d < 24 && !p.gk && p.slot && p.slot.line >= 1) { pressers.add(p.idx); extra++; continue; }
+            if (ownHalf && d < (bF < 35 ? 13 : 10) && !p.gk && !p.markHard) { pressers.add(p.idx); extra++; continue; }
             const pr = clamp(p.press + tm.mods.press + tm.tac.press + DOM[tm.ti] * 50 + urg * 40 + (skZ(p, 'pressMonster') ? 40 : 0), 0, 100);
             if (pr >= 35 && d < 3 + pr * 0.07 + urg * 4) { pressers.add(p.idx); extra++; }
           }
@@ -3961,6 +3962,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
               const tgt = own || b, gx0 = fx(tm.ti, 0);
               let ax = tgt.x, ay = tgt.y;
               if (own && p.breakT === S.t) { const lt = Math.min(1.4, hyp(p.x - own.x, p.y - own.y) / maxSpeed(p)); ax += own.vx * lt; ay += own.vy * lt; }
+              else if (own && !own.gk) { const lt = Math.min(0.9, hyp(p.x - own.x, p.y - own.y) / maxSpeed(p)) * 0.8; ax += own.vx * lt; ay += own.vy * lt; }   /* 版1090：寄せる時は、相手が進む先へ（後ろを追いかけない） */
               if (own && p.pbT === S.t && fx(tm.ti, p.x) > fx(tm.ti, own.x)) { const dd = hyp(p.x - own.x, p.y - own.y) || 1; tx = fx(tm.ti, own.x + (p.x - own.x) / dd * 0.7); ty = own.y + (p.y - own.y) / dd * 0.7; u = true; }   // 版878：プレスバック：後ろからまっすぐ挟みに行く
               else {   // 抜け出した相手には、行く先へ斜めに詰める（後ろから並走しない）
               const dx = gx0 - ax, dy = GOAL_Y - ay, dl = hyp(dx, dy) || 1;
@@ -4294,7 +4296,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             if (dot < 0.87 && !opps(p).some((o) => !o.off && !o.gk && hyp(o.x - p.x, o.y - p.y) < 3.5 && ((o.x - p.x) * ux + (o.y - p.y) * uy) > 0.5 && Math.abs(-(o.x - p.x) * uy + (o.y - p.y) * ux) < 1.4)) {
               const k = 0.07, nx = S.dribbleDir[0] * (1 - k) + ux * k, ny = S.dribbleDir[1] * (1 - k) + uy * k, nl = hyp(nx, ny) || 1; S.dribbleDir = [nx / nl, ny / nl]; }
           }
-          vmax *= 0.76 + p.dribble * 0.0013 - ((globalThis.__Kab ?? 1) ? Math.max(0, 85 - p.dribble) * (globalThis.__Kab9 ?? 0.004) : 0);   // 版935：ドリブルが85より低いと、ボールを持つと遅くなる（60で約8割・40で約7割）   // ドリブルが上手いほど速く運べる（S 約0.94、E 約0.86。全力疾走より少し遅い）
+          vmax *= Math.min(0.9, 0.69 + p.dribble * 0.0023) - ((globalThis.__Kab ?? 1) ? Math.max(0, 85 - p.dribble) * (globalThis.__Kab9 ?? 0.004) : 0);   // 版935：ドリブルが85より低いと、ボールを持つと遅くなる（60で約8割・40で約7割）   // ドリブルが上手いほど速く運べる（S 約0.94、E 約0.86。全力疾走より少し遅い）
           if (S.dribbleMode === 'carry') {
             vmax *= 0.58 + p.technique * 0.0015;   // 運ぶドリブル：足元に置いたまま、ゆっくり
             { const v0 = hyp(p.vx, p.vy); if ((globalThis.__Kphy ?? 1) && v0 > 3 && S.t - (p.recvT ?? -9) < 0.8 && !opps(p).some((o) => !o.gk && hyp(o.x - p.x, o.y - p.y) < 3)) vmax = Math.max(vmax, Math.min(v0 * 0.92, maxSpeed(p) * 0.8)); }   // 版908：走りながら受けた直後は、勢いを残したまま（いきなり歩く速さにしない）
@@ -4306,7 +4308,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             // 突破のドリブル：緩急。前に相手がいる間は普通のドリブル（巡航）で間合いを測り、2.5〜5mまで来たら前傾してグン！と一気に加速して置き去りにする
             if (p.pace && S.t > p.pace.until) p.pace = null;
             const fr = opps(p).filter((q) => !q.gk && ((q.x - p.x) * S.dribbleDir[0] + (q.y - p.y) * S.dribbleDir[1]) > 0.5).map((q) => ({ q, d: hyp(q.x - p.x, q.y - p.y) })).filter((o) => o.d < 8).sort((x, y) => x.d - y.d)[0];
-            if (p.pace) vmax = maxSpeed(p) * (0.8 + p.dribble * 0.0006);   /* 版1089：ボールを持つと全力疾走より遅い（守る側が追いつける） */
+            if (p.pace) vmax = maxSpeed(p) * Math.min(0.9, 0.72 + p.dribble * 0.002);   /* 版1089：ボールを持つと全力疾走より遅い（守る側が追いつける） */
             else if (fr) {
               vmax *= ((globalThis.__Kphy ?? 1) && fr.d > 5 ? 0.85 : 0.6) + p.dribble * 0.0016;   /* 版908b：間合いを測る減速は、相手が5m以内に来てから */   // 巡航：ドリブルが上手いほど速いまま間合いを詰められる
               if (fr.d < 5 && fr.d > 2.5 && zr(p, 'pace') > 0 && (p.paceCd || 0) < S.t && R.next() < 0.3 * (0.4 + p.dribble / 100) * (zr(p, 'pace') === 2 ? 1.6 : 1)) {
@@ -4322,7 +4324,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           if (p.sdStart != null && S.t - p.sdStart > 3) { p.sdCd = S.t + 4; p.sdStart = null; p.sdOn = 0; }
           if (skZ(p, 'speedDribble') && !((p.sdCd || 0) > S.t) && !(p.sdStart == null && (p.skLock || 0) > S.t) && nearestOpp(p, p.x, p.y).d > (zr(p, 'speedDribble') === 2 ? 3.5 : 4.5)) {   // どこで使うかは「スキルのエリア設定」の表で決める
             if (p.sdStart == null) p.sdStart = S.t;
-            vmax = Math.max(vmax, maxSpeed(p) * 0.86);   // 版1089：0.86倍まで。高速ドリブル：大きく蹴り出して、全力疾走のまま運ぶ
+            vmax = Math.max(vmax, maxSpeed(p) * Math.min(0.9, 0.72 + p.dribble * 0.002));   // 版1090：ドリブルSで0.9倍まで。高速ドリブル：大きく蹴り出して、全力疾走のまま運ぶ
             // 高速ドリブル：ボールを大きく前へ蹴り出しては、全力で追いつく（前傾したまま走り切る）
             if (S.t - (p.sdAct || 0) > 0.45) { act(p, 'sdrun', 0.5); p.sdAct = S.t; }
             p.sdOn = S.t + 0.25;
