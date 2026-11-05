@@ -3679,7 +3679,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             }
             /* 版1093：逆へ飛ぶ絵は使わない。飛び始めてから0.6秒以内に、ボールが逆側へ行くと分かったら（コースが変わった・読み違い）、
                飛ぶのを取り消して「逆に重心がかかる」に変える。記録済みのコマも、飛んでいる絵を消して立った姿勢に直す */
-            if (p.diveT > 0 && p.diveAt != null && S.t - p.diveAt < 0.6 && !p.wf && (b.kind === 'shot' || b.kind === 'loose') && b.lastTeam !== p.team && b.owner < 0 && Math.abs(b.vx) > 0.5 && (p.x - b.x) * b.vx > 0) {
+            if (p.diveT > 0 && p.diveAt != null && S.t - p.diveAt < 0.6 && !p.wf && (b.kind === 'shot' || b.kind === 'loose') && b.owner < 0 && Math.abs(b.vx) > 0.5 && (p.x - b.x) * b.vx > 0) {   /* 版1096：味方のDFに当たったシュートも（以前は、相手が最後に触った球だけ見ていた） */
               const yT = b.spin ? curveYAt(b, p.x) : b.y + b.vy * (p.x - b.x) / b.vx, gT = yT - p.y;
               if (Math.abs(gT) > 0.6 && Math.sign(gT) !== Math.sign(p.diveDir)) {
                 const dd = p.diveDir, t0 = p.diveAt; p.diveT = 0; p.downT = 0; p.hiDiveT = 0;
@@ -4158,7 +4158,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         p.hiDiveT = zAt > 1.8 && (bb.z || 0) > 0.9 ? S.t + 1.0 : 0; }   // 版871：高い球へ飛ぶ時は、高く飛ぶ横っ跳び（絵は13・14）
       if (p.gk && p.wf && S.t < p.wf.end) return;   // 版986：逆を突かれて崩れている間は飛ばない
       if ((globalThis.__Kgk2d ?? 1) && p.gk && S.ball.kind === 'shot' && S.ball.shotT != null) { if (p.dvShot === S.ball.shotT) return; p.dvShot = S.ball.shotT; }   // 版970：同じシュートに2回飛ばない（2段で飛んで見えた）
-      if ((globalThis.__Kgkdir ?? 1) && p.gk && S.ball.kind === 'shot' && S.ball.lastTeam !== p.team && S.ball.owner < 0) {   // 版1026：GKは逆へ飛ばない。ボールが本当に通る側（自分の前を通る所。もう横を過ぎていればゴールラインを割る所）へ飛ぶ（逆を突かれて崩れるのは別）
+      if ((globalThis.__Kgkdir ?? 1) && p.gk && (S.ball.kind === 'shot' || S.ball.kind === 'loose') && S.ball.owner < 0) {   /* 版1096：味方のDFに当たってコースが変わった球（こぼれ球）も同じ */   // 版1026：GKは逆へ飛ばない。ボールが本当に通る側（自分の前を通る所。もう横を過ぎていればゴールラインを割る所）へ飛ぶ（逆を突かれて崩れるのは別）
         const bb = S.ball, gl = fx(p.team, 0), sp0 = !!bb.spin;
         const ahead = Math.abs(bb.vx) > 0.5 && (p.x - bb.x) * bb.vx > 0;
         const yT = ahead ? (sp0 ? curveYAt(bb, p.x) : bb.y + bb.vy * (p.x - bb.x) / bb.vx) : (Math.abs(bb.vx) > 0.5 ? (sp0 ? curveYAt(bb, gl) : bb.y + bb.vy * (gl - bb.x) / bb.vx) : bb.y);
@@ -8694,7 +8694,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             const techT = (own.dribble >= 88 && own.technique >= 85 && (own.type === 'ファンタジスタ' || own.type === 'アタッカー')) || uOn(own, 'shiden');
             // 版955：かわしに行ってよいのは、GKと1対1（まわり・前に相手のDFがいない）で、勢いに乗ったドリブル（秒速5m超）の時だけ。それ以外はファンタジスタ・アタッカーでもPKマークの辺りで打つ
             const gxT = fx(own.team, L), oneT = !opps(own).some((o) => !o.gk && !o.off && (hyp(o.x - own.x, o.y - own.y) < 4 || segDist(o.x, o.y, own.x, own.y, gxT, GOAL_Y).d < 2));
-            const techy = techT && (!(globalThis.__Ksht ?? 1) || (oneT && hyp(own.vx, own.vy) > 5));
+            const techy = (uOn(own, 'shiden') && (globalThis.__Ksd96 ?? 1)) || (techT && (!(globalThis.__Ksht ?? 1) || (oneT && hyp(own.vx, own.vy) > 5)));   // 版1096：紫電の遊戯の発動中は、PKマークの手前で打たされない（打つ所は紫電の遊戯の判断で決める：もっと良い所まで運ぶ）
             const pkLine = hyp(fx(own.team, L) - fx(own.team, own.x), GOAL_Y - own.y) < (globalThis.__Kpkl ?? ((globalThis.__Ksht ?? 1) ? 14 : 12)) && Math.abs(own.y - GOAL_Y) < ((globalThis.__Kpkt ?? 1) ? 8 : 12);   // 版962：ポケット（横8m以上）からは、むりに打たない（折り返しを選べる）。版955：PKマークより少し手前（ゴールから14m）で打つ
             const pressT = opps(own).some((o) => !o.gk && !o.off && (hyp(o.x - own.x, o.y - own.y) < 5 || (segDist(o.x, o.y, own.x, own.y, gxT, GOAL_Y).d < 2.2 && segDist(o.x, o.y, own.x, own.y, gxT, GOAL_Y).u > 0.05)));   // 版958：寄せられている・コースに相手がいる
             if (g && (pkLine && !techy && (!(globalThis.__Kcbc ?? 1) || pressT) || dG < (globalThis.__Kgkc1 ?? ((globalThis.__Ksht ?? 1) ? 8 : 6)) && !techy) && gkInFront(g, own) && !emptyGoal(own) && !((own.shotCdT || 0) > S.t)) { const side = Math.sign(GOAL_Y - g.y) || (own.y < GOAL_Y ? 1 : -1); S.forceShot = GOAL_Y + side * R.range(2.0, 3.6); S.forceHow = null; S.decision = 0; own.shotCdT = S.t + 2; if (globalThis.__gkcLog) globalThis.__gkcLog.push({ t: S.t, dG }); }
