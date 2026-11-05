@@ -1285,7 +1285,7 @@
     const tac = ensureTactics(save);
     applyTactics(t, tac);
     t.roles = {};
-    for (const k of ['captain', 'pk', 'fk', 'ck']) { const n = tac.roles[k]; const i = n ? ps.slice(0, 11).findIndex((q) => q.name === n) : -1; if (i >= 0) t.roles[k] = i; }
+    for (const k of ['captain', 'pk', 'fk', 'ck', 'hub', 'fin']) { const n = tac.roles[k]; const i = n ? ps.slice(0, 11).findIndex((q) => q.name === n) : -1; if (i >= 0) t.roles[k] = i; }
     t.lgId = myLgId(save);   // 版851：固有スキルの強さ（リーグ）に使う
     t.players = ps.slice(0, 11 + BENCH_N);   // ベンチ入り（控え7人）まで。ベンチ外の選手は試合に出られない
     return { team: t, played: ps.slice(0, 11).map((p) => save.team.players.findIndex((q) => q.name === p.name)) };

@@ -1717,7 +1717,7 @@
     const pc = save.plan.cards || (save.plan.cards = {}); const ea = pc[i], eb = pc[j]; if (eb) pc[i] = eb; else delete pc[i]; if (ea) pc[j] = ea; else delete pc[j];
     return true;
   }
-  const ROLE_NAME = { captain: 'キャプテン', pk: 'PKキッカー', fk: 'FKキッカー', ck: 'CKキッカー' }, ROLE_TAG = { captain: 'C', pk: 'PK', fk: 'FK', ck: 'CK' };
+  const ROLE_NAME = { captain: 'キャプテン', pk: 'PKキッカー', fk: 'FKキッカー', ck: 'CKキッカー', hub: '組み立ての中心', fin: 'フィニッシャー' }, ROLE_TAG = { captain: 'C', pk: 'PK', fk: 'FK', ck: 'CK', hub: '軸', fin: '決' };   /* 版1111：組み立ての中心・フィニッシャー（ボールを持った味方が、まず探す選手） */
   // ================= スタメン（カルチョビットAのボード）：マス目のピッチに顔を並べ、ドラッグで動かす・入れ替える =================
   let sqShow = 'cond', sqDrag = null, sqPop = -1, sqNote = false, sqFromHome = false, sqRes = -1, sqResOpen = false, sqMulti = null;   // sqMulti：まとめて放出で選んだ選手（版692）
   const resPow = (q) => { try { C.ensurePts(q); return Math.round(D.PARAMS.reduce((a, x) => a + (q.pts[x.k] || 0), 0) / D.PARAMS.length); } catch (_) { return 0; } };   // 版692：総合（能力の平均）
@@ -1823,7 +1823,7 @@
     if (sq3R >= 0 && rsv[sq3R]) { const q = rsv[sq3R]; pop = `<div class="s2pop q3pop">${head(q, XB)}${ranks(q)}${facts(q)}<p class="q3ph">チームの選手をタップすると入れ替えます</p><button class="q3rel" data-rel="${sq3R}">放出する</button></div>`; }
     /* 版1075：選手を選んだ時は、右の板がその選手のくわしい板になる（監督の画像どおり：顔・ポジション・背番号・名前・星、タイプ・疲労・利き足、能力ランク、選手データ／入れ替える） */
     let side = '';
-    if (sq3Role) { const RK = ['captain', 'pk', 'fk', 'ck']; side = `<div class="q3side q3dp"><div class="q3dh"><b>役割設定</b>${XB.replace('q3px', 'q3px q3rlx')}</div>${RK.map((k) => { const nm = tac.roles[k], q = nm && ps.slice(0, 11).find((x) => x.name === nm); return `<button class="q3rr${sq3Role === k ? ' on' : ''}" data-rk="${k}"><i class="s2rt rt-${k}">${ROLE_TAG[k]}</i><span>${ROLE_NAME[k]}</span>${q ? facePic(q, 'q3rf') : '<i class="q3rf q3rf0"></i>'}<b>${q ? esc(q.name) : '（なし）'}</b><em>›</em></button>`; }).join('')}<p class="q3dhint">役割を選んで、担当する選手をタップ。</p><p class="q3rst">${ROLE_NAME[sq3Role]}を選択中</p><button class="q3rdone">完了</button></div>`; }
+    if (sq3Role) { const RK = ['captain', 'pk', 'fk', 'ck', 'hub', 'fin']; side = `<div class="q3side q3dp"><div class="q3dh"><b>役割設定</b>${XB.replace('q3px', 'q3px q3rlx')}</div>${RK.map((k) => { const nm = tac.roles[k], q = nm && ps.slice(0, 11).find((x) => x.name === nm); return `<button class="q3rr${sq3Role === k ? ' on' : ''}" data-rk="${k}"><i class="s2rt rt-${k}">${ROLE_TAG[k]}</i><span>${ROLE_NAME[k]}</span>${q ? facePic(q, 'q3rf') : '<i class="q3rf q3rf0"></i>'}<b>${q ? esc(q.name) : (k === 'hub' || k === 'fin') ? 'おまかせ' : '（なし）'}</b><em>›</em></button>`; }).join('')}<p class="q3dhint">役割を選んで選手をタップ（軸・決は、もう一度タップでおまかせ）</p><p class="q3rst">${ROLE_NAME[sq3Role]}を選択中</p><button class="q3rdone">完了</button></div>`; }
     else if (sq3Pick >= 0 && ps[sq3Pick]) { const q = ps[sq3Pick]; C.ensurePts(q); const rk = PK.map((k) => C.rankInfo(q.pts[k]).g);
       side = `<div class="q3side q3dp"><div class="q3dtop"><div class="q3dface">${facePic(q, 'q3df')}</div><div class="q3dname"><div><i class="pos ${POSC[q.position]}">${q.position}</i><b>${q.number || ''} ${esc(q.name)}</b></div>${starHTML(C.ensureStar(q), q.totsu)}</div>${XB}</div>
         <div class="q3dinfo"><span class="tbadge ${TYPE_CLS[q.type] || 'ty-bal'}">${esc(q.type || '')}</span><i class="q3dsep"></i><span>疲労 ${Math.round(q.fatigue || 0)}%</span><span>／</span><span>利き足</span>${footSVG(q.foot)}<span>${q.foot === 'L' ? '左' : '右'}</span>${q.injury > 0 ? `<span class="q3dinj">ケガ（あと${q.injury}週）</span>` : q.suspend > 0 ? '<span class="q3dinj">出場停止</span>' : ''}</div>
@@ -1910,7 +1910,7 @@
         const up = (e) => { window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up);
           if (gh) gh.remove(); el.classList.remove('q3src');
           if (!moved) { if (sq3R >= 0) { swapRes3(sq3R, i); return; }
-            if (sq3Role) { if (i > 10) { toast('役割はスタメンの選手から選びます'); return; } tac.roles[sq3Role] = ps[i].name; const RK = ['captain', 'pk', 'fk', 'ck'], nx = RK[RK.indexOf(sq3Role) + 1]; if (nx) sq3Role = nx; redo(); return; }   /* 役割設定：選んでいる役割にその選手を決めて、次の役割へ */
+            if (sq3Role) { if (i > 10) { toast('役割はスタメンの選手から選びます'); return; } if ((sq3Role === 'hub' || sq3Role === 'fin') && tac.roles[sq3Role] === ps[i].name) delete tac.roles[sq3Role]; else tac.roles[sq3Role] = ps[i].name;   /* 同じ選手をもう一度タップで「おまかせ」 */ const RK = ['captain', 'pk', 'fk', 'ck', 'hub', 'fin'], nx = RK[RK.indexOf(sq3Role) + 1]; if (nx) sq3Role = nx; redo(); return; }   /* 役割設定：選んでいる役割にその選手を決めて、次の役割へ */
             if (sq3Swap && sq3Pick >= 0 && sq3Pick !== i) { sq3Swap = false; swap(sq3Pick, i); return; }
             sq3Swap = false; sq3Pick = sq3Pick === i ? -1 : i; renderLineup3(); return; }   /* 版1075：タップは能力の確認（入れ替えは「入れ替える」を押してから相手をタップ、またはドラッグ） */   // タップ：1人目を選んで、2人目をタップで入れ替え
           const tg = document.elementFromPoint(e.clientX, e.clientY), to = tg && ((tg.closest('.q3fw, .q3n') && tg.closest('.q3p')) || tg.closest('.q3b'));   /* 版1071：ほかの選手の顔か名前の上で離した時だけ入れ替え */

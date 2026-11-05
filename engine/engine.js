@@ -600,7 +600,11 @@
     // キャプテンシー（キャプテン＝最初に持っている選手）：味方全員のスタミナの減りが少し遅い
     // ムードメーカー：チーム全体のメンタルが上がる
     // 指名された役割（キャプテン・PK・FK・CK）を選手に結びつける
-    for (const tm of T) { const rp = (k) => (tm.roles[k] != null && tm.players[tm.roles[k]] ? tm.players[tm.roles[k]] : null); tm.role = { captain: rp('captain'), pk: rp('pk'), fk: rp('fk'), ck: rp('ck') }; }
+    for (const tm of T) { const rp = (k) => (tm.roles[k] != null && tm.players[tm.roles[k]] ? tm.players[tm.roles[k]] : null); tm.role = { captain: rp('captain'), pk: rp('pk'), fk: rp('fk'), ck: rp('ck'), hub: rp('hub'), fin: rp('fin') };
+      /* 版1111：中盤の中心（つなぎ役）・フィニッシャー：決めていなければ、チームで一番ふさわしい選手（CPUのチームも、チームごとに中心が変わる） */
+      const fp = tm.players.filter((q) => !q.gk);
+      if (!tm.role.hub && (globalThis.__Khub ?? 1)) { const c = fp.filter((q) => q.position === 'MF'); tm.role.hub = (c.length ? c : fp).slice().sort((a0, b0) => (b0.pass * 0.5 + b0.vision * 0.35 + b0.technique * 0.15 + (['パサー', 'ゲームメイカー', 'レジスタ'].includes(b0.type) ? 8 : 0)) - (a0.pass * 0.5 + a0.vision * 0.35 + a0.technique * 0.15 + (['パサー', 'ゲームメイカー', 'レジスタ'].includes(a0.type) ? 8 : 0)))[0] || null; tm.role.hubAuto = true; }
+      if (!tm.role.fin && (globalThis.__Khub ?? 1)) { const c = fp.filter((q) => q.position === 'FW'); tm.role.fin = (c.length ? c : fp).slice().sort((a0, b0) => (b0.kick * 0.55 + b0.technique * 0.2 + b0.speed * 0.15 + b0.mental * 0.1 + (b0.type === 'ストライカー' ? 8 : 0)) - (a0.kick * 0.55 + a0.technique * 0.2 + a0.speed * 0.15 + a0.mental * 0.1 + (a0.type === 'ストライカー' ? 8 : 0)))[0] || null; tm.role.finAuto = true; } }
     for (const tm of T) {
       // キャプテン：キャプテンシーを持っていれば全員のスタミナの減りが遅くなる（指名がなければ、持っている選手がいれば）
       const cap = tm.role.captain;
@@ -3830,7 +3834,17 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
                 if (p.stF) { tx = Math.max(Math.min(p.stF[0], offL - 0.6), tx - 1); ty = p.stF[1]; u = u || hyp(fx(tm.ti, p.x) - tx, p.y - ty) > 2.5; } } if (globalThis.__tgHook) { p._dbgS = S.t; p._dbgSx = tx; p._dbgOff = offL; } }
             if ((p.stPullT || 0) > S.t && p.stPullP && !(p.run > 0) && !bWide && own && own.team === p.team && own.idx !== p.idx && !(b.intended === p.idx && !own)) { tx = p.stPullP[0]; ty = p.stPullP[1]; u = false; }   // 版796：プルアウェイ（DFから離れて、足元で受ける間合いを作る）
             // 版664：タイプごとの動きのくせ（攻撃）。見ているだけで違いが分かるように、持ち場の取り方をはっきり変える
-            if (!globalThis.__noTypeMove && (!own || own.idx !== p.idx) && !(p.run > 0) && !S.restart && !bWide) {
+            let hubMv = false;   // 版1111：中盤の中心：味方が組み立てている間は、持っている味方の近く（9〜13m）の空いた所へ顔を出して、前を向いて受ける
+            if ((globalThis.__Khub ?? 1) && tm.role && tm.role.hub === p && own && own.team === p.team && own !== p && !(p.run > 0) && !S.restart && !bWide && bxf < L - 32 && bxf > Lx - 2) {
+              if (!p.hubSp || S.t >= (p.hubSpT || 0)) { p.hubSpT = S.t + 0.5; let bs = -1e9, bp = null;
+                for (let k = 0; k < 12; k++) { const a = (k / 12) * Math.PI * 2, r = 11, sx = clamp(bxf + Math.cos(a) * r, Lx + 6, offL - 4), sy = clamp(b.y + Math.sin(a) * r, 5, W - 5), wx = fx(tm.ti, sx); let m = 9, lc = 9;
+                  for (const o of opps(p)) { if (o.off) continue; m = Math.min(m, hyp(o.x - wx, o.y - sy)); const sd = segDist(o.x, o.y, b.x, b.y, wx, sy); if (sd.u > 0.1 && sd.u < 0.9) lc = Math.min(lc, sd.d); }
+                  for (const q2 of mates(p)) if (q2 !== p && !q2.off) m = Math.min(m, hyp(q2.x - wx, q2.y - sy) + 2);
+                  const v = Math.min(m, 7) + Math.min(lc, 3) * 0.9 - hyp(fx(tm.ti, p.x) - sx, p.y - sy) * 0.06 + (sx - bxf) * 0.05 - Math.abs(sy - GOAL_Y) * 0.03; if (v > bs) { bs = v; bp = [sx, sy]; } }
+                p.hubSp = bp; }
+              if (p.hubSp) { tx = p.hubSp[0]; ty = p.hubSp[1]; u = hyp(fx(tm.ti, p.x) - tx, p.y - ty) > 3; hubMv = true; }
+            }
+            if (!hubMv && !globalThis.__noTypeMove && (!own || own.idx !== p.idx) && !(p.run > 0) && !S.restart && !bWide) {
               const tt = p.type, side0 = Math.sign(p.slot.y - GOAL_Y) || (p.number % 2 ? 1 : -1);
               if (globalThis.__dcDbg && tt === 'デコイラン') { const G = globalThis.__dcDbg, mt = mates(p).find((m) => m !== p && m.position === 'FW' && !m.off); if (mt) { let md = 99; for (const o of opps(p)) if (!o.off) md = Math.min(md, hyp(o.x - mt.x, o.y - mt.y)); const k = p.dcUntil > S.t ? 'run' : 'idle'; G[k] = G[k] || [0, 0]; G[k][0]++; G[k][1] += md; } }
               const dcM = p.position === 'FW' && tt !== 'デコイラン' ? mates(p).find((m) => m !== p && m.dcUntil > S.t) : null;
@@ -5785,6 +5799,10 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         else if (q.position === 'FW' && mates(q).some((m) => m !== q && m.dcUntil > S.t)) v += 0.9;   // 版794：囮が引きつけている間は、空いた相棒のFWへ   // 版794：囮の走りをしているFWには出さない（引きつけた分、ほかへ）
         if (skZ(q, 'behindRun') && through) v += 1.3 + (q.run > 0 ? 0.6 : 0);   // 版789：裏へ抜け出した選手へ、スルーパスを出しやすい
         if (tm.ovl && tm.ovl.until > S.t && xf > L - 44 && !(xf > L - 22 && Math.abs(p.y - GOAL_Y) < 14) && d < 16 && danger < 1.0 && !qOff && (tm.ovl.ids.includes(q.idx) || tm.ovl.ids.includes(p.idx))) v += 0.6 + Math.max(0, p.technique - 50) / 100;   // 版843：崩しの局面：寄ってきた味方と短くつなぐ
+        if ((globalThis.__Khub ?? 1) && tm.role && !qOff) {   // 版1111：ボールを持ったら、まず中心の選手を探す（組み立ては中盤の中心へ、ゴール前はフィニッシャーへ）
+          if (tm.role.hub === q && p !== q && xf < L - 30 && danger < 0.7 && recvOpp > 2.2) v += (globalThis.__Khubv ?? 1.1) * (tm.role.hubAuto ? 0.8 : 1);
+          if (tm.role.fin === q && p !== q && pxf > L - 30 && danger < 0.9 && recvOpp > 1.8) v += (globalThis.__Kfinv ?? 1.0) * (tm.role.finAuto ? 0.8 : 1) + (through ? 0.3 : 0);
+        }
         if (q.type === 'ストライカー' && q.position === 'FW' && !qOff && fx(p.team, q.x) > L - 26 && Math.abs(q.y - GOAL_Y) < 14 && recvOpp > 2 && danger < 1.0 && !(p.type === 'ストライカー')) v += 0.8 + Math.max(0, q.kick - 50) / 60;   // 版846：打てる所にいるストライカーへ預ける（点取り屋に打たせる）
         let b842 = 0; if ((q.pgRun || 0) > S.t && q.run > 0 && pxf > xf + 2 && !qOff) { const tmB = p.tmFor && p.tmFor.i === q.idx && S.t - p.tmFor.t < 3 && danger < 0.8 ? 0.8 + Math.max(0, p.vision - 50) / 50 : 0; v += 1.5 + (through ? 0.5 : 0) + tmB; b842 = tmB + ((q.ctRun || 0) > S.t ? 1.5 : 0); }   // 版842：3人目：自分が受けた時に走り出した味方へ（判断が高いほど見逃さない）   // パス＆ゴー・3人目の動き：走り直した味方へ
         if (through) v += 0.9 + (tm.mods.through + tm.tac.through) / 50 + Math.max(0, p.vision - 55) / 30;   // 版840：スルーパスの上乗せを下げた（1.6→0.9）

@@ -4624,3 +4624,4 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 /* 版1110：試合のあとのロッカー：部屋の絵だけを画面いっぱいに */
 #locker.lk-talk .lk-v2 .lk-bg{width:100%;height:100%;object-fit:cover;object-position:left center}
 #locker.lk-talk .lk-v2 .lk-ppl{display:none}
+.rt-hub,.s2rt.rt-hub{background:#d98a12}.rt-fin,.s2rt.rt-fin{background:#c2185b}
