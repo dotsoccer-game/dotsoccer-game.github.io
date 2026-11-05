@@ -3677,6 +3677,17 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
                 else startDive(p, Math.sign(gap), Math.abs(gap), tG);
               }
             }
+            /* 版1093：逆へ飛ぶ絵は使わない。飛び始めてから0.6秒以内に、ボールが逆側へ行くと分かったら（コースが変わった・読み違い）、
+               飛ぶのを取り消して「逆に重心がかかる」に変える。記録済みのコマも、飛んでいる絵を消して立った姿勢に直す */
+            if (p.diveT > 0 && p.diveAt != null && S.t - p.diveAt < 0.6 && !p.wf && (b.kind === 'shot' || b.kind === 'loose') && b.lastTeam !== p.team && b.owner < 0 && Math.abs(b.vx) > 0.5 && (p.x - b.x) * b.vx > 0) {
+              const yT = b.spin ? curveYAt(b, p.x) : b.y + b.vy * (p.x - b.x) / b.vx, gT = yT - p.y;
+              if (Math.abs(gT) > 0.6 && Math.sign(gT) !== Math.sign(p.diveDir)) {
+                const dd = p.diveDir, t0 = p.diveAt; p.diveT = 0; p.downT = 0; p.hiDiveT = 0;
+                if (rec) { const gi = 81 + (p.idx === 0 ? 0 : 1); if (p.idx === 0 || p.idx === 11) for (let k = frames.length - 1; k >= 0 && frames[k][0] >= t0 - 0.01; k--) { const c = frames[k][gi]; if (c === 1 || c === 3 || c === 13 || c === 14 || c === 2 || c === 4) frames[k][gi] = 0; }
+                  actions.push({ t: +t0.toFixed(2), i: p.idx, a: 'lose', d: +(S.t - t0 + 0.35).toFixed(2), dx: 0, dy: dd, o: p.idx, wf: 1 }); actions.push({ t: +(S.t + 0.35).toFixed(2), i: p.idx, a: 'fall', d: 1.5, dx: 0, dy: -dd, wf: 1 }); }
+                p.wf = { dir: dd, gd: -dd, t1: S.t + 0.05, t2: S.t + 0.35, end: S.t + 1.95, shot: b.shotT }; p.vx *= 0.2; p.vy *= 0.2; p.lateDive = null;
+              }
+            }
             if (p.wf) { const w = p.wf;   // 版986：逆を突かれた：①逆へ重心が乗る → ②あわてて戻ろうとする → ③崩れて倒れる（その間は飛ばない）
               if (S.t > w.end || S.restart || (S.t > w.t2 + 0.4 && b.owner >= 0)) p.wf = null;
               else { u = false; tx = fx(tm.ti, p.x);
@@ -4156,7 +4167,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         if (Math.abs(gT) >= 0.35 && Math.sign(gT) !== Math.sign(dir)) { if (globalThis.__dirFix) globalThis.__dirFix.push(+gT.toFixed(2)); dir = Math.sign(gT); dist = Math.max(0.6, Math.abs(gT)); }
       }
       if (globalThis.__dvLog && p.gk) { const bb = S.ball, gl = fx(p.team, 0), tl = Math.abs(bb.vx) > 0.3 ? (p.x - bb.x) / bb.vx : -1; globalThis.__dvLog.push({ t: S.t, team: p.team, dir, dist, tHit, kind: bb.kind, last: bb.lastTeam, sp: hyp(bb.vx, bb.vy), z: bb.z || 0, bxf: fx(p.team, bb.x), gxf: fx(p.team, p.x), gy: p.y - GOAL_Y, by: bb.y - GOAL_Y, yAt: tl > 0 ? bb.y + bb.vy * tl - GOAL_Y : null, tl, own: bb.owner, src: (new Error().stack.split('\n')[2] || '').replace(/.*engine.js:/, '').replace(/\)$/, '') }); }
-      p.diveT = 0.7; p.diveDir = dir;
+      p.diveT = 0.7; p.diveDir = dir; p.diveAt = S.t;
       dist = Math.min(dist, gkDiveMax(p));
       const v = clamp(dist / Math.max(tHit, 0.18), 3, 5.2 + p.speed * 0.015 + p.jump * 0.025);
       p.vy = dir * v; p.vx *= 0.3;
@@ -4299,7 +4310,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             if (dot < 0.87 && !opps(p).some((o) => !o.off && !o.gk && hyp(o.x - p.x, o.y - p.y) < 3.5 && ((o.x - p.x) * ux + (o.y - p.y) * uy) > 0.5 && Math.abs(-(o.x - p.x) * uy + (o.y - p.y) * ux) < 1.4)) {
               const k = 0.07, nx = S.dribbleDir[0] * (1 - k) + ux * k, ny = S.dribbleDir[1] * (1 - k) + uy * k, nl = hyp(nx, ny) || 1; S.dribbleDir = [nx / nl, ny / nl]; }
           }
-          vmax *= (uOn(p, 'shiden') ? 0.8 + p.dribble * 0.0016 : Math.min(0.9, 0.69 + p.dribble * 0.0023)) - ((globalThis.__Kab ?? 1) ? Math.max(0, 85 - p.dribble) * (globalThis.__Kab9 ?? 0.004) : 0);   // 版935：ドリブルが85より低いと、ボールを持つと遅くなる（60で約8割・40で約7割）   // ドリブルが上手いほど速く運べる（S 約0.94、E 約0.86。全力疾走より少し遅い）
+          vmax *= (uOn(p, 'shiden') ? 1.2 : Math.min(0.9, 0.69 + p.dribble * 0.0023)) - ((globalThis.__Kab ?? 1) ? Math.max(0, 85 - p.dribble) * (globalThis.__Kab9 ?? 0.004) : 0);   // 版935：ドリブルが85より低いと、ボールを持つと遅くなる（60で約8割・40で約7割）   // ドリブルが上手いほど速く運べる（S 約0.94、E 約0.86。全力疾走より少し遅い）
           if (S.dribbleMode === 'carry') {
             vmax *= 0.58 + p.technique * 0.0015;   // 運ぶドリブル：足元に置いたまま、ゆっくり
             { const v0 = hyp(p.vx, p.vy); if ((globalThis.__Kphy ?? 1) && v0 > 3 && S.t - (p.recvT ?? -9) < 0.8 && !opps(p).some((o) => !o.gk && hyp(o.x - p.x, o.y - p.y) < 3)) vmax = Math.max(vmax, Math.min(v0 * 0.92, maxSpeed(p) * 0.8)); }   // 版908：走りながら受けた直後は、勢いを残したまま（いきなり歩く速さにしない）
@@ -4311,7 +4322,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             // 突破のドリブル：緩急。前に相手がいる間は普通のドリブル（巡航）で間合いを測り、2.5〜5mまで来たら前傾してグン！と一気に加速して置き去りにする
             if (p.pace && S.t > p.pace.until) p.pace = null;
             const fr = opps(p).filter((q) => !q.gk && ((q.x - p.x) * S.dribbleDir[0] + (q.y - p.y) * S.dribbleDir[1]) > 0.5).map((q) => ({ q, d: hyp(q.x - p.x, q.y - p.y) })).filter((o) => o.d < 8).sort((x, y) => x.d - y.d)[0];
-            if (p.pace) vmax = maxSpeed(p) * (uOn(p, 'shiden') ? 0.96 + p.dribble * 0.001 : Math.min(0.9, 0.72 + p.dribble * 0.002));   /* 版1089：ボールを持つと全力疾走より遅い（守る側が追いつける） */
+            if (p.pace) vmax = maxSpeed(p) * (uOn(p, 'shiden') ? 1.2 : Math.min(0.9, 0.72 + p.dribble * 0.002));   /* 版1089：ボールを持つと全力疾走より遅い（守る側が追いつける） */
             else if (fr) {
               vmax *= ((globalThis.__Kphy ?? 1) && fr.d > 5 ? 0.85 : 0.6) + p.dribble * 0.0016;   /* 版908b：間合いを測る減速は、相手が5m以内に来てから */   // 巡航：ドリブルが上手いほど速いまま間合いを詰められる
               if (fr.d < 5 && fr.d > 2.5 && zr(p, 'pace') > 0 && (p.paceCd || 0) < S.t && R.next() < 0.3 * (0.4 + p.dribble / 100) * (zr(p, 'pace') === 2 ? 1.6 : 1)) {
@@ -4327,7 +4338,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           if (p.sdStart != null && S.t - p.sdStart > 3) { p.sdCd = S.t + 4; p.sdStart = null; p.sdOn = 0; }
           if (skZ(p, 'speedDribble') && !((p.sdCd || 0) > S.t) && !(p.sdStart == null && (p.skLock || 0) > S.t) && nearestOpp(p, p.x, p.y).d > (zr(p, 'speedDribble') === 2 ? 3.5 : 4.5)) {   // どこで使うかは「スキルのエリア設定」の表で決める
             if (p.sdStart == null) p.sdStart = S.t;
-            vmax = Math.max(vmax, maxSpeed(p) * (uOn(p, 'shiden') ? 1.02 : Math.min(0.9, 0.72 + p.dribble * 0.002)));   // 版1090：ドリブルSで0.9倍まで。高速ドリブル：大きく蹴り出して、全力疾走のまま運ぶ
+            vmax = Math.max(vmax, maxSpeed(p) * (uOn(p, 'shiden') ? 1.2 : Math.min(0.9, 0.72 + p.dribble * 0.002)));   // 版1090：ドリブルSで0.9倍まで。高速ドリブル：大きく蹴り出して、全力疾走のまま運ぶ
             // 高速ドリブル：ボールを大きく前へ蹴り出しては、全力で追いつく（前傾したまま走り切る）
             if (S.t - (p.sdAct || 0) > 0.45) { act(p, 'sdrun', 0.5); p.sdAct = S.t; }
             p.sdOn = S.t + 0.25;
@@ -8893,13 +8904,15 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         // GKの飛ぶ先：止める時はボールの所、読みが当たって決められる時は届かずに手前、外れた時は反対へ
         const stay = center && saved, gTo = stay ? GOAL_Y : saved ? ay : guess === sideAim ? GOAL_Y + sideAim * Math.min(2.4, Math.abs(ay - GOAL_Y) - 0.9) : GOAL_Y + guess * R.range(1.8, 2.5);
         const tc = Math.max(0.3, (gl - 0.9 - spotX) / sp), gv = (gTo - g.y) / tc;
+        const lean = !stay && !saved && Math.sign(gTo - GOAL_Y) !== Math.sign(ay - GOAL_Y) && Math.abs(ay - GOAL_Y) > 0.6;   // 版1093：ボールと逆へ動く時は、飛ばずに重心だけ
         ev('sokick0', { team: t, player: kq.name });
         S.kickRec = kq.idx; Object.assign(S.ball, { x: spotX, y: GOAL_Y, z: 0.05, vx: sp, vy, vz, kind: 'shot', lastTeam: t, lastPlayer: kq.idx, kicker: kq.idx, owner: -1 });
         let hit = false, k0 = 0, told = false, gT = 0;   // 版1037
         const tell = () => { if (told) return; told = true; if (res === 'goal') sc[t]++; tk[t]++; kicks.push({ team: t, idx: kq.idx, name: kq.name, number: kq.number, res, round: tk[t] }); ev('sokick', { team: t, player: kq.name, number: kq.number, idx: kq.idx, res, round: tk[t], so: [...sc] }); };
         settle(2.2, (el) => {
           k0++;
-          if (!stay) { if (k0 === 1) { g.diveT = tc + 0.25; g.diveDir = Math.sign(gTo - GOAL_Y) || guess; } gT += DT; if (gT <= tc) g.y += gv * DT; if (g.diveT > 0) { g.diveT = Math.max(0, g.diveT - DT); if (g.diveT <= 0) g.downT = 1.3; } else if (g.downT > 0) g.downT = Math.max(0, g.downT - DT); }   // 版1039：倒れたままにしない（1.4秒で起き上がる）
+          if (lean) { if (k0 === 1 && rec) { actions.push({ t: +S.t.toFixed(2), i: g.idx, a: 'lose', d: +(tc + 0.3).toFixed(2), dx: 0, dy: guess, o: g.idx, wf: 1 }); actions.push({ t: +(S.t + tc + 0.3).toFixed(2), i: g.idx, a: 'fall', d: 1.5, dx: 0, dy: -guess, wf: 1 }); } gT += DT; if (gT <= tc) g.y += guess * 0.6 / (tc / DT); }   // 版1093：読みが外れたPKは、逆へ飛ばずに「逆に重心がかかって崩れる」
+          else if (!stay) { if (k0 === 1) { g.diveT = tc + 0.25; g.diveDir = Math.sign(gTo - GOAL_Y) || guess; } gT += DT; if (gT <= tc) g.y += gv * DT; if (g.diveT > 0) { g.diveT = Math.max(0, g.diveT - DT); if (g.diveT <= 0) g.downT = 1.3; } else if (g.downT > 0) g.downT = Math.max(0, g.downT - DT); }   // 版1039：倒れたままにしない（1.4秒で起き上がる）
           const b = S.ball;
           if (!hit) { b.x += b.vx * DT; b.y += b.vy * DT; b.z = Math.max(0, b.z + b.vz * DT - 4.9 * DT * DT); b.vz -= 9.8 * DT;
             if (res === 'miss') { if (b.z <= 0 && b.vz < 0) { b.vz = -b.vz * 0.4; b.vx *= 0.8; b.vy *= 0.8; } if (b.x >= 113.3 && b.vx > 0) { if (b.z < 2.6 && !b.stand) { b.x = 113.3; b.vx = -Math.abs(b.vx) * 0.3; b.vy *= 0.5; b.vz = Math.min(b.vz, 0); } else { b.stand = 1; if (b.x > 118) { b.x = 118; b.vx = b.vy = b.vz = 0; b.z = 4; } else if (b.z < 4) { b.z = 4; b.vz = 0; } } } }   // 版1039：高い球（壁より上）は観客席に消える（画面では見えなくなる）   // 版1037：外れたボールは、ゴール裏の壁に当たって跳ね返る（どこまでも飛んで行かない）

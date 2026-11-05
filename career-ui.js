@@ -1734,7 +1734,7 @@
         const mv = (e) => { if (dead) return; const dx = e.clientX - e0.clientX, dy = e.clientY - e0.clientY;
           if (!moved) { if (Math.hypot(dx, dy) < 8) return; if (Math.abs(dy) > Math.abs(dx) || sq3Multi) { dead = true; return; } moved = true; }
           if (!gh) { gh = mkGhost(rsv[k]); box.appendChild(gh); el.classList.add('q3src'); }
-          gh.style.transform = `translate(${(e.clientX - br.left) * z}px,${(e.clientY - br.top) * z}px) translate(-50%,-50%)`; };
+          gh.style.transform = `translate3d(${(e.clientX - br.left) * z}px,${(e.clientY - br.top) * z}px,0) translate(-50%,-50%)`; };
         const up = (e) => { window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up);
           if (gh) gh.remove(); el.classList.remove('q3src'); if (e.type === 'pointercancel' || dead) return;
           if (!moved) { if (sq3Multi) { const q = rsv[k]; if (sq3Multi.has(q)) sq3Multi.delete(q); else sq3Multi.add(q); } else { sq3R = sq3R === k ? -1 : k; sq3Pick = -1; } renderLineup3(); return; }
@@ -1753,7 +1753,7 @@
         const mv = (e) => { const dx = e.clientX - e0.clientX, dy = e.clientY - e0.clientY;
           if (!moved && Math.hypot(dx, dy) < 6) return; moved = true;
           if (!gh) { gh = isP ? el.cloneNode(true) : mkGhost(ps[i]); gh.classList.add('q3ghost'); gh.style.left = gh.style.top = ''; gh.style.zIndex = '999'; box.appendChild(gh); el.classList.add('q3src'); }
-          gh.style.transform = isP ? `translate(${(e.clientX - gx - br.left) * k}px,${(e.clientY - gy - br.top) * k}px) translate(-50%,-62%)` : `translate(${(e.clientX - br.left) * k}px,${(e.clientY - br.top) * k}px) translate(-50%,-50%)`; };
+          gh.style.transform = isP ? `translate3d(${(e.clientX - gx - br.left) * k}px,${(e.clientY - gy - br.top) * k}px,0) translate(-50%,-62%)` : `translate3d(${(e.clientX - br.left) * k}px,${(e.clientY - br.top) * k}px,0) translate(-50%,-50%)`; };
         const up = (e) => { window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up);
           if (gh) gh.remove(); el.classList.remove('q3src');
           if (!moved) { if (sq3R >= 0) { swapRes3(sq3R, i); return; }
@@ -2164,7 +2164,7 @@
           if (!ghost && Math.hypot(e.clientX - ev.clientX, e.clientY - ev.clientY) < 8) return;
           if (!ghost) { if (isP) { ghost = src.cloneNode(true); } else { const d = document.createElement('div'); d.innerHTML = `<div class="q3p"><div class="q3fw">${facePic(q, 'q3f', false)}<b class="q3o g-${D.grade(statOvr(q))}">${statOvr(q)}</b></div><span class="q3n">${esc(q.name)}</span></div>`; ghost = d.firstElementChild; ghost.querySelectorAll('img.fc').forEach((im) => { const f = () => cutFace(im); im.addEventListener('load', f); if (im.complete) f(); }); }
             ghost.classList.add('q3ghost'); ghost.style.left = ghost.style.top = ''; ghost.style.zIndex = '999'; box.appendChild(ghost); src.classList.add('q3src'); }
-          ghost.style.transform = isP ? `translate(${(e.clientX - gx - br.left) * z}px,${(e.clientY - gy - br.top) * z}px) translate(-50%,-62%)` : `translate(${(e.clientX - br.left) * z}px,${(e.clientY - br.top) * z}px) translate(-50%,-50%)`;
+          ghost.style.transform = isP ? `translate3d(${(e.clientX - gx - br.left) * z}px,${(e.clientY - gy - br.top) * z}px,0) translate(-50%,-62%)` : `translate3d(${(e.clientX - br.left) * z}px,${(e.clientY - br.top) * z}px,0) translate(-50%,-50%)`;
         };
         const up = async (e) => {
           removeEventListener('pointermove', move); removeEventListener('pointerup', up); removeEventListener('pointercancel', up);

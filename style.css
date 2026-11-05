@@ -4506,3 +4506,5 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 .sq3 .q3reset{align-self:center;width:80%;height:6cqh;margin-top:auto;border-radius:1.2cqh;border:.35cqh solid #1b2a44;background:#fff;color:#1b2a44;font-weight:900;font-size:3cqh}
 .sq3 .q3big{font-size:2.4cqh!important;line-height:1.6;text-align:left!important;color:#1b2a44!important}
 #htModal #tacSet.q3tq{position:absolute;inset:0;z-index:5}#tacSet .q3tqtabs button{font-size:3.2cqh}   /* 版1086：試合中の作戦の「チーム指示」 */
+/* 版1093：ドラッグ中の札が通った跡（描き残し）が出ないように：札を別の層にして、影の効果を外す */
+.sq3 .q3ghost{will-change:transform;-webkit-backface-visibility:hidden;backface-visibility:hidden;contain:layout style}.sq3 .q3ghost .q3f,.sq3 .q3ghost img{filter:none!important}.sq3 .q3src{will-change:opacity}

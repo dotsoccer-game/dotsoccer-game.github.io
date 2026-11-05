@@ -498,6 +498,8 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       if (out.some((x) => Math.abs(x.t - e.t1) < 8)) continue;
       out.push({ t0: Math.max(0.2, e.t0 - 1.5), t1: e.t1 + 2.5, t: e.t1, head: `${minTxt(e.t1)}`, sc: scoreAt(e.t1), cap1: `${halfTxt(e.t1)}　${tName(e.team)}`, cap2: `${e.player}が${e.n}人抜きのドリブル！`, sp: true });
     }
+    /* 版1093：場面の巻き戻しが前半・後半の境目をまたがないように（後半すぐのシュートの場面に、前半ロスタイムの映像が映っていた） */
+    { const hT = match.halfTime || halfT; for (const it of out) { if (it.t >= hT) it.t0 = Math.max(it.t0, hT + 0.3); else it.t1 = Math.min(it.t1, hT - 0.05); } }
     out.sort((a, b) => a.t - b.t);
     // タイムアップ
     out.push({ t0: Math.max(0.2, (match.regEnd || match.duration) - 4.5), t1: (match.regEnd || match.duration), t: (match.regEnd || match.duration), head: `90'+${addedMin(2)}`, sc: match.score.slice(), cap1: '', cap2: 'タイムアップ、ここで試合終了', end: true });
