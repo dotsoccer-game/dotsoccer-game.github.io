@@ -1628,7 +1628,7 @@
   let sq3Pick = -1, sq3Menu = false, sq3Res = false, sq3R = -1, sq3Multi = null;
   function renderLineup3() {
     const ps = save.team.players, tac = C.ensureTactics(save), cells = tac.cells, R = C.GRID_R, COLS = C.GRID_C;
-    if (unpile(cells)) store();
+    /* 版1072：置いた所そのまま（マスに合わせない）なので、重なりを直す処理（unpile）はしない */
     const L = $('#clubLayer'); { const bk = $('#cvBack'); if (bk) bk.style.visibility = 'hidden'; }
     /* 版1067：ピッチは奥がせまい台形（監督の画像の角度）。u＝横0〜1、v＝縦0（奥）〜1（手前）→ 画面の％ */
     const TY0 = 2, TY1 = 99, HW0 = 43.5, HW1 = 49.5, tx = (u, v) => 50 + (u - 0.5) * 2 * (HW0 + (HW1 - HW0) * v), ty = (v) => TY0 + (TY1 - TY0) * v;
@@ -1742,9 +1742,8 @@
           if (i >= 1 && i < 11 && e.clientX > pr.left && e.clientX < pr.right && e.clientY > pr.top && e.clientY < pr.bottom) {
             const v = ((AY - pr.top) / pr.height * 100 - TY0) / (TY1 - TY0), hw = HW0 + (HW1 - HW0) * v, u = (((AX - pr.left) / pr.width * 100) - 50) / (2 * hw) + 0.5;
             const fc = (u - 0.08) / 0.84 * (COLS - 1), fr = VR(v);
-            /* 一番近いマス。ほかの選手がいたら、そのまわりで一番近い空いたマス */
-            let best = null, bd = 1e9; for (let r = 0; r < R; r++) for (let c = 0; c < COLS; c++) { if (cells.some((x, j) => j && j !== i && x && x.r === r && x.c === c)) continue; const d = (c - fc) ** 2 + ((r - fr) * 1.6) ** 2; if (d < bd) { bd = d; best = { r, c }; } }
-            if (best) { cells[i] = best; tac.formation = 'custom'; }
+            /* 版1072：指を離した所にぴったり置く（マスに合わせない）。試合でも、縦・横とも小数のままその位置に立つ（エンジンの位置の計算はマスの番号に比例するので、小数でもそのまま使える） */
+            cells[i] = { r: Math.round(Math.max(0, Math.min(R - 1, fr)) * 100) / 100, c: Math.round(Math.max(0, Math.min(COLS - 1, fc)) * 100) / 100 }; tac.formation = 'custom';
             redo(); return; }
           renderLineup3(); };
         window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
