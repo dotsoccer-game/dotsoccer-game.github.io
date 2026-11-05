@@ -1630,11 +1630,29 @@
     const ps = save.team.players, tac = C.ensureTactics(save), cells = tac.cells, R = C.GRID_R, COLS = C.GRID_C;
     if (unpile(cells)) store();
     const L = $('#clubLayer'); { const bk = $('#cvBack'); if (bk) bk.style.visibility = 'hidden'; }
-    const px = (c) => 7 + (c + 0.5) / COLS * 86, py = (r) => 13 + (1 - r / (R - 1)) * 68;   // ピッチの中の％（攻める方が上）
+    /* 版1067：ピッチは奥がせまい台形（監督の画像の角度）。u＝横0〜1、v＝縦0（奥）〜1（手前）→ 画面の％ */
+    const TY0 = 2, TY1 = 99, HW0 = 43.5, HW1 = 49.5, tx = (u, v) => 50 + (u - 0.5) * 2 * (HW0 + (HW1 - HW0) * v), ty = (v) => TY0 + (TY1 - TY0) * v;
+    /* 縦の位置：使っている列（DF・MF・FWなど）を、奥から手前まで等間隔に並べる（重ならないように）。使っていない行はその間を割る */
+    const used = [...new Set(cells.slice(1, 11).filter(Boolean).map((x) => x.r))].sort((a, b) => b - a), VT = 0.11, VB = 0.72;
+    let AN = used.map((r, k) => [r, used.length > 1 ? VT + (VB - VT) * k / (used.length - 1) : 0.4]);
+    if (!AN.length || AN[0][0] < R - 1) AN.unshift([R - 1, Math.max(0.03, (AN[0] ? AN[0][1] : VT) - 0.06 * ((R - 1) - (AN[0] ? AN[0][0] : R - 1)))]);
+    if (AN[AN.length - 1][0] > 0) { const l = AN[AN.length - 1]; AN.push([0, Math.min(0.8, l[1] + 0.06 * l[0])]); }
+    const RV = (r) => { for (let k = 0; k < AN.length - 1; k++) { const [r0, v0] = AN[k], [r1, v1] = AN[k + 1]; if (r <= r0 && r >= r1) return r0 === r1 ? v0 : v0 + (v1 - v0) * (r0 - r) / (r0 - r1); } return AN[AN.length - 1][1]; };
+    const VR = (v) => { if (v <= AN[0][1]) return AN[0][0]; for (let k = 0; k < AN.length - 1; k++) { const [r0, v0] = AN[k], [r1, v1] = AN[k + 1]; if (v >= v0 && v <= v1) return v1 === v0 ? r0 : r0 - (r0 - r1) * (v - v0) / (v1 - v0); } return 0; };
+    const CU = (c) => 0.08 + c / (COLS - 1) * 0.84;
+    const px = (c, r) => tx(CU(c), RV(r)), py = (r) => ty(RV(r));
+    const P = (u, v) => `${tx(u, v).toFixed(2)},${ty(v).toFixed(2)}`;
+    const stripes = Array.from({ length: 12 }, (_, k) => `<polygon points="${P(k / 12, 0)} ${P((k + 1) / 12, 0)} ${P((k + 1) / 12, 1)} ${P(k / 12, 1)}" fill="${k % 2 ? '#3f9b3a' : '#4aa843'}"/>`).join('');
+    const ln = (pts) => `<polyline points="${pts.map(([u, v]) => P(u, v)).join(' ')}" fill="none" stroke="rgba(255,255,255,.92)" stroke-width="2.2" vector-effect="non-scaling-stroke"/>`;
+    const arc = (cu, cv, ru, rv, a0, a1) => ln(Array.from({ length: 25 }, (_, k) => { const a = a0 + (a1 - a0) * k / 24; return [cu + Math.cos(a) * ru, cv + Math.sin(a) * rv]; }));
+    const lines = ln([[0.02, 0.02], [0.02, 1.2]]) + ln([[0.98, 0.02], [0.98, 1.2]]) + ln([[0.02, 0.02], [0.98, 0.02]]) + arc(0.5, 0.02, 0.16, 0.12, 0, Math.PI)
+      + ln([[0.23, 1.2], [0.23, 0.83], [0.77, 0.83], [0.77, 1.2]]) + ln([[0.37, 1.2], [0.37, 0.93], [0.63, 0.93], [0.63, 1.2]]) + arc(0.5, 0.86, 0.12, 0.08, Math.PI * 1.17, Math.PI * 1.83)
+      + arc(0.02, 1, 0.03, 0.025, -Math.PI / 2, 0) + arc(0.98, 1, 0.03, 0.025, Math.PI, Math.PI * 1.5);
+    const field = `<svg class="q3fd" viewBox="0 0 100 100" preserveAspectRatio="none">${stripes}${lines}</svg>`;
     const tags = (q) => ['pk', 'fk', 'ck'].filter((k) => tac.roles[k] === q.name).map((k) => `<i class="q3t t-${k}">${ROLE_TAG[k]}</i>`).join('');
-    const chip = (q, i, x, y) => `<div class="q3p${i === sq3Pick ? ' sel' : ''}${q.injury > 0 ? ' inj' : ''}${i === 0 ? ' gk' : ''}" data-i="${i}" style="left:${x}%;top:${y}%"><div class="q3fw">${facePic(q, 'q3f', false)}<b class="q3o">${statOvr(q)}</b><span class="q3ts">${tags(q)}</span>${tac.roles.captain === q.name ? '<i class="q3c">C</i>' : ''}</div><span class="q3n${tac.roles.captain === q.name ? ' cap' : ''}">${esc(q.name)}</span></div>`;
-    let dots = chip(ps[0], 0, 50, 89);
-    for (let i = 1; i < 11; i++) { const c = cells[i]; if (c) dots += chip(ps[i], i, px(c.c), py(c.r)); }
+    const chip = (q, i, x, y) => `<div class="q3p${i === sq3Pick ? ' sel' : ''}${q.injury > 0 ? ' inj' : ''}${i === 0 ? ' gk' : ''}" data-i="${i}" style="left:${x}%;top:${y}%;z-index:${2 + Math.round(y)}"><div class="q3fw">${facePic(q, 'q3f', false)}<b class="q3o">${statOvr(q)}</b><span class="q3ts">${tags(q)}</span>${tac.roles.captain === q.name ? '<i class="q3c">C</i>' : ''}</div><span class="q3n${tac.roles.captain === q.name ? ' cap' : ''}">${esc(q.name)}</span></div>`;
+    let dots = chip(ps[0], 0, 50, ty(0.9));
+    for (let i = 1; i < 11; i++) { const c = cells[i]; if (c) dots += chip(ps[i], i, px(c.c, c.r), py(c.r)); }
     const row = (q, i) => `<div class="q3b${i === sq3Pick ? ' sel' : ''}${q.injury > 0 ? ' inj' : ''}" data-i="${i}">${facePic(q, 'q3bf', true)}<span>${esc(q.name)}</span><b class="q3o">${statOvr(q)}</b></div>`;
     const bench = ps.slice(11), b1 = bench.slice(0, C.BENCH_N), b2 = bench.slice(C.BENCH_N);
     const fm = tac.formation && tac.formation !== 'custom' ? tac.formation : C.formationLabel(cells);
@@ -1643,7 +1661,7 @@
       <div class="q3top"><h2><svg viewBox="0 0 64 64" class="q3ball"><circle cx="32" cy="32" r="28" fill="#fff" stroke="#222" stroke-width="3"/><polygon points="32,21 42,28 38,40 26,40 22,28" fill="#222"/><path d="M32 4v17M60 26l-18 2M49 56l-11-16M15 56l11-16M4 26l18 2" stroke="#222" stroke-width="3"/></svg>スタメン・配置</h2><i class="q3sep"></i><img class="q3emb" src="${emblemURL(save.team.name, 48)}" alt=""><b class="q3tm">${esc(save.team.name)}</b>
         <button class="q3back" aria-label="戻る"><svg viewBox="0 0 24 24"><path d="M20 12H6M11 6l-6 6 6 6" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
       <div class="q3bar"><span class="q3fl">フォーメーション</span><button class="q3fm">${esc(fm)}<i>▼</i></button><button class="q3tac">戦術設定</button>${nRes ? `<button class="q3res"><span>リザーブ</span><b>${nRes}</b></button>` : ''}</div>
-      <div class="q3main"><div class="q3pitch"><i class="q3half"></i><i class="q3box"></i><i class="q3box2"></i><i class="q3arc"></i>${dots}</div>
+      <div class="q3main"><div class="q3pitch">${field}${dots}</div>
         <div class="q3side"><div class="q3col"><b class="q3h">ベンチ入り</b>${b1.map((q, k) => row(q, 11 + k)).join('')}</div><i class="q3vl"></i><div class="q3col"><b class="q3h">ベンチ外</b>${b2.map((q, k) => row(q, 11 + C.BENCH_N + k)).join('')}</div></div></div>
       <p class="q3hint"><span>選手をドラッグして配置・入れ替え</span></p>
       ${sq3Menu ? `<div class="q3menu">${C.FORMATIONS.map((f) => `<button data-f="${f}" class="${f === tac.formation ? 'on' : ''}">${f}</button>`).join('')}</div>` : ''}
@@ -1673,8 +1691,8 @@
           if (to && +to.dataset.i !== i) { swap(i, +to.dataset.i); return; }
           const pr = pitch.getBoundingClientRect();
           if (i >= 1 && i < 11 && e.clientX > pr.left && e.clientX < pr.right && e.clientY > pr.top && e.clientY < pr.bottom) {
-            const fx = ((e.clientX - pr.left) / pr.width * 100 - 7) / 86, fy = ((e.clientY - pr.top) / pr.height * 100 - 13) / 68;
-            const c = Math.max(0, Math.min(COLS - 1, Math.floor(fx * COLS))), r = Math.max(0, Math.min(R - 1, Math.round((1 - fy) * (R - 1))));
+            const v = ((e.clientY - pr.top) / pr.height * 100 - TY0) / (TY1 - TY0), hw = HW0 + (HW1 - HW0) * v, u = (((e.clientX - pr.left) / pr.width * 100) - 50) / (2 * hw) + 0.5;
+            const c = Math.max(0, Math.min(COLS - 1, Math.round((u - 0.08) / 0.84 * (COLS - 1)))), r = Math.max(0, Math.min(R - 1, Math.round(VR(v))));
             if (!cells.some((x, j) => j && j !== i && x && x.r === r && x.c === c)) { cells[i] = { r, c }; tac.formation = 'custom'; }
             redo(); return; }
           renderLineup3(); };

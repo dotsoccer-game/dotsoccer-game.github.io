@@ -4305,21 +4305,17 @@ body.in-digest #soBoard,body.in-digest #soCard{display:none!important}
 .sq3 .q3tac{height:5.6cqh;padding:0 3cqw;border-radius:1cqh;border:.35cqh solid #7fb0ff;background:linear-gradient(#2f6fe0,#1d4fb8);font-weight:900;font-size:3cqh}
 .sq3 .q3res{margin-left:auto;height:5.6cqh;padding:0 2cqw;border-radius:1cqh;border:.35cqh solid #7fb0ff;background:#13285a;display:flex;align-items:center;gap:1.4cqw;font-weight:900;font-size:2.8cqh}.sq3 .q3res b{border-left:.3cqh solid #7fb0ff;padding-left:1.4cqw;color:#ffe25a;font-size:3.6cqh}
 .sq3 .q3main{flex:1;display:flex;gap:1.6cqw;padding:1cqh 2cqw .4cqh;min-height:0}
-.sq3 .q3pitch{position:relative;flex:0 0 62%;border:.4cqh solid #c9a33a;border-radius:1.2cqh;overflow:hidden;background:repeating-linear-gradient(90deg,#3c9a3e 0 6.25%,#349036 6.25% 12.5%)}
-.sq3 .q3pitch::before{content:"";position:absolute;inset:2.5% 3%;border:.3cqh solid rgba(255,255,255,.85);border-bottom:none}
-.sq3 .q3half{position:absolute;left:41%;width:18%;top:-6%;height:13%;border:.3cqh solid rgba(255,255,255,.85);border-radius:50%}
-.sq3 .q3box{position:absolute;left:24%;width:52%;bottom:0;height:17%;border:.3cqh solid rgba(255,255,255,.85);border-bottom:none}
-.sq3 .q3box2{position:absolute;left:38%;width:24%;bottom:0;height:7%;border:.3cqh solid rgba(255,255,255,.85);border-bottom:none}
-.sq3 .q3arc{position:absolute;left:44%;width:12%;bottom:13.5%;height:7%;border:.3cqh solid rgba(255,255,255,.85);border-bottom:none;border-radius:50% 50% 0 0/100% 100% 0 0;clip-path:inset(0 0 45% 0)}
+.sq3 .q3pitch{position:relative;flex:0 0 62%;border:.4cqh solid #c9a33a;border-radius:1.2cqh;overflow:hidden;background:#3a9136;box-shadow:inset 0 0 0 .3cqh rgba(0,0,0,.35)}
+.sq3 .q3fd{position:absolute;inset:0;width:100%;height:100%}
 .sq3 .q3p{position:absolute;transform:translate(-50%,-62%);display:flex;flex-direction:column;align-items:center;touch-action:none;cursor:grab;z-index:2}
-.sq3 .q3fw{position:relative;width:8.4cqh;height:8.4cqh}
-.sq3 .q3f{width:100%;height:100%;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 .4cqh 0 rgba(0,0,0,.35))}
+.sq3 .q3fw{position:relative;width:11cqh;height:11cqh}
+.sq3 .q3f{width:100%;height:100%;object-fit:contain;transform:scale(1.22);transform-origin:50% 70%;image-rendering:pixelated;filter:drop-shadow(0 .4cqh 0 rgba(0,0,0,.35))}
 .sq3 .q3o{display:inline-flex;align-items:center;justify-content:center;min-width:4.6cqh;height:3.6cqh;padding:0 .6cqh;border-radius:1cqh;background:#0f1d33;border:.3cqh solid #c9a33a;color:#ffe25a;font-weight:900;font-size:2.4cqh}
-.sq3 .q3p .q3o{position:absolute;right:-4.2cqh;top:.6cqh}
-.sq3 .q3ts{position:absolute;left:-4.4cqh;top:0;display:flex;flex-direction:column;gap:.4cqh}
+.sq3 .q3p .q3o{position:absolute;right:-4.6cqh;top:2cqh;min-width:5.4cqh;height:4cqh;font-size:2.9cqh}
+.sq3 .q3ts{position:absolute;left:-4.4cqh;top:1.4cqh;display:flex;flex-direction:column;gap:.4cqh}
 .sq3 .q3t{display:block;font-style:normal;font-weight:900;font-size:1.8cqh;padding:.1cqh .6cqh;border-radius:.6cqh;border:.2cqh solid #fff}.sq3 .t-pk{background:#d33a2c}.sq3 .t-fk{background:#2f9a4a}.sq3 .t-ck{background:#2f6fe0}
-.sq3 .q3c{position:absolute;left:-3.6cqh;bottom:0;width:3.4cqh;height:3.4cqh;border-radius:50%;background:#1d4fb8;border:.3cqh solid #fff;font-style:normal;font-weight:900;font-size:2cqh;display:flex;align-items:center;justify-content:center}
-.sq3 .q3n{margin-top:-.8cqh;min-width:12cqh;padding:.1cqh 1.2cqh;border-radius:1.4cqh;background:linear-gradient(#1d2c4c,#0f1d33);border:.3cqh solid #6f86b8;font-weight:900;font-size:2.2cqh;text-align:center;white-space:nowrap}.sq3 .q3n.cap{border-color:#c9a33a}
+.sq3 .q3c{position:absolute;left:-3cqh;bottom:.6cqh;width:3.4cqh;height:3.4cqh;border-radius:50%;background:#1d4fb8;border:.3cqh solid #fff;font-style:normal;font-weight:900;font-size:2cqh;display:flex;align-items:center;justify-content:center}
+.sq3 .q3n{margin-top:-1.4cqh;min-width:17cqh;padding:.3cqh 1.4cqh;border-radius:1.4cqh;background:linear-gradient(#1d2c4c,#0f1d33);border:.3cqh solid #6f86b8;font-weight:900;font-size:2.9cqh;text-align:center;white-space:nowrap;position:relative}.sq3 .q3n.cap{border-color:#c9a33a}
 .sq3 .q3p.sel .q3n,.sq3 .q3b.sel{background:linear-gradient(#2f6fe0,#1d4fb8);border-color:#fff}
 .sq3 .q3p.inj .q3f{filter:grayscale(1) brightness(.7)}
 .sq3 .q3side{flex:1;display:flex;gap:1cqw;border:.4cqh solid #c9a33a;border-radius:1.2cqh;padding:1cqh 1cqw;background:rgba(5,20,12,.5);min-height:0;overflow:auto}
