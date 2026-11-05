@@ -4397,3 +4397,20 @@ body.in-digest #soBoard,body.in-digest #soCard{display:none!important}
 .sq3 .q3rdone{align-self:center;width:60%;height:6.6cqh;border-radius:1.2cqh;border:.35cqh solid #7fb0ff;background:linear-gradient(#2f6fe0,#1d4fb8);color:#fff;font-weight:900;font-size:3.4cqh}
 .sq3 .q3p.sel .q3n{background:linear-gradient(#2f6fe0,#1d4fb8);border-color:#ffd84a;box-shadow:0 0 1.2cqh #ffd84a}.sq3 .q3p.sel .q3f{filter:drop-shadow(0 0 1cqh #ffd84a)}
 .sq3 .q3dr .rk2.g-S{color:#e07a00}.sq3 .q3dr .rk2.g-A{color:#d8261a}.sq3 .q3dr .rk2.g-B{color:#1d6fe0}.sq3 .q3dr .rk2.g-C{color:#b8860b}.sq3 .q3dr .rk2.g-D{color:#3d4757}.sq3 .q3dr .rk2.g-E{color:#9aa3b2}   /* 版1075：明るい板の上で読める色に */
+
+/* 版1076：ボタンの見た目（共通のボタンの影・すき間を消す）・総合力の色分け・名前の行・能力ランクは前の板と同じ黒い帯・役割の行をそろえる */
+.sq3 button{box-shadow:0 .5cqh 0 rgba(0,0,0,.28);line-height:1.1;display:inline-flex;align-items:center;justify-content:center}
+.sq3 .q3dbtn button,.sq3 .q3rdone{padding:0;box-shadow:0 .6cqh 0 rgba(0,0,0,.25)}
+.sq3 .q3dd{border-color:#3a4a66}
+.sq3 .q3dtop .q3px,.sq3 .q3dh .q3px,.sq3 .q3rr{box-shadow:none}
+.sq3 .q3o.g-S{color:#ffa21f}.sq3 .q3o.g-A{color:#ff4a3a}.sq3 .q3o.g-B{color:#3fc0ff}.sq3 .q3o.g-C{color:#ffe02a}.sq3 .q3o.g-D{color:#f2f2f2}.sq3 .q3o.g-E{color:#a8b0b0}
+.sq3 .q3dname{flex-direction:column;align-items:flex-start;gap:.8cqh}.sq3 .q3dname>div{display:flex;align-items:center;gap:1cqw;min-width:0;max-width:100%}
+.sq3 .q3dtop{align-items:flex-start}.sq3 .q3dtop .q3px{margin-top:.4cqh}
+.sq3 .q3dinfo{flex-wrap:nowrap;white-space:nowrap;font-size:2.3cqh}
+.sq3 .q3dr{background:#2a2f2a;border-radius:1.2cqh;padding:1cqh .6cqw}
+.sq3 .q3dr .pico{width:7cqh;height:6.6cqh}
+.sq3 .q3dr .rk2.g-S{color:#ffa21f}.sq3 .q3dr .rk2.g-A{color:#ff3a2a}.sq3 .q3dr .rk2.g-B{color:#2fb0f0}.sq3 .q3dr .rk2.g-C{color:#ffe02a}.sq3 .q3dr .rk2.g-D{color:#f2f2f2}.sq3 .q3dr .rk2.g-E{color:#9aa0a0}
+.sq3 .q3dr .rk2{font:italic 900 3.4cqh/1 "Arial Black",Arial;-webkit-text-stroke:.25cqh #222;paint-order:stroke fill;text-shadow:none}   /* 前の板・選手データと同じ文字 */
+.sq3 .q3rr .s2rt{display:inline-flex;justify-content:center;min-width:5.4cqh}
+.sq3 .q3rr span{flex:0 0 17cqh;white-space:nowrap}
+.sq3 .q3rr b{text-align:left}
