@@ -1625,7 +1625,7 @@
   // 版1066：スタメン画面の新しい形（下書き）：マス目を見せず、縦のピッチに顔の札を並べる（イーフト風）。
   //  フォーメーションを選ぶ・選手をドラッグで入れ替える（ピッチ同士、ピッチとベンチ）・空いた所へ動かす（内部では一番近いマスに合わせる）
   const sq3On = () => { try { return !localStorage.getItem('dsSq2'); } catch (_) { return true; } };   /* 版1069：本番もこの画面（前の画面は localStorage の dsSq2 で戻せる） */
-  let sq3Pick = -1, sq3Menu = false, sq3Res = false, sq3R = -1, sq3Multi = null;
+  let sq3Pick = -1, sq3Menu = false, sq3Res = false, sq3R = -1, sq3Multi = null, sq3Swap = false, sq3Role = null;   /* 版1075：sq3Swap＝「入れ替える」を押した後、sq3Role＝役割設定（選んでいる役割） */
   function renderLineup3() {
     const ps = save.team.players, tac = C.ensureTactics(save), cells = tac.cells, R = C.GRID_R, COLS = C.GRID_C;
     /* 版1072：置いた所そのまま（マスに合わせない）なので、重なりを直す処理（unpile）はしない */
@@ -1659,7 +1659,14 @@
     const facts = (q) => `<div class="s2pt"><span class="tbadge ${TYPE_CLS[q.type] || 'ty-bal'}">${esc(q.type || '')}</span><i class="cdot ${condDot(q)}"><em class="cdn">${Math.round(q.fatigue || 0)}</em></i><small>疲労 ${Math.round(q.fatigue || 0)}%</small><span class="s2ft">利き足${footSVG(q.foot)}<b>${q.foot === 'L' ? '左' : '右'}</b></span></div>`;
     const XB = '<button class="s2px xbtn q3px"><img class="xbtn-img" src="icons/ui_close.png" alt="×" draggable="false"></button>';
     if (sq3R >= 0 && rsv[sq3R]) { const q = rsv[sq3R]; pop = `<div class="s2pop q3pop">${head(q, XB)}${ranks(q)}${facts(q)}<p class="q3ph">チームの選手をタップすると入れ替えます</p><button class="q3rel" data-rel="${sq3R}">放出する</button></div>`; }
-    else if (sq3Pick >= 0 && ps[sq3Pick]) { const q = ps[sq3Pick]; pop = `<div class="s2pop q3pop">${head(q, XB)}${ranks(q)}${facts(q)}<div class="s2rl">${Object.keys(ROLE_NAME).map((k) => `<button data-role="${k}" class="${tac.roles[k] === q.name ? 'on' : ''}"><i class="s2rt rt-${k}">${ROLE_TAG[k]}</i>${ROLE_NAME[k]}</button>`).join('')}</div><p class="q3ph">ほかの選手をタップすると入れ替えます</p><button class="s2pd" data-pd="${sq3Pick}">選手データを見る</button></div>`; }
+    /* 版1075：選手を選んだ時は、右の板がその選手のくわしい板になる（監督の画像どおり：顔・ポジション・背番号・名前・星、タイプ・疲労・利き足、能力ランク、選手データ／入れ替える） */
+    let side = '';
+    if (sq3Role) { const RK = ['captain', 'pk', 'fk', 'ck']; side = `<div class="q3side q3dp"><div class="q3dh"><b>役割設定</b>${XB.replace('q3px', 'q3px q3rlx')}</div>${RK.map((k) => { const nm = tac.roles[k], q = nm && ps.slice(0, 11).find((x) => x.name === nm); return `<button class="q3rr${sq3Role === k ? ' on' : ''}" data-rk="${k}"><i class="s2rt rt-${k}">${ROLE_TAG[k]}</i><span>${ROLE_NAME[k]}</span>${q ? facePic(q, 'q3rf') : '<i class="q3rf q3rf0"></i>'}<b>${q ? esc(q.name) : '（なし）'}</b><em>›</em></button>`; }).join('')}<p class="q3dhint">役割を選んで、担当する選手をタップ。</p><p class="q3rst">${ROLE_NAME[sq3Role]}を選択中</p><button class="q3rdone">完了</button></div>`; }
+    else if (sq3Pick >= 0 && ps[sq3Pick]) { const q = ps[sq3Pick]; C.ensurePts(q); const rk = PK.map((k) => C.rankInfo(q.pts[k]).g);
+      side = `<div class="q3side q3dp"><div class="q3dtop"><div class="q3dface">${facePic(q, 'q3df')}</div><div class="q3dname"><i class="pos ${POSC[q.position]}">${q.position}</i><b>${q.number || ''} ${esc(q.name)}</b></div>${starHTML(C.ensureStar(q), q.totsu)}${XB}</div>
+        <div class="q3dinfo"><span class="tbadge ${TYPE_CLS[q.type] || 'ty-bal'}">${esc(q.type || '')}</span><i class="q3dsep"></i><span>疲労 ${Math.round(q.fatigue || 0)}%</span><span>／</span><span>利き足</span>${footSVG(q.foot)}<span>${q.foot === 'L' ? '左' : '右'}</span>${q.injury > 0 ? `<span class="q3dinj">ケガ（あと${q.injury}週）</span>` : q.suspend > 0 ? '<span class="q3dinj">出場停止</span>' : ''}</div>
+        <div class="q3dsh"><b>能力ランク</b><i></i></div><div class="q3dr">${PK.map((k, j) => `<span title="${esc(D.PARAMS[j].name)}">${ico(k)}<i class="rk2 g-${rk[j]}">${rk[j]}</i></span>`).join('')}</div>
+        <div class="q3dbtn"><button class="q3dd" data-pd="${sq3Pick}">選手データ</button><button class="q3dsw${sq3Swap ? ' on' : ''}">${sq3Swap ? '入れ替える相手をタップ' : '入れ替える'}</button></div><p class="q3dhint">選手タップで能力確認</p></div>`; }
     const resRow = (q, k) => `<div class="q3r${k === sq3R ? ' sel' : ''}${sq3Multi && sq3Multi.has(q) ? ' chk' : ''}" data-r="${k}">${facePic(q, 'q3bf')}<span>${esc(q.name)}<small>${'☆'.repeat(C.ensureStar(q))}</small></span>${sq3Multi ? `<i class="q3ck">${sq3Multi.has(q) ? '✓' : ''}</i>` : `<b class="q3o">${statOvr(q)}</b>`}</div>`;
     if (sq3Res && rsv.length > 1) rsv.sort((a, b) => ((b.gNew ? 1 : 0) - (a.gNew ? 1 : 0)) || (C.ensureStar(b) - C.ensureStar(a)) || statOvr(b) - statOvr(a));
     const resPanel = () => `<div class="q3side q3rs"><div class="q3rh"><b class="q3h">リザーブ ${rsv.length}人</b><button class="q3rx">とじる</button></div><div class="q3rl">${rsv.map(resRow).join('')}</div>
@@ -1670,9 +1677,9 @@
     L.innerHTML = `<div class="sq3"><div class="q3in">
       <div class="q3top"><h2><svg viewBox="0 0 64 64" class="q3ball"><circle cx="32" cy="32" r="28" fill="#fff" stroke="#222" stroke-width="3"/><polygon points="32,21 42,28 38,40 26,40 22,28" fill="#222"/><path d="M32 4v17M60 26l-18 2M49 56l-11-16M15 56l11-16M4 26l18 2" stroke="#222" stroke-width="3"/></svg>スタメン・配置</h2><i class="q3sep"></i><img class="q3emb" src="${emblemURL(save.team.name, 48)}" alt=""><b class="q3tm">${esc(save.team.name)}</b>
         <button class="q3back" aria-label="戻る"><svg viewBox="0 0 24 24"><path d="M20 12H6M11 6l-6 6 6 6" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
-      <div class="q3bar"><span class="q3fl">フォーメーション</span><button class="q3fm">${esc(fm)}<i>▼</i></button><button class="q3tac">戦術設定</button>${sqFromHome ? '<button class="q3club">クラブ設定</button>' : ''}${nRes ? `<button class="q3res"><span>リザーブ</span><b>${nRes}</b></button>` : ''}</div>
+      <div class="q3bar"><span class="q3fl">フォーメーション</span><button class="q3fm">${esc(fm)}<i>▼</i></button><button class="q3tac">戦術設定</button><button class="q3role${sq3Role ? ' on' : ''}">役割設定</button>${sqFromHome ? '<button class="q3club">クラブ設定</button>' : ''}${nRes ? `<button class="q3res"><span>リザーブ</span><b>${nRes}</b></button>` : ''}</div>
       <div class="q3main"><div class="q3pitch">${field}${dots}</div>
-        ${sq3Res && rsv.length ? resPanel() : `<div class="q3side"><div class="q3col"><b class="q3h">ベンチ入り</b>${b1.map((q, k) => row(q, 11 + k)).join('')}</div><i class="q3vl"></i><div class="q3col"><b class="q3h">ベンチ外</b>${b2.map((q, k) => row(q, 11 + C.BENCH_N + k)).join('')}</div></div>`}</div>${pop}
+        ${side || (sq3Res && rsv.length ? resPanel() : `<div class="q3side"><div class="q3col"><b class="q3h">ベンチ入り</b>${b1.map((q, k) => row(q, 11 + k)).join('')}</div><i class="q3vl"></i><div class="q3col"><b class="q3h">ベンチ外</b>${b2.map((q, k) => row(q, 11 + C.BENCH_N + k)).join('')}</div></div>`)}</div>${pop}
       <p class="q3hint"><span>選手をドラッグして配置・入れ替え</span></p>
       ${sq3Menu ? `<div class="q3menu">${C.FORMATIONS.map((f) => `<button data-f="${f}" class="${f === tac.formation ? 'on' : ''}">${f}</button>`).join('')}</div>` : ''}
     </div></div>`;
@@ -1688,9 +1695,13 @@
     { const rb = L.querySelector('.q3res'); if (rb) rb.onclick = () => { sq3Res = !sq3Res; sq3R = -1; sq3Multi = null; sq3Pick = -1; if (!sq3Res) for (const q of rsv) delete q.gNew; renderLineup3(); }; }
     { const x = L.querySelector('.q3rx'); if (x) x.onclick = () => { sq3Res = false; sq3R = -1; sq3Multi = null; for (const q of rsv) delete q.gNew; renderLineup3(); }; }
     { const cb = L.querySelector('.q3club'); if (cb) cb.onclick = () => openClub({ onDone: () => renderLineup() }); }
-    { const x = L.querySelector('.q3px'); if (x) x.onclick = (e) => { e.stopPropagation(); sq3Pick = -1; sq3R = -1; renderLineup3(); }; }
-    { const pd = L.querySelector('.q3pop .s2pd'); if (pd) pd.onclick = () => { const i = +pd.dataset.pd; sq3Pick = -1; playerDetail(i); }; }
-    L.querySelectorAll('.q3pop [data-role]').forEach((bt) => bt.onclick = () => { const q = ps[sq3Pick], k = bt.dataset.role; if (!q) return; tac.roles[k] = tac.roles[k] === q.name ? null : q.name; redo(); });
+    { const x = L.querySelector('.q3px'); if (x) x.onclick = (e) => { e.stopPropagation(); sq3Pick = -1; sq3R = -1; sq3Swap = false; renderLineup3(); }; }
+    { const pd = L.querySelector('.q3dd'); if (pd) pd.onclick = () => { const i = +pd.dataset.pd; sq3Pick = -1; playerDetail(i); }; }
+    { const b = L.querySelector('.q3dsw'); if (b) b.onclick = () => { sq3Swap = !sq3Swap; renderLineup3(); }; }
+    { const b = L.querySelector('.q3role'); if (b) b.onclick = () => { sq3Role = sq3Role ? null : 'captain'; sq3Pick = -1; sq3Swap = false; sq3R = -1; renderLineup3(); }; }
+    L.querySelectorAll('.q3rr').forEach((b) => b.onclick = () => { sq3Role = b.dataset.rk; renderLineup3(); });
+    { const b = L.querySelector('.q3rdone'); if (b) b.onclick = () => { sq3Role = null; renderLineup3(); }; }
+    { const b = L.querySelector('.q3rlx'); if (b) b.onclick = (e) => { e.stopPropagation(); sq3Role = null; renderLineup3(); }; }
     /* リザーブとチームの入れ替え（前の画面と同じ決まり：GKの所はGKだけ、入れ替わった選手の役割は外す） */
     const swapRes3 = (k, i) => { const r = rsv[k]; if (!r || !ps[i]) return;
       if (i === 0 && r.position !== 'GK') { toast('GKの所には、GKの選手しか入れられません'); return; }
@@ -1735,7 +1746,10 @@
           gh.style.transform = isP ? `translate(${(e.clientX - gx - br.left) * k}px,${(e.clientY - gy - br.top) * k}px) translate(-50%,-62%)` : `translate(${(e.clientX - br.left) * k}px,${(e.clientY - br.top) * k}px) translate(-50%,-50%)`; };
         const up = (e) => { window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up);
           if (gh) gh.remove(); el.classList.remove('q3src');
-          if (!moved) { if (sq3R >= 0) { swapRes3(sq3R, i); return; } if (sq3Pick >= 0 && sq3Pick !== i) swap(sq3Pick, i); else { sq3Pick = sq3Pick === i ? -1 : i; renderLineup3(); } return; }   // タップ：1人目を選んで、2人目をタップで入れ替え
+          if (!moved) { if (sq3R >= 0) { swapRes3(sq3R, i); return; }
+            if (sq3Role) { if (i > 10) { toast('役割はスタメンの選手から選びます'); return; } tac.roles[sq3Role] = ps[i].name; const RK = ['captain', 'pk', 'fk', 'ck'], nx = RK[RK.indexOf(sq3Role) + 1]; if (nx) sq3Role = nx; redo(); return; }   /* 役割設定：選んでいる役割にその選手を決めて、次の役割へ */
+            if (sq3Swap && sq3Pick >= 0 && sq3Pick !== i) { sq3Swap = false; swap(sq3Pick, i); return; }
+            sq3Swap = false; sq3Pick = sq3Pick === i ? -1 : i; renderLineup3(); return; }   /* 版1075：タップは能力の確認（入れ替えは「入れ替える」を押してから相手をタップ、またはドラッグ） */   // タップ：1人目を選んで、2人目をタップで入れ替え
           const tg = document.elementFromPoint(e.clientX, e.clientY), to = tg && ((tg.closest('.q3fw, .q3n') && tg.closest('.q3p')) || tg.closest('.q3b'));   /* 版1071：ほかの選手の顔か名前の上で離した時だけ入れ替え */
           if (to && +to.dataset.i !== i) { swap(i, +to.dataset.i); return; }
           { const rr = tg && tg.closest('.q3r'); if (rr) { swapRes3(+rr.dataset.r, i); return; } }   /* チームの選手をリザーブの札へ */

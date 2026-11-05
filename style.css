@@ -4359,3 +4359,41 @@ body.in-digest #soBoard,body.in-digest #soCard{display:none!important}
 
 /* 版1073：試合の準備中（計算を待つ間。画面は止まらない） */
 .sim-prep{position:absolute;inset:0;z-index:900;display:flex;align-items:center;justify-content:center;gap:14px;background:rgba(0,0,0,.35);color:#fff;font:900 20px/1 system-ui,sans-serif}.sim-prep i{width:26px;height:26px;border-radius:50%;border:4px solid rgba(255,255,255,.35);border-top-color:#fff;animation:simspin .8s linear infinite}@keyframes simspin{to{transform:rotate(360deg)}}
+/* 版1075：選手のくわしい板・役割設定（右の板に出す。監督の画像どおり、明るいクリーム色の板） */
+.sq3 .q3role{height:5.6cqh;padding:0 3cqw;border-radius:1cqh;border:.35cqh solid #7fb0ff;background:linear-gradient(#2f6fe0,#1d4fb8);font-weight:900;font-size:3cqh}
+.sq3 .q3role.on{border-color:#fff3b0;background:linear-gradient(#f4d46a,#c9a33a);color:#2a2008}
+.sq3 .q3dp{flex-direction:column;gap:1cqh;background:#f8f4e8;color:#1b2a44;border-color:#e8dcb8;padding:1.6cqh 1.6cqw;overflow-y:auto}
+.sq3 .q3dtop{display:flex;align-items:center;gap:1.4cqw}
+.sq3 .q3dface{flex:0 0 auto;width:15cqh;height:15cqh;border:.4cqh solid #c9a33a;border-radius:1cqh;background:linear-gradient(#e6eef8,#c9d8ea);overflow:hidden}
+.sq3 .q3df{width:100%;height:100%;object-fit:cover;object-position:50% 15%;image-rendering:pixelated}
+.sq3 .q3dname{flex:1;min-width:0;display:flex;align-items:center;gap:1cqw}
+.sq3 .q3dname .pos{flex:0 0 auto;font-style:normal;font-weight:900;font-size:2.4cqh;padding:.4cqh 1cqw;border-radius:.6cqh;color:#fff}
+.sq3 .q3dname b{font-size:3.6cqh;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sq3 .q3dtop .stars{font-size:2.6cqh}
+.sq3 .q3dtop .q3px{position:static;flex:0 0 auto;width:5cqh;height:5cqh;padding:0;border:none;background:none}.sq3 .q3dtop .q3px img,.sq3 .q3dh .q3px img{width:100%;height:100%}
+.sq3 .q3dinfo{display:flex;align-items:center;gap:.8cqw;flex-wrap:wrap;font-size:2.5cqh;font-weight:800;color:#45526b}
+.sq3 .q3dinfo .tbadge{font-size:2.5cqh;padding:.5cqh 2cqw;border-radius:3cqh}
+.sq3 .q3dinfo .footsvg{width:4.4cqh;height:3.4cqh}
+.sq3 .q3dsep{width:.25cqh;height:4cqh;background:#b9c2d2;margin:0 .6cqw}
+.sq3 .q3dinj{color:#d33a2c}
+.sq3 .q3dsh{display:flex;align-items:center;gap:1cqw;font-size:2.8cqh;font-weight:900}.sq3 .q3dsh i{flex:1;height:.3cqh;background:#c9a33a}
+.sq3 .q3dr{display:grid;grid-template-columns:repeat(6,1fr);gap:.6cqh .4cqw;justify-items:center}
+.sq3 .q3dr span{display:flex;flex-direction:column;align-items:center}
+.sq3 .q3dr .pico{width:8cqh;height:8cqh}
+.sq3 .q3dr .rk2{font-style:italic;font-weight:900;font-size:3.6cqh;line-height:1;-webkit-text-stroke:0;text-shadow:none}
+.sq3 .q3dbtn{display:flex;gap:1.4cqw;margin-top:auto}
+.sq3 .q3dbtn button{flex:1;height:6.6cqh;border-radius:1.2cqh;font-weight:900;font-size:3cqh}
+.sq3 .q3dd{border:.35cqh solid #1b2a44;background:#fff;color:#1b2a44!important}
+.sq3 .q3dsw{border:.35cqh solid #7fb0ff;background:linear-gradient(#2f6fe0,#1d4fb8);color:#fff}.sq3 .q3dsw.on{background:linear-gradient(#f4d46a,#c9a33a);border-color:#fff3b0;color:#2a2008!important;font-size:2.5cqh!important}
+.sq3 .q3dhint{margin:0;text-align:center;color:#1d4fb8;font-weight:800;font-size:2.4cqh}
+.sq3 .q3dh{display:flex;align-items:center;gap:1cqw;padding-left:1.2cqw;border-left:.8cqh solid #c9a33a}.sq3 .q3dh b{flex:1;font-size:3.8cqh;font-weight:900}.sq3 .q3dh .q3px{position:static;width:5cqh;height:5cqh;padding:0;border:none;background:none}
+.sq3 .q3rr{display:flex;align-items:center;gap:1.2cqw;height:8.4cqh;padding:0 1.4cqw;border-radius:1.2cqh;border:.3cqh solid #c9c2ae;background:#fff;color:#1b2a44;font-weight:900;font-size:2.8cqh;text-align:left}
+.sq3 .q3rr.on{background:linear-gradient(#fff3c4,#f4d46a);border-color:#c9a33a}
+.sq3 .q3rr .s2rt{flex:0 0 auto;font-size:2.2cqh}
+.sq3 .q3rr span{flex:0 0 32%}
+.sq3 .q3rf{width:7cqh;height:7cqh;object-fit:cover;object-position:50% 15%;border-radius:.6cqh;border:.25cqh solid #9aa7bd;background:#dfe7f2;image-rendering:pixelated}.sq3 .q3rf0{display:inline-block}
+.sq3 .q3rr b{flex:1;font-size:3cqh;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sq3 .q3rr em{font-style:normal;font-size:4cqh;color:#45526b}
+.sq3 .q3rst{margin:0;padding:1cqh;border:.3cqh solid #9aa7bd;border-radius:1cqh;background:#fff;text-align:center;font-weight:800;font-size:2.6cqh}
+.sq3 .q3rdone{align-self:center;width:60%;height:6.6cqh;border-radius:1.2cqh;border:.35cqh solid #7fb0ff;background:linear-gradient(#2f6fe0,#1d4fb8);color:#fff;font-weight:900;font-size:3.4cqh}
+.sq3 .q3p.sel .q3n{background:linear-gradient(#2f6fe0,#1d4fb8);border-color:#ffd84a;box-shadow:0 0 1.2cqh #ffd84a}.sq3 .q3p.sel .q3f{filter:drop-shadow(0 0 1cqh #ffd84a)}
+.sq3 .q3dr .rk2.g-S{color:#e07a00}.sq3 .q3dr .rk2.g-A{color:#d8261a}.sq3 .q3dr .rk2.g-B{color:#1d6fe0}.sq3 .q3dr .rk2.g-C{color:#b8860b}.sq3 .q3dr .rk2.g-D{color:#3d4757}.sq3 .q3dr .rk2.g-E{color:#9aa3b2}   /* 版1075：明るい板の上で読める色に */
