@@ -4585,6 +4585,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     el.querySelectorAll('[data-a="subs"],[data-a="tac"]').forEach((b) => { b.style.visibility = (mctx && mctx.opts.lockEdit) ? 'hidden' : ''; });
     lk = { t0: performance.now(), left: LK_SEC, last: performance.now(), leaving: false, raf: 0, sit: lkSeats() };
     SND().crowd('duck');   // 版734：ハーフタイムの曲は流さない（観客の声を小さくするだけ）
+    lk2Key = ''; lkBuildBg(el);   // 版1108：ユニフォームの色とエンブレム
     el.hidden = false; el._fit(); el.querySelector('.lk-sub').hidden = true;   // 版556：見えてから大きさを合わせる（黒い余白が出ていた）
     { const w = !!(mctx && mctx.opts && mctx.opts.watch); el.querySelector('.lk-btns').style.visibility = w ? 'hidden' : ''; }   // 観戦：交代・戦術はない
     const bl = el.querySelector('.lk-black'); bl.style.transition = 'none'; bl.style.opacity = '1';
@@ -4721,9 +4722,33 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     // 薄い影で奥行き
     const g = c.createLinearGradient(0, 0, 0, 360); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.12)'); c.fillStyle = g; c.fillRect(0, 0, 640, 360);
   }
-  // 版1106：デザイン案の部屋（絵）の上に、ゲームのドット絵の選手・監督・トレーナーを描く（1280×720の座標。y は足もと）
-  const LK2_SEATS = [[186, 452, 'f34'], [258, 418, 'f34'], [332, 388, 'f34'], [408, 342, 'f34'], [590, 330, 'back'], [632, 334, 'back'], [705, 362, 'back'], [768, 362, 'back'], [845, 342, 'back'], [897, 332, 'back']];
-  const LK2_LIE = [[612, 528], [888, 528]], LK2_STAFF = [[660, 470], [935, 470]];
+  // 版1108：デザイン案の部屋（人のいない絵）に、ゲームのドット絵の選手・監督・トレーナーを置く（1280×720の座標。y は足もと／座る所）
+  //  ロッカーに掛かったユニフォームは自分のチームのシャツの色に、旗とマットのエンブレムは自分のクラブのエンブレムに
+  const LK2_K = 1280 / 1672, LK2P = (x, y) => [Math.round(x * LK2_K), Math.round(y * LK2_K)];
+  const LK2_SEATS = [[190, 429, 'f34'], [265, 404, 'f34'], [340, 379, 'f34'], [415, 354, 'f34'], [560, 240, 'f34'], [600, 334, 'b34'], [710, 381, 'b34'], [765, 381, 'b34'], [880, 351, 'b34']];
+  const LK2_LIE = [[612, 530], [892, 530]], LK2_STAFF = [[755, 535], [1045, 535]], LK2_COACH = [835, 300];
+  const lk2Img = {}; for (const [k, u] of [['bg', 'img/locker.jpg'], ['m', 'img/locker_shirt.png']]) { const im = new Image(); im.src = u; lk2Img[k] = im; }
+  let lk2Key = '';
+  function lkBuildBg(el) {
+    const bgI = lk2Img.bg, mI = lk2Img.m, col = TEAM[0] || {}, o = mctx ? mctx.opts : {}, key = (col.W || '') + '|' + (o.embH || '').slice(-40);
+    if (!bgI.complete || !bgI.naturalWidth || !mI.complete || !mI.naturalWidth) { setTimeout(() => lkBuildBg(el), 150); return; }
+    if (key === lk2Key) return; lk2Key = key;
+    const cv = document.createElement('canvas'); cv.width = 1280; cv.height = 720; const c = cv.getContext('2d'); c.drawImage(bgI, 0, 0, 1280, 720);
+    try {   // ユニフォームの色：シャツの部分だけ、明るさはそのままで色を変える
+      const mc = document.createElement('canvas'); mc.width = 1280; mc.height = 720; const mx = mc.getContext('2d'); mx.drawImage(mI, 0, 0);
+      const md = mx.getImageData(0, 0, 1280, 720).data, im = c.getImageData(0, 0, 1280, 720), d = im.data, sh = hexRGB(col.W || '#2f6fd6'), REF = 25 * 0.3 + 76 * 0.59 + 203 * 0.11;
+      for (let i = 0; i < d.length; i += 4) { if (!md[i + 3]) continue; const L = (d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11) / REF; d[i] = Math.min(255, sh[0] * L); d[i + 1] = Math.min(255, sh[1] * L); d[i + 2] = Math.min(255, sh[2] * L); }
+      c.putImageData(im, 0, 0); mc.width = 0; mc.height = 0;
+    } catch (_) {}
+    const put = () => { const bg = el.querySelector('.lk-bg'); if (bg) bg.src = cv.toDataURL('image/jpeg', 0.9); };
+    if (o.embH) { const e = new Image(); e.onload = () => {
+      // 旗（ボールの丸の上）
+      const [px, py] = LK2P(903, 92); c.fillStyle = '#1b3a9e'; c.beginPath(); c.arc(px, py, 27, 0, 7); c.fill(); c.drawImage(e, px - 28, py - 28, 56, 56);
+      // 床のマット（ななめの面に合わせる）
+      c.save(); const [mx0, my0] = LK2P(306, 748); c.translate(mx0, my0); c.transform(0.62, -0.28, 0.62, 0.3, 0, 0); c.fillStyle = '#23379a'; c.beginPath(); c.arc(0, 0, 40, 0, 7); c.fill(); c.drawImage(e, -40, -40, 80, 80); c.restore();
+      put(); }; e.onerror = put; e.src = o.embH; } else put();
+  }
+  const hexRGB = (h) => { const m = /^#?([0-9a-f]{6})$/i.exec(h || ''); const n = m ? parseInt(m[1], 16) : 0x2f6fd6; return [n >> 16, (n >> 8) & 255, n & 255]; };
   function lkMan(c, key, o, x, y, sc) {
     if (!DM.on) return; let cv = sprCache.get(key);
     if (!cv) { const F = DotMan.frame({ pose: 'stand', frame: 0, ...o }); cv = document.createElement('canvas'); cv.width = SPR_W; cv.height = SPR_H; cv.getContext('2d').drawImage(F.cv, F.px - 9, F.py - 24, SPR_W, SPR_H, 0, 0, SPR_W, SPR_H); sprCache.set(key, cv); }
@@ -4731,15 +4756,16 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
   }
   function drawLockerPeople(c, t) {
     c.clearRect(0, 0, 1280, 720); c.imageSmoothingEnabled = false;
-    const S = 3.4, sit = lk ? lk.sit : lkSeats(), order = sit.filter((s) => s.pose !== 'lie').map((s) => s.k), lie = sit.filter((s) => s.pose === 'lie').map((s) => s.k);
-    lkMan(c, 'lk2coach', { facing: Math.PI / 2 + 0.7, shirt: '#1d2a52', shorts: '#1d2a52', socks: '#1d2a52', hair: HAIR[2], skin: SKIN[1] }, 735, 278, S);   // 監督（ホワイトボードの前）
-    const seat = (k, j) => { const p = LK2_SEATS[j]; if (!p) return; const info = rinfo(0, k, halfT), gk = info.position === 'GK', spr = spriteCanvas(info, 0, p[2], 0, false, gk); if (!spr) return;
-      const bob = Math.sin(t * 2.2 + j * 0.7) > 0.92 ? S : 0, cut = 7, h = SPR_H - cut;
-      c.drawImage(spr, 0, 0, SPR_W, h, Math.round(p[0] - SPR_W * S / 2), Math.round(p[1] - h * S - bob), Math.round(SPR_W * S), Math.round(h * S)); };
-    order.forEach((k, j) => seat(k, j));
-    lie.forEach((k, j) => { const p = LK2_LIE[j]; if (!p) return; const info = rinfo(0, k, halfT), spr = spriteCanvas(info, 0, 'front', 0, false, info.position === 'GK'); if (!spr) return;
-      c.save(); c.translate(p[0], p[1]); c.rotate(-Math.PI / 2); c.drawImage(spr, -SPR_W * S / 2, -SPR_H * S / 2, SPR_W * S, SPR_H * S); c.restore(); });
-    for (const [x, y] of LK2_STAFF) lkMan(c, 'lk2staff', { facing: Math.PI / 2 + 0.6, shirt: '#f4f4f0', shorts: '#e8e8e2', socks: '#f4f4f0', hair: HAIR[1], skin: SKIN[1] }, x, y, S);
+    const S = 3.1, sit = lk ? lk.sit : lkSeats(), order = sit.filter((s) => s.pose !== 'lie').map((s) => s.k), lie = sit.filter((s) => s.pose === 'lie').map((s) => s.k);
+    const items = [];
+    items.push([LK2_COACH[1], () => lkMan(c, 'lk2coach', { facing: Math.PI / 2 + 0.5, shirt: '#1d2a52', shorts: '#1d2a52', socks: '#1d2a52', hair: HAIR[2], skin: SKIN[1] }, LK2_COACH[0], LK2_COACH[1], S)]);   // 監督（ホワイトボードの前）
+    order.forEach((k, j) => { const p = LK2_SEATS[j]; if (!p) return; items.push([p[1], () => { const info = rinfo(0, k, halfT), spr = spriteCanvas(info, 0, p[2], 0, false, info.position === 'GK'); if (!spr) return;
+      const bob = Math.sin(t * 2.2 + j * 0.7) > 0.92 ? 2 : 0, cut = 7, h = SPR_H - cut;
+      c.drawImage(spr, 0, 0, SPR_W, h, Math.round(p[0] - SPR_W * S / 2), Math.round(p[1] - h * S - bob), Math.round(SPR_W * S), Math.round(h * S)); }]); });
+    lie.forEach((k, j) => { const p = LK2_LIE[j]; if (!p) return; items.push([p[1], () => { const info = rinfo(0, k, halfT), spr = spriteCanvas(info, 0, 'front', 0, false, info.position === 'GK'); if (!spr) return;
+      c.save(); c.translate(p[0], p[1]); c.rotate(-Math.PI / 2 + 0.2); c.drawImage(spr, -SPR_W * S / 2, -SPR_H * S / 2, SPR_W * S, SPR_H * S); c.restore(); }]); });
+    LK2_STAFF.forEach(([x, y], j) => items.push([y, () => lkMan(c, 'lk2staff', { facing: Math.PI * 0.82, shirt: '#f4f4f0', shorts: '#e8e8e2', socks: '#f4f4f0', hair: HAIR[1], skin: SKIN[1] }, x + Math.round(Math.sin(t * 3 + j) * 2), y, S)]));
+    items.sort((a, b) => a[0] - b[0]).forEach((it) => it[1]());
   }
   function lkStaff(c, x, y, t) {
     if (!DM.on) return;
