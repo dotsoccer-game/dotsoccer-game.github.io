@@ -1642,13 +1642,13 @@
     const CU = (c) => 0.08 + c / (COLS - 1) * 0.84;
     const px = (c, r) => tx(CU(c), RV(r)), py = (r) => ty(RV(r));
     const P = (u, v) => `${tx(u, v).toFixed(2)},${ty(v).toFixed(2)}`;
-    const stripes = Array.from({ length: 12 }, (_, k) => `<polygon points="${P(k / 12, 0)} ${P((k + 1) / 12, 0)} ${P((k + 1) / 12, 1)} ${P(k / 12, 1)}" fill="${k % 2 ? '#3f9b3a' : '#4aa843'}"/>`).join('');
+    const stripes = Array.from({ length: 12 }, (_, k) => `<polygon points="${P(k / 12, 0)} ${P((k + 1) / 12, 0)} ${P((k + 1) / 12, 1)} ${P(k / 12, 1)}" fill="${k % 2 ? '#2b7a28' : '#368b30'}"/>`).join('');
     const ln = (pts) => `<polyline points="${pts.map(([u, v]) => P(u, v)).join(' ')}" fill="none" stroke="rgba(255,255,255,.92)" stroke-width="2.2" vector-effect="non-scaling-stroke"/>`;
     const arc = (cu, cv, ru, rv, a0, a1) => ln(Array.from({ length: 25 }, (_, k) => { const a = a0 + (a1 - a0) * k / 24; return [cu + Math.cos(a) * ru, cv + Math.sin(a) * rv]; }));
     const lines = ln([[0.02, 0.02], [0.02, 1.2]]) + ln([[0.98, 0.02], [0.98, 1.2]]) + ln([[0.02, 0.02], [0.98, 0.02]]) + arc(0.5, 0.02, 0.16, 0.12, 0, Math.PI)
       + ln([[0.23, 1.2], [0.23, 0.83], [0.77, 0.83], [0.77, 1.2]]) + ln([[0.37, 1.2], [0.37, 0.93], [0.63, 0.93], [0.63, 1.2]]) + arc(0.5, 0.86, 0.12, 0.08, Math.PI * 1.17, Math.PI * 1.83)
       + arc(0.02, 1, 0.03, 0.025, -Math.PI / 2, 0) + arc(0.98, 1, 0.03, 0.025, Math.PI, Math.PI * 1.5);
-    const field = `<svg class="q3fd" viewBox="0 0 100 100" preserveAspectRatio="none">${stripes}${lines}</svg>`;
+    const field = `<svg class="q3fd" viewBox="0 0 100 100" preserveAspectRatio="none"><defs><radialGradient id="q3vg" cx="50%" cy="48%" r="70%"><stop offset="55%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#021a04" stop-opacity=".45"/></radialGradient><linearGradient id="q3sh" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".18"/><stop offset=".35" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity=".04"/></linearGradient></defs>${stripes}<rect width="100" height="100" fill="url(#q3sh)"/><rect width="100" height="100" fill="url(#q3vg)"/>${lines}</svg>`;   /* 版1068：芝の色を監督の画像に寄せる（深い緑の縞、奥と四隅を少し暗く） */
     const tags = (q) => ['pk', 'fk', 'ck'].filter((k) => tac.roles[k] === q.name).map((k) => `<i class="q3t t-${k}">${ROLE_TAG[k]}</i>`).join('');
     const chip = (q, i, x, y) => `<div class="q3p${i === sq3Pick ? ' sel' : ''}${q.injury > 0 ? ' inj' : ''}${i === 0 ? ' gk' : ''}" data-i="${i}" style="left:${x}%;top:${y}%;z-index:${2 + Math.round(y)}"><div class="q3fw">${facePic(q, 'q3f', false)}<b class="q3o">${statOvr(q)}</b><span class="q3ts">${tags(q)}</span>${tac.roles.captain === q.name ? '<i class="q3c">C</i>' : ''}</div><span class="q3n${tac.roles.captain === q.name ? ' cap' : ''}">${esc(q.name)}</span></div>`;
     let dots = chip(ps[0], 0, 50, ty(0.9));

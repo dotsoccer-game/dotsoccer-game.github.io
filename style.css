@@ -4305,7 +4305,7 @@ body.in-digest #soBoard,body.in-digest #soCard{display:none!important}
 .sq3 .q3tac{height:5.6cqh;padding:0 3cqw;border-radius:1cqh;border:.35cqh solid #7fb0ff;background:linear-gradient(#2f6fe0,#1d4fb8);font-weight:900;font-size:3cqh}
 .sq3 .q3res{margin-left:auto;height:5.6cqh;padding:0 2cqw;border-radius:1cqh;border:.35cqh solid #7fb0ff;background:#13285a;display:flex;align-items:center;gap:1.4cqw;font-weight:900;font-size:2.8cqh}.sq3 .q3res b{border-left:.3cqh solid #7fb0ff;padding-left:1.4cqw;color:#ffe25a;font-size:3.6cqh}
 .sq3 .q3main{flex:1;display:flex;gap:1.6cqw;padding:1cqh 2cqw .4cqh;min-height:0}
-.sq3 .q3pitch{position:relative;flex:0 0 62%;border:.4cqh solid #c9a33a;border-radius:1.2cqh;overflow:hidden;background:#3a9136;box-shadow:inset 0 0 0 .3cqh rgba(0,0,0,.35)}
+.sq3 .q3pitch{position:relative;flex:0 0 62%;border:.4cqh solid #c9a33a;border-radius:1.2cqh;overflow:hidden;background:#2a7526;box-shadow:inset 0 0 0 .3cqh rgba(0,0,0,.35)}
 .sq3 .q3fd{position:absolute;inset:0;width:100%;height:100%}
 .sq3 .q3p{position:absolute;transform:translate(-50%,-62%);display:flex;flex-direction:column;align-items:center;touch-action:none;cursor:grab;z-index:2}
 .sq3 .q3fw{position:relative;width:11cqh;height:11cqh}
