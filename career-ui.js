@@ -383,7 +383,7 @@
   function e2Text(c, tx, lk, color) {   // 版1101：名前の帯の文字（テンプレートの絵・見本の絵で共通）
     if (lk.tm !== 'none') {
       const full = String(lk.name || lk.nm || '').trim(), sh = String(lk.short || lk.sh || '').trim() || full.slice(0, 4);
-      const cand = lk.tm === 'short' ? [sh] : [full, sh];
+      const cand = lk.tm === 'short' || [...full].length >= 6 ? [sh] : [full, sh];   // 版1103：6文字以上の名前は、略称を載せる
       c.fillStyle = color; c.textAlign = 'center'; c.textBaseline = 'middle';
       const wAt = (str, f) => { c.font = `900 ${f}px ${E2FONT}`; return c.measureText(str).width; };
       let str = '', f = 0;
@@ -481,7 +481,7 @@
     const cv = art2Canvas(lk), W = cv.width; ctx.save(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'; ctx.drawImage(cv, x - s / 2, y - s / 2, s, s);
     const t = ART2.text[lk.tpl]; if (t && lk.tm !== 'none' && s >= 30) { ctx.translate(x - s / 2, y - s / 2); ctx.scale(s / W, s / W);
       if (t[0] === 'r') e2Text(ctx, { k: 'rect', x: t[1], y: t[2], w: t[3], h: t[4] }, lk, art2Col(lk, 'ct'));
-      else { ctx.translate(t[1], t[2]); e2Text(ctx, { k: 'arc', rx: t[3], ry: t[4], a0: t[5], a1: t[6], h: 30 }, lk, art2Col(lk, 'ct')); } }
+      else { ctx.translate(t[1], t[2]); e2Text(ctx, { k: 'arc', rx: t[3], ry: t[4], a0: t[5], a1: t[6], h: 36 }, lk, art2Col(lk, 'ct')); } }
     ctx.restore();
   }
   function drawEmblem(ctx, x, y, s, lk) {
@@ -3961,16 +3961,16 @@
       else {
         const pl = (EMB2_PATS.find(([k]) => k === (T.patFix != null ? T.patFix : e.pat == null ? 4 : e.pat)) || [0, '無地'])[1], ml = (EMB_ICONS.find(([k]) => k === (e.icon || 'none')) || [0, 'なし'])[1];
         body = `<div class="ee-sum"><span><img src="${cv(lkOf({ tm: 'none' }), 56)}" alt="">${String(e.tpl).padStart(2, '0')} ${T.name}</span></div>
-          <div class="ee-row"><b class="ee-lb">文字</b><div class="ee-seg">${[['name', 'クラブ名'], ['short', '略称'], ['none', '文字なし']].map(([k, l]) => `<button data-tm="${k}" class="${(e.tm || 'name') === k ? 'on' : ''}">${l}</button>`).join('')}</div><small>${esc(name)}${short ? `／${esc(short)}` : ''}</small></div>
+          <div class="ee-row"><b class="ee-lb">文字</b><div class="ee-seg">${[['name', 'クラブ名'], ['short', '略称'], ['none', '文字なし']].map(([k, l]) => `<button data-tm="${k}" class="${(e.tm || 'name') === k ? 'on' : ''}">${l}</button>`).join('')}</div><small>表示：<b>${esc((e.tm || 'name') === 'none' ? 'なし' : (e.tm === 'short' || [...name].length >= 6) ? (short || name.slice(0, 4)) : name)}</b>${[...name].length >= 6 && e.tm !== 'none' ? '（6文字以上なので略称）' : ''}</small></div>
           <div class="ee-row top"><b class="ee-lb">配色</b><div class="ee-roles">${roles.map(([k, l]) => `<button data-role="${k}" class="${st.role === k ? 'on' : ''}"><i style="background:${colOf(k)}"></i>${l}</button>`).join('')}</div></div>
-          <div class="ee-sh">${(EMB2_ROLES.find(([k]) => k === st.role) || [])[1]}の色<small>プレビューで点滅している部分</small></div>
+          <div class="ee-sh">${(EMB2_ROLES.find(([k]) => k === st.role) || [])[1]}の色</div>
           <div class="ee-pal"><div class="ee-sw">${PALETTE.map((c) => `<button data-col="${c}" class="${colOf(st.role).toLowerCase() === c ? 'on' : ''}" style="background:${c}"></button>`).join('')}</div><label class="ee-more">その他の色 <span>▶</span><input type="color" value="${colOf(st.role)}"></label></div>
           <p class="ee-tip"><i></i>小さく表示しても見やすい配色がおすすめです。</p>`;
       }
       const big = cv(lk, 300);
       box.innerHTML = `<div class="ee">
         <div class="ee-top"><img class="ee-logo" src="img/title/logo.png" alt="ドットサッカー"><i class="ee-sep"></i><span class="ee-ttl"><em>${E2_LAUREL(false)}</em>エンブレム<em>${E2_LAUREL(true)}</em></span><span class="ee-team"><img src="${cv(lk, 48)}" alt=""><b>${esc(name)}</b></span><button class="ee-back">戻る</button></div>
-        <div class="ee-l">${E2_LAUREL(false)}${E2_LAUREL(true)}<div class="ee-big"><img src="${big}" alt="">${st.tab === 'color' ? `<img class="ee-hl" src="${cv(lkOf({ [st.role]: hl(colOf(st.role)) }), 300)}" alt="">` : ''}</div>
+        <div class="ee-l">${E2_LAUREL(false)}${E2_LAUREL(true)}<div class="ee-big"><img src="${big}" alt=""></div>
           <div class="ee-nm"><i></i><b>${esc(name)}</b><i></i></div><div class="ee-use"><span>使用イメージ</span></div>
           <div class="ee-card2">${spr ? `<img class="ee-spr" src="${spr}" alt="">` : ''}<div class="ee-pill"><img src="${cv(lk, 40)}" alt=""><b>${p10.number || 10}</b><span>${esc(p10.name || '選手')}</span></div></div></div>
         <div class="ee-r"><div class="ee-tabs">${[['shape', 'デザイン'], ['color', '色・文字']].map(([k, l]) => `<button data-tab="${k}" class="${st.tab === k ? 'on' : ''}">${l}</button>`).join('')}</div><div class="ee-body">${body}</div></div>
@@ -3993,14 +3993,86 @@
     };
     draw(); el.hidden = false; el._fit();
   }
+  // ================= 版1103：ユニフォームの設定画面（監督のデザイン案。エンブレムの画面と同じ作り） =================
+  // シャツ・パンツ・ソックスの絵（ベクター）。柄：solid 無地／vstripe 縦じま／hstripe 横じま／band 胸ライン／sash たすき／half ハーフ
+  function drawKitArt(c, kit, x, y, s, only) {
+    const P = (d) => new Path2D(d), shirt = P('M30 8 L42 4 Q50 14 58 4 L70 8 L94 26 L84 44 L74 38 L74 92 Q50 96 26 92 L26 38 L16 44 L6 26 Z');
+    const trim = kit.pat === 'solid' || !kit.sub ? '#ffffff' : kit.sub, OL = 'rgba(10,20,50,.55)';
+    c.save(); c.translate(x, y); c.scale(s / 100, s / 100); c.lineJoin = 'round';
+    if (only !== 'legs') {
+      c.save(); c.fillStyle = kit.shirt; c.fill(shirt); c.clip(shirt); c.fillStyle = kit.sub || '#fff';
+      if (kit.pat === 'vstripe') for (const xx of [33, 47, 61]) c.fillRect(xx, 0, 7, 100);
+      else if (kit.pat === 'hstripe') for (const yy of [30, 46, 62, 78]) c.fillRect(0, yy, 100, 8);
+      else if (kit.pat === 'band') c.fillRect(0, 38, 100, 13);
+      else if (kit.pat === 'sash') { c.beginPath(); c.moveTo(62, 0); c.lineTo(76, 0); c.lineTo(38, 100); c.lineTo(24, 100); c.closePath(); c.fill(); }
+      else if (kit.pat === 'half') c.fillRect(50, 0, 50, 100);
+      c.fillStyle = 'rgba(0,0,0,.10)'; c.fillRect(66, 0, 40, 100); c.restore();
+      c.fillStyle = trim; c.fill(P('M42 4 Q50 14 58 4 L62 6 Q50 22 38 6 Z')); c.fill(P('M6 26 L16 44 L21 41 L11 23 Z')); c.fill(P('M94 26 L84 44 L79 41 L89 23 Z'));
+      c.lineWidth = 2; c.strokeStyle = OL; c.stroke(shirt);
+    }
+    c.restore();
+    if (only === 'shirt') return;
+    c.save(); c.translate(x, y); c.scale(s / 100, s / 100); c.lineJoin = 'round';
+    const lx = only === 'legs' ? 0 : 100, sh = P(`M${lx + 6} 10 L${lx + 54} 10 L${lx + 58} 50 L${lx + 34} 52 L${lx + 30} 30 L${lx + 26} 52 L${lx + 2} 50 Z`);
+    c.fillStyle = kit.shorts; c.fill(sh); c.lineWidth = 2; c.strokeStyle = OL; c.stroke(sh);
+    for (const ox of [10, 34]) { const so = P(`M${lx + ox} 62 L${lx + ox + 14} 62 L${lx + ox + 14} 92 Q${lx + ox + 14} 98 ${lx + ox + 22} 98 L${lx + ox + 22} 104 L${lx + ox - 2} 104 L${lx + ox} 92 Z`); c.fillStyle = kit.socks; c.fill(so); c.fillStyle = 'rgba(255,255,255,.35)'; c.fillRect(lx + ox, 64, 14, 4); c.stroke(so); }
+    c.restore();
+  }
+  const KIT_ICON = { solid: '無地', vstripe: '縦じま', hstripe: '横じま', band: '胸ライン', sash: 'たすき', half: 'ハーフ' };
+  function openKitEditor(opt) {
+    opt = opt || {};
+    const el = fullScreen('kitScreen', 'std-wrap ee-wrap'), box = el.querySelector('.lk-box');
+    const club = C.ensureClub(save), name = save.team.name;
+    const st = { kits: { home: { ...club.kit }, away: { ...club.kit2 }, gk: { ...club.gk, pat: 'solid' } }, side: 'home', role: 'shirt' }; st.orig = JSON.parse(JSON.stringify(st.kits));
+    const ps = save.team.players, pf = ps[9] || ps[0] || {}, pg = ps.find((q) => q.position === 'GK') || ps[0] || {};
+    const art = (kit, w, h, only) => { const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d'); if (only === 'shirt') drawKitArt(x, kit, 0, 0, w, 'shirt'); else drawKitArt(x, kit, 0, h * 0.05, h * 0.95); return c.toDataURL(); };
+    const sprite = (kit, p, view) => { try { const k = A().kitSprite(kit, p, view); if (!k) return ''; const c2 = document.createElement('canvas'); c2.width = k.width * 5; c2.height = k.height * 5; const x = c2.getContext('2d'); x.imageSmoothingEnabled = false; x.drawImage(k, 0, 0, c2.width, c2.height); return c2.toDataURL(); } catch (_) { return ''; } };
+    const embS = (() => { try { return emblemURL(name, 48); } catch (_) { return ''; } })();
+    const draw = () => {
+      const kit = st.kits[st.side], gk = st.side === 'gk', noPat = gk || kit.pat === 'solid';
+      if (st.role === 'sub' && noPat) st.role = 'shirt';
+      const roles = [['shirt', 'シャツ'], ['sub', '柄'], ['shorts', 'パンツ'], ['socks', 'ソックス']];
+      const sideL = { home: 'ホーム', away: 'アウェー', gk: 'GK' }[st.side], roleL = (roles.find(([k]) => k === st.role) || [])[1];
+      const p0 = gk ? pg : pf;
+      box.innerHTML = `<div class="ee ke">
+        <div class="ee-top"><img class="ee-logo" src="img/title/logo.png" alt="ドットサッカー"><i class="ee-sep"></i><span class="ee-ttl">ユニフォーム</span><span class="ke-club">${embS ? `<img src="${embS}" alt="">` : ''}<b>${esc(name)}</b></span><button class="ee-back">戻る</button></div>
+        <div class="ee-l ke-l"><div class="ke-side"><i></i><em>${E2_LAUREL(false)}</em><b>${sideL}</b><em>${E2_LAUREL(true)}</em><i></i></div>
+          <img class="ke-art" src="${art(kit, 420, 260)}" alt="">
+          <div class="ee-nm"><i></i><b>${esc(name)}</b><i></i></div>
+          <div class="ke-spr">${['front', 'side'].map((v) => { const u = sprite(kit, p0, v); return u ? `<img src="${u}" alt="">` : ''; }).join('')}</div>
+          <div class="ke-cap">試合での見え方</div></div>
+        <div class="ee-r"><div class="ee-body ke-body">
+          <div class="ke-tabs">${[['home', 'ホーム'], ['away', 'アウェー'], ['gk', 'GK']].map(([k, l]) => `<button data-side="${k}" class="${st.side === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+          ${gk ? '<p class="ee-note ke-gk">GKのユニフォームは無地です。試合の時、GKだけこの色になります。</p>' : `<div class="ke-h">柄</div><div class="ke-pats">${Object.entries(KIT_ICON).map(([k, l]) => `<button data-pat="${k}" class="ee-card col${kit.pat === k ? ' on' : ''}"><img src="${art({ ...kit, pat: k, sub: k === 'solid' ? kit.sub : kit.sub }, 84, 84, 'shirt')}" alt=""><b>${l}</b></button>`).join('')}</div>`}
+          <div class="ke-h">配色</div><div class="ke-roles">${roles.map(([k, l]) => { const dis = k === 'sub' && noPat; return `<button data-role="${k}" class="${st.role === k ? 'on' : ''}${dis ? ' dis' : ''}"${dis ? ' disabled' : ''}><i class="ke-ri ${k}"></i><span>${l}</span>${dis ? '<em>—</em>' : `<u style="background:${kit[k]}"></u>`}</button>`; }).join('')}</div>
+          <div class="ke-h row">${roleL}の色<label class="ee-more">その他の色<input type="color" value="${kit[st.role]}"></label></div>
+          <div class="ee-sw">${PALETTE.map((c) => `<button data-col="${c}" class="${(kit[st.role] || '').toLowerCase() === c ? 'on' : ''}" style="background:${c}"></button>`).join('')}</div>
+          <p class="ke-info"><i>i</i>色を選ぶと、プレビューに反映されます。</p></div></div>
+        <div class="ee-btm"><button class="ee-undo"><i></i>元に戻す</button><button class="ee-save"><i></i>デザインを保存</button></div></div>`;
+      const set = (f) => { f(st.kits[st.side]); draw(); };
+      box.querySelectorAll('[data-side]').forEach((b) => b.onclick = () => { st.side = b.dataset.side; draw(); });
+      box.querySelectorAll('[data-pat]').forEach((b) => b.onclick = () => set((k) => { k.pat = b.dataset.pat; }));
+      box.querySelectorAll('[data-role]').forEach((b) => b.onclick = () => { if (b.disabled) return; st.role = b.dataset.role; draw(); });
+      box.querySelectorAll('[data-col]').forEach((b) => b.onclick = () => set((k) => { k[st.role] = b.dataset.col; }));
+      const ci = box.querySelector('.ee-more input'); if (ci) ci.onchange = () => set((k) => { k[st.role] = ci.value; });
+      box.querySelector('.ee-undo').onclick = () => { st.kits = JSON.parse(JSON.stringify(st.orig)); draw(); };
+      box.querySelector('.ee-back').onclick = () => { el.hidden = true; if (opt.onDone) opt.onDone(false); };
+      box.querySelector('.ee-save').onclick = () => {
+        save.club.kit = { ...st.kits.home }; save.club.kit2 = { ...st.kits.away }; save.club.gk = { ...st.kits.gk, pat: 'solid' }; embURL.clear(); bannerCache.clear(); store();
+        el.hidden = true; if (opt.onDone) opt.onDone(true); else if (view === 'home') renderHome();
+      };
+    };
+    draw(); el.hidden = false; el._fit();
+  }
   function openClub(opt) {
     opt = opt || {};
-    if (opt.only === 'emb') { openEmbEditor(opt); return; }   // 版1100：エンブレムは新しい設定画面
+    if (opt.only === 'emb') { openEmbEditor(opt); return; }
+    if (opt.only === 'kit') { openKitEditor(opt); return; }   // 版1103：ユニフォームも新しい設定画面   // 版1100：エンブレムは新しい設定画面
     const el = fullScreen('clubScreen', 'std-wrap club-wrap'), box = el.querySelector('.lk-box');
     const club = C.ensureClub(save);
     const st = { name: save.team.name, short: save.team.short || '', kit: null, kits: { home: { ...club.kit }, away: { ...club.kit2 }, gk: { ...club.gk } }, kside: 'home', emb: { ...club.emb }, err: '', home: save.hometown || '' }; st.kit = st.kits.home;
     st.emb2 = emb2From(club.emb); st.emb2Orig = { ...st.emb2 }; st.embTouched = false; st.erole = st.erole || 'c1';   // 版1099：テンプレートのエンブレム（エンブレムの画面で変えた時だけ保存する）
-    clubTab = opt.first ? 'name' : opt.only || clubTab; if (!opt.only && clubTab === 'emb') clubTab = 'name';
+    clubTab = opt.first ? 'name' : opt.only || clubTab; if (!opt.only && (clubTab === 'emb' || clubTab === 'kit')) clubTab = 'name';
     const embOf = () => ({ ...st.emb, ch: st.emb.ch || (st.short || st.name || 'H')[0] });
     const emb2Of = (o) => ({ ...st.emb2, name: st.name, short: st.short, ...(o || {}) });
     const embCanvas = (lk, size) => { const cv = document.createElement('canvas'); cv.width = size; cv.height = size; drawEmblem(cv.getContext('2d'), size / 2, size / 2, size * 0.92, lk); return cv.toDataURL(); };
@@ -4036,7 +4108,7 @@
       const kits = box.querySelector('#clKits');
       if (kits) for (const [view, p] of [['front', ps[9]], ['f34', ps[5]], ['side', ps[2]]]) { const cv = A().kitSprite(st.kit, p || {}, view); if (cv) { const im = document.createElement('canvas'); im.width = cv.width * 6; im.height = cv.height * 6; const c = im.getContext('2d'); c.imageSmoothingEnabled = false; c.drawImage(cv, 0, 0, im.width, im.height); kits.appendChild(im); } }
       const keep = () => { const n = box.querySelector('#clName'), sh = box.querySelector('#clShort'), ch = box.querySelector('#clCh'), hm = box.querySelector('#clHome'); if (hm) st.home = hm.value; if (n) st.name = n.value; if (sh) st.short = sh.value; if (ch) st.emb.ch = ch.value; };
-      box.querySelectorAll('[data-ctab]').forEach((b) => b.onclick = () => { keep(); if (b.dataset.ctab === 'emb') { el.hidden = true; openEmbEditor({ onDone: (ok) => { if (ok) { st.emb = { ...save.club.emb }; st.emb2 = emb2From(save.club.emb); st.emb2Orig = { ...st.emb2 }; st.embTouched = false; } el.hidden = false; draw(); } }); return; } clubTab = b.dataset.ctab; draw(); });
+      box.querySelectorAll('[data-ctab]').forEach((b) => b.onclick = () => { keep(); if (b.dataset.ctab === 'kit') { el.hidden = true; openKitEditor({ onDone: (ok) => { if (ok) { st.kits = { home: { ...save.club.kit }, away: { ...save.club.kit2 }, gk: { ...save.club.gk } }; st.kit = st.kits[st.kside]; } el.hidden = false; draw(); } }); return; } if (b.dataset.ctab === 'emb') { el.hidden = true; openEmbEditor({ onDone: (ok) => { if (ok) { st.emb = { ...save.club.emb }; st.emb2 = emb2From(save.club.emb); st.emb2Orig = { ...st.emb2 }; st.embTouched = false; } el.hidden = false; draw(); } }); return; } clubTab = b.dataset.ctab; draw(); });
       box.querySelectorAll('[data-kside]').forEach((b) => b.onclick = () => { st.kside = b.dataset.kside; st.kit = st.kits[st.kside]; draw(); });
       box.querySelectorAll('[data-kpat]').forEach((b) => b.onclick = () => { st.kit.pat = b.dataset.kpat; draw(); });
       box.querySelectorAll('[data-eshape]').forEach((b) => b.onclick = () => { keep(); st.emb.shape = +b.dataset.eshape; draw(); });
@@ -5776,7 +5848,7 @@
     draw();
     if (loading) { try { const r = await DotNet.cloudInfo(code()); cloud = r ? { info: r.info, at: r.at } : null; } catch (_) { flash('通信できませんでした（クラウドの情報が読めません）'); } loading = false; if (document.body.contains(scr) && !scr.querySelector('.cs-dlg')) draw(); }
   }
-  window.__career = { drawEmblem: (c, x, y, s, lk) => drawEmblem(c, x, y, s, lk), openClub: (o) => openClub(o), playerDetail: (i, o) => playerDetail(i, o), resCard: (o) => resCard(o), seasonEndCard: (o) => seasonEndCard(o), coachNews: (l) => coachNews(l), rewardCard: (r) => rewardCard(r), gachaDemo: (st, pr, fx) => gachaDemo(st, pr, fx), storyCard: (o) => storyCard(o), gotCardsHTML: (got) => `<div class="gc-cards${got.length > 8 ? ' lots' : got.length > 4 ? ' many' : ''}">${got.map((c) => artCard(c, { ups: true })).join('')}</div><p class="cp-msg gc-msg">クラブハウスの「特訓」で、選手に最大3枚セットできます。</p>`, trainResult: (o) => trainResult(o), airport, openPost, syncPost, onlineDone, setVenue: (k) => { venueNow = k; }, champDemo, champAfter, coinShop, faceFill: () => faceFill(), openGacha, venueTalk: (se) => venueTalk(se), matchFace, openOffice, cpuCard, openClub, openAssoc, open, go, stadium, advance, subSheet, labMatch, townRect, tutPractice, shop, store: () => store(), renderHome: () => renderHome(), clubhouseBg: () => clubhouseBg(), isMatchWeek: () => isMatchWeek(), get view() { return view; }, staffFace: (k) => staffFace(k), get save() { return save; }, get drill() { return clubDrill; }, faceURL, starFace, setDrill(d) { clubDrill = d; drillT0 = -1; drillSnap = true; } };
+  window.__career = { openKitEditor: (o) => openKitEditor(o), drawEmblem: (c, x, y, s, lk) => drawEmblem(c, x, y, s, lk), openClub: (o) => openClub(o), playerDetail: (i, o) => playerDetail(i, o), resCard: (o) => resCard(o), seasonEndCard: (o) => seasonEndCard(o), coachNews: (l) => coachNews(l), rewardCard: (r) => rewardCard(r), gachaDemo: (st, pr, fx) => gachaDemo(st, pr, fx), storyCard: (o) => storyCard(o), gotCardsHTML: (got) => `<div class="gc-cards${got.length > 8 ? ' lots' : got.length > 4 ? ' many' : ''}">${got.map((c) => artCard(c, { ups: true })).join('')}</div><p class="cp-msg gc-msg">クラブハウスの「特訓」で、選手に最大3枚セットできます。</p>`, trainResult: (o) => trainResult(o), airport, openPost, syncPost, onlineDone, setVenue: (k) => { venueNow = k; }, champDemo, champAfter, coinShop, faceFill: () => faceFill(), openGacha, venueTalk: (se) => venueTalk(se), matchFace, openOffice, cpuCard, openClub, openAssoc, open, go, stadium, advance, subSheet, labMatch, townRect, tutPractice, shop, store: () => store(), renderHome: () => renderHome(), clubhouseBg: () => clubhouseBg(), isMatchWeek: () => isMatchWeek(), get view() { return view; }, staffFace: (k) => staffFace(k), get save() { return save; }, get drill() { return clubDrill; }, faceURL, starFace, setDrill(d) { clubDrill = d; drillT0 = -1; drillSnap = true; } };
   window.__career.openCloud = openCloud; window.__career.cpuCard = (t, i) => cpuCard(t, i, $("#career"));
   window.__career.shop = (t) => shop(t); window.__career.premDaily = () => premDaily();
   window.__career.embURL = () => { try { return save ? embFromLook(C.ensureClub(save).emb, 96) : ''; } catch (_) { return ''; } };   // 版680：設定のアカウントIDの横に出す、自分のクラブのエンブレム

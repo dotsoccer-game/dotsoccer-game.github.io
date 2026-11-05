@@ -4565,3 +4565,22 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 .ee-btm{position:absolute;left:0;right:0;bottom:10px;height:56px;display:flex;justify-content:flex-end;gap:22px;padding-right:20px}
 .ee-undo{width:330px;border-radius:14px;border:3px solid #13234a;background:#fff;color:#13234a;font-weight:900;font-size:26px;display:flex;align-items:center;justify-content:center;gap:10px}.ee-undo i{width:22px;height:22px;border:4px solid #13234a;border-radius:50%;border-left-color:transparent;transform:rotate(-30deg)}
 .ee-save{width:580px;border-radius:14px;border:3px solid #fff;background:linear-gradient(#2c6ae0,#1440a8);color:#fff;font-weight:900;font-size:28px;box-shadow:0 3px 0 rgba(0,0,0,.35),0 0 0 2px #0b2463;display:flex;align-items:center;justify-content:center;gap:12px}.ee-save i{width:12px;height:22px;border:solid #fff;border-width:0 5px 5px 0;transform:rotate(45deg) translateY(-4px)}
+/* 版1103：ユニフォームの設定画面 */
+.ke .ee-ttl{font-size:32px}.ke-club{display:flex;align-items:center;gap:10px;margin-left:30px;color:#fff;font-weight:900;font-size:30px}.ke-club img{width:44px;height:44px}.ke .ee-back{margin-left:auto}
+.ke-l{background:radial-gradient(ellipse at 50% 18%,#3e9a48,#1a6a2e 55%,#0f4a22)}
+.ke-side{display:flex;align-items:center;gap:6px;margin-top:14px;color:#fff;font-weight:900;font-size:30px}.ke-side>i{width:70px;height:2px;background:linear-gradient(90deg,transparent,#e8c040)}.ke-side>i:last-child{transform:scaleX(-1)}.ke-side em svg{display:block;width:14px;height:34px}.ke-side em svg path{stroke:#e8c040}.ke-side em svg ellipse{fill:#e8c040}.ke-side b{padding:0 6px}
+.ke-art{width:420px;height:260px;margin-top:4px;filter:drop-shadow(0 6px 0 rgba(0,0,0,.25))}
+.ke-l .ee-nm b{font-size:34px}
+.ke-spr{display:flex;gap:46px;align-items:flex-end;margin-top:4px}.ke-spr img{height:120px;image-rendering:pixelated}
+.ke-cap{margin-top:auto;margin-bottom:10px;padding:6px 40px;background:#0f3a1c;color:#fff;font-weight:900;font-size:20px;clip-path:polygon(6% 0,94% 0,100% 50%,94% 100%,6% 100%,0 50%)}
+.ke .ee-r{top:84px}.ke-body{padding:12px 18px}
+.ke-tabs{display:flex;gap:8px;margin-bottom:6px}.ke-tabs button{flex:1;height:48px;border-radius:10px;border:2px solid #cdbb90;background:linear-gradient(#fbf4e2,#efe3c6);color:#13234a;font-weight:900;font-size:24px}.ke-tabs button.on{background:linear-gradient(#2a64d8,#1a46b0);color:#fff;border-color:#e0b030}
+.ke-h{display:flex;align-items:center;gap:10px;font-weight:900;font-size:22px;margin:10px 0 8px;border-left:5px solid #1d4fc4;padding-left:10px}.ke-h.row .ee-more{margin-left:auto;height:40px;font-size:17px}
+.ke-pats{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}.ke-pats img{width:64px!important;height:64px!important}.ke-pats b{font-size:17px!important}
+.ke-roles{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.ke-roles button{height:58px;border-radius:10px;border:2px solid #b8b0a0;background:#fff;display:flex;align-items:center;gap:8px;padding:0 12px;font-weight:900;font-size:20px;color:#13234a}.ke-roles button span{flex:1;text-align:left}.ke-roles u{width:30px;height:30px;border-radius:50%;border:2px solid rgba(0,0,0,.3)}.ke-roles em{font-style:normal;color:#888}
+.ke-roles button.on{background:#1d4fc4;color:#fff;border:3px solid #eab42e}.ke-roles button.dis{background:#e8e6e0;color:#999;cursor:default}
+.ke-ri{width:30px;height:24px;background:currentColor;opacity:.85}.ke-ri.shirt{clip-path:polygon(28% 0,72% 0,100% 25%,86% 45%,78% 38%,78% 100%,22% 100%,22% 38%,14% 45%,0 25%)}.ke-ri.sub{clip-path:polygon(0 0,20% 0,20% 100%,40% 100%,40% 0,60% 0,60% 100%,80% 100%,80% 0,100% 0,100% 100%,0 100%)}.ke-ri.shorts{clip-path:polygon(4% 0,96% 0,100% 90%,58% 100%,50% 40%,42% 100%,0 90%)}.ke-ri.socks{width:20px;clip-path:polygon(20% 0,70% 0,70% 70%,100% 80%,100% 100%,20% 100%)}
+.ke .ee-sw{grid-template-columns:repeat(12,1fr);gap:8px}.ke .ee-sw button{height:48px}
+.ke-info{display:flex;align-items:center;gap:8px;color:#6a6050;font-weight:700;font-size:17px;margin:12px 0 0}.ke-info i{width:22px;height:22px;border-radius:50%;background:#6a6050;color:#fff;font:900 15px/22px serif;text-align:center;font-style:normal}
+.ke-gk{margin:14px 0}
+.ke .ee-btm{justify-content:center}
