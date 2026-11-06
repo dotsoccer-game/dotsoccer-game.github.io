@@ -5493,28 +5493,38 @@
     // 版1114：フレンド対戦の交代・作戦：変える間はふたりとも止まる。変えた中身（両方の変更の一覧）を送り合って、同じ計算をし直す
     const myTi = me === 'host' ? 0 : 1, myTeamObj = me === 'host' ? hostTeam : guestTeam, rms = {}; let otherChg = [], myChg = [], holdUI = null;
     const merged = () => [...(me === 'host' ? myChg : otherChg), ...(me === 'host' ? otherChg : myChg)].map((c) => ({ ...c })).sort((a0, b0) => (a0.at ?? -1) - (b0.at ?? -1) || a0.team - b0.team);
-    const holdOn = (on, noStop) => { window.__rmHold = on; let h = document.getElementById('rmHold'); if (on) { if (!h) { h = document.createElement('div'); h.id = 'rmHold'; h.innerHTML = '<b>相手が作戦を変えています…</b>'; document.getElementById('app').appendChild(h); } h.hidden = false; if (!noStop) try { A().stop(); } catch (_) {} } else if (h) h.hidden = true; };
+    const holdOn = (on, noStop) => { window.__rmHold = on; let h = document.getElementById('rmHold'); if (on) { if (!h) { h = document.createElement('div'); h.id = 'rmHold'; h.innerHTML = '<b>相手が作戦変更中です</b><button class="rmh-go">自分も作戦変更</button>'; document.getElementById('app').appendChild(h); h.querySelector('.rmh-go').onclick = () => { if (A().inLocker) { A().openSub(true); return; } A().openSub(false); }; } h.hidden = false;   /* 版1116：相手が変えている間、自分も作戦変更の画面へ行ける */ if (!noStop) try { A().stop(); } catch (_) {} } else if (h) h.hidden = true; };
     let pzSeen = null;
     let rmU = null; try { rmU = DotNet.roomWatch(r.id, (nr) => { if (!nr) return; const oc = nr[other + 'Chg'] ? JSON.parse(nr[other + 'Chg']) : [];
       if (JSON.stringify(oc) !== JSON.stringify(otherChg)) { otherChg = oc; try { A().applyExt(merged()); } catch (e) { console.error(e); } }
-      const pzv = nr[other + 'Pz'], pz = !!pzv;
-      if (typeof pzv === 'number' && pzSeen !== pzv) { pzSeen = pzv; window.__rmHold = true; try { A().stopAt(pzv, () => holdOn(true, true)); } catch (_) { holdOn(true); } return; }   // 版1115：相手が決めた時刻まで進んで、笛で止まる（飛ばない）
+      const pzv = nr[other + 'Pz'], pz = !!pzv; otherPzNow = pz;
+      if (typeof pzv === 'number' && pzSeen !== pzv) { pzSeen = pzv; window.__rmHold = true; if (!(A().stopAtT > 0)) { try { A().stopAt(pzv, () => { waitBan(null); holdOn(true, true); }); waitBan('相手が選手交代を予約しました　次にボールが外に出たら止まります'); } catch (_) { holdOn(true); } } return; }   // 版1115：相手が決めた時刻まで進んで、笛で止まる（飛ばない）
       if (!pz) pzSeen = null;
       if (pz !== !!window.__rmHold) { holdOn(pz); if (!pz) { const lk0 = document.getElementById('locker'), hm = document.getElementById('htModal'); if ((!lk0 || lk0.hidden) && (!hm || hm.hidden) && !(A().inLocker)) try { A().labPlay(); } catch (_) {} } } }); } catch (_) {}
+    // 版1116：フレンド対戦の交代（イーフト風）：試合中にボタンを押すと予約。次にボールが外に出た所（FK・ゴールキック・スローイン・CK・オフサイド）で、ふたり同時に笛で止まる。
+    //  押した人が作戦を変えて「試合にもどる」で再開（ふたりとも押していたら、ふたりとも終わってから）。ハーフタイムは、その場で変えられる
+    let otherPzNow = false;
+    const waitBan = (txt) => { let w = document.getElementById('rmWait'); if (!txt) { if (w) w.hidden = true; return; } if (!w) { w = document.createElement('div'); w.id = 'rmWait'; document.getElementById('app').appendChild(w); } w.textContent = txt; w.hidden = false; };
+    const DEAD = ['freekick', 'goalkick', 'throw', 'corner', 'offside'];
+    const nextDead = (from) => { const m = A().match; if (!m) return null; const half = m.halfTime || 225, end = from < half ? half - 1 : m.duration - 3; const e = (m.events || []).find((x) => DEAD.includes(x.type) && x.t >= from && x.t < end); return e ? Math.round((e.t + 0.4) * 10) / 10 : null; };
     const onSubRoom = (info) => {
-      // 版1115：試合中は、止める時刻をふたりで合わせる（自分の時刻と相手の時刻の、遅い方より少し先）。そこまで進んで笛で止まってから作戦の画面
-      let T = info.t;
-      if (!info.atHalf) { const est = otherAt ? otherAt.t + (otherAt.run ? Math.min(4, (Date.now() - otherAt.got) / 1000) * A().RATE : 0) : info.t; T = Math.round((Math.max(info.t, est) + 1.2 * A().RATE) * 10) / 10; }
-      DotNet.roomUpdate(r.id, { [me + 'Pz']: info.atHalf ? true : T }).catch(() => {});
-      const open = () => subSheet({ team: myTeamObj }, info2, rms);
       const ap0 = info.apply, cn0 = info.cancel;
-      const info2 = { ...info, t: T, cancel: () => { DotNet.roomUpdate(r.id, { [me + 'Pz']: false }).catch(() => {}); if (cn0) cn0(); },
+      let T = info.t;
+      const info2 = { ...info, cancel: () => { DotNet.roomUpdate(r.id, { [me + 'Pz']: false }).catch(() => {}); waitBan(null); if (cn0) cn0(); if (otherPzNow) holdOn(true); },
         apply: (changes, cb) => { myChg = changes.map((c) => ({ ...c, team: myTi })); const all = merged();
           DotNet.roomUpdate(r.id, { [me + 'Chg']: JSON.stringify(myChg), [me + 'Pz']: false }).catch(() => {});
-          ap0(all, cb); } };
-      if (!info.atHalf && T > A().simT + 0.05) { A().stopAt(T, open); A().labPlay(); } else open(); };
+          ap0(all, (x) => { if (cb) cb(x); if (otherPzNow) holdOn(true); }); } };   // 相手もまだ作戦を変えていたら、相手が終わるまで待つ
+      const open = () => { waitBan(null); info2.t = T; info2.minute = Math.min(90, Math.ceil(T / ((A().match || {}).duration || 450) * 90)); subSheet({ team: myTeamObj }, info2, rms); };
+      if (info.atHalf) { DotNet.roomUpdate(r.id, { [me + 'Pz']: true }).catch(() => {}); holdOn(false); open(); return; }
+      if (window.__rmHold) { T = Math.round(A().simT * 10) / 10; DotNet.roomUpdate(r.id, { [me + 'Pz']: true }).catch(() => {}); { const h = document.getElementById('rmHold'); if (h) h.hidden = true; } open(); return; }   // 相手が止めている間（同じ時刻で止まっている）：そのまま変える
+      const est = otherAt ? otherAt.t + (otherAt.run ? Math.min(4, (Date.now() - otherAt.got) / 1000) * A().RATE : 0) : info.t;
+      T = nextDead(Math.max(info.t, est) + 1.2);
+      if (T == null) { toast('このハーフは、もうボールが外に出ません。ハーフタイムに変えられます'); if (cn0) cn0(); return; }
+      DotNet.roomUpdate(r.id, { [me + 'Pz']: T }).catch(() => {});
+      waitBan('選手交代の予約中…　次にボールが外に出たら止まります');
+      A().stopAt(T, open); A().labPlay(); };
     A().startWith(hostTeam, guestTeam, r.seed, hd.short || hd.name, gd.short || gd.name, (score) => {
-      syncEnd(); if (rmU) rmU(); holdOn(false); window.__rmHold = false;
+      syncEnd(); if (rmU) rmU(); holdOn(false); waitBan(null); window.__rmHold = false;
       const my = me === 'host' ? score.slice() : [score[1], score[0]];
       onlineDone('friend', op, my);
     }, { venue: venueNow, kits: [k0, k1], noIntro: true, noFF: true, myTeam: myTi, onSub: onSubRoom, comp: 'フレンド対戦', label: 'ルーム', homeName: hd.name, awayName: gd.name, embH: embFromLook(hd.emb, 48), embA: embFromLook(gd.emb, 48), grade: (q, k, tm) => { const pl = ((tm ? gd : hd).team.players || []).find((x) => x.name === q.name && x.number === q.number) || ((tm ? gd : hd).team.players || []).find((x) => x.name === q.name); if (pl && pl.bg && pl.bg[k]) return pl.bg[k]; return C.rankInfo(C.toPts((q.params || q)[k])).g; } });   // 版629：クラブ画面と同じ、素の能力ランクを表示
