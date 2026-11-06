@@ -597,7 +597,10 @@
       if (ch.tac && ch.tac.orders) tm.orders = ch.tac.orders;
       if (ch.tac && ch.tac.roles && tm.role) {   // 版1112：試合中の役割設定（ピッチの位置 slotIdx で指名。null：キャプテン・キッカーはそのまま、軸・決はおまかせに戻す）
         for (const k of ['captain', 'pk', 'fk', 'ck', 'hub', 'fin']) { const si = ch.tac.roles[k]; const p = si != null ? tm.players.find((q) => q.slotIdx === si && !q.off) : null;
-          if (p) { tm.role[k] = p; if (k === 'hub') tm.role.hubAuto = false; if (k === 'fin') tm.role.finAuto = false; } }
+          if (p) { tm.role[k] = p; if (k === 'hub') tm.role.hubAuto = false; if (k === 'fin') tm.role.finAuto = false; }
+          else if ((k === 'hub' || k === 'fin') && (globalThis.__Khub ?? 1)) {   // 版1113：おまかせに戻した：今ピッチにいる選手から選び直す
+            const fp = tm.players.filter((q) => !q.gk && !q.off), sc = k === 'hub' ? (q) => q.pass * 0.5 + q.vision * 0.35 + q.technique * 0.15 + (['パサー', 'ゲームメイカー', 'レジスタ'].includes(q.type) ? 8 : 0) : (q) => q.kick * 0.55 + q.technique * 0.2 + q.speed * 0.15 + q.mental * 0.1 + (q.type === 'ストライカー' ? 8 : 0);
+            const c = fp.filter((q) => q.position === (k === 'hub' ? 'MF' : 'FW')), pool = c.length ? c : fp; tm.role[k] = pool.slice().sort((a0, b0) => sc(b0) - sc(a0))[0] || null; tm.role[k + 'Auto'] = true; } }
       }
       applyOrd(tm);   // 版1088：攻撃の姿勢（チーム全体）と選手ごとの指示を、選手の動きの数値に入れ直す
     }
