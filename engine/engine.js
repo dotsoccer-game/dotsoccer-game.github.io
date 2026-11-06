@@ -8821,7 +8821,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         const ch0 = pendingCh[0];
         const tacOnly = !(ch0.subs && ch0.subs.length);
         if (ch0.at <= S.t && (tacOnly || subOk())) { while (pendingCh.length && pendingCh[0].at <= S.t && (!(pendingCh[0].subs || []).length || subOk())) applyHalfChange(pendingCh.shift()); }
-        else if (ch0.at <= S.t - KICKOUT_WAIT && !S.restart && !S.celebrate) {
+        else if ((globalThis.__Kkout ?? 0) && ch0.at <= S.t - KICKOUT_WAIT && !S.restart && !S.celebrate) {   // 版1117：交代のために自分から外へ蹴り出すのはやめた（そのまま続けて、自然にプレーが切れた所で替える）
           // 交代を待って長くなったら、自陣で落ち着いてボールを持った時に外へ蹴り出してプレーを切る
           const own = ownerP();
           if (own && own.team === ch0.team && fx(own.team, own.x) < L * 0.72 && (own.gk || nearestOpp(own, own.x, own.y).d > 1.0) && !own.settle) {
