@@ -5567,7 +5567,7 @@
       if (aborted) return; syncEnd(); if (rmU) rmU(); holdOn(false); waitBan(null); window.__rmHold = false;
       const my = me === 'host' ? score.slice() : [score[1], score[0]];
       onlineDone('friend', op, my);
-    }, { venue: venueNow, kits: [k0, k1], noIntro: true, noFF: true, newMove: !!r.nm, myTeam: myTi, onSub: onSubRoom, comp: 'フレンド対戦', label: 'ルーム', homeName: hd.name, awayName: gd.name, embH: embFromLook(hd.emb, 48), embA: embFromLook(gd.emb, 48), grade: (q, k, tm) => { const pl = ((tm ? gd : hd).team.players || []).find((x) => x.name === q.name && x.number === q.number) || ((tm ? gd : hd).team.players || []).find((x) => x.name === q.name); if (pl && pl.bg && pl.bg[k]) return pl.bg[k]; return C.rankInfo(C.toPts((q.params || q)[k])).g; } });   // 版629：クラブ画面と同じ、素の能力ランクを表示
+    }, { venue: venueNow, kits: [k0, k1], noIntro: true, noFF: true, myTeam: myTi, onSub: onSubRoom, comp: 'フレンド対戦', label: 'ルーム', homeName: hd.name, awayName: gd.name, embH: embFromLook(hd.emb, 48), embA: embFromLook(gd.emb, 48), grade: (q, k, tm) => { const pl = ((tm ? gd : hd).team.players || []).find((x) => x.name === q.name && x.number === q.number) || ((tm ? gd : hd).team.players || []).find((x) => x.name === q.name); if (pl && pl.bg && pl.bg[k]) return pl.bg[k]; return C.rankInfo(C.toPts((q.params || q)[k])).g; } });   // 版629：クラブ画面と同じ、素の能力ランクを表示
   }
   // 版624：ポストの見張り（申請・招待・挑戦が届いたら、すぐポストに入れて知らせる）
   let mailWatching = false;
@@ -6085,7 +6085,7 @@
     else if (m === 'testkk') { const sv = window.__career.save; sv.kakera = (sv.kakera || 0) + 1000; window.__career.store(); sheet.hidden = true; try { window.__career.renderHome(); } catch (_) {} return; }
     else if (m === 'testcoin') { const sv = window.__career.save; sv.coins = (sv.coins || 0) + 10000; window.__career.store(); sheet.hidden = true; try { window.__career.renderHome(); } catch (_) {} return; }   // 版552：演出のテスト用
     else if (m === 'tut') { if (window.__tut) { const of = $('#officeScreen'); if (of) { of.hidden = true; try { window.__career.go('home'); } catch (_) {} } if ($('#career').hidden) window.__career.open(); setTimeout(() => window.__tut.replay(), 300); } }
-    else if (m === 'nm') { globalThis.__newMove = !globalThis.__newMove; try { localStorage.setItem('dotNewMove', globalThis.__newMove ? '1' : '0'); } catch (_) {} nmLabel(); sheet.hidden = false; return; }
+    else if (m === 'nm' && false) { globalThis.__newMove = !globalThis.__newMove; try { localStorage.setItem('dotNewMove', globalThis.__newMove ? '1' : '0'); } catch (_) {} nmLabel(); sheet.hidden = false; return; }
     else if (m === 'sfx' || m === 'bgm') { if (window.DotSound) DotSound.set(m, !DotSound.pref[m]); sndLabel(); sheet.hidden = false; return; }
     else if (m === 'gap') { topGap = topGap ? 0 : 1; try { localStorage.setItem('dotTopGap', String(topGap)); } catch (_) {} refit(); }
     else if (m === 'tab') { try { window.open(location.href, '_blank'); } catch (_) {} }

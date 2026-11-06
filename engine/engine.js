@@ -647,7 +647,7 @@
     const skZ = (p, k) => (p.sk.has(k) || (p.uniq === 'shiden' && SHIDEN_SK.has(k))) && zr(p, k) > 0;   // 紫電の遊戯（かまた）：フェイント系の技はいつでも全部使える   // スキルを覚えていて、しかも今のエリアで使ってよい（紫電の遊戯の間は、ドリブル技をぜんぶ出せる）
     const zw = (p, k) => [0, 1, 2.2][zr(p, k)];        // 選ぶ時の重み（積極的なエリアは2.2倍）
     const S = {
-      t: 0, half: 1, score: [0, 0], poss: 0, nm: opts.newMove ?? !!globalThis.__newMove,   // 版882：新しい動きの土台を使うか
+      t: 0, half: 1, score: [0, 0], poss: 0, nm: opts.newMove ?? (globalThis.__newMove ?? true),   /* 版1126：いつも新しい動き（実験で切りたい時だけ __newMove = false） */   // 版882：新しい動きの土台を使うか
       ball: { x: L / 2, y: W / 2, z: 0, vx: 0, vy: 0, vz: 0, owner: -1, kind: 'dead', lastTeam: 0, lastPlayer: -1, kicker: -1, intended: -1, offside: false, shotOnTarget: false },
       restart: null, decision: 0, dribbleDir: null, celebrate: 0, scorer: -1, kickRec: -1,
       lastPass: [null, null], passStreak: [0, 0],
