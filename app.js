@@ -130,7 +130,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     // 版695：プレミアムパス：試合の早送り（1倍→2倍→4倍）。フレンドのルーム対戦（2つの画面で同じ試合）では出さない
     { let fb = document.getElementById('premFF'); if (!fb) { fb = document.createElement('button'); fb.id = 'premFF'; fb.className = 'prem-ff'; fb.title = '早送り（プレミアムパス）'; const host = document.querySelector('#match .viewport') || document.querySelector('#match'); host.appendChild(fb);
         fb.onclick = (e) => { e.stopPropagation(); speed = speed >= 4 ? 1 : speed * 2; fb.innerHTML = `<b>▶▶</b><small>×${speed}</small>`; fb.classList.toggle('on', speed > 1); }; }
-      fb.hidden = !(window.__premOn && !mctx.opts.lockEdit); fb.innerHTML = '<b>▶▶</b><small>×1</small>'; fb.classList.remove('on'); }
+      fb.hidden = !(window.__premOn && !mctx.opts.lockEdit && !mctx.opts.noFF); fb.innerHTML = '<b>▶▶</b><small>×1</small>'; fb.classList.remove('on'); }
     $('#match').classList.toggle('watching', !!mctx.opts.watch); { const ws = document.getElementById('wStop'); if (ws) { ws.hidden = !mctx.opts.watch; ws.onclick = async () => {
         { const pn = document.getElementById('panel'); if (pn && !pn.hidden) { pn.hidden = true; return; } }   /* 版491：開いている画面を一つずつ閉じる */
         { const pv = document.getElementById('plv'); if (pv && !pv.hidden) { if (plvMode !== 'both') { plvMode = 'both'; plvDraw(); } else closePlv(); return; } }
@@ -303,7 +303,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
   function stop() { playing = false; cancelAnimationFrame(raf); $('#pause').textContent = '再生'; }
 
   function ffHide() {
-    if (!window.__premOn || !mctx || mctx.opts.lockEdit) return true;
+    if (!window.__premOn || !mctx || mctx.opts.lockEdit || mctx.opts.noFF) return true;
     if (simT >= match.duration - 0.01 || (show && ['halfOut', 'endOut', 'digest', 'champ', 'endCrowd'].includes(show.phase))) return true;
     const lk = document.getElementById('locker'), hp = document.getElementById('half');
     return !!((lk && !lk.hidden) || (hp && !hp.hidden));
@@ -4469,7 +4469,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     mctx.opts.onSub({
       atHalf, t, page,
       minute: Math.min(90, Math.ceil((D.gameSec(match, t)) / 60)),
-      stamina: st.players.slice(0, 11).map((p) => p.st),
+      my: mctx.opts.myTeam || 0, stamina: st.players.slice((mctx.opts.myTeam || 0) * 11, (mctx.opts.myTeam || 0) * 11 + 11).map((p) => p.st),   // 版1114：フレンド対戦のゲストは、チーム1が自分
       score: [0, 1].map((ti) => goals.filter((g) => g.t < t && g.team === ti).length),
       cancel: () => { if (!atHalf && wasPlaying) play(); },
       apply: (changes, cb) => { careerChanges = changes.slice(); try { applyHalf([...changes, ...(tacChange ? [tacChange] : [])], (subs) => {
@@ -4594,7 +4594,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
       if (!lk) return;
       const dt = Math.min(0.1, (now - lk.last) / 1000); lk.last = now;
       // 選手交代・戦術・状況を見ている間は、時間を止める
-      const busy = !el.querySelector('.lk-sub').hidden || !$('#panel').hidden || (document.getElementById('htModal') && !document.getElementById('htModal').hidden) || !!window.__tutHold;
+      const busy = !el.querySelector('.lk-sub').hidden || !$('#panel').hidden || (document.getElementById('htModal') && !document.getElementById('htModal').hidden) || !!window.__tutHold || !!window.__rmHold;   // 版1114：フレンド対戦で相手が作戦を変えている間も止める
       if (!busy && !lk.leaving) lk.left = Math.max(0, lk.left - dt);
       const n = Math.ceil(lk.left); const ce = el.querySelector('.lk-count span');
       if (ce.textContent !== String(n)) { ce.textContent = String(n); ce.parentElement.classList.remove('pulse'); void ce.parentElement.offsetWidth; ce.parentElement.classList.add('pulse'); }
@@ -4958,7 +4958,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
   // 版1041：確認画面用：好きな時刻の絵を出す（止めたまま）／そこから再生
   function labPeek(t, snap) { if (!match) return; stop(); if (show && show.phase !== "endOut") show = null; koWhistleT = -1; if (snap) lastDrawT = -99; simT = Math.max(0, Math.min(t, match.duration)); evIndex = 0; while (evIndex < match.events.length && match.events[evIndex].t <= simT) evIndex++; try { draw(); } catch (err) { showErr(err, '確認画面'); } }
   function labPlay() { if (match && !playing) play(); }
-  window.__app = { get theirs() { return mctx && mctx.theirs; }, presim, labPeek, labPlay, champDemo, applyKits, artSprite, kitSprite, kitCol, lockerTalk, startWith, showScreen, stop, spriteCanvas, SPR: { W: SPR_W, H: SPR_H }, get match() { return match; }, catchUp, get simT() { return simT; }, get playing() { return playing; }, RATE };
+  window.__app = { get theirs() { return mctx && mctx.theirs; }, get mine() { return mctx && mctx.mine; }, applyExt: (list) => { careerChanges = list.slice(); tacChange = null; applyHalf(list); }, get inLocker() { return !!lk; }, presim, labPeek, labPlay, champDemo, applyKits, artSprite, kitSprite, kitCol, lockerTalk, startWith, showScreen, stop, spriteCanvas, SPR: { W: SPR_W, H: SPR_H }, get match() { return match; }, catchUp, get simT() { return simT; }, get playing() { return playing; }, RATE };
   window.__demo = { simT: () => simT, showPh: () => (show ? show.phase + (show.phase === "sub" ? "#" + show.rt.toFixed(2) + "k" + show.k + "n" + show.list.length : "") : null), playingNow: () => playing, poses: (list) => {
     ctx.fillStyle = '#45a31d'; ctx.fillRect(0, 0, CW, CH);
     list.forEach((pz, k) => { sprite(90 + k * 165, 270, 4.2, match.roster[0][9], 0, 1, 0, false, false, false, pz === 'side' ? null : pz, 0, 'side'); ctx.fillStyle = '#fff'; ctx.font = '12px sans-serif'; ctx.fillText(pz, 60 + k * 165, 300); });

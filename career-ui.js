@@ -2370,8 +2370,8 @@
     const drawWhite = () => {
       if (page === 'team' || page === 'white') return drawTeam();
       const tab = page === 'player' ? 'player' : 'team';
-      const m0 = A().match || {}, oppR = ((m0.roster || [])[1] || []).slice(0, 11), oppCells = (m0.teamCells && m0.teamCells[1]) || C.cellsFor((m0.teamForm && m0.teamForm[1]) || '4-4-2');
-      const theirs = (A().theirs || {}).players || [];
+      const m0 = A().match || {}, oti = 1 - (info.my || 0), oppR = ((m0.roster || [])[oti] || []).slice(0, 11), oppCells = (m0.teamCells && m0.teamCells[oti]) || C.cellsFor((m0.teamForm && m0.teamForm[oti]) || '4-4-2');   // 版1114：フレンド対戦のゲスト（チーム1）でも、相手はもう一方
+      const theirs = ((info.my ? A().mine : A().theirs) || {}).players || [];
       const on = onPitch(), G = q3Geo(ROWS, COLS);
       const myPos = (k) => (k ? [G.px(plan.cells[k].c, plan.cells[k].r), G.py(plan.cells[k].r)] : [50, G.ty(0.9)]);
       const oppPos = (k) => { if (!k) return [50, G.ty(0.02)]; const c = oppCells[k] || { r: 4, c: 7 }, r2 = Math.min(ROWS - 1 + 0.9, (ROWS - 1) - c.r + 0.9), c2 = Math.min(COLS - 1 + 0.4, (COLS - 1) - c.c + 0.9); return [G.tx(G.CU(c2), Math.max(0.03, G.RV(r2))), G.ty(Math.max(0.03, G.RV(r2)))]; };
@@ -2447,7 +2447,7 @@
       if (!plan.subs.length && !moved && !attCh) { el.hidden = true; if (info.cancel) info.cancel(); return; }
       { const bb = el.querySelector('.q3back'); if (bb) bb.disabled = true; }   // 版556：ボタンが見つからずに止まって、もどれなくなっていた
       const t = base;
-      const ch = { team: 0, at: info.atHalf ? null : info.t, subs: plan.subs.map((x) => ({ slot: x.slot, player: ps[x.bench] })), tac: { attitude: plan.tq.attitude, press: plan.tq.press, pass_style: plan.tq.pass, attack_side: plan.tq.side, line_height: plan.tq.line, marks: plan.marks.map((m) => ({ me: m.me, opp: m.opp })), orders: JSON.parse(JSON.stringify(plan.orders)), zone_width: plan.tq.width, compact: plan.tq.compact, situ: { ...t.situ } } };
+      const ch = { team: info.my || 0, at: info.atHalf ? null : info.t, subs: plan.subs.map((x) => ({ slot: x.slot, player: ps[x.bench] })), tac: { attitude: plan.tq.attitude, press: plan.tq.press, pass_style: plan.tq.pass, attack_side: plan.tq.side, line_height: plan.tq.line, marks: plan.marks.map((m) => ({ me: m.me, opp: m.opp })), orders: JSON.parse(JSON.stringify(plan.orders)), zone_width: plan.tq.width, compact: plan.tq.compact, situ: { ...t.situ } } };
       ch.tac.cells = plan.cells.map((c) => c && { ...c });
       { const onN = onPitch(), rs = {}; for (const k of SRK) { const nm = plan.roles[k]; const slot = nm ? onN.findIndex((j) => ps[j] && ps[j].name === nm) : -1; rs[k] = slot >= 0 ? slot : null; } ch.tac.roles = rs; }   // 版1112：役割（ピッチの位置で送る。null はおまかせ・なし）   // 版1026：配置はいつも今の作戦盤のまま送る（交代だけの時に、試合前の配置へ戻っていた）
       setTimeout(() => {
@@ -5420,8 +5420,51 @@
         const wait = Math.max(0, Math.min(6000, (r.startAt || 0) - Date.now()));
         let left = Math.ceil(wait / 1000); const cd = box.querySelector('.rm-cd'); if (cd) cd.textContent = left > 0 ? `キックオフまで ${left}…` : 'キックオフ！';
         cdT = setInterval(() => { left--; const c2 = box.querySelector('.rm-cd'); if (c2) c2.textContent = left > 0 ? `キックオフまで ${left}…` : 'キックオフ！'; }, 1000);
-        setTimeout(async () => { clearInterval(cdT); el.hidden = true; try { await playRoom(r, me); } catch (e) { modal('<h2>試合を始められませんでした</h2>', [{ label: 'OK', primary: true }]); } }, wait);
+        setTimeout(async () => { clearInterval(cdT); el.hidden = true; try { const r2 = await roomPrep(r, me); await playRoom(r2, me); } catch (e) { console.error(e); modal('<h2>試合を始められませんでした</h2>', [{ label: 'OK', primary: true }]); } }, wait);   // 版1114：3・2・1のあと、入場通路に並んだ所でスタメンを選ぶ
       }
+    });
+  }
+
+  // 版1114：フレンド対戦：3・2・1のあと、入場通路に両チームが並んだ所。スタメン・戦術を変えて「準備OK」。ふたりともOK（か90秒）で、変えたチームで試合
+  async function roomPrep(r, me) {
+    const other = me === 'host' ? 'guest' : 'host';
+    let hd = await unpackCode(r.hostCode), gd = await unpackCode(r.guestCode), myReady = false, otherReady = false, otherCode = null, done = false, startAt = 0;
+    let el = document.getElementById('liveScr'); if (!el) { el = document.createElement('div'); el.id = 'liveScr'; $('#career').appendChild(el); }
+    $('#career').hidden = false;
+    return new Promise((resolve) => {
+      const T0 = Date.now(), LIMIT = 90000;
+      let unsub = null, tick = null;
+      const myCode = async () => packCode(C.guestCode(save));
+      const finish = async () => { if (done) return; done = true; clearInterval(tick); cancelAnimationFrame(liveRaf); if (unsub) unsub(); el.hidden = true;
+        const r2 = { ...r }; if (otherCode) r2[other + 'Code'] = otherCode; r2[me + 'Code'] = await myCode(); resolve(r2); };
+      const show = () => {
+        el.className = 'lv2 rmprep'; el.hidden = false;
+        const H = me === 'host' ? save.team.players.slice(0, 11) : hd.team.players.slice(0, 11), G = me === 'guest' ? save.team.players.slice(0, 11) : gd.team.players.slice(0, 11);
+        el.innerHTML = `<canvas width="1280" height="720"></canvas>
+          <div class="lv2-head"><div class="lv2-t"><b>LIVE</b><span>フレンド対戦</span></div>
+            <div class="lv2-m"><img src="${embFromLook(hd.emb, 64)}" alt=""><span>${esc(hd.short || hd.name)}</span><em>×</em><img src="${embFromLook(gd.emb, 64)}" alt=""><span>${esc(gd.short || gd.name)}</span></div></div>
+          <div class="rbtns lv-btns"><button data-a="lineup" class="lv-kitimg" title="スタメン"><img src="icons/cb_lineup.png" alt="スタメン"></button><button data-a="tac" class="lv-kitimg" title="戦術"><img src="icons/cb_tactic.png" alt="戦術"></button></div>
+          <div class="rmp-bar"><span class="rmp-st"></span><b class="rmp-t"></b><button class="rmp-ok">準備OK</button></div>`;
+        try { A().applyKits([hd.kit || C.KIT_DEFAULT, gd.kit || C.KIT_DEFAULT]); } catch (_) {}
+        const cv = el.querySelector('canvas'), c2 = cv.getContext('2d'), rows = [{ ps: H, team: 0 }, { ps: G, team: 1 }], info = { home: hd.name, away: gd.name, homeCol: (hd.kit || {}).shirt || '#2f5fc8', awayCol: (gd.kit || {}).shirt || '#c8322a' };
+        cancelAnimationFrame(liveRaf); const loop = (t) => { try { drawTunnel2(c2, rows, t, info); } catch (_) {} liveRaf = requestAnimationFrame(loop); }; liveRaf = requestAnimationFrame(loop);
+        const upd = () => { const st = el.querySelector('.rmp-st'), tt = el.querySelector('.rmp-t'), ok = el.querySelector('.rmp-ok'); if (!st) return; const left = Math.max(0, Math.ceil((LIMIT - (Date.now() - T0)) / 1000));
+          st.textContent = startAt ? 'キックオフ！' : myReady ? (otherReady ? 'ふたりとも準備OK' : '相手の準備を待っています…') : (otherReady ? '相手は準備OK。スタメンを決めて「準備OK」' : 'スタメン・戦術を決めて「準備OK」'); tt.textContent = startAt ? '' : `のこり ${left}秒`; ok.disabled = myReady; ok.textContent = myReady ? '準備OK！' : '準備OK'; };
+        upd();
+        el.querySelectorAll('button[data-a]').forEach((b) => b.onclick = () => { if (myReady) { toast('準備OKのあとは変えられません'); return; } const a = b.dataset.a;
+          if (a === 'tac') { openTacSet('tac'); return; }
+          cancelAnimationFrame(liveRaf); { liveSnap = document.createElement('canvas'); liveSnap.width = 1280; liveSnap.height = 720; try { liveSnap.getContext('2d').drawImage(cv, 0, 0, 1280, 720); } catch (_) { liveSnap = null; } }
+          el.hidden = true; sqTab = 'pos'; liveBack = () => { show(); }; go('lineup'); });
+        el.querySelector('.rmp-ok').onclick = async () => { if (myReady) return; myReady = true; upd(); try { await DotNet.roomUpdate(r.id, { [me + 'Code2']: await myCode(), [me + 'Ready2']: true }); } catch (_) {} };
+        clearInterval(tick); tick = setInterval(() => { upd(); if (!startAt && Date.now() - T0 > LIMIT) { if (!myReady) el.querySelector('.rmp-ok').click(); if (me === 'host' && !startAt) DotNet.roomUpdate(r.id, { startAt2: Date.now() + 2500 }).catch(() => {}); } if (startAt && Date.now() >= startAt) finish(); }, 300);
+      };
+      unsub = DotNet.roomWatch(r.id, async (nr) => {
+        if (!nr || done) return;
+        if (nr[other + 'Ready2'] && nr[other + 'Code2'] && !otherReady) { otherReady = true; otherCode = nr[other + 'Code2']; try { const od = await unpackCode(otherCode); if (other === 'host') hd = od; else gd = od; if (!el.hidden && el.classList.contains('rmprep')) show(); } catch (_) {} }
+        if (me === 'host' && nr.hostReady2 && nr.guestReady2 && !nr.startAt2) DotNet.roomUpdate(r.id, { startAt2: Date.now() + 2500 }).catch(() => {});
+        if (nr.startAt2 && !startAt) { startAt = nr.startAt2; if (nr[other + 'Code2']) otherCode = nr[other + 'Code2']; }
+      });
+      show();
     });
   }
   async function playRoom(r, me) {
@@ -5447,11 +5490,25 @@
         if (est > ap.simT + 1.5) ap.catchUp(est);
       }, 2000);
     } catch (_) {}
+    // 版1114：フレンド対戦の交代・作戦：変える間はふたりとも止まる。変えた中身（両方の変更の一覧）を送り合って、同じ計算をし直す
+    const myTi = me === 'host' ? 0 : 1, myTeamObj = me === 'host' ? hostTeam : guestTeam, rms = {}; let otherChg = [], myChg = [], holdUI = null;
+    const merged = () => [...(me === 'host' ? myChg : otherChg), ...(me === 'host' ? otherChg : myChg)].map((c) => ({ ...c })).sort((a0, b0) => (a0.at ?? -1) - (b0.at ?? -1) || a0.team - b0.team);
+    const holdOn = (on) => { window.__rmHold = on; let h = document.getElementById('rmHold'); if (on) { if (!h) { h = document.createElement('div'); h.id = 'rmHold'; h.innerHTML = '<b>相手が作戦を変えています…</b>'; document.getElementById('app').appendChild(h); } h.hidden = false; try { A().stop(); } catch (_) {} } else if (h) h.hidden = true; };
+    let rmU = null; try { rmU = DotNet.roomWatch(r.id, (nr) => { if (!nr) return; const oc = nr[other + 'Chg'] ? JSON.parse(nr[other + 'Chg']) : [];
+      if (JSON.stringify(oc) !== JSON.stringify(otherChg)) { otherChg = oc; try { A().applyExt(merged()); } catch (e) { console.error(e); } }
+      const pz = !!nr[other + 'Pz']; if (pz !== !!window.__rmHold) { holdOn(pz); if (!pz) { const lk0 = document.getElementById('locker'), hm = document.getElementById('htModal'); if ((!lk0 || lk0.hidden) && (!hm || hm.hidden) && !(A().inLocker)) try { A().labPlay(); } catch (_) {} } } }); } catch (_) {}
+    const onSubRoom = (info) => { DotNet.roomUpdate(r.id, { [me + 'Pz']: true }).catch(() => {});
+      const ap0 = info.apply, cn0 = info.cancel;
+      const info2 = { ...info, cancel: () => { DotNet.roomUpdate(r.id, { [me + 'Pz']: false }).catch(() => {}); if (cn0) cn0(); },
+        apply: (changes, cb) => { myChg = changes.map((c) => ({ ...c, team: myTi })); const all = merged();
+          DotNet.roomUpdate(r.id, { [me + 'Chg']: JSON.stringify(myChg), [me + 'Pz']: false }).catch(() => {});
+          ap0(all, cb); } };
+      subSheet({ team: myTeamObj }, info2, rms); };
     A().startWith(hostTeam, guestTeam, r.seed, hd.short || hd.name, gd.short || gd.name, (score) => {
-      syncEnd();
+      syncEnd(); if (rmU) rmU(); holdOn(false); window.__rmHold = false;
       const my = me === 'host' ? score.slice() : [score[1], score[0]];
       onlineDone('friend', op, my);
-    }, { venue: venueNow, kits: [k0, k1], noIntro: true, lockEdit: true, comp: 'フレンド対戦', label: 'ルーム', homeName: hd.name, awayName: gd.name, embH: embFromLook(hd.emb, 48), embA: embFromLook(gd.emb, 48), grade: (q, k, tm) => { const pl = ((tm ? gd : hd).team.players || []).find((x) => x.name === q.name && x.number === q.number) || ((tm ? gd : hd).team.players || []).find((x) => x.name === q.name); if (pl && pl.bg && pl.bg[k]) return pl.bg[k]; return C.rankInfo(C.toPts((q.params || q)[k])).g; } });   // 版629：クラブ画面と同じ、素の能力ランクを表示
+    }, { venue: venueNow, kits: [k0, k1], noIntro: true, noFF: true, myTeam: myTi, onSub: onSubRoom, comp: 'フレンド対戦', label: 'ルーム', homeName: hd.name, awayName: gd.name, embH: embFromLook(hd.emb, 48), embA: embFromLook(gd.emb, 48), grade: (q, k, tm) => { const pl = ((tm ? gd : hd).team.players || []).find((x) => x.name === q.name && x.number === q.number) || ((tm ? gd : hd).team.players || []).find((x) => x.name === q.name); if (pl && pl.bg && pl.bg[k]) return pl.bg[k]; return C.rankInfo(C.toPts((q.params || q)[k])).g; } });   // 版629：クラブ画面と同じ、素の能力ランクを表示
   }
   // 版624：ポストの見張り（申請・招待・挑戦が届いたら、すぐポストに入れて知らせる）
   let mailWatching = false;
@@ -5856,7 +5913,7 @@
     draw();
     if (loading) { try { const r = await DotNet.cloudInfo(code()); cloud = r ? { info: r.info, at: r.at } : null; } catch (_) { flash('通信できませんでした（クラウドの情報が読めません）'); } loading = false; if (document.body.contains(scr) && !scr.querySelector('.cs-dlg')) draw(); }
   }
-  window.__career = { openKitEditor: (o) => openKitEditor(o), drawEmblem: (c, x, y, s, lk) => drawEmblem(c, x, y, s, lk), openClub: (o) => openClub(o), playerDetail: (i, o) => playerDetail(i, o), resCard: (o) => resCard(o), seasonEndCard: (o) => seasonEndCard(o), coachNews: (l) => coachNews(l), rewardCard: (r) => rewardCard(r), gachaDemo: (st, pr, fx) => gachaDemo(st, pr, fx), storyCard: (o) => storyCard(o), gotCardsHTML: (got) => `<div class="gc-cards${got.length > 8 ? ' lots' : got.length > 4 ? ' many' : ''}">${got.map((c) => artCard(c, { ups: true })).join('')}</div><p class="cp-msg gc-msg">クラブハウスの「特訓」で、選手に最大3枚セットできます。</p>`, trainResult: (o) => trainResult(o), airport, openPost, syncPost, onlineDone, setVenue: (k) => { venueNow = k; }, champDemo, champAfter, coinShop, faceFill: () => faceFill(), openGacha, venueTalk: (se) => venueTalk(se), matchFace, openOffice, cpuCard, openClub, openAssoc, open, go, stadium, advance, subSheet, labMatch, townRect, tutPractice, shop, store: () => store(), renderHome: () => renderHome(), clubhouseBg: () => clubhouseBg(), isMatchWeek: () => isMatchWeek(), get view() { return view; }, staffFace: (k) => staffFace(k), get save() { return save; }, get drill() { return clubDrill; }, faceURL, starFace, setDrill(d) { clubDrill = d; drillT0 = -1; drillSnap = true; } };
+  window.__career = { roomPrep: (r, me) => roomPrep(r, me), playRoom: (r, me) => playRoom(r, me), packCode: (o) => packCode(o), openKitEditor: (o) => openKitEditor(o), drawEmblem: (c, x, y, s, lk) => drawEmblem(c, x, y, s, lk), openClub: (o) => openClub(o), playerDetail: (i, o) => playerDetail(i, o), resCard: (o) => resCard(o), seasonEndCard: (o) => seasonEndCard(o), coachNews: (l) => coachNews(l), rewardCard: (r) => rewardCard(r), gachaDemo: (st, pr, fx) => gachaDemo(st, pr, fx), storyCard: (o) => storyCard(o), gotCardsHTML: (got) => `<div class="gc-cards${got.length > 8 ? ' lots' : got.length > 4 ? ' many' : ''}">${got.map((c) => artCard(c, { ups: true })).join('')}</div><p class="cp-msg gc-msg">クラブハウスの「特訓」で、選手に最大3枚セットできます。</p>`, trainResult: (o) => trainResult(o), airport, openPost, syncPost, onlineDone, setVenue: (k) => { venueNow = k; }, champDemo, champAfter, coinShop, faceFill: () => faceFill(), openGacha, venueTalk: (se) => venueTalk(se), matchFace, openOffice, cpuCard, openClub, openAssoc, open, go, stadium, advance, subSheet, labMatch, townRect, tutPractice, shop, store: () => store(), renderHome: () => renderHome(), clubhouseBg: () => clubhouseBg(), isMatchWeek: () => isMatchWeek(), get view() { return view; }, staffFace: (k) => staffFace(k), get save() { return save; }, get drill() { return clubDrill; }, faceURL, starFace, setDrill(d) { clubDrill = d; drillT0 = -1; drillSnap = true; } };
   window.__career.openCloud = openCloud; window.__career.cpuCard = (t, i) => cpuCard(t, i, $("#career"));
   window.__career.shop = (t) => shop(t); window.__career.premDaily = () => premDaily();
   window.__career.embURL = () => { try { return save ? embFromLook(C.ensureClub(save).emb, 96) : ''; } catch (_) { return ''; } };   // 版680：設定のアカウントIDの横に出す、自分のクラブのエンブレム
