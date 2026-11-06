@@ -5487,23 +5487,32 @@
         DotNet.roomUpdate(r.id, { [me + 'T']: Math.round(ap.simT * 10) / 10, [me + 'Run']: !!ap.playing }).catch(() => {});
         if (!otherAt) return;
         const est = otherAt.t + (otherAt.run ? Math.min(4, (Date.now() - otherAt.got) / 1000) * ap.RATE : 0);
-        if (est > ap.simT + 1.5) ap.catchUp(est);
+        const gap = est - ap.simT; if (gap > 12) { ap.catchUp(est); ap.setSync(1); } else ap.setSync(gap > 0.6 ? Math.min(1.35, 1 + gap * 0.12) : gap < -0.6 ? Math.max(0.75, 1 + gap * 0.12) : 1);   // 版1115：飛ばさずに、少し速く（遅く）進めて合わせる（12秒以上ずれた時だけ飛ばす）
       }, 2000);
     } catch (_) {}
     // 版1114：フレンド対戦の交代・作戦：変える間はふたりとも止まる。変えた中身（両方の変更の一覧）を送り合って、同じ計算をし直す
     const myTi = me === 'host' ? 0 : 1, myTeamObj = me === 'host' ? hostTeam : guestTeam, rms = {}; let otherChg = [], myChg = [], holdUI = null;
     const merged = () => [...(me === 'host' ? myChg : otherChg), ...(me === 'host' ? otherChg : myChg)].map((c) => ({ ...c })).sort((a0, b0) => (a0.at ?? -1) - (b0.at ?? -1) || a0.team - b0.team);
-    const holdOn = (on) => { window.__rmHold = on; let h = document.getElementById('rmHold'); if (on) { if (!h) { h = document.createElement('div'); h.id = 'rmHold'; h.innerHTML = '<b>相手が作戦を変えています…</b>'; document.getElementById('app').appendChild(h); } h.hidden = false; try { A().stop(); } catch (_) {} } else if (h) h.hidden = true; };
+    const holdOn = (on, noStop) => { window.__rmHold = on; let h = document.getElementById('rmHold'); if (on) { if (!h) { h = document.createElement('div'); h.id = 'rmHold'; h.innerHTML = '<b>相手が作戦を変えています…</b>'; document.getElementById('app').appendChild(h); } h.hidden = false; if (!noStop) try { A().stop(); } catch (_) {} } else if (h) h.hidden = true; };
+    let pzSeen = null;
     let rmU = null; try { rmU = DotNet.roomWatch(r.id, (nr) => { if (!nr) return; const oc = nr[other + 'Chg'] ? JSON.parse(nr[other + 'Chg']) : [];
       if (JSON.stringify(oc) !== JSON.stringify(otherChg)) { otherChg = oc; try { A().applyExt(merged()); } catch (e) { console.error(e); } }
-      const pz = !!nr[other + 'Pz']; if (pz !== !!window.__rmHold) { holdOn(pz); if (!pz) { const lk0 = document.getElementById('locker'), hm = document.getElementById('htModal'); if ((!lk0 || lk0.hidden) && (!hm || hm.hidden) && !(A().inLocker)) try { A().labPlay(); } catch (_) {} } } }); } catch (_) {}
-    const onSubRoom = (info) => { DotNet.roomUpdate(r.id, { [me + 'Pz']: true }).catch(() => {});
+      const pzv = nr[other + 'Pz'], pz = !!pzv;
+      if (typeof pzv === 'number' && pzSeen !== pzv) { pzSeen = pzv; window.__rmHold = true; try { A().stopAt(pzv, () => holdOn(true, true)); } catch (_) { holdOn(true); } return; }   // 版1115：相手が決めた時刻まで進んで、笛で止まる（飛ばない）
+      if (!pz) pzSeen = null;
+      if (pz !== !!window.__rmHold) { holdOn(pz); if (!pz) { const lk0 = document.getElementById('locker'), hm = document.getElementById('htModal'); if ((!lk0 || lk0.hidden) && (!hm || hm.hidden) && !(A().inLocker)) try { A().labPlay(); } catch (_) {} } } }); } catch (_) {}
+    const onSubRoom = (info) => {
+      // 版1115：試合中は、止める時刻をふたりで合わせる（自分の時刻と相手の時刻の、遅い方より少し先）。そこまで進んで笛で止まってから作戦の画面
+      let T = info.t;
+      if (!info.atHalf) { const est = otherAt ? otherAt.t + (otherAt.run ? Math.min(4, (Date.now() - otherAt.got) / 1000) * A().RATE : 0) : info.t; T = Math.round((Math.max(info.t, est) + 1.2 * A().RATE) * 10) / 10; }
+      DotNet.roomUpdate(r.id, { [me + 'Pz']: info.atHalf ? true : T }).catch(() => {});
+      const open = () => subSheet({ team: myTeamObj }, info2, rms);
       const ap0 = info.apply, cn0 = info.cancel;
-      const info2 = { ...info, cancel: () => { DotNet.roomUpdate(r.id, { [me + 'Pz']: false }).catch(() => {}); if (cn0) cn0(); },
+      const info2 = { ...info, t: T, cancel: () => { DotNet.roomUpdate(r.id, { [me + 'Pz']: false }).catch(() => {}); if (cn0) cn0(); },
         apply: (changes, cb) => { myChg = changes.map((c) => ({ ...c, team: myTi })); const all = merged();
           DotNet.roomUpdate(r.id, { [me + 'Chg']: JSON.stringify(myChg), [me + 'Pz']: false }).catch(() => {});
           ap0(all, cb); } };
-      subSheet({ team: myTeamObj }, info2, rms); };
+      if (!info.atHalf && T > A().simT + 0.05) { A().stopAt(T, open); A().labPlay(); } else open(); };
     A().startWith(hostTeam, guestTeam, r.seed, hd.short || hd.name, gd.short || gd.name, (score) => {
       syncEnd(); if (rmU) rmU(); holdOn(false); window.__rmHold = false;
       const my = me === 'host' ? score.slice() : [score[1], score[0]];

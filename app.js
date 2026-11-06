@@ -27,6 +27,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
   let match = null;       // 試合の記録
   let simT = 0;           // 再生中の試合内時刻（秒）
   let speed = 1, playing = false, lastNow = 0, raf = 0;
+  let stopAtT = -1, stopAtCb = null, syncK = 1;   // 版1115：フレンド対戦：決めた時刻で笛を吹いて止める／2つの画面の時間あわせ（飛ばさずに少し速く・遅く進める）
   let selected = -1;      // 追跡中の選手（0〜21）
   let trail = [];
   let evIndex = 0, halfShown = false;
@@ -387,7 +388,8 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     if (show && show.hold) advanceShow(dt);
     else {
       const simT0 = simT;
-      simT += dt * RATE * speed * (speed < 4 ? slowAt(simT) : 1);   // 白夜の視界の間は、ゆっくり
+      simT += dt * RATE * speed * syncK * (speed < 4 ? slowAt(simT) : 1);   // 白夜の視界の間は、ゆっくり
+      if (stopAtT >= 0 && simT >= stopAtT) { simT = Math.max(simT0, stopAtT); const cb = stopAtCb; stopAtT = -1; stopAtCb = null; try { SND().play('whistle'); } catch (_) {} stop(); try { draw(); } catch (_) {} if (cb) setTimeout(cb, 0); return; }
       if (koWhistleT >= 0 && simT0 < koWhistleT && simT >= koWhistleT) { SND().play('whistle'); koWhistleT = -1; }
       if (match.shootout && simT0 < match.regEnd && simT >= match.regEnd) SND().play('whistle3');   // 版1029：PK戦。版1036：審判が笛を吹く絵と合わせる（笛の絵は下の whistles）
       if (match.shootout && mctx && mctx.opts.soPick && speed < 16 && !soPicked && simT >= match.regEnd + 2.7 && simT0 < match.regEnd + 2.7) { simT = match.regEnd + 2.7; soPicked = true; stop(); try { draw(); } catch (_) {} soFadeTo(true, 250, () => { soBench = true; $('#match').classList.add('so-pick'); openSoPick(); try { draw(); } catch (_) {} soFadeTo(false, 150); }); return; }   /* 版1036：笛を吹き終わってから、いったん暗く → ベンチを背に順番を決める画面 */
@@ -4958,7 +4960,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
   // 版1041：確認画面用：好きな時刻の絵を出す（止めたまま）／そこから再生
   function labPeek(t, snap) { if (!match) return; stop(); if (show && show.phase !== "endOut") show = null; koWhistleT = -1; if (snap) lastDrawT = -99; simT = Math.max(0, Math.min(t, match.duration)); evIndex = 0; while (evIndex < match.events.length && match.events[evIndex].t <= simT) evIndex++; try { draw(); } catch (err) { showErr(err, '確認画面'); } }
   function labPlay() { if (match && !playing) play(); }
-  window.__app = { get theirs() { return mctx && mctx.theirs; }, get mine() { return mctx && mctx.mine; }, applyExt: (list) => { careerChanges = list.slice(); tacChange = null; applyHalf(list); }, get inLocker() { return !!lk; }, presim, labPeek, labPlay, champDemo, applyKits, artSprite, kitSprite, kitCol, lockerTalk, startWith, showScreen, stop, spriteCanvas, SPR: { W: SPR_W, H: SPR_H }, get match() { return match; }, catchUp, get simT() { return simT; }, get playing() { return playing; }, RATE };
+  window.__app = { stopAt: (t, cb) => { if (!match || simT >= t) { if (stopAtT < 0) { try { SND().play('whistle'); } catch (_) {} } stopAtT = -1; stopAtCb = null; stop(); if (cb) cb(); return; } stopAtT = t; stopAtCb = cb; }, setSync: (k) => { syncK = k; }, get theirs() { return mctx && mctx.theirs; }, get mine() { return mctx && mctx.mine; }, applyExt: (list) => { careerChanges = list.slice(); tacChange = null; applyHalf(list); }, get inLocker() { return !!lk; }, presim, labPeek, labPlay, champDemo, applyKits, artSprite, kitSprite, kitCol, lockerTalk, startWith, showScreen, stop, spriteCanvas, SPR: { W: SPR_W, H: SPR_H }, get match() { return match; }, catchUp, get simT() { return simT; }, get playing() { return playing; }, RATE };
   window.__demo = { simT: () => simT, showPh: () => (show ? show.phase + (show.phase === "sub" ? "#" + show.rt.toFixed(2) + "k" + show.k + "n" + show.list.length : "") : null), playingNow: () => playing, poses: (list) => {
     ctx.fillStyle = '#45a31d'; ctx.fillRect(0, 0, CW, CH);
     list.forEach((pz, k) => { sprite(90 + k * 165, 270, 4.2, match.roster[0][9], 0, 1, 0, false, false, false, pz === 'side' ? null : pz, 0, 'side'); ctx.fillStyle = '#fff'; ctx.font = '12px sans-serif'; ctx.fillText(pz, 60 + k * 165, 300); });
