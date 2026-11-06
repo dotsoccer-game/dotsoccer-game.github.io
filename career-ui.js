@@ -2243,7 +2243,9 @@
     // 今回の変更（「戻る」で試合に伝える）
     if (!ms.marks) { ms.marks = []; ms.orders = {}; }
     if (!ms.tq) { ms.tq = {}; for (const k of ['style', 'line', 'width', 'compact', 'attitude', 'press', 'pass', 'side']) ms.tq[k] = base[k]; if (!ms.tq.attitude) ms.tq.attitude = 'balanced'; }   /* 版1086：この試合のチーム戦術（試合中に変えても、保存はしない） */   /* 版1084：マークの指名・選手ごとの指示・ライン・プレス */
-    const plan = { subs: [], cells: ms.cells.map((c) => c && { ...c }), marks: ms.marks.map((m) => ({ ...m })), orders: JSON.parse(JSON.stringify(ms.orders)), tq: { ...ms.tq } };
+    if (!ms.roles) ms.roles = { ...(base.roles || {}) };   // 版1112：試合中の役割設定（名前で持つ）
+    let subRole = null;
+    const plan = { roles: { ...ms.roles }, subs: [], cells: ms.cells.map((c) => c && { ...c }), marks: ms.marks.map((m) => ({ ...m })), orders: JSON.parse(JSON.stringify(ms.orders)), tq: { ...ms.tq } };
     let wSel = null, wPick = false;   /* 作戦の画面で選んでいるもの：{ opp: 名前 } か { me: 位置 } */
     let page = info.page || 'board';   // 版1105：ロッカーの「戦術」からはチーム指示を開く
     let el = document.getElementById('htModal');
@@ -2286,6 +2288,8 @@
       <div class="q3tabs">${[['board', 'スカッド'], ['team', 'チーム指示'], ['player', '選手指示']].map(([k, nm]) => `<button data-pg="${k}" class="${(page === 'white' ? 'team' : page) === k ? 'on' : ''}">${nm}</button>`).join('')}</div>
       <button class="q3fin2">試合にもどる</button></div>`;
     const bindTabs = () => { el.querySelectorAll('[data-pg]').forEach((b) => b.onclick = () => { page = b.dataset.pg; wSel = null; wPick = false; draw(); }); el.querySelector('.q3fin2').onclick = finish; };
+    const SRK = ['captain', 'pk', 'fk', 'ck', 'hub', 'fin'];
+    const roleSide = (on) => `<div class="q3dp q3srp"><div class="q3dh"><b>役割設定</b></div>${SRK.map((k) => { const nm = plan.roles[k], q = nm && on.map((j) => ps[j]).find((x) => x && x.name === nm); return `<button class="q3rr${subRole === k ? ' on' : ''}" data-rk="${k}"><i class="s2rt rt-${k}">${ROLE_TAG[k]}</i><span>${ROLE_NAME[k]}</span>${q ? facePic(q, 'q3rf') : '<i class="q3rf q3rf0"></i>'}<b>${q ? esc(q.name) : (k === 'hub' || k === 'fin') ? 'おまかせ' : '（なし）'}</b></button>`; }).join('')}<button class="q3rdone">完了</button></div>`;
     const draw = () => {
       if (page !== 'board') return drawWhite();
       const on = onPitch(), cells = plan.cells, G = q3Geo(ROWS, COLS);
@@ -2296,12 +2300,15 @@
         .map(({ q, j, out }) => { const gone = out || ms.out.includes(q.name) || q.injury > 0; return `<div class="q3b${gone ? ' q3off' : ''}" data-j="${j}">${facePic(q, 'q3bf', true)}<span>${esc(q.name)}</span>${gone ? `<em class="q3bo">${out || ms.out.includes(q.name) ? '交代済' : 'ケガ'}</em>` : `<i class="q3cd cdot ${condDot(q)}"></i><b class="q3o g-${D.grade(statOvr(q))}">${statOvr(q)}</b>`}</div>`; }).join('');
       el.innerHTML = `<div class="sq3 q3sub"><div class="q3in">${topBar('試合中の作戦')}
           ${tabBar(cells)}
-          <div class="q3main"><div class="q3pitch">${G.field}${dots}</div><div class="q3side"><div class="q3col"><div class="q3bh"><b class="q3h">ベンチ</b><div class="q3left">交代枠 残り<b>${Math.max(0, left())}</b></div></div>${bench}</div></div></div>
-          <p class="q3hint"><span>${left() > 0 ? '控えの選手を、代えたい選手へドラッグ' : '交代枠はもうありません'}　／　タップで選手カード</span></p>
+          <div class="q3main"><div class="q3pitch">${G.field}${dots}</div><div class="q3side">${subRole ? roleSide(on) : `<div class="q3col"><div class="q3bh"><b class="q3h">ベンチ</b><div class="q3left">交代枠 残り<b>${Math.max(0, left())}</b></div></div>${bench}</div>`}</div></div>
+          <p class="q3hint"><span>${subRole ? '役割を選んで、担当する選手をタップ' : `${left() > 0 ? '控えの選手を、代えたい選手へドラッグ' : '交代枠はもうありません'}　／　タップで選手カード`}</span></p><button class="q3srole${subRole ? ' on' : ''}">役割設定</button>
         </div></div><div class="sb2-box q3cardhost"></div>`;
       el.hidden = false; fitBox();
       el.querySelectorAll('img.fc').forEach((im) => { const f = () => cutFace(im); im.addEventListener('load', f); if (im.complete) f(); });
       el.querySelector('.q3back').onclick = finish; bindTabs();
+      el.querySelector('.q3srole').onclick = () => { subRole = subRole ? null : 'captain'; draw(); };
+      el.querySelectorAll('.q3rr').forEach((b) => b.onclick = () => { subRole = b.dataset.rk; draw(); });
+      { const b = el.querySelector('.q3rdone'); if (b) b.onclick = () => { subRole = null; draw(); }; }
       bindDrag();
     };
     // ドラッグ：控え→ピッチの選手で交代、ピッチの選手→ほかの選手で位置を入れ替え、空いている所で離すとその位置へ（指を離した所ぴったり）。動かさずに離したらカード
@@ -2321,7 +2328,7 @@
         };
         const up = async (e) => {
           removeEventListener('pointermove', move); removeEventListener('pointerup', up); removeEventListener('pointercancel', up);
-          if (!ghost) { showCard(q); return; }
+          if (!ghost) { if (subRole && kind === 'p') { if ((subRole === 'hub' || subRole === 'fin') && plan.roles[subRole] === q.name) delete plan.roles[subRole]; else plan.roles[subRole] = q.name; const nx = SRK[SRK.indexOf(subRole) + 1]; if (nx) subRole = nx; draw(); return; } showCard(q); return; }   // 版1112：役割設定の間は、タップで役割を決める
           ghost.remove(); src.classList.remove('q3src');
           if (e.type === 'pointercancel') return;
           const tg = document.elementFromPoint(e.clientX, e.clientY), to = tg && tg.closest('.q3fw, .q3n') && tg.closest('.q3p');
@@ -2436,17 +2443,18 @@
     });
     // 戻る：変わったところだけ試合に伝えて、続きから
     const finish = () => {
-      const moved = JSON.stringify(plan.cells) !== JSON.stringify(ms.cells), attCh = JSON.stringify(plan.tq) !== JSON.stringify(ms.tq) || JSON.stringify(plan.marks) !== JSON.stringify(ms.marks) || JSON.stringify(plan.orders) !== JSON.stringify(ms.orders);
+      const moved = JSON.stringify(plan.cells) !== JSON.stringify(ms.cells), attCh = JSON.stringify(plan.tq) !== JSON.stringify(ms.tq) || JSON.stringify(plan.marks) !== JSON.stringify(ms.marks) || JSON.stringify(plan.orders) !== JSON.stringify(ms.orders) || JSON.stringify(plan.roles) !== JSON.stringify(ms.roles);
       if (!plan.subs.length && !moved && !attCh) { el.hidden = true; if (info.cancel) info.cancel(); return; }
       { const bb = el.querySelector('.q3back'); if (bb) bb.disabled = true; }   // 版556：ボタンが見つからずに止まって、もどれなくなっていた
       const t = base;
       const ch = { team: 0, at: info.atHalf ? null : info.t, subs: plan.subs.map((x) => ({ slot: x.slot, player: ps[x.bench] })), tac: { attitude: plan.tq.attitude, press: plan.tq.press, pass_style: plan.tq.pass, attack_side: plan.tq.side, line_height: plan.tq.line, marks: plan.marks.map((m) => ({ me: m.me, opp: m.opp })), orders: JSON.parse(JSON.stringify(plan.orders)), zone_width: plan.tq.width, compact: plan.tq.compact, situ: { ...t.situ } } };
-      ch.tac.cells = plan.cells.map((c) => c && { ...c });   // 版1026：配置はいつも今の作戦盤のまま送る（交代だけの時に、試合前の配置へ戻っていた）
+      ch.tac.cells = plan.cells.map((c) => c && { ...c });
+      { const onN = onPitch(), rs = {}; for (const k of SRK) { const nm = plan.roles[k]; const slot = nm ? onN.findIndex((j) => ps[j] && ps[j].name === nm) : -1; rs[k] = slot >= 0 ? slot : null; } ch.tac.roles = rs; }   // 版1112：役割（ピッチの位置で送る。null はおまかせ・なし）   // 版1026：配置はいつも今の作戦盤のまま送る（交代だけの時に、試合前の配置へ戻っていた）
       setTimeout(() => {
         ms.changes.push(ch);
         info.apply(ms.changes, () => {
           for (const x of plan.subs) { ms.out.push(ps[ms.on[x.slot]].name); ms.on[x.slot] = x.bench; ms.used.push(x.bench); ms.subsIn.push(ps[x.bench].name); }
-          ms.cells = plan.cells; ms.att = plan.tq.attitude; ms.marks = plan.marks; ms.orders = plan.orders; ms.tq = plan.tq;
+          ms.cells = plan.cells; ms.att = plan.tq.attitude; ms.marks = plan.marks; ms.orders = plan.orders; ms.tq = plan.tq; ms.roles = { ...plan.roles };
           el.hidden = true;
         });
       }, 30);

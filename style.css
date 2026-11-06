@@ -4625,3 +4625,12 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 #locker.lk-talk .lk-v2 .lk-bg{width:100%;height:100%;object-fit:cover;object-position:left center}
 #locker.lk-talk .lk-v2 .lk-ppl{display:none}
 .rt-hub,.s2rt.rt-hub{background:#d98a12}.rt-fin,.s2rt.rt-fin{background:#c2185b}
+/* 版1112：試合中の役割設定 */
+.q3sub .q3srole{position:absolute;right:22px;bottom:14px;height:44px;padding:0 26px;border-radius:10px;border:2px solid #b08a2a;background:linear-gradient(#f4d36a,#d9a72a);color:#2a1d00;font:900 19px/1 "Hiragino Kaku Gothic ProN",sans-serif;cursor:pointer;z-index:3}
+.q3sub .q3srole.on{background:linear-gradient(#fff3c4,#f2c94c);box-shadow:0 0 0 3px #fff}
+.q3srp{display:flex;flex-direction:column;gap:6px;padding:10px;height:100%;box-sizing:border-box;overflow:auto}
+.q3srp .q3rr{flex:none}
+.q3srp .q3rf{display:none!important}.q3srp .q3rr{padding:0 10px!important;gap:6px!important;height:50px!important}.q3srp .q3rr span{font-size:16px!important;white-space:nowrap}.q3srp .q3rr b{flex:1;text-align:right;font-size:16px!important;white-space:nowrap;overflow:hidden;text-overflow:clip}
+.q3srp .q3rdone{flex:none;height:44px;margin-top:4px}
+.q3sub .q3srole{bottom:10px;height:40px;font-size:18px;padding:0 22px}
+.q3srp{gap:5px!important;padding:8px!important}.q3srp .q3rr{height:42px!important;min-height:0!important}.q3srp .q3dh{margin-bottom:0!important}

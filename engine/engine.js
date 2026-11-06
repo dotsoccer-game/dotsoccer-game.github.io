@@ -595,6 +595,10 @@
         for (const m of ch.tac.marks.slice(0, 2)) { const p = tm.players.find((q) => q.slotIdx === m.me && !q.off && !q.gk); if (p && m.opp) { p.vsMark = m.opp; p.vsMarkBy = 'order'; } }
       }
       if (ch.tac && ch.tac.orders) tm.orders = ch.tac.orders;
+      if (ch.tac && ch.tac.roles && tm.role) {   // 版1112：試合中の役割設定（ピッチの位置 slotIdx で指名。null：キャプテン・キッカーはそのまま、軸・決はおまかせに戻す）
+        for (const k of ['captain', 'pk', 'fk', 'ck', 'hub', 'fin']) { const si = ch.tac.roles[k]; const p = si != null ? tm.players.find((q) => q.slotIdx === si && !q.off) : null;
+          if (p) { tm.role[k] = p; if (k === 'hub') tm.role.hubAuto = false; if (k === 'fin') tm.role.finAuto = false; } }
+      }
       applyOrd(tm);   // 版1088：攻撃の姿勢（チーム全体）と選手ごとの指示を、選手の動きの数値に入れ直す
     }
     // キャプテンシー（キャプテン＝最初に持っている選手）：味方全員のスタミナの減りが少し遅い
