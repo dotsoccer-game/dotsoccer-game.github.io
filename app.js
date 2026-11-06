@@ -2511,7 +2511,7 @@
       }
       ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(0, 0, CW, 34); ctx.fillRect(0, CH - 34, CW, 34);
       ctx.font = `italic 900 34px "Arial Black",Impact,sans-serif`; ctx.textAlign = 'left';
-      { const rw = document.getElementById('rmWait'), dy = rw && !rw.hidden ? 44 : 0;   // 版1128：「選手交代の予約中…」が出ている時は、REPLAYを少し下へ（重ならないように）
+      { const rw = document.getElementById('rmWait'), dy = rw && !rw.hidden ? 44 : -26;   // 版1129：REPLAYはスコアのすぐ下（予約中…と同じ場所）。予約中…が出ている時は、その下
       ctx.lineWidth = 6; ctx.strokeStyle = '#1a1a1a'; ctx.strokeText('REPLAY', 40, 146 + dy);
       ctx.fillStyle = '#f4f4f4'; ctx.fillText('REPLAY', 40, 146 + dy);
       ctx.fillStyle = '#f4f4f4'; ctx.fillRect(40, 156 + dy, 170, 3);
@@ -2524,7 +2524,7 @@
       // REPLAY の文字と上下の帯
       ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(0, 0, CW, 34); ctx.fillRect(0, CH - 34, CW, 34);
       ctx.font = `italic 900 34px "Arial Black",Impact,sans-serif`; ctx.textAlign = 'left';
-      { const rw = document.getElementById('rmWait'), dy = rw && !rw.hidden ? 44 : 0;   // 版1128：「選手交代の予約中…」が出ている時は、REPLAYを少し下へ（重ならないように）
+      { const rw = document.getElementById('rmWait'), dy = rw && !rw.hidden ? 44 : -26;   // 版1129：REPLAYはスコアのすぐ下（予約中…と同じ場所）。予約中…が出ている時は、その下
       ctx.lineWidth = 6; ctx.strokeStyle = '#1a1a1a'; ctx.strokeText('REPLAY', 40, 146 + dy);
       ctx.fillStyle = '#f4f4f4'; ctx.fillText('REPLAY', 40, 146 + dy);
       ctx.fillStyle = '#f4f4f4'; ctx.fillRect(40, 156 + dy, 170, 3);
