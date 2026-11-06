@@ -46,7 +46,7 @@
     lastErr = '';   // 版684：前のエラーが残らないように
     return withTimeout((async () => {
       let fid; try { fid = await ensureFid(me.fid); } catch (e) { lastErr = 'fid: ' + (e && e.message || e); throw e; }
-      await db.collection('players').doc(uid).set({ fid, name: me.name, short: me.short, mgr: me.mgr || '', lg: me.lg || '', emb: me.emb || null, kit: me.kit || null, rank: me.rank, rp: me.rp, lvl: Math.round(me.lvl || 0), code: me.code, sv: me.sv || null, prem: !!me.prem, at: Date.now() });
+      await db.collection('players').doc(uid).set({ fid, name: me.name, short: me.short, mgr: me.mgr || '', lg: me.lg || '', emb: me.emb || null, kit: me.kit || null, rank: me.rank, rp: me.rp, lvl: Math.round(me.lvl || 0), code: me.code, sv: me.sv || null, prem: !!me.prem, at: Date.now(), seen: Date.now() }, { merge: true });   // 版1119：上書きで最後の時刻（seen）が消えていた → 足し込みにして、今の時刻も書く
       return fid;
     })()).catch((e) => { lastErr = lastErr || String(e && e.message || e); throw e; });
   }
@@ -187,6 +187,6 @@
   async function payPortal() { const f = await fns(); const r = await withTimeout(f.httpsCallable('payPortal')({ back: location.href }), 20000); return r.data; }
   // 版1118：オンライン状況。自分の公開データ（players）に、最後にアプリを開いていた時刻（seen）と、していること（st：'home'・'match'）を書く。players がまだない人は書かない
   async function ping(st) { if (!(await ready()) || !uid) return; try { await withTimeout(db.collection('players').doc(uid).update({ seen: Date.now(), st: st || 'home' })); } catch (_) {} }
-  async function seenOf(uids) { if (!(await ready())) return {}; const out = {}; await Promise.all((uids || []).filter(Boolean).map(async (u) => { try { const d = await withTimeout(db.collection('players').doc(u).get()); if (d.exists) out[u] = { seen: d.data().seen || 0, st: d.data().st || '' }; } catch (_) {} })); return out; }
+  async function seenOf(uids) { if (!(await ready())) return {}; const out = {}; await Promise.all((uids || []).filter(Boolean).map(async (u) => { try { const d = await withTimeout(db.collection('players').doc(u).get()); if (d.exists) out[u] = { seen: Math.max(d.data().seen || 0, 0), at: d.data().at || 0, st: d.data().st || '' }; } catch (_) {} })); return out; }
   window.DotNet = { PAY_ON, ping, seenOf, payCheckout, payClaim, payPortal, FID_MOVE, cloudInfo, cloudPut, cloudGet, cloudClaim, normCode, get watchState() { return watchState; }, get on() { return !!FIREBASE_CONFIG; }, get uid() { return uid; }, get err() { return lastErr; }, ready, publish, byFid, byUid, rankRival, report, inbox, clearInbox, top, sendMail, mailbox, delMail, news, createRoom, roomUpdate, roomGet, roomWatch, roomInvites, roomStart, watchMail };
 })();

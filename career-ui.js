@@ -5703,7 +5703,7 @@
   // 版1118：オンライン状況（1分ごと・アプリに戻った時に、自分の最後の時刻を書く。フレンド画面では30秒ごとに相手のを読む）
   const pingNow = () => { try { if (!(window.DotNet && DotNet.on) || document.visibilityState === 'hidden') return; const m = document.getElementById('match'); DotNet.ping(m && !m.hidden ? 'match' : 'home'); } catch (_) {} };
   setTimeout(pingNow, 4000); setInterval(pingNow, 60000); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') pingNow(); });
-  const seenTxt = (v) => { if (!v || !v.seen) return ['off', '']; const m = (Date.now() - v.seen) / 60000; if (m < 2.5) return ['on', v.st === 'match' ? '試合中' : 'オンライン']; if (m < 60) return ['off', `${Math.max(1, Math.round(m))}分前`]; if (m < 1440) return ['off', `${Math.round(m / 60)}時間前`]; const d = Math.round(m / 1440); return ['off', d < 31 ? `${d}日前` : '1か月以上前']; };
+  const seenTxt = (v) => { if (!v || !(v.seen || v.at)) return ['off', '']; if (!v.seen) v = { ...v, seen: v.at }; const m = (Date.now() - v.seen) / 60000; if (m < 2.5) return ['on', v.st === 'match' ? '試合中' : 'オンライン']; if (m < 60) return ['off', `${Math.max(1, Math.round(m))}分前`]; if (m < 1440) return ['off', `${Math.round(m / 60)}時間前`]; const d = Math.round(m / 1440); return ['off', d < 31 ? `${d}日前` : '1か月以上前']; };
   let fSeen = {};
   async function friendMenu(back) {
     if (typeof back === 'function') friendMenu.back = back; else if (back !== 'keep') friendMenu.back = null;
@@ -5724,7 +5724,7 @@
           </div></div>
       </div></div>`;
     el.hidden = false; el._fit && el._fit();
-    if (net && on.flist.length && !friendMenu.seenBusy && Date.now() - (friendMenu.seenT || 0) > 25000) { friendMenu.seenBusy = true; friendMenu.seenT = Date.now(); DotNet.seenOf(on.flist.map((f) => f.uid)).then((sv) => { friendMenu.seenBusy = false; const ch = JSON.stringify(sv) !== JSON.stringify(fSeen); fSeen = sv; if (ch && !el.hidden && el.querySelector('.ap-fcs') && !(el.querySelector('#apFid') || {}).value) friendMenu('keep'); }).catch(() => { friendMenu.seenBusy = false; }); }
+    if (net && on.flist.length && !friendMenu.seenBusy && Date.now() - (friendMenu.seenT || 0) > 25000) { friendMenu.seenBusy = true; friendMenu.seenT = Date.now(); DotNet.seenOf(on.flist.map((f) => f.uid)).then((sv) => { friendMenu.seenBusy = false; const nx = { ...fSeen, ...sv }, ch = JSON.stringify(nx) !== JSON.stringify(fSeen); fSeen = nx; if (ch && !el.hidden && el.querySelector('.ap-fcs') && !(el.querySelector('#apFid') || {}).value) friendMenu('keep'); }).catch(() => { friendMenu.seenBusy = false; }); }
     clearTimeout(friendMenu.seenTm); friendMenu.seenTm = setTimeout(() => { if (!el.hidden && el.querySelector('.ap-fcs') && !(el.querySelector('#apFid') || {}).value) friendMenu('keep'); }, 30000);   // 版1118：開いている間は30秒ごとに読み直す
     const close = () => { el.hidden = true; };
     const q = (s) => box.querySelector(s);
