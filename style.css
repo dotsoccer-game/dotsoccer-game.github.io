@@ -4652,3 +4652,4 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 .ap2 .rm-side .rm-sb>img{width:110px;height:110px}
 .ap2 .rm-side b{font-size:34px;line-height:1.15}
 .ap2 .rm-side em{margin-top:2px;padding:5px 36px;font-size:22px}
+.rm-toast{position:absolute;left:50%;top:18%;transform:translateX(-50%);z-index:80;padding:12px 26px;border-radius:14px;background:rgba(10,20,50,.92);border:2px solid #e0b030;color:#fff;font:800 18px/1.4 "Hiragino Kaku Gothic ProN",sans-serif;pointer-events:none;white-space:nowrap}

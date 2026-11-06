@@ -5426,6 +5426,7 @@
   }
 
   // 版1114：フレンド対戦：3・2・1のあと、入場通路に両チームが並んだ所。スタメン・戦術を変えて「準備OK」。ふたりともOK（か90秒）で、変えたチームで試合
+  const rmToast = (msg) => { const t = document.createElement('div'); t.className = 'rm-toast'; t.textContent = msg; (document.getElementById('app') || document.body).appendChild(t); setTimeout(() => t.remove(), 3200); };
   async function roomPrep(r, me) {
     const other = me === 'host' ? 'guest' : 'host';
     let hd = await unpackCode(r.hostCode), gd = await unpackCode(r.guestCode), myReady = false, otherReady = false, otherCode = null, done = false, startAt = 0;
@@ -5436,7 +5437,15 @@
       let unsub = null, tick = null;
       const myCode = async () => packCode(C.guestCode(save));
       const finish = async () => { if (done) return; done = true; clearInterval(tick); cancelAnimationFrame(liveRaf); if (unsub) unsub(); el.hidden = true;
-        const r2 = { ...r }; if (otherCode) r2[other + 'Code'] = otherCode; r2[me + 'Code'] = await myCode(); resolve(r2); };
+        // 版1122：ふたりとも、部屋に書かれたデータ（準備OKの時に送った物）を使う（自分の分をここで作り直すと、相手が使う物とずれることがあった）
+        let d = null; try { d = await DotNet.roomGet(r.id); } catch (_) {}
+        const r2 = { ...r }; for (const w of ['host', 'guest']) { const c2 = (d && d[w + 'Code2']) || (w === other ? otherCode : sentCode); if (c2) r2[w + 'Code'] = c2; } resolve(r2); };
+      let sentCode = null;
+      const VER = (() => { try { const sc = document.querySelector('script[src*="career-ui.js"]'); return (sc && (sc.src.split('v=')[1] || '')) || ''; } catch (_) { return ''; } })();
+      let verBad = '';
+      DotNet.roomUpdate(r.id, { [me + 'Ver']: VER }).catch(() => {});
+      setTimeout(() => { if (!done && !otherVerSeen) { verBad = '相手のアプリが古い版です。ふたりともアプリを開き直してください'; try { show(); } catch (_) {} } }, 8000);
+      let otherVerSeen = false;
       const show = () => {
         el.className = 'lv2 rmprep'; el.hidden = false;
         const H = me === 'host' ? save.team.players.slice(0, 11) : hd.team.players.slice(0, 11), G = me === 'guest' ? save.team.players.slice(0, 11) : gd.team.players.slice(0, 11);
@@ -5449,17 +5458,19 @@
         const cv = el.querySelector('canvas'), c2 = cv.getContext('2d'), rows = [{ ps: H, team: 0 }, { ps: G, team: 1 }], info = { home: hd.name, away: gd.name, homeCol: (hd.kit || {}).shirt || '#2f5fc8', awayCol: (gd.kit || {}).shirt || '#c8322a' };
         cancelAnimationFrame(liveRaf); const loop = (t) => { try { drawTunnel2(c2, rows, t, info); } catch (_) {} liveRaf = requestAnimationFrame(loop); }; liveRaf = requestAnimationFrame(loop);
         const upd = () => { const st = el.querySelector('.rmp-st'), tt = el.querySelector('.rmp-t'), ok = el.querySelector('.rmp-ok'); if (!st) return; const left = Math.max(0, Math.ceil((LIMIT - (Date.now() - T0)) / 1000));
+          if (verBad && !startAt) { st.textContent = verBad; tt.textContent = ''; ok.disabled = true; return; }
           st.textContent = startAt ? 'キックオフ！' : myReady ? (otherReady ? 'ふたりとも準備OK' : '相手の準備を待っています…') : (otherReady ? '相手は準備OK。スタメンを決めて「準備OK」' : 'スタメン・戦術を決めて「準備OK」'); tt.textContent = startAt ? '' : `のこり ${left}秒`; ok.disabled = myReady; ok.textContent = myReady ? '準備OK！' : '準備OK'; };
         upd();
-        el.querySelectorAll('button[data-a]').forEach((b) => b.onclick = () => { if (myReady) { toast('準備OKのあとは変えられません'); return; } const a = b.dataset.a;
+        el.querySelectorAll('button[data-a]').forEach((b) => b.onclick = () => { if (myReady) { rmToast('準備OKのあとは変えられません'); return; } const a = b.dataset.a;
           if (a === 'tac') { openTacSet('tac'); return; }
           cancelAnimationFrame(liveRaf); { liveSnap = document.createElement('canvas'); liveSnap.width = 1280; liveSnap.height = 720; try { liveSnap.getContext('2d').drawImage(cv, 0, 0, 1280, 720); } catch (_) { liveSnap = null; } }
           el.hidden = true; sqTab = 'pos'; liveBack = () => { show(); }; go('lineup'); });
-        el.querySelector('.rmp-ok').onclick = async () => { if (myReady) return; myReady = true; upd(); try { await DotNet.roomUpdate(r.id, { [me + 'Code2']: await myCode(), [me + 'Ready2']: true }); } catch (_) {} };
-        clearInterval(tick); tick = setInterval(() => { upd(); if (!startAt && Date.now() - T0 > LIMIT) { if (!myReady) el.querySelector('.rmp-ok').click(); if (me === 'host' && !startAt) DotNet.roomUpdate(r.id, { startAt2: Date.now() + 2500 }).catch(() => {}); } if (startAt && Date.now() >= startAt) finish(); }, 300);
+        el.querySelector('.rmp-ok').onclick = async () => { if (myReady || verBad) return; myReady = true; upd(); try { sentCode = await myCode(); await DotNet.roomUpdate(r.id, { [me + 'Code2']: sentCode, [me + 'Ready2']: true }); } catch (_) {} };
+        clearInterval(tick); tick = setInterval(() => { upd(); if (!startAt && !verBad && Date.now() - T0 > LIMIT) { if (!myReady) el.querySelector('.rmp-ok').click(); if (me === 'host' && !startAt) DotNet.roomUpdate(r.id, { startAt2: Date.now() + 2500 }).catch(() => {}); } if (startAt && Date.now() >= startAt) finish(); }, 300);
       };
       unsub = DotNet.roomWatch(r.id, async (nr) => {
         if (!nr || done) return;
+        if (nr[other + 'Ver']) { otherVerSeen = true; const bad = nr[other + 'Ver'] !== VER ? `相手と版が違います（相手 ${String(nr[other + 'Ver']).split('-').pop()}／自分 ${VER.split('-').pop()}）。ふたりともアプリを開き直してください` : ''; if (bad !== verBad) { verBad = bad; try { show(); } catch (_) {} } }   // 版1122：版が違うと、同じ試合にならない
         if (nr[other + 'Ready2'] && nr[other + 'Code2'] && !otherReady) { otherReady = true; otherCode = nr[other + 'Code2']; try { const od = await unpackCode(otherCode); if (other === 'host') hd = od; else gd = od; if (!el.hidden && el.classList.contains('rmprep')) show(); } catch (_) {} }
         if (me === 'host' && nr.hostReady2 && nr.guestReady2 && !nr.startAt2) DotNet.roomUpdate(r.id, { startAt2: Date.now() + 2500 }).catch(() => {});
         if (nr.startAt2 && !startAt) { startAt = nr.startAt2; if (nr[other + 'Code2']) otherCode = nr[other + 'Code2']; }
@@ -5495,7 +5506,11 @@
     const merged = () => [...(me === 'host' ? myChg : otherChg), ...(me === 'host' ? otherChg : myChg)].map((c) => ({ ...c })).sort((a0, b0) => (a0.at ?? -1) - (b0.at ?? -1) || a0.team - b0.team);
     const holdOn = (on, noStop) => { window.__rmHold = on; let h = document.getElementById('rmHold'); if (on) { if (!h) { h = document.createElement('div'); h.id = 'rmHold'; h.innerHTML = '<b>相手が作戦変更中です</b><button class="rmh-go">自分も作戦変更</button>'; document.getElementById('app').appendChild(h); h.querySelector('.rmh-go').onclick = () => { if (A().inLocker) { A().openSub(true); return; } A().openSub(false); }; } h.hidden = false;   /* 版1116：相手が変えている間、自分も作戦変更の画面へ行ける */ if (!noStop) try { A().stop(); } catch (_) {} } else if (h) h.hidden = true; };
     let pzSeen = null;
-    let rmU = null; try { rmU = DotNet.roomWatch(r.id, (nr) => { if (!nr) return; const oc = nr[other + 'Chg'] ? JSON.parse(nr[other + 'Chg']) : [];
+    // 版1122：ずれの見張り：最初の試合の中身（出来事の時刻と種類）の指紋を送り合い、違ったら知らせる
+    const fpOf = () => { const m = A().match; if (!m) return ''; let h = 0; for (const e of (m.events || []).slice(0, 80)) { const t = e.type + Math.round(e.t * 10); for (let i = 0; i < t.length; i++) h = (Math.imul(h, 31) + t.charCodeAt(i)) | 0; } return String(h >>> 0); };
+    let myFp = '', fpWarned = false; setTimeout(() => { myFp = fpOf(); if (myFp && !myChg.length && !otherChg.length) DotNet.roomUpdate(r.id, { [me + 'Fp']: myFp }).catch(() => {}); }, 4000);
+    let rmU = null; try { rmU = DotNet.roomWatch(r.id, (nr) => { if (!nr) return;
+      if (!fpWarned && myFp && nr[other + 'Fp'] && nr[other + 'Fp'] !== myFp) { fpWarned = true; rmToast('相手の画面と試合がずれています。ふたりとも最新の版か確かめてください'); } const oc = nr[other + 'Chg'] ? JSON.parse(nr[other + 'Chg']) : [];
       if (JSON.stringify(oc) !== JSON.stringify(otherChg)) { otherChg = oc; try { A().applyExt(merged()); } catch (e) { console.error(e); } }
       const pzv = nr[other + 'Pz'], pz = !!pzv; otherPzNow = pz;
       if (typeof pzv === 'number' && pzSeen !== pzv) { pzSeen = pzv; window.__rmHold = true; if (!(A().stopAtT > 0)) { try { A().stopAt(pzv, () => { waitBan(null); holdOn(true, true); }); waitBan('相手が選手交代を予約しました　次にボールが外に出たら止まります'); } catch (_) { holdOn(true); } } return; }   // 版1115：相手が決めた時刻まで進んで、笛で止まる（飛ばない）
@@ -5519,7 +5534,7 @@
       if (window.__rmHold) { T = Math.round(A().simT * 10) / 10; DotNet.roomUpdate(r.id, { [me + 'Pz']: true }).catch(() => {}); { const h = document.getElementById('rmHold'); if (h) h.hidden = true; } open(); return; }   // 相手が止めている間（同じ時刻で止まっている）：そのまま変える
       const est = otherAt ? otherAt.t + (otherAt.run ? Math.min(4, (Date.now() - otherAt.got) / 1000) * A().RATE : 0) : info.t;
       T = nextDead(Math.max(info.t, est) + 1.2);
-      if (T == null) { toast('このハーフは、もうボールが外に出ません。ハーフタイムに変えられます'); if (cn0) cn0(); return; }
+      if (T == null) { rmToast('このハーフは、もうボールが外に出ません。ハーフタイムに変えられます'); if (cn0) cn0(); return; }
       DotNet.roomUpdate(r.id, { [me + 'Pz']: T }).catch(() => {});
       waitBan('選手交代の予約中…　次にボールが外に出たら止まります');
       A().stopAt(T, open); A().labPlay(); };
