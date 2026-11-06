@@ -5376,7 +5376,7 @@
   //  ホストがルームを作る → 相手のポストに招待 → 相手が入る → ふたりとも「対戦する」→ 同じ種で、2つの画面で同じ試合
   //  （試合中の交代・作戦変更はなし。変えると2つの画面で試合が変わってしまうため）
   async function makeRoom(f) {
-    if (!(await verLatest())) return null;
+    if (!(await verLatest({ mk: f.uid }))) return null;
     try {
       const code = await packCode(C.guestCode(save)), me = myCard();
       const id = await DotNet.createRoom(f.uid, { hostCode: code, hostName: me.name, hostMgr: me.mgr, hostEmb: me.emb, guestName: f.name, guestMgr: f.mgr || '', guestEmb: f.emb || null });
@@ -5385,7 +5385,7 @@
     } catch (e) { modal('<h2>ルームを作れませんでした</h2><p>通信の状態をたしかめてください。</p>', [{ label: 'OK', primary: true }]); return null; }
   }
   async function joinRoom(id) {
-    if (!(await verLatest())) return;
+    if (!(await verLatest({ jn: id }))) return;
     let r = null; try { r = await DotNet.roomGet(id); } catch (_) {}
     if (!r || r.state !== 'open') return modal('<h2>このルームはもう閉じています</h2>', [{ label: 'OK', primary: true }]);
     try { const code = await packCode(C.guestCode(save)), me = myCard(); await DotNet.roomUpdate(id, { guestIn: true, guestCode: code, guestName: me.name, guestMgr: me.mgr, guestEmb: me.emb }); }
@@ -5430,7 +5430,14 @@
   // 版1114：フレンド対戦：3・2・1のあと、入場通路に両チームが並んだ所。スタメン・戦術を変えて「準備OK」。ふたりともOK（か90秒）で、変えたチームで試合
   // 版1123：ルームに入る前に、最新の版か確かめる。古ければ、その場で最新の版に入れかえる（ふたりの版がずれて別の試合になるのを防ぐ）
   const MY_VER = (() => { try { const sc = document.querySelector('script[src*="career-ui.js"]'); return (sc && (sc.src.split('v=')[1] || '')) || ''; } catch (_) { return ''; } })();
-  async function verLatest() { try { const t = ((await (await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' })).text()) || '').trim(); if (t && MY_VER && t !== MY_VER) { await modal('<h2>最新の版にします</h2><p>フレンド対戦は、ふたりとも同じ版で遊びます。</p>', [{ label: 'OK', primary: true }]); location.replace(location.pathname + '?v=' + t); return false; } } catch (_) {} return true; }
+  // 版1124：プレイヤーには版の話はしない。黙って入れかえて、入れかえたあと同じ操作（ルームを作る・入る）を続ける
+  async function verLatest(intent) { try { const t = ((await (await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' })).text()) || '').trim(); if (t && MY_VER && t !== MY_VER) {
+      try { sessionStorage.setItem('dsRoomGo', JSON.stringify({ ...(intent || {}), at: Date.now() })); } catch (_) {}
+      const dk = document.createElement('div'); dk.className = 'rm-dark'; dk.innerHTML = '<b>通信中…</b>'; (document.getElementById('app') || document.body).appendChild(dk);
+      location.replace(location.pathname + '?v=' + t); return false; } } catch (_) {} return true; }
+  { let go = null; try { go = JSON.parse(sessionStorage.getItem('dsRoomGo') || 'null'); sessionStorage.removeItem('dsRoomGo'); } catch (_) {}
+    if (go && Date.now() - (go.at || 0) < 90000) { const t0 = Date.now(); const w = async () => { if (Date.now() - t0 > 60000) return; const cv = document.getElementById('career'); if (!(cv && !cv.hidden && view === 'home' && window.DotNet && DotNet.uid)) { setTimeout(w, 600); return; }
+        try { if (go.jn) joinRoom(go.jn); else if (go.mk) { const f = (ensureOnline().flist || []).find((x) => x.uid === go.mk); if (f) { const id = await makeRoom(f); if (id) roomScreen(id, 'host'); } } } catch (_) {} }; setTimeout(w, 800); } }
   const rmToast = (msg) => { const t = document.createElement('div'); t.className = 'rm-toast'; t.textContent = msg; (document.getElementById('app') || document.body).appendChild(t); setTimeout(() => t.remove(), 3200); };
   async function roomPrep(r, me, round) {
     const other = me === 'host' ? 'guest' : 'host', RK = round ? '_' + round : '';   // 版1123：やり直しの回（同じ部屋で、準備OKからやり直す）
@@ -5449,7 +5456,7 @@
       const VER = (() => { try { const sc = document.querySelector('script[src*="career-ui.js"]'); return (sc && (sc.src.split('v=')[1] || '')) || ''; } catch (_) { return ''; } })();
       let verBad = '';
       DotNet.roomUpdate(r.id, { [me + 'Ver']: VER }).catch(() => {});
-      setTimeout(() => { if (!done && !otherVerSeen) { verBad = '相手のアプリを最新の版にしています…'; try { show(); } catch (_) {} } }, 8000);
+      setTimeout(() => { if (!done && !otherVerSeen) { verBad = '相手と通信しています…'; try { show(); } catch (_) {} } }, 8000);
       let otherVerSeen = false;
       const show = () => {
         el.className = 'lv2 rmprep'; el.hidden = false;
@@ -5475,7 +5482,7 @@
       };
       unsub = DotNet.roomWatch(r.id, async (nr) => {
         if (!nr || done) return;
-        if (nr[other + 'Ver']) { otherVerSeen = true; const ov = String(nr[other + 'Ver']), bad = ov !== VER ? '相手のアプリを最新の版にしています…' : ''; if (ov !== VER && ov > VER) { done = true; verLatest(); return; } if (bad !== verBad) { verBad = bad; try { show(); } catch (_) {} } }   // 版1122：版が違うと、同じ試合にならない
+        if (nr[other + 'Ver']) { otherVerSeen = true; const ov = String(nr[other + 'Ver']), bad = ov !== VER ? '相手と通信しています…' : ''; if (ov !== VER && ov > VER) { done = true; verLatest(me === 'guest' ? { jn: r.id } : { mk: r.guest }); return; } if (bad !== verBad) { verBad = bad; try { show(); } catch (_) {} } }   // 版1122：版が違うと、同じ試合にならない
         if (nr[other + 'Ready2' + RK] && nr[other + 'Code2' + RK] && !otherReady) { otherReady = true; otherCode = nr[other + 'Code2' + RK]; try { const od = await unpackCode(otherCode); if (other === 'host') hd = od; else gd = od; if (!el.hidden && el.classList.contains('rmprep')) show(); } catch (_) {} }
         if (me === 'host' && nr['hostReady2' + RK] && nr['guestReady2' + RK] && !nr['startAt2' + RK]) DotNet.roomUpdate(r.id, { ['startAt2' + RK]: Date.now() + 2500 }).catch(() => {});
         if (nr['startAt2' + RK] && !startAt) { startAt = nr['startAt2' + RK]; if (nr[other + 'Code2' + RK]) otherCode = nr[other + 'Code2' + RK]; }
