@@ -814,6 +814,8 @@
   // 試合終了：笛 → 主審が両手を上げる（アップ） → 引きの画面 → 暗転 → ダイジェスト
   const END_T = { arms: 0.25, close: 2.0, fade0: 2.9, fade1: 3.7, digest: 3.9 };
   const GK_SAD_T = 2.9;   // ゴールが決まってから、GKが悔しがり終わる（立ち上がってゴールを見つめる）までの間
+  // 版1127：本当の試合の時刻（ゴールのリプレイ・判定のリプレイの間は、巻き戻す前の時刻）
+  function realT() { return show && show.saveT != null && ['crowd', 'replay', 'fade', 'jreplay', 'jfade'].includes(show.phase) ? show.saveT : simT; }
   function jumpToKickoff() {
     const g = show.goal, koT = koTimeAfter(g.t + 0.5);
     if (koT >= match.duration - 0.3) { simT = match.duration; show = { phase: 'endOut', hold: true, rt: 0 }; SND().play('whistle3'); setTimeout(() => SND().play('clap'), 700); return; }
@@ -4463,11 +4465,11 @@
   function openSub(atHalf, page) {
     if (!mctx || !mctx.opts.onSub) return;
     if (!atHalf) {
-      if (show && show.phase !== 'kickoff' && !(mctx.opts.noFF && window.__rmHold)) { flash($('#policy'), 'ゴールの演出のあとで交代できます', 2000); return; }   // 版1116：フレンド対戦で相手が止めている間は、いつでも開ける
+      if (show && show.phase !== 'kickoff' && !mctx.opts.noFF) { flash($('#policy'), 'ゴールの演出のあとで交代できます', 2000); return; }   // 版1127：フレンド対戦は、ゴールの演出・リプレイの間でも、いつでも押せる（予約になる）
       if (simT >= match.duration - 2) return;
     }
     const wasPlaying = playing; stop();
-    const t = atHalf ? halfT : simT, st = stateAt(t);
+    const t = atHalf ? halfT : realT(), st = stateAt(t);   // 版1127：リプレイ中は、巻き戻した時刻ではなく、本当の試合の時刻
     mctx.opts.onSub({
       atHalf, t, page,
       minute: Math.min(90, Math.ceil((D.gameSec(match, t)) / 60)),
@@ -4960,7 +4962,7 @@
   // 版1041：確認画面用：好きな時刻の絵を出す（止めたまま）／そこから再生
   function labPeek(t, snap) { if (!match) return; stop(); if (show && show.phase !== "endOut") show = null; koWhistleT = -1; if (snap) lastDrawT = -99; simT = Math.max(0, Math.min(t, match.duration)); evIndex = 0; while (evIndex < match.events.length && match.events[evIndex].t <= simT) evIndex++; try { draw(); } catch (err) { showErr(err, '確認画面'); } }
   function labPlay() { if (match && !playing) play(); }
-  window.__app = { openSub: (h, pg) => openSub(h, pg), get stopAtT() { return stopAtT; }, stopAt: (t, cb) => { if (!match || simT >= t) { if (stopAtT < 0) { try { SND().play('whistle'); } catch (_) {} } stopAtT = -1; stopAtCb = null; stop(); if (cb) cb(); return; } stopAtT = t; stopAtCb = cb; }, setSync: (k) => { syncK = k; }, get theirs() { return mctx && mctx.theirs; }, get mine() { return mctx && mctx.mine; }, applyExt: (list) => { careerChanges = list.slice(); tacChange = null; applyHalf(list); }, get inLocker() { return !!lk; }, presim, labPeek, labPlay, champDemo, applyKits, artSprite, kitSprite, kitCol, lockerTalk, startWith, showScreen, stop, spriteCanvas, SPR: { W: SPR_W, H: SPR_H }, get match() { return match; }, catchUp, get simT() { return simT; }, get playing() { return playing; }, RATE };
+  window.__app = { openSub: (h, pg) => openSub(h, pg), get stopAtT() { return stopAtT; }, stopAt: (t, cb) => { if (!match || simT >= t) { if (stopAtT < 0) { try { SND().play('whistle'); } catch (_) {} } stopAtT = -1; stopAtCb = null; stop(); if (cb) cb(); return; } stopAtT = t; stopAtCb = cb; }, setSync: (k) => { syncK = k; }, get theirs() { return mctx && mctx.theirs; }, get mine() { return mctx && mctx.mine; }, applyExt: (list) => { careerChanges = list.slice(); tacChange = null; applyHalf(list); }, get inLocker() { return !!lk; }, presim, labPeek, labPlay, champDemo, applyKits, artSprite, kitSprite, kitCol, lockerTalk, startWith, showScreen, stop, spriteCanvas, SPR: { W: SPR_W, H: SPR_H }, get match() { return match; }, catchUp, get simT() { return simT; }, get realT() { return realT(); }, get inShow() { return !!(show && show.hold); }, koAfter: (t) => koTimeAfter(t), get playing() { return playing; }, RATE };
   window.__demo = { simT: () => simT, showPh: () => (show ? show.phase + (show.phase === "sub" ? "#" + show.rt.toFixed(2) + "k" + show.k + "n" + show.list.length : "") : null), playingNow: () => playing, poses: (list) => {
     ctx.fillStyle = '#45a31d'; ctx.fillRect(0, 0, CW, CH);
     list.forEach((pz, k) => { sprite(90 + k * 165, 270, 4.2, match.roster[0][9], 0, 1, 0, false, false, false, pz === 'side' ? null : pz, 0, 'side'); ctx.fillStyle = '#fff'; ctx.font = '12px sans-serif'; ctx.fillText(pz, 60 + k * 165, 300); });

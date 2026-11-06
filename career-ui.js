@@ -2239,7 +2239,7 @@
   const battery = (st) => { const n = Math.max(0, Math.min(5, Math.ceil(st / 20))); return `<i class="bat ${st < 35 ? 'low' : st < 60 ? 'mid' : ''}">${'<b></b>'.repeat(n)}${'<b class="e"></b>'.repeat(5 - n)}</i>`; }   // 版997：電池の中にスタミナの数字 → 版1012：数字は出さない;
   function subSheet(mt, info, ms) {
     const ps = mt.team.players, base = C.ensureTactics(save);
-    if (!ms.on) { ms.on = [...Array(11).keys()]; ms.used = []; ms.out = []; ms.changes = []; ms.cells = (mt.team.cells || C.cellsFor(mt.team.formation)).map((c) => c && { ...c }); ms.att = base.attitude || 'balanced'; ms.cur = {}; }
+    if (!ms.on) { ms.on = [...Array(11).keys()]; ms.used = []; ms.out = []; ms.subsIn = []; ms.changes = []; ms.cells = (mt.team.cells || C.cellsFor(mt.team.formation)).map((c) => c && { ...c }); ms.att = base.attitude || 'balanced'; ms.cur = {}; }
     // 今回の変更（「戻る」で試合に伝える）
     if (!ms.marks) { ms.marks = []; ms.orders = {}; }
     if (!ms.tq) { ms.tq = {}; for (const k of ['style', 'line', 'width', 'compact', 'attitude', 'press', 'pass', 'side']) ms.tq[k] = base[k]; if (!ms.tq.attitude) ms.tq.attitude = 'balanced'; }   /* 版1086：この試合のチーム戦術（試合中に変えても、保存はしない） */   /* 版1084：マークの指名・選手ごとの指示・ライン・プレス */
@@ -2453,7 +2453,7 @@
       setTimeout(() => {
         ms.changes.push(ch);
         info.apply(ms.changes, () => {
-          for (const x of plan.subs) { ms.out.push(ps[ms.on[x.slot]].name); ms.on[x.slot] = x.bench; ms.used.push(x.bench); ms.subsIn.push(ps[x.bench].name); }
+          for (const x of plan.subs) { ms.out.push(ps[ms.on[x.slot]].name); ms.on[x.slot] = x.bench; ms.used.push(x.bench); (ms.subsIn || (ms.subsIn = [])).push(ps[x.bench].name); }
           ms.cells = plan.cells; ms.att = plan.tq.attitude; ms.marks = plan.marks; ms.orders = plan.orders; ms.tq = plan.tq; ms.roles = { ...plan.roles };
           el.hidden = true;
         });
@@ -5448,7 +5448,8 @@
       const T0 = Date.now(), LIMIT = 90000;
       let unsub = null, tick = null;
       const myCode = async () => packCode(C.guestCode(save));
-      const finish = async () => { if (done) return; done = true; clearInterval(tick); cancelAnimationFrame(liveRaf); if (unsub) unsub(); el.hidden = true;
+      const finish = async () => { if (done) return; done = true; clearInterval(tick); if (unsub) unsub();   // 版1127：試合の画面が出るまで、入場の画面を出したまま（すき間に、ホームや戦術の画面が見えていた）
+        { const ob = el.querySelector('.rmp-bar'), bt = el.querySelector('.lv-btns'); if (ob) ob.style.visibility = 'hidden'; if (bt) bt.style.visibility = 'hidden'; }
         // 版1122：ふたりとも、部屋に書かれたデータ（準備OKの時に送った物）を使う（自分の分をここで作り直すと、相手が使う物とずれることがあった）
         let d = null; try { d = await DotNet.roomGet(r.id); } catch (_) {}
         const r2 = { ...r, nm: d && d.nm != null ? !!d.nm : (me === 'host' ? !!globalThis.__newMove : !!r.nm) }; for (const w of ['host', 'guest']) { const c2 = (d && d[w + 'Code2' + RK]) || (w === other ? otherCode : sentCode); if (c2) r2[w + 'Code'] = c2; } resolve(r2); };
@@ -5492,6 +5493,8 @@
   }
   async function playRoom(r, me, round) {
     const r0 = r._orig || r;
+    const lsHide = () => { const ls = document.getElementById('liveScr'); if (ls && ls.classList.contains('rmprep')) { ls.hidden = true; cancelAnimationFrame(liveRaf); const ob = ls.querySelector('.rmp-bar'), bt = ls.querySelector('.lv-btns'); if (ob) ob.style.visibility = ''; if (bt) bt.style.visibility = ''; } };   // 版1127：試合の画面が出てから、入場の画面を消す
+    setTimeout(lsHide, 12000);
     round = round || 0; const RK = round ? '_' + round : ''; let aborted = false;
     const hd = await unpackCode(r.hostCode), gd = await unpackCode(r.guestCode);
     const oppD = me === 'host' ? gd : hd, g = C.registerGuest(save, oppD);
@@ -5509,10 +5512,11 @@
       syncT = setInterval(() => {
         const ap = A(), ms = document.getElementById('match'); if (!ap || !ap.match) return;
         if (!ms || ms.hidden) { if (++syncGone > 8) syncEnd(); return; } syncGone = 0;
-        DotNet.roomUpdate(r.id, { [me + 'T']: Math.round(ap.simT * 10) / 10, [me + 'Run']: !!ap.playing }).catch(() => {});
+        DotNet.roomUpdate(r.id, { [me + 'T']: Math.round(ap.realT * 10) / 10, [me + 'Run']: !!ap.playing && !ap.inShow }).catch(() => {});   // 版1127：リプレイ中は、本当の試合の時刻を送る（巻き戻した時刻を送ると、相手が「進みすぎ」と思って、リプレイを飛ばしていた）
         if (!otherAt) return;
+        if (ap.inShow) { ap.setSync(1); return; }   // 自分がゴールの演出・リプレイを見ている間は、合わせない（最後まで流す）
         const est = otherAt.t + (otherAt.run ? Math.min(4, (Date.now() - otherAt.got) / 1000) * ap.RATE : 0);
-        const gap = est - ap.simT; if (gap > 12) { ap.catchUp(est); ap.setSync(1); } else ap.setSync(gap > 0.6 ? Math.min(1.35, 1 + gap * 0.12) : gap < -0.6 ? Math.max(0.75, 1 + gap * 0.12) : 1);   // 版1115：飛ばさずに、少し速く（遅く）進めて合わせる（12秒以上ずれた時だけ飛ばす）
+        const gap = est - ap.realT; if (gap > 12) { ap.catchUp(est); ap.setSync(1); } else ap.setSync(gap > 0.6 ? Math.min(1.35, 1 + gap * 0.12) : gap < -0.6 ? Math.max(0.75, 1 + gap * 0.12) : 1);   // 版1115：飛ばさずに、少し速く（遅く）進めて合わせる（12秒以上ずれた時だけ飛ばす）
       }, 2000);
     } catch (_) {}
     // 版1114：フレンド対戦の交代・作戦：変える間はふたりとも止まる。変えた中身（両方の変更の一覧）を送り合って、同じ計算をし直す
@@ -5534,9 +5538,15 @@
     // 版1116：フレンド対戦の交代（イーフト風）：試合中にボタンを押すと予約。次にボールが外に出た所（FK・ゴールキック・スローイン・CK・オフサイド）で、ふたり同時に笛で止まる。
     //  押した人が作戦を変えて「試合にもどる」で再開（ふたりとも押していたら、ふたりとも終わってから）。ハーフタイムは、その場で変えられる
     let otherPzNow = false;
-    const waitBan = (txt) => { let w = document.getElementById('rmWait'); if (!txt) { if (w) w.hidden = true; return; } if (!w) { w = document.createElement('div'); w.id = 'rmWait'; document.getElementById('app').appendChild(w); } w.textContent = txt; w.hidden = false; };
+    const waitBan = (txt) => { let w = document.getElementById('rmWait'); if (!txt) { if (w) w.hidden = true; return; } if (!w) { w = document.createElement('div'); w.id = 'rmWait'; (document.querySelector('#match .viewport') || document.getElementById('app')).appendChild(w); } w.textContent = txt; w.hidden = false; };   // 版1127：スコアの下に、小さく
     const DEAD = ['freekick', 'goalkick', 'throw', 'corner', 'offside'];
-    const nextDead = (from) => { const m = A().match; if (!m) return null; const half = m.halfTime || 225, end = from < half ? half - 1 : m.duration - 3; const e = (m.events || []).find((x) => DEAD.includes(x.type) && x.t >= from && x.t < end); return e ? Math.round((e.t + 0.4) * 10) / 10 : null; };
+    // 版1127：ゴールのあとも「ボールが外に出た」と同じ。キックオフの少し前（選手がそろった所）で止まる
+    const nextDead = (from, now) => { const m = A().match; if (!m) return null; const half = m.halfTime || 225, end = from < half ? half - 1 : m.duration - 3; let best = null;
+      for (const x of (m.events || [])) { let T2 = null;
+        if (DEAD.includes(x.type) && x.t >= from) T2 = x.t + 0.4;
+        else if (x.type === 'goal' && x.t < end + 20) { try { const ko = A().koAfter(x.t + 0.5); if (ko - 0.6 >= (now ?? from) + 0.3) T2 = ko - 0.6; } catch (_) {} }
+        if (T2 != null && T2 < end && (best == null || T2 < best)) best = T2; if (x.t > end) break; }
+      return best == null ? null : Math.round(best * 10) / 10; };
     const rmRedo = async () => {
       if (aborted) return; aborted = true; try { syncEnd(); } catch (_) {} try { if (rmU) rmU(); } catch (_) {} holdOn(false); waitBan(null); window.__rmHold = false;
       try { A().stop(); } catch (_) {}
@@ -5558,12 +5568,13 @@
       if (info.atHalf) { DotNet.roomUpdate(r.id, { [me + 'Pz' + RK]: true }).catch(() => {}); holdOn(false); open(); return; }
       if (window.__rmHold) { T = Math.round(A().simT * 10) / 10; DotNet.roomUpdate(r.id, { [me + 'Pz' + RK]: true }).catch(() => {}); { const h = document.getElementById('rmHold'); if (h) h.hidden = true; } open(); return; }   // 相手が止めている間（同じ時刻で止まっている）：そのまま変える
       const est = otherAt ? otherAt.t + (otherAt.run ? Math.min(4, (Date.now() - otherAt.got) / 1000) * A().RATE : 0) : info.t;
-      T = nextDead(Math.max(info.t, est) + 1.2);
+      T = nextDead(Math.max(info.t, est) + 1.2, Math.max(info.t, est));
       if (T == null) { rmToast('このハーフは、もうボールが外に出ません。ハーフタイムに変えられます'); if (cn0) cn0(); return; }
       DotNet.roomUpdate(r.id, { [me + 'Pz' + RK]: T }).catch(() => {});
       waitBan('選手交代の予約中…　次にボールが外に出たら止まります');
       A().stopAt(T, open); A().labPlay(); };
     A().startWith(hostTeam, guestTeam, r.seed, hd.short || hd.name, gd.short || gd.name, (score) => {
+    lsHide();
       if (aborted) return; syncEnd(); if (rmU) rmU(); holdOn(false); waitBan(null); window.__rmHold = false;
       const my = me === 'host' ? score.slice() : [score[1], score[0]];
       onlineDone('friend', op, my);
