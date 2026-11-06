@@ -5703,7 +5703,7 @@
   // 版1118：オンライン状況（1分ごと・アプリに戻った時に、自分の最後の時刻を書く。フレンド画面では30秒ごとに相手のを読む）
   const pingNow = () => { try { if (!(window.DotNet && DotNet.on) || document.visibilityState === 'hidden') return; const m = document.getElementById('match'); DotNet.ping(m && !m.hidden ? 'match' : 'home'); } catch (_) {} };
   setTimeout(pingNow, 4000); setInterval(pingNow, 60000); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') pingNow(); });
-  const seenTxt = (v) => { if (!v || !(v.seen || v.at)) return ['off', '']; if (!v.seen) v = { ...v, seen: v.at }; const m = (Date.now() - v.seen) / 60000; if (m < 2.5) return ['on', v.st === 'match' ? '試合中' : 'オンライン']; if (m < 60) return ['off', `${Math.max(1, Math.round(m))}分前`]; if (m < 1440) return ['off', `${Math.round(m / 60)}時間前`]; const d = Math.round(m / 1440); return ['off', d < 31 ? `${d}日前` : '1か月以上前']; };
+  const seenTxt = (v) => { if (!v || !(v.seen || v.at)) return ['off', '']; if (!v.seen) v = { ...v, seen: v.at }; const m = (Date.now() - v.seen) / 60000; if (m < 2.5) return ['on', v.st === 'match' ? '試合中' : 'オンライン']; if (m < 60) return ['off', `${Math.max(1, Math.floor(m))}分前`]; if (m < 1440) return ['off', `${Math.floor(m / 60)}時間前`]; const d = Math.floor(m / 1440); return ['off', d < 30 ? `${d}日前` : '30日以上前']; };   // 版1120：1時間から時間、1日から日、30日以上は数えない
   let fSeen = {};
   async function friendMenu(back) {
     if (typeof back === 'function') friendMenu.back = back; else if (back !== 'keep') friendMenu.back = null;
