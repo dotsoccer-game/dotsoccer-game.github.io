@@ -5451,11 +5451,11 @@
       const finish = async () => { if (done) return; done = true; clearInterval(tick); cancelAnimationFrame(liveRaf); if (unsub) unsub(); el.hidden = true;
         // 版1122：ふたりとも、部屋に書かれたデータ（準備OKの時に送った物）を使う（自分の分をここで作り直すと、相手が使う物とずれることがあった）
         let d = null; try { d = await DotNet.roomGet(r.id); } catch (_) {}
-        const r2 = { ...r }; for (const w of ['host', 'guest']) { const c2 = (d && d[w + 'Code2' + RK]) || (w === other ? otherCode : sentCode); if (c2) r2[w + 'Code'] = c2; } resolve(r2); };
+        const r2 = { ...r, nm: d && d.nm != null ? !!d.nm : (me === 'host' ? !!globalThis.__newMove : !!r.nm) }; for (const w of ['host', 'guest']) { const c2 = (d && d[w + 'Code2' + RK]) || (w === other ? otherCode : sentCode); if (c2) r2[w + 'Code'] = c2; } resolve(r2); };
       let sentCode = null;
       const VER = (() => { try { const sc = document.querySelector('script[src*="career-ui.js"]'); return (sc && (sc.src.split('v=')[1] || '')) || ''; } catch (_) { return ''; } })();
       let verBad = '';
-      DotNet.roomUpdate(r.id, { [me + 'Ver']: VER }).catch(() => {});
+      DotNet.roomUpdate(r.id, { [me + 'Ver']: VER, ...(me === 'host' ? { nm: !!globalThis.__newMove } : {}) }).catch(() => {});   // 版1125：動きの設定（新しい動き）はホストのものにそろえる（ちがうと、別の試合になっていた）
       setTimeout(() => { if (!done && !otherVerSeen) { verBad = '相手と通信しています…'; try { show(); } catch (_) {} } }, 8000);
       let otherVerSeen = false;
       const show = () => {
@@ -5567,7 +5567,7 @@
       if (aborted) return; syncEnd(); if (rmU) rmU(); holdOn(false); waitBan(null); window.__rmHold = false;
       const my = me === 'host' ? score.slice() : [score[1], score[0]];
       onlineDone('friend', op, my);
-    }, { venue: venueNow, kits: [k0, k1], noIntro: true, noFF: true, myTeam: myTi, onSub: onSubRoom, comp: 'フレンド対戦', label: 'ルーム', homeName: hd.name, awayName: gd.name, embH: embFromLook(hd.emb, 48), embA: embFromLook(gd.emb, 48), grade: (q, k, tm) => { const pl = ((tm ? gd : hd).team.players || []).find((x) => x.name === q.name && x.number === q.number) || ((tm ? gd : hd).team.players || []).find((x) => x.name === q.name); if (pl && pl.bg && pl.bg[k]) return pl.bg[k]; return C.rankInfo(C.toPts((q.params || q)[k])).g; } });   // 版629：クラブ画面と同じ、素の能力ランクを表示
+    }, { venue: venueNow, kits: [k0, k1], noIntro: true, noFF: true, newMove: !!r.nm, myTeam: myTi, onSub: onSubRoom, comp: 'フレンド対戦', label: 'ルーム', homeName: hd.name, awayName: gd.name, embH: embFromLook(hd.emb, 48), embA: embFromLook(gd.emb, 48), grade: (q, k, tm) => { const pl = ((tm ? gd : hd).team.players || []).find((x) => x.name === q.name && x.number === q.number) || ((tm ? gd : hd).team.players || []).find((x) => x.name === q.name); if (pl && pl.bg && pl.bg[k]) return pl.bg[k]; return C.rankInfo(C.toPts((q.params || q)[k])).g; } });   // 版629：クラブ画面と同じ、素の能力ランクを表示
   }
   // 版624：ポストの見張り（申請・招待・挑戦が届いたら、すぐポストに入れて知らせる）
   let mailWatching = false;

@@ -125,7 +125,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
     venue = mctx.opts.venue != null ? Math.max(0, Math.min(4, mctx.opts.venue)) : 4;
     applyKits(mctx.opts.kits);
     careerChanges = []; tacChange = null; tacState = null; soPicked = false; soBench = false; soToss = null; { const mt = document.getElementById('match'); if (mt) mt.classList.remove('so-pick', 'so-run'); const sp = document.getElementById('soPick'); if (sp) sp.hidden = true; const tm = document.getElementById('soTossMsg'); if (tm) tm.hidden = true; } closeLocker();
-    match = pre || D.simulateMatch(mine, theirs, seed, { oneHalf: !!mctx.opts.oneHalf, shootout: !!mctx.opts.shootout, soForce: mctx.opts.soForce, soGkFirst: mctx.opts.soGkFirst });   // 版560：練習試合は前半だけ
+    match = pre || D.simulateMatch(mine, theirs, seed, { oneHalf: !!mctx.opts.oneHalf, shootout: !!mctx.opts.shootout, soForce: mctx.opts.soForce, soGkFirst: mctx.opts.soGkFirst, ...(mctx.opts.newMove != null ? { newMove: !!mctx.opts.newMove } : {}) });   // 版1125：フレンド対戦は「新しい動き」の設定をふたりでそろえる   // 版560：練習試合は前半だけ
     { const hb = document.getElementById('htTac'); if (hb) hb.hidden = !mctx.opts.onSub; const sb = document.querySelector('#half [data-panel="subs"]'); if (sb) sb.hidden = !!mctx.opts.onSub; }
     { const ab = document.querySelector('#match aside [data-panel="subs"]'); if (ab) ab.style.display = (mctx.opts.watch || mctx.opts.lockEdit) ? 'none' : ''; }   // 観戦：選手交代はない（版622：フレンドのルーム対戦も、2つの画面で同じ試合にするため変更なし）
     // 版695：プレミアムパス：試合の早送り（1倍→2倍→4倍）。フレンドのルーム対戦（2つの画面で同じ試合）では出さない
@@ -171,7 +171,7 @@ try { if (globalThis.__newMove == null && !/lab\.html$/.test(location.pathname))
   let subsAt = [];
   // ハーフタイムの交代・作戦変更：同じシードで試合を計算し直す（前半はまったく同じになる）。後半はそこから続ける
   function applyHalf(changes, cb) {
-    const m2 = D.simulateMatch(mctx.mine, mctx.theirs, mctx.seed, { changes, oneHalf: !!mctx.opts.oneHalf, shootout: !!mctx.opts.shootout, soForce: mctx.opts.soForce, soGkFirst: mctx.opts.soGkFirst });
+    const m2 = D.simulateMatch(mctx.mine, mctx.theirs, mctx.seed, { changes, oneHalf: !!mctx.opts.oneHalf, shootout: !!mctx.opts.shootout, soForce: mctx.opts.soForce, soGkFirst: mctx.opts.soGkFirst, ...(mctx.opts.newMove != null ? { newMove: !!mctx.opts.newMove } : {}) });
     m2.homeShort = match.homeShort; m2.awayShort = match.awayShort;
     match = m2; halfT = match.halfTime || halfT;
     prepTimeline();
