@@ -4647,3 +4647,8 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 .ap-seen i{width:11px;height:11px;border-radius:50%;background:#a9adb8}
 .ap-seen.s-on{color:#1f9a45}.ap-seen.s-on i{background:#2fcf5a;box-shadow:0 0 0 3px rgba(47,207,90,.25)}
 .ap2 .ap-seen{font-size:17px;margin:4px 0 0 2px}.ap2 .ap-seen i{width:13px;height:13px}
+/* 版1121：ルームの左右の札（準備中・入室待ち）が下で切れていた */
+.ap2 .rm-sb{justify-content:space-evenly;padding:8px 0 18px;min-height:0;box-sizing:border-box}
+.ap2 .rm-side .rm-sb>img{width:110px;height:110px}
+.ap2 .rm-side b{font-size:34px;line-height:1.15}
+.ap2 .rm-side em{margin-top:2px;padding:5px 36px;font-size:22px}
