@@ -902,11 +902,16 @@
     baseFocal = (Math.max(CW, 1000) * DIST) / VIEW_W; FOCAL = baseFocal * zoom;
   }
   // 版462：リプレイは飛ばせる（画面をタップ、または右下の「スキップ」）
-  function skipReplay() {
+  // 版1130：フレンド対戦は、どちらかがリプレイを飛ばしたら、相手の画面も飛ばす（リプレイは saveT＝巻き戻す前の時刻 で見分ける）
+  let extSkipKey = null;
+  function skipReplay(fromNet) {
     if (!show) return false;
-    if (show.phase === 'jreplay') { show.phase = 'jfade'; show.rt = 0; return true; }
-    if (show.phase === 'replay') { show.phase = 'fade'; show.rt = 0; return true; }
-    return false;
+    const k = show.saveT != null ? Math.round(show.saveT * 10) / 10 : null;
+    let ok = false;
+    if (show.phase === 'jreplay') { show.phase = 'jfade'; show.rt = 0; ok = true; }
+    else if (show.phase === 'replay') { show.phase = 'fade'; show.rt = 0; ok = true; }
+    if (ok && !fromNet && k != null && mctx && mctx.opts.onSkip) try { mctx.opts.onSkip(k); } catch (_) {}
+    return ok;
   }
   { const vp = document.querySelector('#match .viewport'); if (vp && !document.getElementById('rpSkip')) { const b = document.createElement('button'); b.id = 'rpSkip'; b.type = 'button'; b.innerHTML = 'スキップ <i>▶▶</i>'; b.style.display = 'none'; b.onclick = (e) => { e.stopPropagation(); skipReplay(); }; vp.appendChild(b); } }
   $('#pitch').addEventListener('click', () => {
@@ -3927,6 +3932,7 @@
       }
     });
     if (show && (show.phase === 'replay' || show.phase === 'digest')) drawSkillBanner();
+    if (extSkipKey != null && show && (show.phase === 'replay' || show.phase === 'jreplay') && show.saveT != null && Math.abs(show.saveT - extSkipKey) < 0.15) { extSkipKey = null; skipReplay(true); }
     { const rb = document.getElementById('rpSkip'); if (rb) { const on = !!(show && (show.phase === 'replay' || show.phase === 'jreplay')); if ((rb.style.display !== 'none') !== on) rb.style.display = on ? '' : 'none'; } }
     drawCardBanner();
     skillChips.forEach(([x, y, k, ov]) => {
@@ -4964,7 +4970,7 @@
   // 版1041：確認画面用：好きな時刻の絵を出す（止めたまま）／そこから再生
   function labPeek(t, snap) { if (!match) return; stop(); if (show && show.phase !== "endOut") show = null; koWhistleT = -1; if (snap) lastDrawT = -99; simT = Math.max(0, Math.min(t, match.duration)); evIndex = 0; while (evIndex < match.events.length && match.events[evIndex].t <= simT) evIndex++; try { draw(); } catch (err) { showErr(err, '確認画面'); } }
   function labPlay() { if (match && !playing) play(); }
-  window.__app = { openSub: (h, pg) => openSub(h, pg), get stopAtT() { return stopAtT; }, stopAt: (t, cb) => { if (!match || simT >= t) { if (stopAtT < 0) { try { SND().play('whistle'); } catch (_) {} } stopAtT = -1; stopAtCb = null; stop(); if (cb) cb(); return; } stopAtT = t; stopAtCb = cb; }, setSync: (k) => { syncK = k; }, get theirs() { return mctx && mctx.theirs; }, get mine() { return mctx && mctx.mine; }, applyExt: (list) => { careerChanges = list.slice(); tacChange = null; applyHalf(list); }, get inLocker() { return !!lk; }, presim, labPeek, labPlay, champDemo, applyKits, artSprite, kitSprite, kitCol, lockerTalk, startWith, showScreen, stop, spriteCanvas, SPR: { W: SPR_W, H: SPR_H }, get match() { return match; }, catchUp, get simT() { return simT; }, get realT() { return realT(); }, get inShow() { return !!(show && show.hold); }, koAfter: (t) => koTimeAfter(t), get playing() { return playing; }, RATE };
+  window.__app = { openSub: (h, pg) => openSub(h, pg), get stopAtT() { return stopAtT; }, stopAt: (t, cb) => { if (!match || simT >= t) { if (stopAtT < 0) { try { SND().play('whistle'); } catch (_) {} } stopAtT = -1; stopAtCb = null; stop(); if (cb) cb(); return; } stopAtT = t; stopAtCb = cb; }, setSync: (k) => { syncK = k; }, get theirs() { return mctx && mctx.theirs; }, get mine() { return mctx && mctx.mine; }, applyExt: (list) => { careerChanges = list.slice(); tacChange = null; applyHalf(list); }, get inLocker() { return !!lk; }, presim, labPeek, labPlay, champDemo, applyKits, artSprite, kitSprite, kitCol, lockerTalk, startWith, showScreen, stop, spriteCanvas, SPR: { W: SPR_W, H: SPR_H }, get match() { return match; }, catchUp, get simT() { return simT; }, get realT() { return realT(); }, get inShow() { return !!(show && show.hold); }, koAfter: (t) => koTimeAfter(t), skipExt: (k) => { extSkipKey = k; }, get playing() { return playing; }, RATE };
   window.__demo = { simT: () => simT, showPh: () => (show ? show.phase + (show.phase === "sub" ? "#" + show.rt.toFixed(2) + "k" + show.k + "n" + show.list.length : "") : null), playingNow: () => playing, poses: (list) => {
     ctx.fillStyle = '#45a31d'; ctx.fillRect(0, 0, CW, CH);
     list.forEach((pz, k) => { sprite(90 + k * 165, 270, 4.2, match.roster[0][9], 0, 1, 0, false, false, false, pz === 'side' ? null : pz, 0, 'side'); ctx.fillStyle = '#fff'; ctx.font = '12px sans-serif'; ctx.fillText(pz, 60 + k * 165, 300); });
