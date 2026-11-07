@@ -4750,3 +4750,59 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 .pas-doc{padding:8px 16px;border-radius:8px;border:2px solid #1f56c4;background:#fff;color:#1f56c4;font:800 14px/1 sans-serif;cursor:pointer}
 .pas-tb{margin:6px 0}
 .pas-now{text-align:left!important}
+/* 版1136：凸の資料（いただいたデザイン） */
+#tzDoc .tzx{width:min(900px,100%);height:100%;display:flex;flex-direction:column;background:#fbf6e6;border:3px solid #13285a;border-radius:12px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.5);color:#13213f;font-family:"M PLUS 1p","Hiragino Kaku Gothic ProN",sans-serif}
+.tz2-hd{flex:none;display:flex;align-items:center;gap:10px;padding:5px 10px;background:linear-gradient(#1b3a7c,#122a5c);border-bottom:3px solid #e2b23a}
+.tz2-hd img{width:30px;height:30px}
+.tz2-hd h2{flex:1;margin:0;color:#fff;font:900 19px/1.2 "M PLUS 1p",sans-serif;letter-spacing:.03em}
+.tz2-x{padding:6px 18px;border-radius:8px;border:2px solid #0d5e1e;background:linear-gradient(#5fd36a,#249a36);color:#fff;font:900 14px/1 "M PLUS 1p",sans-serif;box-shadow:0 2px 0 #0d5e1e;cursor:pointer}
+.tz2-tabs{flex:none;display:flex;gap:8px;justify-content:center;padding:7px 12px 6px;border-bottom:2px solid #13285a;margin:0 12px}
+.tz2-tabs button{flex:1;max-width:200px;padding:6px 4px;border-radius:9px;border:2px solid #9aa6bd;background:linear-gradient(#f4f6fa,#cfd6e3);color:#13285a;font:900 13px/1.1 "M PLUS 1p",sans-serif;cursor:pointer;position:relative}
+.tz2-tabs button.on{background:linear-gradient(#2a64d8,#123fa2);border-color:#e2b23a;color:#fff}
+.tz2-tabs button.on::after{content:'';position:absolute;left:50%;bottom:-8px;margin-left:-6px;border:6px solid transparent;border-top-color:#123fa2;border-bottom:0}
+.tz2-body{flex:1;overflow:auto;padding:8px 14px 12px;-webkit-overflow-scrolling:touch}
+.tz2-ttl{margin:2px 0 2px;text-align:center}
+.tz2-ttl span{display:inline-block;padding:0 10px;font:900 19px/1.25 "M PLUS 1p",sans-serif;background:linear-gradient(transparent 62%,#ffd84a 62%,#ffd84a 92%,transparent 92%)}
+.tz2-sub{margin:2px 0 6px;text-align:center;font:800 12px/1.4 sans-serif;color:#2b3550}
+.tz2-row{display:flex;align-items:center;justify-content:center;gap:10px;margin:4px 0 8px}
+.tz2-row>em{font-style:normal;color:#13285a;font-size:14px}
+.tz2-st{display:flex;flex-direction:column;align-items:center;gap:2px}
+.tz2-big{font-size:42px;line-height:1}
+.tz2-st b,.tz2-tb thead th{font:900 12px/1 "M PLUS 1p",sans-serif}
+.tz2-st b{padding:4px 12px;border-radius:999px;background:#13285a;color:#fff;border:2px solid #e2b23a}
+.tz2-g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tz2-g3{display:grid;grid-template-columns:.8fr 1.2fr;gap:10px;margin-bottom:8px}
+.tz2-pnl{background:#fff;border:2px solid #13285a;border-radius:9px;overflow:hidden}
+.tz2-pnl h4{margin:0;padding:5px 10px;background:#13285a;color:#fff;font:900 14px/1.2 "M PLUS 1p",sans-serif}
+.tz2-pnl h4 i{font-style:normal;color:#ffd84a;margin-right:6px}
+.tz2-ls{list-style:none;margin:0;padding:2px 10px}
+.tz2-ls li{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #dde2ea;font:800 13px/1.3 "M PLUS 1p",sans-serif}
+.tz2-ls li:last-child{border-bottom:0}
+.tz2-ls svg{flex:none;width:30px;height:22px;fill:#2a64d8}
+.tz2-ls img{flex:none;width:26px;height:26px;margin:0 2px}
+.tz2-ls b{flex:1}
+.tz2-p{flex:none;padding:3px 10px;border-radius:7px;background:linear-gradient(#2a64d8,#123fa2);border:2px solid #e2b23a;color:#fff;font:900 13px/1 "M PLUS 1p",sans-serif}
+.tz2-cap{margin:2px 0 6px;text-align:center;font:700 11.5px/1.5 sans-serif;color:#2b3550}
+.tz2-tb{width:100%;border-collapse:separate;border-spacing:0;border:2px solid #13285a;border-radius:9px;overflow:hidden;background:#fffdf6;margin:4px 0}
+.tz2-tb thead th{background:#13285a;color:#fff;padding:6px 4px}
+.tz2-tb thead th .stars{font-size:15px;margin-right:4px;vertical-align:-2px}
+.tz2-tb tbody th{background:#fbefc9;font:900 15px/1 "M PLUS 1p",sans-serif;padding:5px 6px;white-space:nowrap}
+.tz2-tb td{padding:5px 4px;text-align:center;border-top:1px solid #e6dcc0;border-left:1px solid #e6dcc0;font:900 13px/1.2 "M PLUS 1p",sans-serif}
+.tz2-tb tbody th{border-top:1px solid #e6dcc0}
+.tz2-hl{display:block;padding:4px 2px;border-radius:6px;background:#ffe7a6}
+.tz2-tx{margin:0;padding:8px 10px;font:700 12.5px/1.6 sans-serif}
+.tz2-rel{display:flex;gap:8px;align-items:flex-start;padding:6px 10px;border-bottom:1px solid #dde2ea}
+.tz2-rel:last-child{border-bottom:0}
+.tz2-rel p{margin:0;font:700 12px/1.55 sans-serif}
+.tz2-tag{flex:none;padding:4px 8px;border-radius:6px;background:#123fa2;color:#fff;font:900 12px/1 "M PLUS 1p",sans-serif;margin-top:2px}
+.tz2-kk{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding:8px 8px 4px}
+.tz2-kk span{display:flex;border:2px solid #e2b23a;border-radius:8px;overflow:hidden;font:900 14px/1 "M PLUS 1p",sans-serif}
+.tz2-kk i{font-style:normal;background:#13285a;color:#fff;padding:5px 8px}.tz2-kk b{background:#fff;padding:5px 10px}
+.tz2-ex{margin:4px auto;width:max-content;max-width:100%;padding:5px 16px;border-radius:999px;background:#ffe27a;border:2px solid #e2b23a;font:900 14px/1.2 "M PLUS 1p",sans-serif}
+.tz2-ps td,.tz2-ps th{font-size:12px}
+.tz2-ps td.l{text-align:left;font-weight:700}
+.tz2-ps tbody th{text-align:left;font-size:12px}
+.tz2-ps tbody th .pos{font-size:9px;padding:1px 3px;margin-right:4px}
+.tz2-ps td small{display:block;font-size:10px;color:#6b7486;font-weight:700}
+.pas-btns{display:flex;gap:8px;flex-wrap:wrap}
+.tz2-big .tz{font-size:44px;line-height:1.05}.tz2-tb thead th .stars .tz{font-size:16px}

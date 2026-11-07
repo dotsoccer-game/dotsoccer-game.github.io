@@ -1092,34 +1092,51 @@
     el.innerHTML = `<div class="tzd-paper pas-paper"><div class="tzd-hd"><b>資料</b><h2>サポート効果「${esc(ps.name)}」</h2><button class="tzd-x" type="button">とじる</button></div><div class="tzd-body">
       <section><h3>どんな効果？</h3><p class="pas-what">${esc(ps.what)}</p><p>${near}</p><p>${esc(p.type)}の選手が持つ効果です。試合に出ている間だけ効きます。同じ効果を持つ選手が何人いても、いちばん強い1人分です。</p></section>
       <section><h3>${esc(p.name)}（☆${st}・今は${tz ? tz + '凸' : '無凸'}）</h3>${st < 2 ? '<p>☆1の選手には、サポート効果は付きません。</p>' : `<table class="pas-tb"><thead><tr><th>凸</th><th>サポート効果</th></tr></thead><tbody>${steps}</tbody></table><p class="pas-now">今：<b>${lv ? PAS_ST(lv, ps) : 'まだ付いていない'}</b></p>`}</section>
-      <p><button class="pas-doc" type="button">凸の資料を見る（☆ごとの表）</button></p></div></div>`;
+      <p class="pas-btns"><button class="pas-doc" type="button" data-d="rare">凸の資料（☆ごとの表）</button><button class="pas-doc" type="button" data-d="pas">サポート効果の一覧</button></p></div></div>`;
     el.hidden = false;
     el.querySelector('.tzd-x').onclick = (e) => { e.stopPropagation(); el.hidden = true; };
-    el.querySelector('.pas-doc').onclick = (e) => { e.stopPropagation(); totsuDoc(); };
+    el.querySelectorAll('.pas-doc').forEach((b) => b.onclick = (e) => { e.stopPropagation(); totsuDoc(b.dataset.d); });
     el.onclick = (e) => { e.stopPropagation(); if (e.target === el) el.hidden = true; };
   }
 
-  // 版1133：凸の資料（☆1〜☆5で、何凸で何が良くなるかの表）。覚醒の画面・ガチャの獲得ルールから開く
-  function totsuDoc() {
+  // 版1136：凸の資料（いただいたデザイン）。タブ：はじめに／レア度別／カケラの入手／サポート効果の一覧
+  const TZD_SVG = {
+    up: '<svg viewBox="0 0 40 24"><rect x="1" y="6" width="6" height="12" rx="2"/><rect x="7" y="3" width="6" height="18" rx="2"/><rect x="13" y="10" width="14" height="4"/><rect x="27" y="3" width="6" height="18" rx="2"/><rect x="33" y="6" width="6" height="12" rx="2"/></svg>',
+    hand: '<svg viewBox="0 0 40 26"><path d="M2 9l9-6 8 4 7-4 12 7-4 5-6-3-9 8c-2 2-5 2-7 0L2 13z"/></svg>',
+    crown: '<svg viewBox="0 0 40 28"><path d="M3 8l9 7 8-12 8 12 9-7-3 17H6z"/></svg>',
+    ticket: '<svg viewBox="0 0 44 28"><rect x="2" y="3" width="40" height="22" rx="4" transform="rotate(-8 22 14)"/><circle cx="22" cy="14" r="6" fill="#fff"/></svg>' };
+  const TZD_TABS = [['intro', 'はじめに'], ['rare', 'レア度別'], ['kake', 'カケラの入手'], ['pas', 'サポート効果の一覧']];
+  function totsuDoc(tab) {
     let el = document.getElementById('tzDoc'); if (!el) { el = document.createElement('div'); el.id = 'tzDoc'; (document.getElementById('app') || document.body).appendChild(el); }
-    const PL = ['—', '付く', '強くなる', '全員に'], cell = (st, tz) => { const g = C.GRADES[C.capIdx(st, tz)], g0 = tz ? C.GRADES[C.capIdx(st, tz - 1)] : g, l = C.pasLv(st, tz), l0 = tz ? C.pasLv(st, tz - 1) : l;
-      return `<td class="${tz ? '' : 'z'}"><div class="tzd-cap${tz && g !== g0 ? ' up' : ''}"><small>上限</small><b class="rk rk-${g}">${g}</b></div><div class="tzd-pas${l ? ' l' + l : ''}${tz && l !== l0 ? ' up' : ''}"><small>サポート</small>${PL[l]}</div>${st >= 5 && tz >= 1 ? `<div class="tzd-uq${tz === 1 ? ' up' : ''}">固有スキル覚醒</div>` : ''}</td>`; };
-    const rows = [1, 2, 3, 4, 5].map((st) => `<tr><th><span class="tzd-st">${'★'.repeat(st)}</span><small>☆${st}</small></th>${[0, 1, 2, 3].map((tz) => cell(st, tz)).join('')}<td class="tzd-cost">${C.KAKERA_OF[st] || 1}<small>個</small></td></tr>`).join('');
-    el.innerHTML = `<div class="tzd-paper"><div class="tzd-hd"><b>資料</b><h2>凸（とつ）のしくみ</h2><button class="tzd-x" type="button">とじる</button></div><div class="tzd-body">
-      <section><h3>1．凸とは</h3><p>同じ選手をもう一度手に入れると、その選手の「凸」が1つ上がります。<b>覚醒のカケラ</b>を使う「選手覚醒」でも上げられます。最大は<b>3凸（完凸）</b>。完凸のあとに同じ選手が出たら、覚醒のカケラになります。</p><p>選手覚醒に使うカケラは、☆に関係なく<b>1凸につき100個</b>です。カケラは、完凸のあとのかぶり・自動放出・選手の放出でもらえます。</p></section>
-      <section><h3>2．凸で良くなること</h3><ul>
-        <li><b>育てられる上限が上がる</b>　特訓や試合で伸ばせる能力の、いちばん上のランクです（最高はS）。</li>
-        <li><b>サポート効果が付く・強くなる</b>　選手のタイプごとの、まわりの味方を助ける効果です。「付く」→「強くなる」→「全員に」（近くの味方だけに効く効果は、味方全員に広がる。もともと全員に効く効果は、さらに強くなる）。</li>
-        <li><b>固有スキルの覚醒</b>　☆5の選手だけ。1凸で固有スキルが強くなります。</li></ul>
-        <p class="tzd-note">凸しても、その場で能力の数字が上がるわけではありません。上がった上限まで、育てて伸ばします。</p></section>
-      <section><h3>3．☆ごとの表</h3><p class="tzd-cap2">黄色いところが、その凸で良くなる所です。</p>
-        <table class="tzd-tb"><thead><tr><th>レア度</th><th>無凸</th><th>1凸</th><th>2凸</th><th>3凸（完凸）</th><th>完凸のあと<br>かぶった時のカケラ</th></tr></thead><tbody>${rows}</tbody></table></section>
-      <section><h3>4．★の色</h3><p class="tzd-stars">${[0, 1, 2, 3].map((tz) => `<span><b class="tzd-sr">${starHTML(3, tz)}</b><small>${tz ? tz + '凸' + (tz === 3 ? '（完凸）' : '') : '無凸'}</small></span>`).join('')}</p></section>
-    </div></div>`;
+    tab = tab || 'intro';
+    const sec = (t, inner, cls) => `<div class="tz2-pnl ${cls || ''}"><h4><i>»</i>${t}</h4>${inner}</div>`;
+    const big = (tz, lab) => `<div class="tz2-st"><span class="stars tz2-big">${starHTML(1, tz)}</span><b>${lab}</b></div>`;
+    let body = '';
+    if (tab === 'intro') body = `<h3 class="tz2-ttl"><span>凸を上げると、選手の伸びしろが広がる！</span></h3><p class="tz2-sub">能力値はすぐには上がりません。特訓や試合で育てよう。</p>
+      <div class="tz2-row">${big(0, '無凸')}<em>▶</em>${big(1, '1凸')}<em>▶</em>${big(2, '2凸')}<em>▶</em>${big(3, '3凸（完凸）')}</div>
+      <div class="tz2-g2">${sec('凸で変わること', `<ul class="tz2-ls"><li>${TZD_SVG.up}<b>育てられる上限が上がる</b></li><li>${TZD_SVG.hand}<b>サポート効果が付く・強くなる</b></li><li>${TZD_SVG.crown}<b>☆5は1凸で固有スキル覚醒</b></li></ul>`)}
+        ${sec('凸の上げ方', `<ul class="tz2-ls"><li>${TZD_SVG.ticket}<b>ガチャで同じ選手が出る</b><span class="tz2-p">＋1凸</span></li><li><img src="icons/kakera.png" alt=""><b>覚醒のカケラ100個を使う</b><span class="tz2-p">＋1凸</span></li></ul><p class="tz2-cap">どのレア度でも、1凸につき100個。最大は3凸（完凸）</p>`)}</div>`;
+    else if (tab === 'rare') { const cellOf = (st, tz) => { const gs = tz ? C.totsuGain({ star: st, type: 'パサー' }, tz - 1, tz) : []; if (!tz) return `<td>上限 ${C.GRADES[C.capIdx(st, 0)]}</td>`; const g = gs.find((x) => x.k === 'cap'), pz = gs.find((x) => x.k === 'pas'), uq = st >= 5 && tz === 1;
+        if (uq) return '<td><span class="tz2-hl">固有スキル覚醒</span></td>'; if (pz) { const l = C.pasLv(st, tz); return `<td><span class="tz2-hl">${l === 1 ? 'サポート解放' : l === 2 ? 'サポート強化' : '範囲拡大／さらに強化'}</span></td>`; } return `<td>上限 ${g ? g.g1 : C.GRADES[C.capIdx(st, tz)]}</td>`; };
+      body = `<h3 class="tz2-ttl"><span>レア度ごとの変化</span></h3><table class="tz2-tb"><thead><tr><th>レア度</th>${[['無凸', 0], ['1凸', 1], ['2凸', 2], ['3凸（完凸）', 3]].map(([l, t]) => `<th><span class="stars">${starHTML(1, t)}</span>${l}</th>`).join('')}</tr></thead><tbody>${[1, 2, 3, 4, 5].map((st) => `<tr><th>☆${st}</th>${[0, 1, 2, 3].map((t) => cellOf(st, t)).join('')}</tr>`).join('')}</tbody></table>
+        <p class="tz2-cap">黄色は、その凸で新しく良くなること。上限はSが最高で、Sになったあとは上限は変わりません。<br>☆4の3凸：近くの味方だけに効く効果は味方全員に広がり、もともと全員に効く効果はさらに強くなります。</p>`; }
+    else if (tab === 'kake') body = `<h3 class="tz2-ttl"><span>覚醒のカケラを集める</span></h3><div class="tz2-g3">
+      ${sec('完凸の選手がかぶる', '<p class="tz2-tx">3凸（完凸）の選手が、ガチャでまた出た時。凸はもう上がらないので、<b>基本数</b>のカケラになります。</p>')}
+      ${sec('選手を放出する', `<div class="tz2-rel"><span class="tz2-tag">自動放出</span><p>ガチャの設定で「自動放出」をオンにすると、<b>はじめて出た選手</b>のうち、決めた☆以下の選手はチームに入らず、すぐカケラになります。→ <b>基本数</b></p></div>
+        <div class="tz2-rel"><span class="tz2-tag">自分で放出</span><p>チームやリザーブにいる選手を、自分で放出（クラブから手放す）した時。凸が多いほど多くもらえます。→ <b>基本数 ×（1＋凸の数）</b></p></div>`)}</div>
+      ${sec('レア度ごとの基本数', `<div class="tz2-kk">${[1, 2, 3, 4, 5].map((st) => `<span><i>☆${st}</i><b>${C.KAKERA_OF[st]}個</b></span>`).join('')}</div><p class="tz2-ex">放出の例：☆3・2凸の選手 → ${C.KAKERA_OF[3]} × 3 ＝ ${C.KAKERA_OF[3] * 3}個</p><p class="tz2-cap">選手覚醒は、どのレア度でも1凸につき100個</p>`)}`;
+    else { const PS = D.PASSIVE || {}, TBP = C.TYPES_BY_POS || {}, order = [['GK', ['ゴールキーパー', 'スイーパーキーパー']], ['DF', TBP.DF || []], ['MF', TBP.MF || []], ['FW', TBP.FW || []], ['全', ['バランス']]];
+      const seen = new Set(), rows = []; for (const [pos, L] of order) for (const t of L) { if (seen.has(t) || !PS[t]) continue; seen.add(t); rows.push([pos, t, PS[t]]); } for (const t in PS) if (!seen.has(t)) rows.push(['', t, PS[t]]);
+      body = `<h3 class="tz2-ttl"><span>サポート効果の一覧</span></h3><p class="tz2-sub">選手のタイプごとに1つ。☆と凸で「付く → 強化 → 3段目」と強くなります（☆1は付きません）。</p>
+        <table class="tz2-tb tz2-ps"><thead><tr><th>タイプ</th><th>サポート効果</th><th>効果</th><th>効く範囲</th></tr></thead><tbody>${rows.map(([pos, t, ps]) => `<tr><th>${pos && pos !== '全' ? `<i class="pos ${POSC[pos]}">${pos}</i>` : ''}${esc(t)}</th><td><b>${esc(ps.name)}</b></td><td class="l">${esc(ps.what)}</td><td>${ps.rad != null ? `近くの味方<small>（3段目で全員）</small>` : '味方全員<small>（3段目でさらに強く）</small>'}</td></tr>`).join('')}</tbody></table>`; }
+    el.innerHTML = `<div class="tzx"><div class="tz2-hd"><img src="${emblemURL(save.team.name, 48)}" alt=""><h2>凸（とつ）のしくみ</h2><button class="tz2-x" type="button">とじる</button></div>
+      <div class="tz2-tabs">${TZD_TABS.map(([k, l]) => `<button type="button" data-tz="${k}" class="${k === tab ? 'on' : ''}">${l}</button>`).join('')}</div><div class="tz2-body">${body}</div></div>`;
     el.hidden = false;
-    const close = () => { el.hidden = true; };
-    el.querySelector('.tzd-x').onclick = (e) => { e.stopPropagation(); close(); }; el.onclick = (e) => { e.stopPropagation(); if (e.target === el) close(); };
+    el.querySelector('.tz2-x').onclick = (e) => { e.stopPropagation(); el.hidden = true; };
+    el.querySelectorAll('[data-tz]').forEach((b) => b.onclick = (e) => { e.stopPropagation(); totsuDoc(b.dataset.tz); });
+    el.onclick = (e) => { e.stopPropagation(); if (e.target === el) el.hidden = true; };
   }
+
   const starHTML = (n, totsu, cls) => { const t = Math.min(totsu || 0, 3); let h = ''; for (let k = 0; k < n; k++) h += `<i class="tz tz${t}">★</i>`;   /* 版476：無凸＝白、1凸＝銀、2凸＝金、完凸＝虹 */   /* 版467：凸の数で星全部の色が変わる（無凸＝黄、1凸＝青、2凸＝紫、完凸＝虹） */ return `<span class="stars s${n}${t ? ' t' + t : ''} ${cls || ''}" title="☆${n}${t >= 3 ? '・凸MAX' : t ? '・' + t + '凸' : ''}">${h}</span>`; };   // 版456：凸した分だけ、星に色がつく（1凸＝青、2凸＝紫、3凸＝虹）
   const capBadge = (g) => `<span class="capb">上限<b class="rk rk-${g}">${g}</b></span>`;
   // 版972：タイプの説明（選手の札のタイプをタップすると出る）。役わり・動き方・なり方（どの練習で近づくか）
@@ -6093,7 +6110,7 @@
     draw();
     if (loading) { try { const r = await DotNet.cloudInfo(code()); cloud = r ? { info: r.info, at: r.at } : null; } catch (_) { flash('通信できませんでした（クラウドの情報が読めません）'); } loading = false; if (document.body.contains(scr) && !scr.querySelector('.cs-dlg')) draw(); }
   }
-  window.__career = { totsuDoc: () => totsuDoc(), friendSquad: (k) => friendSquad(k), roomScreen: (id, r) => roomScreen(id, r), friendMenu: (b) => friendMenu(b), roomPrep: (r, me) => roomPrep(r, me), playRoom: (r, me) => playRoom(r, me), packCode: (o) => packCode(o), openKitEditor: (o) => openKitEditor(o), drawEmblem: (c, x, y, s, lk) => drawEmblem(c, x, y, s, lk), openClub: (o) => openClub(o), playerDetail: (i, o) => playerDetail(i, o), resCard: (o) => resCard(o), seasonEndCard: (o) => seasonEndCard(o), coachNews: (l) => coachNews(l), rewardCard: (r) => rewardCard(r), gachaDemo: (st, pr, fx) => gachaDemo(st, pr, fx), storyCard: (o) => storyCard(o), gotCardsHTML: (got) => `<div class="gc-cards${got.length > 8 ? ' lots' : got.length > 4 ? ' many' : ''}">${got.map((c) => artCard(c, { ups: true })).join('')}</div><p class="cp-msg gc-msg">クラブハウスの「特訓」で、選手に最大3枚セットできます。</p>`, trainResult: (o) => trainResult(o), airport, openPost, syncPost, onlineDone, setVenue: (k) => { venueNow = k; }, champDemo, champAfter, coinShop, faceFill: () => faceFill(), openGacha, venueTalk: (se) => venueTalk(se), matchFace, openOffice, cpuCard, openClub, openAssoc, open, go, stadium, advance, subSheet, labMatch, townRect, tutPractice, shop, store: () => store(), renderHome: () => renderHome(), clubhouseBg: () => clubhouseBg(), isMatchWeek: () => isMatchWeek(), get view() { return view; }, staffFace: (k) => staffFace(k), get save() { return save; }, get drill() { return clubDrill; }, faceURL, starFace, setDrill(d) { clubDrill = d; drillT0 = -1; drillSnap = true; } };
+  window.__career = { totsuDoc: (t) => totsuDoc(t), friendSquad: (k) => friendSquad(k), roomScreen: (id, r) => roomScreen(id, r), friendMenu: (b) => friendMenu(b), roomPrep: (r, me) => roomPrep(r, me), playRoom: (r, me) => playRoom(r, me), packCode: (o) => packCode(o), openKitEditor: (o) => openKitEditor(o), drawEmblem: (c, x, y, s, lk) => drawEmblem(c, x, y, s, lk), openClub: (o) => openClub(o), playerDetail: (i, o) => playerDetail(i, o), resCard: (o) => resCard(o), seasonEndCard: (o) => seasonEndCard(o), coachNews: (l) => coachNews(l), rewardCard: (r) => rewardCard(r), gachaDemo: (st, pr, fx) => gachaDemo(st, pr, fx), storyCard: (o) => storyCard(o), gotCardsHTML: (got) => `<div class="gc-cards${got.length > 8 ? ' lots' : got.length > 4 ? ' many' : ''}">${got.map((c) => artCard(c, { ups: true })).join('')}</div><p class="cp-msg gc-msg">クラブハウスの「特訓」で、選手に最大3枚セットできます。</p>`, trainResult: (o) => trainResult(o), airport, openPost, syncPost, onlineDone, setVenue: (k) => { venueNow = k; }, champDemo, champAfter, coinShop, faceFill: () => faceFill(), openGacha, venueTalk: (se) => venueTalk(se), matchFace, openOffice, cpuCard, openClub, openAssoc, open, go, stadium, advance, subSheet, labMatch, townRect, tutPractice, shop, store: () => store(), renderHome: () => renderHome(), clubhouseBg: () => clubhouseBg(), isMatchWeek: () => isMatchWeek(), get view() { return view; }, staffFace: (k) => staffFace(k), get save() { return save; }, get drill() { return clubDrill; }, faceURL, starFace, setDrill(d) { clubDrill = d; drillT0 = -1; drillSnap = true; } };
   window.__career.openCloud = openCloud; window.__career.cpuCard = (t, i) => cpuCard(t, i, $("#career"));
   window.__career.shop = (t) => shop(t); window.__career.premDaily = () => premDaily();
   window.__career.embURL = () => { try { return save ? embFromLook(C.ensureClub(save).emb, 96) : ''; } catch (_) { return ''; } };   // 版680：設定のアカウントIDの横に出す、自分のクラブのエンブレム
