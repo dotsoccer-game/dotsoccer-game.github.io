@@ -4832,3 +4832,43 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 .tz2-ps tbody th .tbadge{font-size:12px}
 .tz2-ps tbody th{text-align:center}
 .ps2-note{margin:0 12px 8px;font:700 11.5px/1.4 sans-serif;color:#6b4a00;text-align:center}
+/* 版1142案 */
+.ps2-lv u{position:absolute;top:-9px;left:-4px;text-decoration:none;font:900 10px/1 sans-serif;color:#fff;background:#1f56c4;padding:3px 6px;border-radius:999px}
+.ps2-lv.x4{background:linear-gradient(#fffaf0,#fff1cf);border-color:#d8a93a;border-style:solid;color:#7a5600;opacity:1}
+.ps2-only{position:absolute;bottom:-9px;right:6px;font-style:normal;font:900 10px/1 sans-serif;color:#5a3a00;background:linear-gradient(#ffe48a,#e8b52f);border:1px solid #b07a00;padding:3px 7px;border-radius:4px}
+.ps2-b{padding:6px 12px 8px;font:800 12px/1 "M PLUS 1p",sans-serif}
+.ps2-bh,.ps2-br{display:grid;grid-template-columns:60px 1fr 1fr 1fr 80px;align-items:center;text-align:center;gap:4px}
+.ps2-bh b{display:flex;flex-direction:column;gap:2px;font-size:12px}.ps2-bh small{font-size:10px;color:#6b7486}
+.ps2-br{padding:4px 0;border-top:1px solid #e3e7ee}
+.ps2-br>span{font-weight:900}
+.ps2-br i{font-style:normal;color:#c3cad6;font-size:14px}.ps2-br i.ok{color:#1f56c4}.ps2-br i.now{color:#d23b2a;font-size:18px}
+.ps2-br.me{background:#fff4c8;border-radius:6px}
+.ps2-br em{font-style:normal;font-size:10px;color:#fff;background:#d23b2a;padding:3px 6px;border-radius:999px;justify-self:start}
+.ps2-c{display:flex;align-items:center;gap:16px;padding:10px 16px}
+.ps2-pips{display:flex;gap:8px}
+.ps2-pips span{position:relative;width:46px;height:46px;border-radius:50%;border:3px solid #c3cad6;background:#f3f5f9;display:flex;align-items:center;justify-content:center}
+.ps2-pips span i{font-style:normal;font:900 18px/1 "M PLUS 1p",sans-serif;color:#9aa6b8}
+.ps2-pips span.on{background:radial-gradient(#ffe680,#e8b52f);border-color:#b07a00}.ps2-pips span.on i{color:#5a3a00}
+.ps2-pips span.x4{border-style:dashed}
+.ps2-pips small{position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);font:900 9px/1 sans-serif;background:#13285a;color:#ffd84a;padding:2px 5px;border-radius:4px}
+.ps2-c p{margin:0;font:800 14px/1.5 sans-serif}.ps2-c p small{display:block;font-size:11px;color:#5a6476}
+.ps2-hint{margin:12px 0 0;text-align:center;font:700 12.5px/1.5 sans-serif;color:#2b3550}
+.ps2-mx{margin-left:6px;font:900 10px/1 sans-serif;color:#fff;background:#1f56c4;padding:3px 7px;border-radius:999px}
+.ps2-btns{display:flex;gap:10px;justify-content:center}
+/* 版1142：サポート効果（いただいたデザイン） */
+#tzDoc .ps3{width:min(760px,100%);height:auto;max-height:100%}
+.ps3-top{display:flex;align-items:center;gap:10px}
+.ps3-l{flex:1;min-width:0}
+.ps3-who{display:flex;align-items:center;gap:8px;border-left:5px solid #13285a;padding-left:8px;font:900 18px/1.2 "M PLUS 1p",sans-serif}
+.ps3-who i{font-style:normal;color:#9aa6bd}
+.ps3-nm{display:inline-block;margin:6px 0 4px;padding:0 6px;font:900 30px/1.2 "M PLUS 1p",sans-serif;background:linear-gradient(transparent 78%,#ffd23a 78%)}
+.ps3-what{margin:0;font:800 15px/1.5 "M PLUS 1p",sans-serif}
+.ps3-art{flex:none;width:300px}.ps3-art canvas{width:300px;height:120px;image-rendering:pixelated}
+.ps3-boxes{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px}
+.ps3-boxes>div{background:#fff;border:2px solid #b9cbe6;border-radius:9px;overflow:hidden;text-align:center;padding-bottom:6px}
+.ps3-boxes h5{margin:0 0 4px;padding:4px 0;background:#dfe9f8;font:900 12px/1.2 "M PLUS 1p",sans-serif;color:#13285a}
+.ps3-boxes b{display:inline-block;font:900 20px/1.3 "M PLUS 1p",sans-serif;color:#13213f}
+.ps3-boxes b.g{color:#1d7a31}.ps3-boxes b.n{color:#8a96aa;font-size:16px}
+.ps3-boxes small{display:block;font:700 10.5px/1.3 sans-serif;color:#6b7486}
+.ps3-boxes small.ps3-max{display:inline-block;margin-left:6px;padding:3px 8px;border-radius:999px;background:#d9f3de;color:#1d6a2c;font-weight:900;vertical-align:4px}
+.ps3-note{margin:8px 0 4px;text-align:center;font:800 12.5px/1.4 sans-serif;color:#2b3550}

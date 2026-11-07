@@ -1081,7 +1081,7 @@
   function pasRow(p) {
     const ps = (D.PASSIVE || {})[p.type], st = C.ensureStar(p); if (!ps) return '';
     const lv = st >= 2 ? C.pasLv(st, p.totsu || 0) : 0, nx = [1, 2, 3].find((t) => t > (p.totsu || 0) && C.pasLv(st, t) > lv);
-    return `<div class="pc-meta pc-pasm${lv ? ' on' : ''}" data-pasq="1"><span>サポート</span><b class="pm-nm">${esc(ps.name)}</b><em class="lv${lv}">${lv ? PAS_ST(lv, ps) : nx ? nx + '凸で付く' : 'なし'}</em><b class="ty-q">?</b></div>`;
+    return `<div class="pc-meta pc-pasm${lv ? ' on' : ''}" data-pasq="1"><span>サポート</span><b class="pm-nm">${esc(ps.name)}</b><em class="lv${lv}">${lv ? ['', '1段目', '2段目', '3段目'][lv] : nx ? nx + '凸で付く' : 'なし'}</em><b class="ty-q">?</b></div>`;
   }
   // 版1140：サポート効果を、試合でどうなるかの言葉で（エンジンの中身に合わせた説明）
   const PAS_PLAIN = {
@@ -1096,18 +1096,30 @@
     const ps = (D.PASSIVE || {})[p.type], st = C.ensureStar(p), tz = p.totsu || 0; if (!ps) return;
     const lv = st >= 2 ? C.pasLv(st, tz) : 0, mx = st >= 2 ? C.pasLv(st, 3) : 0, NM = ['', '1段目', '2段目', '3段目'];
     const what3 = ps.rad != null ? '味方全員に効く' : '効き目がさらに強くなる';
-    // 版1141：この選手が上がれる段階だけを並べる（届かない段階は出さず、下に一言）
-    const stages = [1, 2, 3].filter((l) => l <= Math.max(1, mx)).map((l) => `<div class="ps2-lv${l === lv ? ' on' : ''}"><b>${NM[l]}${l === mx ? '（最大）' : ''}</b><span>${l === 1 ? '効果が付く' : l === 2 ? '効き目が強くなる' : what3}</span>${l === lv ? '<em>今ここ</em>' : ''}</div>`).join('<i class="ps2-ar">▶</i>');
-    const stNote = mx >= 3 ? '☆4の選手だけが、3段目まで上がれます。' : `☆${st}の選手は${NM[mx]}が最大です。3段目まで上がれるのは、☆4の選手だけです。`;
-    const nowTxt = st < 2 ? '☆1の選手には、サポート効果は付きません。' : !lv ? 'まだ付いていません。' : lv >= mx ? `<b class="ps2-now on">${NM[lv]}</b>　これ以上は強くなりません（最大）。` : `<b class="ps2-now on">${NM[lv]}</b>　まだ強くなれます（☆${st}の選手は${NM[mx]}まで）。`;
+    // 版1142：強さの段階はここでは説明しない（☆と凸で決まるので「凸のしくみ」に任せる）。この選手は「今の強さ」の1行だけ
+    const nowTxt = st < 2 ? '☆1の選手には、サポート効果は付きません。' : !lv ? '<b class="ps2-now">まだ付いていない</b>' : `<b class="ps2-now on">${NM[lv]}</b>${lv >= mx ? '<small class="ps2-mx">最大</small>' : ''}`;
+    // 版1142：いただいたデザイン（名前とタイプ・効果名・説明・絵／対象・発動条件・今の強さ）
+    const mate = (save.team.players || []).find((q) => q !== p && q.position !== 'GK') || p;
+    const cond = ps.k === 'mood' ? '負けか同点の時' : '出場中のみ';
     let el = document.getElementById('tzDoc'); if (!el) { el = document.createElement('div'); el.id = 'tzDoc'; (document.getElementById('app') || document.body).appendChild(el); }
-    el.innerHTML = `<div class="tzx ps2"><div class="tz2-hd"><img src="${emblemURL(save.team.name, 48)}" alt=""><h2>サポート効果</h2><button class="tz2-x" type="button">とじる</button></div><div class="tz2-body">
-      <h3 class="tz2-ttl"><span>「${esc(ps.name)}」</span></h3><p class="ps2-what">${esc(pasPlain(ps))}</p>
-      <div class="tz2-g2"><div class="tz2-pnl"><h4><i>»</i>効く相手</h4><p class="tz2-tx">${ps.rad != null ? `この選手の<b>近くにいる味方</b>に効きます。3段目になると、味方全員に効きます。` : '<b>味方全員</b>に効きます。'}<br>この選手が試合に出ている間だけ効きます。同じ効果を持つ選手が何人いても、いちばん強い1人分です。</p></div>
-        <div class="tz2-pnl"><h4><i>»</i>${esc(p.name)}（☆${st}・${tz >= 3 ? '完凸' : tz ? tz + '凸' : '無凸'}）</h4><p class="tz2-tx">${typeBadge(p.type)} の選手が持つ効果です。<br>今：${nowTxt}</p></div></div>
-      <div class="tz2-pnl ps2-st"><h4><i>»</i>${esc(p.name)}の強さの段階</h4><div class="ps2-row">${stages}</div>${st >= 2 ? `<p class="ps2-note">${stNote}</p>` : ''}</div>
-      <p class="ps2-btns"><button class="pas-doc" type="button" data-d="pas">サポート効果の一覧を見る</button></p></div></div>`;
+    el.innerHTML = `<div class="tzx ps3"><div class="tz2-hd"><img src="${emblemURL(save.team.name, 48)}" alt=""><h2>サポート効果</h2><button class="tz2-x" type="button">とじる</button></div><div class="tz2-body">
+      <div class="ps3-top"><div class="ps3-l"><div class="ps3-who"><b>${esc(p.name)}</b><i>｜</i>${typeBadge(p.type)}</div><h3 class="ps3-nm">${esc(ps.name)}</h3><p class="ps3-what">${esc(pasPlain(ps))}</p></div>
+        <div class="ps3-art"><canvas width="300" height="120"></canvas></div></div>
+      <div class="ps3-boxes"><div><h5>対象</h5><b>${ps.rad != null ? '近くの味方' : '味方全員'}</b>${ps.rad != null ? '<small>3段目で味方全員</small>' : ''}</div><div><h5>発動条件</h5><b>${cond}</b>${ps.k === 'mood' ? '<small>この選手が出場中</small>' : ''}</div>
+        <div><h5>今の強さ</h5><b class="${lv ? 'g' : 'n'}">${st < 2 ? 'なし' : lv ? NM[lv] : 'まだ付いていない'}</b>${lv && lv >= mx ? '<small class="ps3-max">この選手の最大</small>' : ''}${st < 2 ? '<small>☆1には付きません</small>' : ''}</div></div>
+      <p class="ps3-note">同じ効果は、出場中でいちばん強い1人分だけ有効</p>
+      <p class="ps2-btns"><button class="pas-doc" type="button" data-d="rare">凸のしくみを見る</button><button class="pas-doc" type="button" data-d="pas">サポート効果の一覧を見る</button></p></div></div>`;
     el.hidden = false;
+    // 絵：この選手と味方が、芝の上を走る（ゲームのドット絵で）
+    { const cv = el.querySelector('.ps3-art canvas'), c = cv.getContext('2d'), A = window.__app; let f = 0, tm = null;
+      const draw = () => { if (el.hidden || !cv.isConnected) { clearInterval(tm); return; } c.clearRect(0, 0, 300, 120); c.imageSmoothingEnabled = false;
+        c.fillStyle = '#7cc35a'; c.beginPath(); c.ellipse(140, 104, 130, 12, 0, 0, 7); c.fill(); c.fillStyle = '#5ea844'; for (let x = 24; x < 260; x += 9) c.fillRect(x, 98 + (x % 4), 2, 5);
+        c.fillStyle = 'rgba(255,255,255,.7)'; for (let k = 0; k < 3; k++) c.fillRect(18 + k * 8, 50 + k * 9, 26, 3);
+        const run = (info, x, ph) => { const r = A && A.runArt ? A.runArt(info, ph) : null; if (!r) return; const F = r.F, px = 3.2 * r.k; c.drawImage(F.cv, Math.round(x - F.px * px), Math.round(102 - F.py * px), F.cv.width * px, F.cv.height * px); };   // 試合と同じ走りの絵
+        run(mate, 95, f / 8); run(p, 185, f / 8 + 0.5);
+        c.fillStyle = '#ffd23a'; for (let k = 0; k < 3; k++) { const x = 238 + k * 16 + (f % 2) * 2; c.beginPath(); c.moveTo(x, 44); c.lineTo(x + 10, 56); c.lineTo(x, 68); c.lineTo(x + 5, 68); c.lineTo(x + 15, 56); c.lineTo(x + 5, 44); c.fill(); }
+        f++; };
+      draw(); tm = setInterval(draw, 140); }
     el.querySelector('.tz2-x').onclick = (e) => { e.stopPropagation(); el.hidden = true; };
     el.querySelectorAll('.pas-doc').forEach((b) => b.onclick = (e) => { e.stopPropagation(); totsuDoc(b.dataset.d); });
     el.onclick = (e) => { e.stopPropagation(); if (e.target === el) el.hidden = true; };
