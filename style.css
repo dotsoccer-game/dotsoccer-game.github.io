@@ -4827,3 +4827,7 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 .tz2-def p{margin:0;font:700 12.5px/1.6 sans-serif}.tz2-def small{color:#6b7486;font-size:11px}
 .pc-strow{display:flex;align-items:center;gap:6px}
 .pc-tzq{position:static!important;flex:none;cursor:pointer;pointer-events:auto}
+.ps2-lv.no{opacity:.5;border-style:dashed}
+.ps2-lv small{font:700 10px/1.2 sans-serif;color:#8a4a00}
+.tz2-ps tbody th .tbadge{font-size:12px}
+.tz2-ps tbody th{text-align:center}
