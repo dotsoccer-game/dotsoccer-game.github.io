@@ -4863,7 +4863,7 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 .ps3-who i{font-style:normal;color:#9aa6bd}
 .ps3-nm{display:inline-block;margin:6px 0 4px;padding:0 6px;font:900 30px/1.2 "M PLUS 1p",sans-serif;background:linear-gradient(transparent 78%,#ffd23a 78%)}
 .ps3-what{margin:0;font:800 15px/1.5 "M PLUS 1p",sans-serif}
-.ps3-art{flex:none;width:300px}.ps3-art canvas{width:300px;height:120px;image-rendering:pixelated}
+.ps3-art{flex:none;width:300px;height:150px;display:flex;align-items:center;justify-content:center}.ps3-art img{max-width:100%;max-height:100%;object-fit:contain}
 .ps3-boxes{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px}
 .ps3-boxes>div{background:#fff;border:2px solid #b9cbe6;border-radius:9px;overflow:hidden;text-align:center;padding-bottom:6px}
 .ps3-boxes h5{margin:0 0 4px;padding:4px 0;background:#dfe9f8;font:900 12px/1.2 "M PLUS 1p",sans-serif;color:#13285a}
