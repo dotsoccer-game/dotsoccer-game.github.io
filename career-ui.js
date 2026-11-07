@@ -1083,21 +1083,23 @@
     const lv = st >= 2 ? C.pasLv(st, p.totsu || 0) : 0, nx = [1, 2, 3].find((t) => t > (p.totsu || 0) && C.pasLv(st, t) > lv);
     return `<div class="pc-meta pc-pasm${lv ? ' on' : ''}" data-pasq="1"><span>サポート</span><b class="pm-nm">${esc(ps.name)}</b><em class="lv${lv}">${lv ? PAS_ST(lv, ps) : nx ? nx + '凸で付く' : 'なし'}</em><b class="ty-q">?</b></div>`;
   }
-  function pasHelp(p) {   // 版1135：サポート効果の資料（選手カードの上に出す）
+  function pasHelp(p) {   // 版1137：サポート効果だけの説明（凸のことは書かない。凸は「凸のしくみ」の資料で）
     const ps = (D.PASSIVE || {})[p.type], st = C.ensureStar(p), tz = p.totsu || 0; if (!ps) return;
-    const lv = st >= 2 ? C.pasLv(st, tz) : 0;
-    const steps = [0, 1, 2, 3].map((t) => { const l = C.pasLv(st, t); return `<tr class="${t === tz ? 'me' : ''}"><th>${t ? t + '凸' + (t === 3 ? '（完凸）' : '') : '無凸'}</th><td>${l ? PAS_ST(l, ps) : '—'}</td></tr>`; }).join('');
-    const near = ps.rad != null ? `近くの味方（${ps.rad}mくらいまで）に効きます。3段目になると、味方全員に効きます。` : '味方全員に効きます。3段目になると、効き目がさらに上がります。';
+    const lv = st >= 2 ? C.pasLv(st, tz) : 0, LV = ['まだ付いていない', '付いている', '強化', ps.rad != null ? '味方全員に' : 'さらに強化'];
+    const stages = [1, 2, 3].map((l) => `<div class="ps2-lv${l === lv ? ' on' : ''}"><b>${['', '1段目', '2段目', '3段目'][l]}</b><span>${l === 1 ? '効果が付く' : l === 2 ? '効き目が強くなる' : ps.rad != null ? '味方全員に効く' : '効き目がさらに強くなる'}</span>${l === lv ? '<em>今ここ</em>' : ''}</div>`).join('<i class="ps2-ar">▶</i>');
     let el = document.getElementById('tzDoc'); if (!el) { el = document.createElement('div'); el.id = 'tzDoc'; (document.getElementById('app') || document.body).appendChild(el); }
-    el.innerHTML = `<div class="tzd-paper pas-paper"><div class="tzd-hd"><b>資料</b><h2>サポート効果「${esc(ps.name)}」</h2><button class="tzd-x" type="button">とじる</button></div><div class="tzd-body">
-      <section><h3>どんな効果？</h3><p class="pas-what">${esc(ps.what)}</p><p>${near}</p><p>${esc(p.type)}の選手が持つ効果です。試合に出ている間だけ効きます。同じ効果を持つ選手が何人いても、いちばん強い1人分です。</p></section>
-      <section><h3>${esc(p.name)}（☆${st}・今は${tz ? tz + '凸' : '無凸'}）</h3>${st < 2 ? '<p>☆1の選手には、サポート効果は付きません。</p>' : `<table class="pas-tb"><thead><tr><th>凸</th><th>サポート効果</th></tr></thead><tbody>${steps}</tbody></table><p class="pas-now">今：<b>${lv ? PAS_ST(lv, ps) : 'まだ付いていない'}</b></p>`}</section>
-      <p class="pas-btns"><button class="pas-doc" type="button" data-d="rare">凸の資料（☆ごとの表）</button><button class="pas-doc" type="button" data-d="pas">サポート効果の一覧</button></p></div></div>`;
+    el.innerHTML = `<div class="tzx ps2"><div class="tz2-hd"><img src="${emblemURL(save.team.name, 48)}" alt=""><h2>サポート効果</h2><button class="tz2-x" type="button">とじる</button></div><div class="tz2-body">
+      <h3 class="tz2-ttl"><span>「${esc(ps.name)}」</span></h3><p class="ps2-what">${esc(ps.what)}</p>
+      <div class="tz2-g2"><div class="tz2-pnl"><h4><i>»</i>効く相手</h4><p class="tz2-tx">${ps.rad != null ? `この選手の<b>近くにいる味方</b>（${ps.rad}mくらいまで）に効きます。` : '<b>味方全員</b>に効きます。'}<br>試合に出ている間だけ効きます。同じ効果を持つ選手が何人いても、いちばん強い1人分です。</p></div>
+        <div class="tz2-pnl"><h4><i>»</i>持っている選手</h4><p class="tz2-tx"><b>${esc(p.type)}</b>のタイプの選手が持つ効果です。<br>${esc(p.name)}は今：<b class="ps2-now${lv ? ' on' : ''}">${LV[lv]}</b></p></div></div>
+      <div class="tz2-pnl ps2-st"><h4><i>»</i>強さの段階</h4><div class="ps2-row">${stages}</div></div>
+      <p class="ps2-btns"><button class="pas-doc" type="button" data-d="pas">サポート効果の一覧を見る</button></p></div></div>`;
     el.hidden = false;
-    el.querySelector('.tzd-x').onclick = (e) => { e.stopPropagation(); el.hidden = true; };
+    el.querySelector('.tz2-x').onclick = (e) => { e.stopPropagation(); el.hidden = true; };
     el.querySelectorAll('.pas-doc').forEach((b) => b.onclick = (e) => { e.stopPropagation(); totsuDoc(b.dataset.d); });
     el.onclick = (e) => { e.stopPropagation(); if (e.target === el) el.hidden = true; };
   }
+
 
   // 版1136：凸の資料（いただいたデザイン）。タブ：はじめに／レア度別／カケラの入手／サポート効果の一覧
   const TZD_SVG = {
@@ -1105,7 +1107,7 @@
     hand: '<svg viewBox="0 0 40 26"><path d="M2 9l9-6 8 4 7-4 12 7-4 5-6-3-9 8c-2 2-5 2-7 0L2 13z"/></svg>',
     crown: '<svg viewBox="0 0 40 28"><path d="M3 8l9 7 8-12 8 12 9-7-3 17H6z"/></svg>',
     ticket: '<svg viewBox="0 0 44 28"><rect x="2" y="3" width="40" height="22" rx="4" transform="rotate(-8 22 14)"/><circle cx="22" cy="14" r="6" fill="#fff"/></svg>' };
-  const TZD_TABS = [['intro', 'はじめに'], ['rare', 'レア度別'], ['kake', 'カケラの入手'], ['pas', 'サポート効果の一覧']];
+  const TZD_TABS = [['intro', 'はじめに'], ['rare', 'レア度別'], ['kake', 'カケラの入手']];   // 版1137：サポート効果の一覧は、凸の資料とは別の画面
   function totsuDoc(tab) {
     let el = document.getElementById('tzDoc'); if (!el) { el = document.createElement('div'); el.id = 'tzDoc'; (document.getElementById('app') || document.body).appendChild(el); }
     tab = tab || 'intro';
@@ -1127,10 +1129,10 @@
       ${sec('レア度ごとの基本数', `<div class="tz2-kk">${[1, 2, 3, 4, 5].map((st) => `<span><i>☆${st}</i><b>${C.KAKERA_OF[st]}個</b></span>`).join('')}</div><p class="tz2-ex">放出の例：☆3・2凸の選手 → ${C.KAKERA_OF[3]} × 3 ＝ ${C.KAKERA_OF[3] * 3}個</p><p class="tz2-cap">選手覚醒は、どのレア度でも1凸につき100個</p>`)}`;
     else { const PS = D.PASSIVE || {}, TBP = C.TYPES_BY_POS || {}, order = [['GK', ['ゴールキーパー', 'スイーパーキーパー']], ['DF', TBP.DF || []], ['MF', TBP.MF || []], ['FW', TBP.FW || []], ['全', ['バランス']]];
       const seen = new Set(), rows = []; for (const [pos, L] of order) for (const t of L) { if (seen.has(t) || !PS[t]) continue; seen.add(t); rows.push([pos, t, PS[t]]); } for (const t in PS) if (!seen.has(t)) rows.push(['', t, PS[t]]);
-      body = `<h3 class="tz2-ttl"><span>サポート効果の一覧</span></h3><p class="tz2-sub">選手のタイプごとに1つ。☆と凸で「付く → 強化 → 3段目」と強くなります（☆1は付きません）。</p>
+      body = `<p class="tz2-sub">選手のタイプごとに1つ。強さは「1段目（付く）→ 2段目（強化）→ 3段目」。</p>
         <table class="tz2-tb tz2-ps"><thead><tr><th>タイプ</th><th>サポート効果</th><th>効果</th><th>効く範囲</th></tr></thead><tbody>${rows.map(([pos, t, ps]) => `<tr><th>${pos && pos !== '全' ? `<i class="pos ${POSC[pos]}">${pos}</i>` : ''}${esc(t)}</th><td><b>${esc(ps.name)}</b></td><td class="l">${esc(ps.what)}</td><td>${ps.rad != null ? `近くの味方<small>（3段目で全員）</small>` : '味方全員<small>（3段目でさらに強く）</small>'}</td></tr>`).join('')}</tbody></table>`; }
-    el.innerHTML = `<div class="tzx"><div class="tz2-hd"><img src="${emblemURL(save.team.name, 48)}" alt=""><h2>凸（とつ）のしくみ</h2><button class="tz2-x" type="button">とじる</button></div>
-      <div class="tz2-tabs">${TZD_TABS.map(([k, l]) => `<button type="button" data-tz="${k}" class="${k === tab ? 'on' : ''}">${l}</button>`).join('')}</div><div class="tz2-body">${body}</div></div>`;
+    el.innerHTML = `<div class="tzx"><div class="tz2-hd"><img src="${emblemURL(save.team.name, 48)}" alt=""><h2>${tab === 'pas' ? 'サポート効果の一覧' : '凸（とつ）のしくみ'}</h2><button class="tz2-x" type="button">とじる</button></div>
+      ${tab === 'pas' ? '' : `<div class="tz2-tabs">${TZD_TABS.map(([k, l]) => `<button type="button" data-tz="${k}" class="${k === tab ? 'on' : ''}">${l}</button>`).join('')}</div>`}<div class="tz2-body">${body}</div></div>`;
     el.hidden = false;
     el.querySelector('.tz2-x').onclick = (e) => { e.stopPropagation(); el.hidden = true; };
     el.querySelectorAll('[data-tz]').forEach((b) => b.onclick = (e) => { e.stopPropagation(); totsuDoc(b.dataset.tz); });
