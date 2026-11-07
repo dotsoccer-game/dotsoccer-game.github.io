@@ -1076,7 +1076,27 @@
   const ico = (k, cls) => `<img class="pico ${cls || ''}" src="icons/${k}.png" alt="" draggable="false">`;
   // ☆（レア度）の表示：★の数＋凸の印。cap＝育てられる上限のランク
   // 版1132：凸の説明（ガチャの獲得ルール・覚醒の画面から開く）
-  const TOTSU_HELP = '<b>凸（とつ）とは？</b><br>同じ選手がもう一度出たり、覚醒のカケラを使ったりすると「凸」が1つ上がります（最大3凸＝完凸）。<br><b>凸すると良くなること</b><br>・<b>育てられる上限が上がる</b>（もっと高いランクまで伸ばせる。最高はS）<br>・<b>サポート効果が付く・強くなる</b>（味方を助ける効果。☆の数で、何凸で付くかが違う）<br>・<b>☆5は1凸で、固有スキルが覚醒</b><br><small>その場で能力が上がるのではなく、上がった上限まで育てて伸ばします。</small>';
+  // 版1133：凸の資料（☆1〜☆5で、何凸で何が良くなるかの表）。覚醒の画面・ガチャの獲得ルールから開く
+  function totsuDoc() {
+    let el = document.getElementById('tzDoc'); if (!el) { el = document.createElement('div'); el.id = 'tzDoc'; (document.getElementById('app') || document.body).appendChild(el); }
+    const PL = ['—', '付く', '強くなる', '全員に'], cell = (st, tz) => { const g = C.GRADES[C.capIdx(st, tz)], g0 = tz ? C.GRADES[C.capIdx(st, tz - 1)] : g, l = C.pasLv(st, tz), l0 = tz ? C.pasLv(st, tz - 1) : l;
+      return `<td class="${tz ? '' : 'z'}"><div class="tzd-cap${tz && g !== g0 ? ' up' : ''}"><small>上限</small><b class="rk rk-${g}">${g}</b></div><div class="tzd-pas${l ? ' l' + l : ''}${tz && l !== l0 ? ' up' : ''}"><small>サポート</small>${PL[l]}</div>${st >= 5 && tz >= 1 ? `<div class="tzd-uq${tz === 1 ? ' up' : ''}">固有スキル覚醒</div>` : ''}</td>`; };
+    const rows = [1, 2, 3, 4, 5].map((st) => `<tr><th><span class="tzd-st">${'★'.repeat(st)}</span><small>☆${st}</small></th>${[0, 1, 2, 3].map((tz) => cell(st, tz)).join('')}<td class="tzd-cost">${(C.AWAKE_COST || {})[st] ?? ''}<small>個</small></td></tr>`).join('');
+    el.innerHTML = `<div class="tzd-paper"><div class="tzd-hd"><b>資料</b><h2>凸（とつ）のしくみ</h2><button class="tzd-x" type="button">とじる</button></div><div class="tzd-body">
+      <section><h3>1．凸とは</h3><p>同じ選手をもう一度手に入れると、その選手の「凸」が1つ上がります。<b>覚醒のカケラ</b>を使う「選手覚醒」でも上げられます。最大は<b>3凸（完凸）</b>。完凸のあとに同じ選手が出たら、覚醒のカケラになります。</p></section>
+      <section><h3>2．凸で良くなること</h3><ul>
+        <li><b>育てられる上限が上がる</b>　特訓や試合で伸ばせる能力の、いちばん上のランクです（最高はS）。</li>
+        <li><b>サポート効果が付く・強くなる</b>　選手のタイプごとの、まわりの味方を助ける効果です。「付く」→「強くなる」→「全員に」（近くの味方だけに効く効果は、味方全員に広がる。もともと全員に効く効果は、さらに強くなる）。</li>
+        <li><b>固有スキルの覚醒</b>　☆5の選手だけ。1凸で固有スキルが強くなります。</li></ul>
+        <p class="tzd-note">凸しても、その場で能力の数字が上がるわけではありません。上がった上限まで、育てて伸ばします。</p></section>
+      <section><h3>3．☆ごとの表</h3><p class="tzd-cap2">黄色いところが、その凸で良くなる所です。</p>
+        <table class="tzd-tb"><thead><tr><th>レア度</th><th>無凸</th><th>1凸</th><th>2凸</th><th>3凸（完凸）</th><th>覚醒に使う<br>カケラ（1凸ごと）</th></tr></thead><tbody>${rows}</tbody></table></section>
+      <section><h3>4．★の色</h3><p class="tzd-stars">${[0, 1, 2, 3].map((tz) => `<span><b class="tzd-sr">${starHTML(3, tz)}</b><small>${tz ? tz + '凸' + (tz === 3 ? '（完凸）' : '') : '無凸'}</small></span>`).join('')}</p></section>
+    </div></div>`;
+    el.hidden = false;
+    const close = () => { el.hidden = true; };
+    el.querySelector('.tzd-x').onclick = (e) => { e.stopPropagation(); close(); }; el.onclick = (e) => { e.stopPropagation(); if (e.target === el) close(); };
+  }
   const starHTML = (n, totsu, cls) => { const t = Math.min(totsu || 0, 3); let h = ''; for (let k = 0; k < n; k++) h += `<i class="tz tz${t}">★</i>`;   /* 版476：無凸＝白、1凸＝銀、2凸＝金、完凸＝虹 */   /* 版467：凸の数で星全部の色が変わる（無凸＝黄、1凸＝青、2凸＝紫、完凸＝虹） */ return `<span class="stars s${n}${t ? ' t' + t : ''} ${cls || ''}" title="☆${n}${t >= 3 ? '・凸MAX' : t ? '・' + t + '凸' : ''}">${h}</span>`; };   // 版456：凸した分だけ、星に色がつく（1凸＝青、2凸＝紫、3凸＝虹）
   const capBadge = (g) => `<span class="capb">上限<b class="rk rk-${g}">${g}</b></span>`;
   // 版972：タイプの説明（選手の札のタイプをタップすると出る）。役わり・動き方・なり方（どの練習で近づくか）
@@ -1398,7 +1418,7 @@
       { const bx = d.querySelector('.aw2-box'), k = Math.min(1, (d.clientWidth - 16) / bx.offsetWidth, (d.clientHeight - 16) / bx.offsetHeight); bx.style.transform = `scale(${k.toFixed(3)})`; bx.style.setProperty('--k', k); }   // 画面に収まる大きさに
       d.onclick = (ev) => { ev.stopPropagation(); if (ev.target === d) d.remove(); };
       d.querySelector('.aw2-no').onclick = () => d.remove();
-      { const hb = d.querySelector('.aw2-help'); if (hb) hb.onclick = (ev) => { ev.stopPropagation(); coachAsk(TOTSU_HELP, [{ label: 'とじる', value: true }], 'sec'); }; }
+      { const hb = d.querySelector('.aw2-help'); if (hb) hb.onclick = (ev) => { ev.stopPropagation(); totsuDoc(); }; }
       const ok = d.querySelector('.aw2-ok'); if (ok && can) ok.onclick = () => { if (C.awaken(save, p)) { try { window.DotSound && DotSound.play('skill'); } catch (_) {} done(); coachAsk(`${esc(p.name)}が覚醒しました！<br>凸 ${p.totsu}／3　育てられる上限：<b>${C.capGrade(p)}</b>`, [{ label: 'OK', value: true }]); } };
     };
   }
@@ -4686,7 +4706,7 @@
     const wire = (U) => {
       box.querySelectorAll('[data-pu]').forEach((b) => b.onclick = async () => { if (await puPick()) draw(); });
       { const bgEl = box.querySelector('.gc2-bg'); gcBgFor(U.chip, (u) => { bgEl.style.backgroundImage = `url(${u})`; bgEl.classList.add('on'); }); }
-      box.querySelector('.gc-rule').onclick = () => coachAsk('<b>獲得ルール</b><br><small>同じ選手が出たら凸（最大3凸）。完凸のあとは覚醒のカケラになります。<br>自動放出をオンにすると、はじめて出た選手のうち、その★以下はカケラになります（持っている選手は凸）。<br>チームが25人の時は、リザーブ（控え室）に入ります。<br>凸すると、育てられる上限が上がったり、サポート効果が付いたりします。</small>', [{ label: '凸とは？', value: 'tz' }, { label: 'とじる', value: true }], 'sec').then((v) => { if (v === 'tz') coachAsk(TOTSU_HELP, [{ label: 'とじる', value: true }], 'sec'); });   // 版1132
+      box.querySelector('.gc-rule').onclick = () => coachAsk('<b>獲得ルール</b><br><small>同じ選手が出たら凸（最大3凸）。完凸のあとは覚醒のカケラになります。<br>自動放出をオンにすると、はじめて出た選手のうち、その★以下はカケラになります（持っている選手は凸）。<br>チームが25人の時は、リザーブ（控え室）に入ります。<br>凸すると、育てられる上限が上がったり、サポート効果が付いたりします。</small>', [{ label: '凸とは？', value: 'tz' }, { label: 'とじる', value: true }], 'sec').then((v) => { if (v === 'tz') totsuDoc(); });   // 版1132
       box.querySelector('.gc-back').onclick = () => { el.hidden = true; go('home'); };
       box.querySelector('.gc-auto').onclick = () => { g.auto = ((g.auto || 0) + 1) % 4;   /* 版979：★3以下も */ store(); draw(); };
       box.querySelector('.gc-rate').onclick = () => U.all ? coachAsk(`<b>出る確率</b><br>${C.GACHA_RATE.map(([st, pc]) => `☆${st}：${pc}%`).join('　')}<br><small>☆5が出たら、${Math.round(C.GACHA_PU_RATE * 100)}%で選んだピックアップ${C.GACHA_PU_N}人のだれか（1人あたり約${(C.GACHA_RATE[0][1] * C.GACHA_PU_RATE / C.GACHA_PU_N).toFixed(3)}%）、${Math.round((1 - C.GACHA_PU_RATE) * 100)}%でそれ以外の国内屈指${C.gachaUniqList().length - C.GACHA_PU_N}人のだれか（1人あたり約${(C.GACHA_RATE[0][1] * (1 - C.GACHA_PU_RATE) / (C.gachaUniqList().length - C.GACHA_PU_N)).toFixed(3)}%）。<br>${C.GACHA_PITY}回引くまでにピックアップの☆5が出なければ、${C.GACHA_PITY}回目でピックアップの☆5が確定（ピックアップの☆5が出たら数え直し。ピックアップ外の☆5では数え直さない）。<br>10回スカウトは、☆3以上が1人確定。</small>`, [{ label: 'とじる', value: true }], 'sec') : coachAsk(`<b>出る確率</b><br>${C.GACHA_RATE.map(([st, pc]) => `☆${st}：${pc}%`).join('　')}<br><small>☆5は今月のピックアップの${esc(U.who)}だけ。<br>このスカウトで${C.GACHA_PITY}回引くと、${esc(U.who)}が確定（出たら数え直し）。<br>10回スカウトは、☆3以上が1人確定。</small>`, [{ label: 'とじる', value: true }], 'sec');
@@ -5781,12 +5801,45 @@
   setTimeout(pingNow, 4000); setInterval(pingNow, 60000); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') pingNow(); });
   const seenTxt = (v) => { if (!v || !(v.seen || v.at)) return ['off', '']; if (!v.seen) v = { ...v, seen: v.at }; const m = (Date.now() - v.seen) / 60000; if (m < 2.5) return ['on', v.st === 'match' ? '試合中' : 'オンライン']; if (m < 60) return ['off', `${Math.max(1, Math.floor(m))}分前`]; if (m < 1440) return ['off', `${Math.floor(m / 60)}時間前`]; const d = Math.floor(m / 1440); return ['off', d < 30 ? `${d}日前` : '30日以上前']; };   // 版1120：1時間から時間、1日から日、30日以上は数えない
   let fSeen = {};
+  // 版1133：ログインが近い人から上に（わからない人は下。同じなら今までの順）
+  const fOrder = (L) => L.map((f, k) => k).sort((a, b) => { const v = (f) => { const x = fSeen[f.uid]; return x ? Math.max(x.seen || 0, x.at || 0) : 0; }; return v(L[b]) - v(L[a]) || a - b; });
+  // 版1133：フレンドのスカッド（スタメン・ベンチ）。フレンドから外すのも、ここから（すぐには外れない：確認が2回）
+  async function friendSquad(k) {
+    const on = ensureOnline(), f = on.flist[k]; if (!f) return friendMenu('keep');
+    const el = fullScreen('apScreen', 'ap-wrap'), box = el.querySelector('.lk-box');
+    const [sk, st] = seenTxt(fSeen[f.uid]);
+    const side = `<div class="fs-info"><img class="fs-emb" src="${embFromLook(f.emb, 128)}" alt=""><b class="fs-nm">${esc(f.name)}${premMark(f.prem)}</b>${f.mgr ? `<small>${esc(f.mgr)}監督</small>` : ''}${f.rank != null ? rankBadge(f.rank) : ''}
+      <div class="fs-rec">あなたとの対戦 <b>${f.w || 0}勝 ${f.d || 0}分 ${f.l || 0}敗</b></div>${st ? `<span class="ap-seen s-${sk}"><i></i>${st}</span>` : ''}
+      <button class="fs-room" data-a="room"><img src="icons/home_stadium.png" alt="">${(friendMenu.inv || []).some((r) => r.host === f.uid) ? 'ルームに入る' : 'ルームを作る'}</button>
+      <button class="fs-del" data-a="del">フレンドから外す</button></div>`;
+    const paint = (inner) => { box.innerHTML = `${apBg()}<div class="ap2">${apTop('スカッド', esc(f.name) + ' のスタメンとベンチ')}<div class="fs-wrap">${side}${inner}</div></div>`; el.hidden = false; el._fit && el._fit(); bind(); };
+    const bind = () => { const q = (x) => box.querySelector(x);
+      q('.std-back').onclick = () => friendMenu('keep');
+      q('[data-a="room"]').onclick = async (e) => { const b = e.currentTarget, inv = (friendMenu.inv || []).find((r) => r.host === f.uid); if (inv) { el.hidden = true; return joinRoom(inv.id); } b.disabled = true; const id = await makeRoom(f); b.disabled = false; if (id) { el.hidden = true; roomScreen(id, 'host'); } };
+      q('[data-a="del"]').onclick = async () => {
+        if (!(await modal(`<h2>${esc(f.name)} をフレンドから外しますか？</h2><p>外すと、このクラブとはフレンド対戦ができなくなります。<br>もう一度フレンドになるには、申請しなおしが必要です。</p>`, [{ label: '外さない', primary: true, value: false }, { label: '外す', value: true }]))) return;
+        if (!(await modal(`<h2>本当に外しますか？</h2><p>${esc(f.name)} とのフレンドを外します。この操作は取り消せません。</p>`, [{ label: 'やめる', primary: true, value: false }, { label: '外す', value: true }]))) return;
+        const i2 = on.flist.indexOf(f); if (i2 >= 0) { on.flist.splice(i2, 1); store(); } friendMenu('keep'); }; };
+    paint('<div class="fs-main"><p class="fs-msg">チームを読みこんでいます…</p></div>');
+    let d = null; try { const pl = window.DotNet && DotNet.on && f.uid ? await DotNet.byUid(f.uid) : null; if (pl && pl.code) d = await unpackCode(pl.code); } catch (_) {}
+    if (el.hidden || !box.querySelector('.fs-wrap')) return;
+    if (!d || !d.team || !(d.team.players || []).length) { paint('<div class="fs-main"><p class="fs-msg">チームを読みこめませんでした。<br>通信の状態をたしかめて、もう一度開いてください。</p></div>'); return; }
+    const t = d.team, ps = t.players, st11 = ps.slice(0, 11), bench = ps.slice(11, 11 + (C.BENCH_N || 7));
+    let slots = null; try { slots = D.buildSlots(t); } catch (_) {}
+    const rels = slots ? slots.filter((x) => !x.gk).map((x) => x.rel) : [0, 1], r0 = Math.min(...rels), r1 = Math.max(...rels);
+    const chip = (p, i) => { const sl = slots && slots[i]; let x = 50, y = 88; if (sl) { x = 8 + (sl.y / 68) * 84; y = sl.gk || p.position === 'GK' ? 89 : 74 - ((sl.rel - r0) / Math.max(1, r1 - r0)) * 62; } else { x = 10 + (i % 4) * 26; y = 15 + Math.floor(i / 4) * 30; }
+      return `<div class="fs-chip" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%"><div class="fs-fc">${facePic(p, 'fs-face', false)}</div><span><i class="pos ${POSC[p.position]}">${p.position}</i>${esc(p.name)}</span></div>`; };
+    const row = (p) => `<div class="fs-bn"><i class="pos ${POSC[p.position]}">${p.position}</i><b>${p.number || ''}</b><span>${esc(p.name)}</span>${starHTML(C.ensureStar(p), p.totsu)}</div>`;
+    paint(`<div class="fs-main"><div class="fs-pitch"><em class="fs-form">${esc(t.formation || '')}</em><div class="fs-lines"></div>${st11.map(chip).join('')}</div>
+      <div class="fs-bench"><h4>ベンチ <small>${bench.length}人</small></h4>${bench.length ? bench.map(row).join('') : '<p class="fs-msg">ベンチの選手はいません</p>'}</div></div>`);
+    try { faceFill(); } catch (_) {}
+  }
   async function friendMenu(back) {
     if (typeof back === 'function') friendMenu.back = back; else if (back !== 'keep') friendMenu.back = null;
     const on = ensureOnline(); on.flist = on.flist || [];
     if (window.DotNet && DotNet.on && Date.now() - (friendMenu.fixT || 0) > 60000) { friendMenu.fixT = Date.now(); (async () => { let ch = false; for (const f of on.flist) { if (!f.fid) continue; try { const p = await DotNet.byFid(f.fid); if (p && p.uid && p.uid !== f.uid) { f.uid = p.uid; ch = true; } if (p && !!p.prem !== !!f.prem) { f.prem = !!p.prem; ch = true; } } catch (_) {} } if (ch) store(); })(); }   // 版672：フレンドが機種変更（データ引き継ぎ）していたら、新しい端末へつなぎ直す
     const el = fullScreen('apScreen', 'ap-wrap'), box = el.querySelector('.lk-box'), net = !!(window.DotNet && DotNet.on);
-    const card = (f, k) => `<div class="ap-fc"><img src="${embFromLook(f.emb, 96)}" alt=""><div class="ap-fc-n"><b>${esc(f.name)}${premMark(f.prem)}</b>${f.mgr ? `<small>${esc(f.mgr)}監督</small>` : ''}${f.rank != null ? rankBadge(f.rank) : ''}<small class="ap-fc-r">${f.w || 0}勝 ${f.d || 0}分 ${f.l || 0}敗</small>${(() => { const [k, t] = seenTxt(fSeen[f.uid]); return t ? `<span class="ap-seen s-${k}"><i></i>${t}</span>` : ''; })()}</div><button class="ap-fc-go${(friendMenu.inv || []).some((r) => r.host === f.uid) ? ' inv' : ''}" data-fu="${k}"><img src="icons/home_stadium.png" alt="">${(friendMenu.inv || []).some((r) => r.host === f.uid) ? 'ルームに入る' : 'ルームを作る'}</button><button class="ap-fc-x xbtn" data-fx="${k}" title="フレンドから外す"><img class="xbtn-img" src="icons/ui_close.png" alt="×" draggable="false"></button></div>`;
+    const card = (f, k) => `<div class="ap-fc" data-fi="${k}"><img src="${embFromLook(f.emb, 96)}" alt=""><div class="ap-fc-n"><b>${esc(f.name)}${premMark(f.prem)}</b>${f.mgr ? `<small>${esc(f.mgr)}監督</small>` : ''}${f.rank != null ? rankBadge(f.rank) : ''}<small class="ap-fc-r">${f.w || 0}勝 ${f.d || 0}分 ${f.l || 0}敗</small>${(() => { const [k, t] = seenTxt(fSeen[f.uid]); return t ? `<span class="ap-seen s-${k}"><i></i>${t}</span>` : ''; })()}</div><button class="ap-fc-go${(friendMenu.inv || []).some((r) => r.host === f.uid) ? ' inv' : ''}" data-fu="${k}"><img src="icons/home_stadium.png" alt="">${(friendMenu.inv || []).some((r) => r.host === f.uid) ? 'ルームに入る' : 'ルームを作る'}</button></div>`;   // 版1133：×はなくした（外すのは、フレンドをタップした画面の中で）
     box.innerHTML = `${apBg()}<div class="ap2">${apTop('フレンド', 'フレンド申請して、いつでも対戦！')}
       <div class="ap-fgrid2">
         <div class="ap-pnl ap-reg"><h3><span class="ap-hi">${AP_SVG.mail}</span>フレンド申請</h3><div class="ap-pb">
@@ -5796,7 +5849,7 @@
           : '<p class="ap-note">フレンドの機能は、インターネットにつながっている時だけ使えます。</p>'}
         </div></div>
         <div class="ap-pnl ap-flist"><h3><span class="ap-hi">${AP_SVG.people}</span>フレンド一覧 <em>${on.flist.length}人</em></h3><div class="ap-pb">
-          <div class="ap-fcs">${on.flist.length ? on.flist.map(card).join('') : `<p class="ap-note">まだフレンドがいません。${net ? '左でフレンドIDを入れて申請しましょう。' : ''}</p>`}</div>
+          <div class="ap-fcs">${on.flist.length ? fOrder(on.flist).map((k) => card(on.flist[k], k)).join('') : `<p class="ap-note">まだフレンドがいません。${net ? '左でフレンドIDを入れて申請しましょう。' : ''}</p>`}</div>
           </div></div>
       </div></div>`;
     el.hidden = false; el._fit && el._fit();
@@ -5815,7 +5868,7 @@
       b.disabled = true; const id = await makeRoom(f); b.disabled = false;
       if (id) { close(); roomScreen(id, 'host'); }
     });
-    box.querySelectorAll('[data-fx]').forEach((b) => b.onclick = async () => { const f = on.flist[+b.dataset.fx]; if (await modal(`<h2>${esc(f.name)} をフレンドから外しますか？</h2><p>外すと、このクラブとはフレンド対戦ができなくなります。<br>もう一度フレンドになるには、申請しなおしが必要です。</p>`, [{ label: '外さない', primary: true, value: false }, { label: '外す', value: true }])) { on.flist.splice(+b.dataset.fx, 1); store(); } friendMenu(); });
+    box.querySelectorAll('.ap-fc[data-fi]').forEach((c) => c.onclick = (e) => { if (e.target.closest('button')) return; friendSquad(+c.dataset.fi); });   // 版1133：フレンドをタップ → その人のチームのスカッド
   }
   async function airport() {
     const on = ensureOnline(), i = rankIdx(on.rp), last = i === RANKS.length - 1, lo = RANK_AT[i], hi = last ? lo : RANK_AT[i + 1], into = on.rp - lo, span = hi - lo, pct = last ? 100 : Math.round(into / span * 100);
@@ -6015,7 +6068,7 @@
     draw();
     if (loading) { try { const r = await DotNet.cloudInfo(code()); cloud = r ? { info: r.info, at: r.at } : null; } catch (_) { flash('通信できませんでした（クラウドの情報が読めません）'); } loading = false; if (document.body.contains(scr) && !scr.querySelector('.cs-dlg')) draw(); }
   }
-  window.__career = { roomScreen: (id, r) => roomScreen(id, r), friendMenu: (b) => friendMenu(b), roomPrep: (r, me) => roomPrep(r, me), playRoom: (r, me) => playRoom(r, me), packCode: (o) => packCode(o), openKitEditor: (o) => openKitEditor(o), drawEmblem: (c, x, y, s, lk) => drawEmblem(c, x, y, s, lk), openClub: (o) => openClub(o), playerDetail: (i, o) => playerDetail(i, o), resCard: (o) => resCard(o), seasonEndCard: (o) => seasonEndCard(o), coachNews: (l) => coachNews(l), rewardCard: (r) => rewardCard(r), gachaDemo: (st, pr, fx) => gachaDemo(st, pr, fx), storyCard: (o) => storyCard(o), gotCardsHTML: (got) => `<div class="gc-cards${got.length > 8 ? ' lots' : got.length > 4 ? ' many' : ''}">${got.map((c) => artCard(c, { ups: true })).join('')}</div><p class="cp-msg gc-msg">クラブハウスの「特訓」で、選手に最大3枚セットできます。</p>`, trainResult: (o) => trainResult(o), airport, openPost, syncPost, onlineDone, setVenue: (k) => { venueNow = k; }, champDemo, champAfter, coinShop, faceFill: () => faceFill(), openGacha, venueTalk: (se) => venueTalk(se), matchFace, openOffice, cpuCard, openClub, openAssoc, open, go, stadium, advance, subSheet, labMatch, townRect, tutPractice, shop, store: () => store(), renderHome: () => renderHome(), clubhouseBg: () => clubhouseBg(), isMatchWeek: () => isMatchWeek(), get view() { return view; }, staffFace: (k) => staffFace(k), get save() { return save; }, get drill() { return clubDrill; }, faceURL, starFace, setDrill(d) { clubDrill = d; drillT0 = -1; drillSnap = true; } };
+  window.__career = { totsuDoc: () => totsuDoc(), friendSquad: (k) => friendSquad(k), roomScreen: (id, r) => roomScreen(id, r), friendMenu: (b) => friendMenu(b), roomPrep: (r, me) => roomPrep(r, me), playRoom: (r, me) => playRoom(r, me), packCode: (o) => packCode(o), openKitEditor: (o) => openKitEditor(o), drawEmblem: (c, x, y, s, lk) => drawEmblem(c, x, y, s, lk), openClub: (o) => openClub(o), playerDetail: (i, o) => playerDetail(i, o), resCard: (o) => resCard(o), seasonEndCard: (o) => seasonEndCard(o), coachNews: (l) => coachNews(l), rewardCard: (r) => rewardCard(r), gachaDemo: (st, pr, fx) => gachaDemo(st, pr, fx), storyCard: (o) => storyCard(o), gotCardsHTML: (got) => `<div class="gc-cards${got.length > 8 ? ' lots' : got.length > 4 ? ' many' : ''}">${got.map((c) => artCard(c, { ups: true })).join('')}</div><p class="cp-msg gc-msg">クラブハウスの「特訓」で、選手に最大3枚セットできます。</p>`, trainResult: (o) => trainResult(o), airport, openPost, syncPost, onlineDone, setVenue: (k) => { venueNow = k; }, champDemo, champAfter, coinShop, faceFill: () => faceFill(), openGacha, venueTalk: (se) => venueTalk(se), matchFace, openOffice, cpuCard, openClub, openAssoc, open, go, stadium, advance, subSheet, labMatch, townRect, tutPractice, shop, store: () => store(), renderHome: () => renderHome(), clubhouseBg: () => clubhouseBg(), isMatchWeek: () => isMatchWeek(), get view() { return view; }, staffFace: (k) => staffFace(k), get save() { return save; }, get drill() { return clubDrill; }, faceURL, starFace, setDrill(d) { clubDrill = d; drillT0 = -1; drillSnap = true; } };
   window.__career.openCloud = openCloud; window.__career.cpuCard = (t, i) => cpuCard(t, i, $("#career"));
   window.__career.shop = (t) => shop(t); window.__career.premDaily = () => premDaily();
   window.__career.embURL = () => { try { return save ? embFromLook(C.ensureClub(save).emb, 96) : ''; } catch (_) { return ''; } };   // 版680：設定のアカウントIDの横に出す、自分のクラブのエンブレム

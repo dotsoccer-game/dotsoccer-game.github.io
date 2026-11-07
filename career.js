@@ -1334,7 +1334,7 @@
     const g0 = GRADES[capIdx(st, f)], g1 = GRADES[capIdx(st, t)];
     if (g0 !== g1) out.push({ k: 'cap', txt: `育てられる上限が ${g0} → ${g1} に上がる`, g0, g1 });
     const ps = root.DotSoccer && root.DotSoccer.PASSIVE && root.DotSoccer.PASSIVE[p.type], l0 = pasLv(st, f), l1 = pasLv(st, t);
-    if (ps && l1 > l0) out.push({ k: 'pas', txt: l0 === 0 ? `サポート効果「${ps.name}」が付く` : l1 >= 3 ? `サポート効果「${ps.name}」が味方全員に広がる` : `サポート効果「${ps.name}」が強くなる` });
+    if (ps && l1 > l0) out.push({ k: 'pas', txt: l0 === 0 ? `サポート効果「${ps.name}」が付く` : l1 >= 3 ? (ps.rad ? `サポート効果「${ps.name}」が味方全員に広がる` : `サポート効果「${ps.name}」がさらに強くなる`) : `サポート効果「${ps.name}」が強くなる` });
     if (p.uniq && st >= 5 && f < 1 && t >= 1) out.push({ k: 'uq', txt: '固有スキルが覚醒して、強くなる' });
     return out;
   }
