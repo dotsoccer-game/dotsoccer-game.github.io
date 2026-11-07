@@ -259,22 +259,22 @@
     'ストライカー':       { k: 'fwBack',   name: '点取り屋の背中', what: '近くの味方がFWへ出すパスの精度が上がる', rad: 18 },
     'アタッカー':         { k: 'stir',     name: 'かき回し',       what: '相手DFが引きつけられ、味方の抜け出しが通りやすい', rad: null },
     '偽9番':              { k: 'drawOut',  name: '引き出し',       what: '相手DFが前に釣り出され、味方の裏抜けが通りやすい', rad: null },
-    'デコイラン':         { k: 'decoy',    name: 'おとり',         what: '味方FWへのマークが少しゆるむ', rad: null },
-    'ゲームメイカー':     { k: 'signal',   name: '攻めの合図',     what: '味方の攻め上がりの動き出しが少し早くなる', rad: null },
-    'パサー':             { k: 'guide',    name: 'パスの道しるべ', what: '味方のパスが少し通りやすい', rad: null },
+    'デコイラン':         { k: 'decoy',    name: 'おとり',         what: '味方FWへのマークがゆるむ', rad: null },
+    'ゲームメイカー':     { k: 'signal',   name: '攻めの合図',     what: '味方の攻め上がりの動き出しが早くなる', rad: null },
+    'パサー':             { k: 'guide',    name: 'パスの道しるべ', what: '味方のパスが通りやすい', rad: null },
     'レジスタ':           { k: 'calmness', name: '落ち着き',       what: '味方がプレスを受けたときのミスが減る', rad: null },
-    'ダイナモ':           { k: 'runBack',  name: '走る背中',       what: '近くの味方のスタミナの減りが少し少なくなる', rad: 20 },
-    'ファンタジスタ':     { k: 'spark',    name: 'ひらめき',       what: '味方のスルーパスの成功率が少し上がる', rad: null },
-    'シャドー':           { k: 'pushUp',   name: '押し上げ',       what: '味方のゴール前への飛び込みが少し増える', rad: null },
-    'アンカー':           { k: 'shield',   name: '盾',             what: '相手の中央突破の成功率が少し下がる', rad: null },
-    'スイーパー':         { k: 'lastFort', name: '最後の砦',       what: '味方DFが抜かれたあとのカバーが少し早くなる', rad: null },
-    'ストッパー':         { k: 'bodyVoice', name: '体を張る声',    what: '味方DFの競り合いが少し強くなる', rad: null },
+    'ダイナモ':           { k: 'runBack',  name: '走る背中',       what: '近くの味方のスタミナの減りが少なくなる', rad: 20 },
+    'ファンタジスタ':     { k: 'spark',    name: 'ひらめき',       what: '味方のスルーパスの成功率が上がる', rad: null },
+    'シャドー':           { k: 'pushUp',   name: '押し上げ',       what: '味方のゴール前への飛び込みが増える', rad: null },
+    'アンカー':           { k: 'shield',   name: '盾',             what: '相手の中央突破の成功率が下がる', rad: null },
+    'スイーパー':         { k: 'lastFort', name: '最後の砦',       what: '味方DFが抜かれたあとのカバーが早くなる', rad: null },
+    'ストッパー':         { k: 'bodyVoice', name: '体を張る声',    what: '味方DFの競り合いが強くなる', rad: null },
     'マンマーカー':       { k: 'eyesOn',   name: '目を離すな',     what: '味方がマークを外されにくくなる', rad: null },
     'ラインコントローラー': { k: 'lineCall', name: 'ラインの号令', what: '味方DFラインがそろい、オフサイドを取りやすい', rad: null },
     'ビルドアップ型':     { k: 'origin',   name: '起点',           what: '味方DFのパスミスが減る', rad: null },
-    'ゴールキーパー':     { k: 'relief',   name: '守護神の安心感', what: 'DFラインの集中が少し上がる', rad: null },
+    'ゴールキーパー':     { k: 'relief',   name: '守護神の安心感', what: 'DFラインの集中が上がる', rad: null },
     'スイーパーキーパー': { k: 'backCover', name: '背後の安心',    what: '味方DFラインを高く保ちやすい', rad: null },
-    'バランス':           { k: 'mood',     name: 'ムードメーカー', what: '負けている時、または引き分けている時に、味方全員の能力が少し上がる', rad: null },
+    'バランス':           { k: 'mood',     name: 'ムードメーカー', what: '負けている時、または引き分けている時に、味方全員の能力が上がる', rad: null },
   };
   const PASSIVE_BY_K = Object.fromEntries(Object.values(PASSIVE).map((v) => [v.k, v]));
   function fillParams(p, salt) {
@@ -743,7 +743,7 @@
       const d = 1 - att.team, lcs = T[d].players.filter((m) => m.type === 'ラインコントローラー' && !m.gk && !m.off && !(m.stun > 0));
       if (!lcs.length) return;
       const lc = lcs.reduce((a, c) => (c.vision + c.mental > a.vision + a.mental ? c : a)), ps = ownerP();
-      let pr = clamp(0.15 + lc.vision * 0.0035 + lc.mental * 0.0015 - (ps && ps.team === att.team ? ps.vision * 0.0025 : 0.15) + 0.06 * (lcs.length - 1) + 0.12 * aura(lc, 'lineCall', true), 0.08, 0.62);
+      let pr = clamp(0.15 + lc.vision * 0.0035 + lc.mental * 0.0015 - (ps && ps.team === att.team ? ps.vision * 0.0025 : 0.15) + 0.06 * (lcs.length - 1) + 0.35 * aura(lc, 'lineCall', true), 0.08, 0.75);
       const skj = T[d].players.find((m) => m.uniq === 'sakurajima' && !m.off); if (skj && uOn(skj, 'sakurajima')) pr = Math.min(0.9, pr + 0.3 * uP(skj));   // 桜島の号令：一斉に、大きく
       if (skj && uOn(skj, 'sakurajima') && S.lcStep && S.lcStep.all && S.lcStep.until > S.t) { if (S.forcePass) S.forcePass.noRelease = true; return; }   // 桜島の号令で押し上げている最中：号令を優先（下げない）
       if (R.next() < pr) {
@@ -892,8 +892,8 @@
       { const c = condLv(own.team); if (c) a -= c >= 2 ? 0.34 : 0.28; }   // 港の指揮者：テンポよく回されて、相手のプレスが空回りする
       if ((own.hariT || 0) > S.t) a -= own.hariLv >= 2 ? 0.8 : 0.65;   // 針の穴通しの1本で抜け出した：勢いのまま、追いつかれても奪われにくい
       if (own.uniq && own.uOn > S.t) a -= { shiden: ((globalThis.__Ksd2 ?? 1) ? 1.15 : 0.85) * uP(own), midori: 0.25, aonoouza: 0.12 }[own.uniq] || 0;
-      if (q.position === 'DF') a += 0.04 * aura(q, 'bodyVoice', true) + 0.02 * aura(q, 'relief');
-      if (Math.abs(own.y - GOAL_Y) < 15) a += 0.04 * aura(q, 'shield', true);
+      if (q.position === 'DF') a += 0.16 * aura(q, 'bodyVoice', true) + 0.1 * aura(q, 'relief');   // 版1135：サポート効果を強く
+      if (Math.abs(own.y - GOAL_Y) < 15) a += 0.16 * aura(q, 'shield', true);
       return a;
     }
     // ドリブル技の成功率の増減
@@ -905,7 +905,7 @@
       if (opps(own).some((o) => (o.kgT === own.idx || o.mark === own.idx) && uOn(o, 'kagenui'))) a -= 0.45;
       if (uOn(q, 'matsuri')) a -= 0.45 * mtF(q);   // ドン！と体を当てて、抜かせない
       if (uOn(q, 'tetsurou')) a -= 0.6;   // 鉄狼の関所：ドリブルの技がほとんど通じない
-      if (Math.abs(own.y - GOAL_Y) < 15) a -= 0.04 * aura(q, 'shield', true);
+      if (Math.abs(own.y - GOAL_Y) < 15) a -= 0.16 * aura(q, 'shield', true);
       return a;
     }
     // 味方DFが抜かれた：雅の後始末（カバー）・最後の砦（立て直しが早い）
@@ -919,7 +919,7 @@
     function uBeaten(q) {
       if (q.position !== 'DF') return;
       for (const m of T[q.team].players) if (m !== q && m.uniq === 'miyabi') uFire(m, 'miyabi');
-      const a = aura(q, 'lastFort'); if (a) { q.tackleCd *= 1 - 0.3 * a; q.stun *= 1 - 0.3 * a; }
+      const a = aura(q, 'lastFort'); if (a) { q.tackleCd *= 1 - 0.42 * a; q.stun *= 1 - 0.42 * a; }
     }
     // 毎コマ：場面で出る固有スキル（後半30分・マークの相手が持った・相手が攻めてきた・味方FWがゴール前で持った）と、ムードメーカー
     function uTick() {
@@ -979,7 +979,7 @@
       // ムードメーカー（バランスのサポートパッシブ）：負けている時・引き分けの時、味方全員の能力が少し上がる
       if (Math.round(S.t * 10) % 10 === 0) for (const tm of T) {
         let lv = 0; if (tm.pas && tm.pas.has('mood')) for (const m of tm.players) if (m.pasK === 'mood' && !m.off) lv = Math.max(lv, m.passive);
-        const want = lv && S.score[tm.ti] <= S.score[1 - tm.ti] ? (lv >= 2 ? 3 : 2) : 0;
+        const want = lv && S.score[tm.ti] <= S.score[1 - tm.ti] ? (lv >= 3 ? 10 : lv >= 2 ? 8 : 6) : 0;   // 版1135：強く
         for (const p of tm.players) { const dlt = want - (p.moodAdd || 0); if (dlt) { for (const k of PARAM_KEYS) p[k] += dlt; p.moodAdd = want; } }
       }
     }
@@ -1088,7 +1088,7 @@
 
     // ---------- 配置 ----------
     function lineX(team, attacking) {
-      const lh = clamp(team.line_height + team.mods.line + (team.attitude === 'defensive' ? -1.2 : team.attitude === 'attacking' ? 0.6 : 0) + (!attacking && (team.tac.press || 0) > 0 && fx(team.ti, S.ball.x) > L * 0.45 ? 1.5 : !attacking && (team.tac.press || 0) < 0 && fx(team.ti, S.ball.x) > L * 0.5 ? -0.8 : 0) + (team.urg ? 1.5 : 0)   /* 版1088：守備的は全体を下げる。プレス前から＝相手陣で持たれたら全体を押し上げる、控えめ＝下がって待つ */ + (teamU(team.ti, 'sakurajima') ? 1.3 : 0) + (team.pas && team.pas.has('backCover') ? 0.35 * Math.max(...team.players.map((m) => (m.pasK === 'backCover' ? (m.passive >= 2 ? 1.6 : 1) : 0))) : 0), 1, 5);   // 桜島の号令：ラインが一斉に上がる／背後の安心：少し高く保てる
+      const lh = clamp(team.line_height + team.mods.line + (team.attitude === 'defensive' ? -1.2 : team.attitude === 'attacking' ? 0.6 : 0) + (!attacking && (team.tac.press || 0) > 0 && fx(team.ti, S.ball.x) > L * 0.45 ? 1.5 : !attacking && (team.tac.press || 0) < 0 && fx(team.ti, S.ball.x) > L * 0.5 ? -0.8 : 0) + (team.urg ? 1.5 : 0)   /* 版1088：守備的は全体を下げる。プレス前から＝相手陣で持たれたら全体を押し上げる、控えめ＝下がって待つ */ + (teamU(team.ti, 'sakurajima') ? 1.3 : 0) + (team.pas && team.pas.has('backCover') ? 0.7 * Math.max(...team.players.map((m) => (m.pasK === 'backCover' ? (m.passive >= 3 ? 1.9 : m.passive >= 2 ? 1.6 : 1) : 0))) : 0), 1, 5);   // 桜島の号令：ラインが一斉に上がる／背後の安心：少し高く保てる
       const base = [0, 16, 21, 25, 31, 37][Math.floor(lh)] + (lh % 1) * (lh < 3 ? 4.5 : 6);   // 版875：低いラインの設定でも、もう少し高く
       const bx = fx(team.ti, S.ball.x);
       if (attacking) return clamp(base + 8 + (bx - 40) * 0.5, 14, 60);
@@ -3739,7 +3739,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             }
             if (!p.run) tx = Math.min(tx, L - 7);   /* v749：ボールが深い時も、GKの横（ゴールライン際）までは入らない。PKスポットの少し手前で待つ */
             // 押し上げ（シャドーのサポートパッシブ）：ゴール前へ少し多く入っていく
-            if (bxf > L - 42 && p.position !== 'DF' && tm.pas && tm.pas.has('pushUp')) { const a = aura(p, 'pushUp'); if (a) tx += 2.4 * a; }
+            if (bxf > L - 42 && p.position !== 'DF' && tm.pas && tm.pas.has('pushUp')) { const a = aura(p, 'pushUp'); if (a) tx += 7 * a; }
             // ボール保持者に寄る（サポート）
             const anc = own ? (own.team === tm.ti ? own : null) : (b.lastTeam === tm.ti && b.kind !== 'shot' ? { x: b.intended >= 0 ? P[b.intended].x : b.x, y: b.intended >= 0 ? P[b.intended].y : b.y } : null);
             if (anc && anc !== p && !(b.intended === p.idx && !own)) {
@@ -3951,9 +3951,9 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
               if (p.type === 'ストッパー' && !p.markHard && !globalThis.__stpOld && fx(tm.ti, q.x) > Lx + 6) w *= 0.25;   // 版807：ストッパー：DFラインから離れて下がる相手には、ついて行きすぎない（ラインに残る）
               if (p.kgCover === S.t) w = 0;   // 影縫いで空いた所をカバー中（狙う相手は上で決めている）   // 5バックの真ん中は、人より後ろのスペースを見る
               if (q.position === 'FW' && q.uniq !== 'uzushio' && teamU(q.team, 'uzushio')) w *= 0.35;   // 渦潮の囮：ほかのFWのマークがゆるむ
-              if (q.position === 'FW') { const a = aura(q, 'decoy'); if (a) w *= 1 - 0.22 * a; }               // おとり
+              if (q.position === 'FW') { const a = aura(q, 'decoy'); if (a) w *= 1 - 0.45 * a; }               // おとり
               if (q.uniq === 'guren') w *= 0.4 + 0.6 * Math.abs(Math.sin(S.t * 0.9 + q.idx));   // 屈指の点取り屋：マークを外す動き（時々フリーになる）
-              { const a = aura(p, 'eyesOn', true); if (a) w = Math.min(1, w * (1 + 0.15 * a)); }               // 目を離すな
+              { const a = aura(p, 'eyesOn', true); if (a) w = Math.min(1, w * (1 + 0.5 * a)); }               // 目を離すな
               // マークの基本：ゴール（中央）と相手を結んだ線の上、相手のゴール側に立つ。ボールから遠い相手ほど、少し下がって（絞って）ボールの状況を見る
               const gwx = fx(tm.ti, 0), gl = hyp(gwx - q.x, GOAL_Y - q.y) || 1, dBall = hyp(b.x - q.x, b.y - q.y);
               const dm = (skZ(p, 'manMark') || p.markHard ? 0.9 : 1.6) + (p.markHard ? 0 : Math.min(5, Math.max(0, dBall - 12) * 0.18)) + ((farS || cbOut) && dBall > 14 ? Math.min(9, gl * 0.3) : 0);   // 逆サイド／CBが釣り出された：相手とゴールの間、さらに内側（ゴール寄り）で待つ
@@ -4420,7 +4420,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         // スタミナ：走るほど減り、ゆっくりなら少し回復
         const frac = sp / (5.4 + p.speed * 0.034);
         const minute = S.t * CLOCK_SCALE / 60;
-        const drain = (0.012 + frac * frac * 0.16) * STAM_K * Math.max(0.4, 1.3 - p.stamina / 120)   /* 版971：スタミナはもっと減る（本家：Sでも試合の終わりには残り1つ・赤） */ * (skZ(p, 'pressMonster') || skZ(p, 'recovery') ? 0.85 : 1) * T[p.team].stamMul * ((T[p.team].capBuff || 0) > S.t ? 0.75 : 1) * (T[p.team].sitTire || 1) * (p.sk.has('ironMan') ? 0.65 : 1) * (p.sk.has('lateGrit') && minute >= 70 ? 0.55 : 1) * ((p.sdOn || 0) > S.t ? 2.2 : 1) * (uOn(p, 'kinshachi') ? 1 - 0.85 * Math.min(1, uP(p)) : 1) * (1 - 0.1 * aura(p, 'runBack')) * (p.uniq !== 'kinshachi' && ksTeam(p.team) ? 0.85 : 1) * DT;   // 金鯱の心臓：かいがいると、チーム全体の走りが整って疲れにくい   // 鉄人・終盤の粘り・金鯱の心臓・走る背中
+        const drain = (0.012 + frac * frac * 0.16) * STAM_K * Math.max(0.4, 1.3 - p.stamina / 120)   /* 版971：スタミナはもっと減る（本家：Sでも試合の終わりには残り1つ・赤） */ * (skZ(p, 'pressMonster') || skZ(p, 'recovery') ? 0.85 : 1) * T[p.team].stamMul * ((T[p.team].capBuff || 0) > S.t ? 0.75 : 1) * (T[p.team].sitTire || 1) * (p.sk.has('ironMan') ? 0.65 : 1) * (p.sk.has('lateGrit') && minute >= 70 ? 0.55 : 1) * ((p.sdOn || 0) > S.t ? 2.2 : 1) * (uOn(p, 'kinshachi') ? 1 - 0.85 * Math.min(1, uP(p)) : 1) * (1 - 0.3 * aura(p, 'runBack')) * (p.uniq !== 'kinshachi' && ksTeam(p.team) ? 0.85 : 1) * DT;   // 金鯱の心臓：かいがいると、チーム全体の走りが整って疲れにくい   // 鉄人・終盤の粘り・金鯱の心臓・走る背中
         p.cur = clamp(p.cur - drain * (p.uniq === 'kinshachi' ? (p.uniqLv >= 2 ? 0.25 : 0.35) : 1) + (sp < 1.5 ? 0.025 * DT : 0), 0, 100);
         { const dk = drain * (p.uniq === 'kinshachi' ? (p.uniqLv >= 2 ? 0.25 : 0.35) : 1); if (p.curV == null) p.curV = p.cur; p.curV = clamp(p.curV - dk * (globalThis.__Kstm ?? 2.4) * (0.35 + 1.3 * Math.min(1, minute / 90)) + (sp < 1.5 ? 0.025 * DT : 0), 0, 100); }   // 版985：見た目のスタミナ（電池）：試合の後半ほど大きく減る（本家：Sでも終わりには残り1つ）。プレーへの影響は p.cur（前と同じ減り方）   // 金鯱の心臓：そもそもスタミナがほとんど減らない
         /* v740 スタミナ：元気が70を切ると、全部の能力が下がっていく（元気0で2割減。スピードは最高速の計算で下がる） */
@@ -4513,7 +4513,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             if (mate && R.next() < 0.45 + Math.max(0, p.mental - 50) / 100) { const mk = ds.filter((o) => !p.dcPull.includes(o.idx)).sort((m, n) => hyp(m.x - mate.x, m.y - mate.y) - hyp(n.x - mate.x, n.y - mate.y))[0]; if (mk) p.dcPull.push(mk.idx); }
             if (globalThis.__dcDbg) (globalThis.__dcDbg.list = globalThis.__dcDbg.list || []).push({ t: S.t, until: p.dcUntil, i: p.idx, pull: p.dcPull.slice(), mate: mate ? mate.idx : -1 });
           }
-          const runMul = (1 + 0.25 * aura(p, 'signal') + 0.2 * aura(p, 'stir'));   // 港の指揮者・攻めの合図・かき回し
+          const runMul = (1 + 0.8 * aura(p, 'signal') + 0.6 * aura(p, 'stir'));   // 港の指揮者・攻めの合図・かき回し
           if (p.run > 0) { /* 走り出した */ }
           else if (p.runCd <= 0 && !(S.nm && (globalThis.__Kposr ?? 1) && (p.nmWide || -9) > S.t - 1.5) && !(p.slot && p.slot.line === 0 && (Math.abs(p.slot.y - GOAL_Y) < 9 || Math.sign(p.slot.y - GOAL_Y) !== Math.sign(own.y - GOAL_Y))) && xf > (S.counter > 0 ? 35 : 45) && fx(p.team, own.x) > (S.counter > 0 ? 20 : 30) && R.next() < Math.pow(thr / 100, 1.5) * 0.4 * (0.5 + p.speed / 100) * (S.counter > 0 ? 2.2 : 1) * (skZ(own, 'throughPass') || skZ(own, 'loftedThrough') ? 2 : 1) * (skZ(p, 'behindRun') ? 2.2 : 1) * (0.7 + Math.max(0, own.vision - 40) / 40) * runMul) { p.run = R.range(2.4, 3.8); counterRead(p); }   // 判断力の高い味方が持てば、裏へ走り出す（守る側の対策役は、ふつうの走り出しも読む）
         } else if (S.poss !== p.team) { p.run = 0; p.brOwn = -1; }
@@ -4589,7 +4589,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       let pressure = opp.d < 2.5 ? 1 : opp.d < 5 ? 0.4 : 0;
       if (globalThis.__shLog && kind === 'shot' && !(opt && opt.pk)) globalThis.__shLog.push({ t: S.t, team: p.team, pr: pressure, d: hyp(fx(p.team, L) - p.x, GOAL_Y - p.y) });
       if (uOn(p, 'byakuya') || uOn(p, 'midori')) pressure = 0;                  // 白夜の視界・翠の起点：プレスを受けても落ち着いて蹴れる
-      else if (pressure) { const a = aura(p, 'calmness'); if (a) pressure *= 1 - 0.3 * a; }   // 落ち着き（レジスタのサポートパッシブ）
+      else if (pressure) { const a = aura(p, 'calmness'); if (a) pressure *= Math.max(0.15, 1 - 0.6 * a); }   // 落ち着き（レジスタのサポートパッシブ）
       if ((globalThis.__Kkg3 ?? 1) && kgOn(p)) pressure = Math.max(pressure, 1) + 0.6;   // 版1013：影縫いに張りつかれている：シュートもパスも大きく乱れる
       const fatigue = 1 - (p.sk.has('lateGrit') && S.t * CLOCK_SCALE / 60 >= 70 ? Math.max(curE(p), 60) : curE(p)) / 100;   // 版985：キックへの疲れの影響は4割に（へとへとでもシュートは打てる。落ちるのは守備・判断・走り）
       const fatigueK = (globalThis.__Kfw ?? 1) ? fatigue * 0.4 : fatigue;   // 終盤の粘り：疲れてもプレーが落ちない
@@ -5114,12 +5114,12 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         if (uOn(p, 'kage') && q.position === 'FW' && fwd) { uAcc *= p.uniqLv >= 2 ? 0.3 : 0.4; uSafe = Math.max(uSafe, p.uniqLv >= 2 ? 0.9 : 0.85); }   // 影の一刺し：FWへの1本は正確で、相手の足をすり抜ける
         if (opps(p).some((o) => (o.kgT === p.idx || o.mark === p.idx) && uOn(o, 'kagenui'))) uAcc *= 1.8;                                            // 影縫い：マークされた相手のパスが乱れる
         let a;
-        if (q.position === 'FW' && (a = aura(p, 'fwBack'))) uAcc *= 1 - 0.18 * a;                                              // 点取り屋の背中
-        if ((a = aura(p, 'guide'))) { uAcc *= 1 - 0.1 * a; uSafe += 0.05 * a; }                                               // パスの道しるべ
-        if (thr && (a = aura(p, 'spark'))) { uAcc *= 1 - 0.15 * a; uSafe += 0.06 * a; }                                         // ひらめき
-        if (thr && (a = aura(p, 'drawOut'))) uSafe += 0.08 * a;                                                                  // 引き出し
-        if (thr && (a = aura(p, 'stir'))) uSafe += 0.04 * a;                                                                     // かき回し
-        if ((p.position === 'DF' || p.gk) && (a = aura(p, 'origin'))) uAcc *= 1 - 0.2 * a;                                     // 起点
+        if (q.position === 'FW' && (a = aura(p, 'fwBack'))) uAcc *= 1 - 0.4 * a;                                              // 点取り屋の背中
+        if ((a = aura(p, 'guide'))) { uAcc *= 1 - 0.35 * a; uSafe += 0.18 * a; }                                               // パスの道しるべ
+        if (thr && (a = aura(p, 'spark'))) { uAcc *= 1 - 0.38 * a; uSafe += 0.2 * a; }                                         // ひらめき
+        if (thr && (a = aura(p, 'drawOut'))) uSafe += 0.25 * a;                                                                  // 引き出し
+        if (thr && (a = aura(p, 'stir'))) uSafe += 0.08 * a;                                                                     // かき回し
+        if ((p.position === 'DF' || p.gk) && (a = aura(p, 'origin'))) uAcc *= 1 - 0.42 * a;                                     // 起点
         // 捨て身の守護神：相手のスルーパス・裏へのボールに、GKが飛び出す
         //   （相手より先に触れそうな時だけ。間に合わない時は飛び出さずにゴールを守る）
         if (thr || (style && fx(p.team, tx) > offL - 1 && fx(p.team, tx) > L - 40)) { const og = opps(p).find((o) => o.gk && o.uniq === 'sutemi');
@@ -8464,7 +8464,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         if (p.team === b.lastTeam && (b.hari || b.byP) && b.intended === p.idx) prob = 1;   // 白夜の視界の1本も、受け手は必ず収める（置き去りにしない）   // 針の穴通し：ぴたりと届く1本は必ず収まる
         else if (p.team === b.lastTeam) prob = (b.intended === p.idx && condLv(p.team) ? 0.22 : 0) + (b.intended === p.idx ? (b.uSafe || 0) * 0.3 + 0.65 + (b.kicker >= 0 && P[b.kicker].team === p.team ? (P[b.kicker].pass - 55) * 0.004 : 0) + p.technique * 0.0039 + Math.max(0, p.technique - 65) * 0.004 + Math.max(0, p.technique - 80) * 0.004 - Math.max(0, sp - 17 - pvB) * Math.max(0.006, 0.045 - p.technique * 0.0004) + (opps(p).some((o) => !o.gk && hyp(o.x - p.x, o.y - p.y) < 2) ? (p.physical - 50) * 0.003 : 0) : 0.75 + p.technique * 0.002);   // トラップの上手さはテクニック次第
         // 足の届くボールはしっかり触る（素通りさせない）。速い球や浮き球ほど止めにくい
-        else prob = clamp(0.95 - Math.max(0, sp - 9) * 0.035 + p.defense * 0.002 - (b.z > 0.6 ? 0.25 : 0) + (b.kind === 'pass' && b.kicker >= 0 ? (p.defense - P[b.kicker].pass) * 0.004 : 0) + (b.kind === 'pass' && skZ(p, 'intercept') ? 0.26 : 0) + (uOn(p, 'tetsurou') || uOn(p, 'sutemi') ? 0.2 : 0) + 0.03 * aura(p, 'relief'), 0.15, 0.99) * (b.kind === 'pass' ? 1 - (b.uSafe || 0) : 1);   // うまいパスは足を出されても抜けていく（針の穴通しなどは、さらに触られにくい）
+        else prob = clamp(0.95 - Math.max(0, sp - 9) * 0.035 + p.defense * 0.002 - (b.z > 0.6 ? 0.25 : 0) + (b.kind === 'pass' && b.kicker >= 0 ? (p.defense - P[b.kicker].pass) * 0.004 : 0) + (b.kind === 'pass' && skZ(p, 'intercept') ? 0.26 : 0) + (uOn(p, 'tetsurou') || uOn(p, 'sutemi') ? 0.2 : 0) + 0.1 * aura(p, 'relief'), 0.15, 0.99) * (b.kind === 'pass' ? 1 - (b.uSafe || 0) : 1);   // うまいパスは足を出されても抜けていく（針の穴通しなどは、さらに触られにくい）
         if ((globalThis.__Kdefl ?? 1) && p.team !== b.lastTeam && b.kind !== 'shot' && sp > 15 && !gkHands) prob = Math.max(0.02, prob - (sp - 15) * 0.05);   // 版895：強く蹴った球（クリアなど）が体に当たっても、その場では止められない：弾かれる
         if ((globalThis.__Kphy ?? 1) && p.team !== b.lastTeam && !gkHands && sp > 9 && b.kT != null && S.t - b.kT < 0.35 && hyp(p.x - b.kX, p.y - b.kY) < 4.5) prob = Math.min(prob, (globalThis.__Kric ?? 0.1) + p.defense * 0.002 + (skZ(p, 'intercept') ? 0.1 : 0));   // 版908：すぐ近くから強く蹴られた球は、反応が間に合わず止められない（体に当たって弾ける）
         if (sp < 4.5 && b.z < 0.5) prob = Math.max(prob, 0.97);   // ゆっくり転がるボールはしっかり収める

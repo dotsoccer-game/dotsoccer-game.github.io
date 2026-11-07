@@ -4730,3 +4730,23 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 .tzd-cost{font-weight:800;font-size:14px}.tzd-cost small{font-size:10px;margin-left:2px}
 .tzd-stars{display:flex;gap:16px;flex-wrap:wrap}.tzd-stars span{display:flex;flex-direction:column;align-items:center;gap:2px}.tzd-stars small{font-size:11px}
 .tzd-sr{display:flex;flex-direction:row;gap:1px;font-size:16px}
+/* 版1135：選手カードのサポート効果（タイプの下） */
+.pc-pasm{cursor:pointer}
+.pc-pasm .pm-nm{flex:0 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px;color:#cfe0ff}
+.pc-pasm.on .pm-nm{color:#9ef0ae}
+.pc-pasm em{flex:none;font-style:normal;font-size:11px;padding:1px 6px;border-radius:999px;border:1.5px solid currentColor;color:#9aa8bd}
+.pc-pasm.on em{color:#9ef0ae}
+.pc-pasm .ty-q{margin-left:auto}
+.pas-what{font-weight:800;font-size:16px}
+.pas-near{font-size:13px;line-height:1.6;color:#4a556a}
+.pas-tb{margin:8px auto;border-collapse:collapse;font-size:14px;min-width:240px}
+.pas-tb th,.pas-tb td{border:1px solid #b9c3d3;padding:5px 12px;text-align:center}
+.pas-tb thead th{background:#1d2433;color:#fff}
+.pas-tb tbody th{background:#eef1f6}
+.pas-tb tr.me td,.pas-tb tr.me th{background:#ffe680;font-weight:900}
+.pas-now{text-align:center;font-size:14px}
+.pas-paper{width:min(640px,100%)}
+.pc-pasm span{min-width:62px}
+.pas-doc{padding:8px 16px;border-radius:8px;border:2px solid #1f56c4;background:#fff;color:#1f56c4;font:800 14px/1 sans-serif;cursor:pointer}
+.pas-tb{margin:6px 0}
+.pas-now{text-align:left!important}

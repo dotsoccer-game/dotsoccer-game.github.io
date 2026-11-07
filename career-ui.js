@@ -1076,6 +1076,29 @@
   const ico = (k, cls) => `<img class="pico ${cls || ''}" src="icons/${k}.png" alt="" draggable="false">`;
   // ☆（レア度）の表示：★の数＋凸の印。cap＝育てられる上限のランク
   // 版1132：凸の説明（ガチャの獲得ルール・覚醒の画面から開く）
+  // 版1135：選手カードの「サポート効果」の行と、その説明（？）
+  const PAS_ST = (lv, ps) => ['まだ付いていない', '付いている', '強化', ps && ps.rad != null ? '味方全員に' : 'さらに強化'][lv] || '';
+  function pasRow(p) {
+    const ps = (D.PASSIVE || {})[p.type], st = C.ensureStar(p); if (!ps) return '';
+    const lv = st >= 2 ? C.pasLv(st, p.totsu || 0) : 0, nx = [1, 2, 3].find((t) => t > (p.totsu || 0) && C.pasLv(st, t) > lv);
+    return `<div class="pc-meta pc-pasm${lv ? ' on' : ''}" data-pasq="1"><span>サポート</span><b class="pm-nm">${esc(ps.name)}</b><em class="lv${lv}">${lv ? PAS_ST(lv, ps) : nx ? nx + '凸で付く' : 'なし'}</em><b class="ty-q">?</b></div>`;
+  }
+  function pasHelp(p) {   // 版1135：サポート効果の資料（選手カードの上に出す）
+    const ps = (D.PASSIVE || {})[p.type], st = C.ensureStar(p), tz = p.totsu || 0; if (!ps) return;
+    const lv = st >= 2 ? C.pasLv(st, tz) : 0;
+    const steps = [0, 1, 2, 3].map((t) => { const l = C.pasLv(st, t); return `<tr class="${t === tz ? 'me' : ''}"><th>${t ? t + '凸' + (t === 3 ? '（完凸）' : '') : '無凸'}</th><td>${l ? PAS_ST(l, ps) : '—'}</td></tr>`; }).join('');
+    const near = ps.rad != null ? `近くの味方（${ps.rad}mくらいまで）に効きます。3段目になると、味方全員に効きます。` : '味方全員に効きます。3段目になると、効き目がさらに上がります。';
+    let el = document.getElementById('tzDoc'); if (!el) { el = document.createElement('div'); el.id = 'tzDoc'; (document.getElementById('app') || document.body).appendChild(el); }
+    el.innerHTML = `<div class="tzd-paper pas-paper"><div class="tzd-hd"><b>資料</b><h2>サポート効果「${esc(ps.name)}」</h2><button class="tzd-x" type="button">とじる</button></div><div class="tzd-body">
+      <section><h3>どんな効果？</h3><p class="pas-what">${esc(ps.what)}</p><p>${near}</p><p>${esc(p.type)}の選手が持つ効果です。試合に出ている間だけ効きます。同じ効果を持つ選手が何人いても、いちばん強い1人分です。</p></section>
+      <section><h3>${esc(p.name)}（☆${st}・今は${tz ? tz + '凸' : '無凸'}）</h3>${st < 2 ? '<p>☆1の選手には、サポート効果は付きません。</p>' : `<table class="pas-tb"><thead><tr><th>凸</th><th>サポート効果</th></tr></thead><tbody>${steps}</tbody></table><p class="pas-now">今：<b>${lv ? PAS_ST(lv, ps) : 'まだ付いていない'}</b></p>`}</section>
+      <p><button class="pas-doc" type="button">凸の資料を見る（☆ごとの表）</button></p></div></div>`;
+    el.hidden = false;
+    el.querySelector('.tzd-x').onclick = (e) => { e.stopPropagation(); el.hidden = true; };
+    el.querySelector('.pas-doc').onclick = (e) => { e.stopPropagation(); totsuDoc(); };
+    el.onclick = (e) => { e.stopPropagation(); if (e.target === el) el.hidden = true; };
+  }
+
   // 版1133：凸の資料（☆1〜☆5で、何凸で何が良くなるかの表）。覚醒の画面・ガチャの獲得ルールから開く
   function totsuDoc() {
     let el = document.getElementById('tzDoc'); if (!el) { el = document.createElement('div'); el.id = 'tzDoc'; (document.getElementById('app') || document.body).appendChild(el); }
@@ -1299,6 +1322,7 @@
           <b class="pc-num">${p.number}</b>
           <div class="pc-meta"><span>タイプ</span>${typeBadge(p.type).replace('<span class="tbadge', `<span data-ty="${esc(p.type || 'バランス')}" data-pos="${esc(p.position)}" title="タップで説明" class="tbadge ty-tap`)}<b class="ty-q">?</b></div>
           <div class="pc-meta"><span>疲労度</span>${condGauge(p)}</div>
+          ${pasRow(p)}
         </div>
         <div class="pc-right">
           <div class="pc-icons">${icons}</div>
@@ -1315,6 +1339,7 @@
     const n = save.team.players.length;
     bindSkillDesc(root);   // ページの中をタップしてもページは切り替えない（利き足・スキルの説明などを押せるように）
     root.querySelectorAll('[data-pg]').forEach((b) => b.onclick = (e) => { e.stopPropagation(); pcPage = +b.dataset.pg; redraw(); });
+    root.querySelectorAll('[data-pasq]').forEach((b) => b.onclick = (e) => { e.stopPropagation(); const pp = save.team.players[i]; if (pp) pasHelp(pp); });   // 版1135：サポート効果の説明
     root.querySelector('.pc-nav.prev').onclick = (e) => { e.stopPropagation(); go((i + n - 1) % n); };
     root.querySelector('.pc-nav.next').onclick = (e) => { e.stopPropagation(); go((i + 1) % n); };
   }
