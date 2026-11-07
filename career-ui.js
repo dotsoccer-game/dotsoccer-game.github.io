@@ -5522,16 +5522,32 @@
     // 版1114：フレンド対戦の交代・作戦：変える間はふたりとも止まる。変えた中身（両方の変更の一覧）を送り合って、同じ計算をし直す
     const myTi = me === 'host' ? 0 : 1, myTeamObj = me === 'host' ? hostTeam : guestTeam, rms = {}; let otherChg = [], myChg = [], holdUI = null;
     const merged = () => [...(me === 'host' ? myChg : otherChg), ...(me === 'host' ? otherChg : myChg)].map((c) => ({ ...c })).sort((a0, b0) => (a0.at ?? -1) - (b0.at ?? -1) || a0.team - b0.team);
-    const holdOn = (on, noStop) => { window.__rmHold = on; let h = document.getElementById('rmHold'); if (on) { if (!h) { h = document.createElement('div'); h.id = 'rmHold'; h.innerHTML = '<b>相手が作戦変更中です</b><button class="rmh-go">自分も作戦変更</button>'; document.getElementById('app').appendChild(h); h.querySelector('.rmh-go').onclick = () => { if (A().inLocker) { A().openSub(true); return; } A().openSub(false); }; } h.hidden = false;   /* 版1116：相手が変えている間、自分も作戦変更の画面へ行ける */ if (!noStop) try { A().stop(); } catch (_) {} } else if (h) h.hidden = true; };
+    let mySheet = false;   // 版1131：自分が作戦の画面を開いている間は、「相手が作戦変更中です」を出さない
+    const holdOn = (on, noStop) => { window.__rmHold = on; let h = document.getElementById('rmHold'); if (on && mySheet) { if (h) h.hidden = true; if (!noStop) try { A().stop(); } catch (_) {} return; } if (on) { if (!h) { h = document.createElement('div'); h.id = 'rmHold'; h.innerHTML = '<b>相手が作戦変更中です</b><button class="rmh-go">自分も作戦変更</button>'; document.getElementById('app').appendChild(h); h.querySelector('.rmh-go').onclick = () => { if (A().inLocker) { A().openSub(true); return; } A().openSub(false); }; } h.hidden = false;   /* 版1116：相手が変えている間、自分も作戦変更の画面へ行ける */ if (!noStop) try { A().stop(); } catch (_) {} } else if (h) h.hidden = true; };
     let pzSeen = null;
     // 版1122：ずれの見張り：最初の試合の中身（出来事の時刻と種類）の指紋を送り合い、違ったら知らせる
     const fpOf = () => { const m = A().match; if (!m) return ''; let h = 0; for (const e of (m.events || []).slice(0, 80)) { const t = e.type + Math.round(e.t * 10); for (let i = 0; i < t.length; i++) h = (Math.imul(h, 31) + t.charCodeAt(i)) | 0; } return String(h >>> 0); };
     let myFp = '', fpWarned = false; setTimeout(() => { if (aborted) return; myFp = fpOf(); if (myFp && !myChg.length && !otherChg.length) DotNet.roomUpdate(r.id, { [me + 'Fp' + RK]: myFp }).catch(() => {}); }, 4000);
     let skSeen = null;
+    // 版1131：キックオフ（ゴールのあと）の少し前で、ふたりがそろうまで待つ。そろったら、同時にキックオフ
+    let otherKo = -1, koWait = null, koArm = -1, koTo = null;
+    const koGo = () => { if (koWait == null) return; koWait = null; clearTimeout(koTo); waitBan(null);
+      const lk0 = document.getElementById('locker'), hm = document.getElementById('htModal');
+      if (!window.__rmHold && !mySheet && !(A().stopAtT > 0 && A().stopAtT <= A().simT + 0.05) && (!lk0 || lk0.hidden) && (!hm || hm.hidden) && !A().inLocker) try { A().labPlay(); } catch (_) {} };
+    const koNext = () => { const m = A().match; if (!m) return -1; const now = A().realT; let best = -1;
+      for (const e of (m.events || [])) { if (e.type !== 'goal') continue; let ko; try { ko = A().koAfter(e.t + 0.5); } catch (_) { continue; } const T2 = Math.round((ko - 0.6) * 10) / 10; if (T2 > now + 0.05 && T2 < m.duration - 1 && (best < 0 || T2 < best)) best = T2; }
+      return best; };
+    const koArmNow = () => { if (aborted || koWait != null) return; const T2 = koNext(); if (T2 === koArm) return; if (T2 < 0) { if (koArm >= 0) { A().gateAt(-1, null); koArm = -1; } return; } koArm = T2;
+      A().gateAt(T2, () => { koArm = -1; if (otherKo >= T2 - 0.05) { DotNet.roomUpdate(r.id, { [me + 'Ko' + RK]: T2 }).catch(() => {}); try { A().labPlay(); } catch (_) {} setTimeout(koArmNow, 300); return; }
+        koWait = T2; DotNet.roomUpdate(r.id, { [me + 'Ko' + RK]: T2 }).catch(() => {}); waitBan('相手を待っています…');
+        koTo = setTimeout(koGo, 15000);   // 相手が来なくても、15秒で始める
+        setTimeout(koArmNow, 300); }); };
+    const koTick = setInterval(() => { if (aborted) { clearInterval(koTick); return; } const ms = document.getElementById('match'); if (!ms || ms.hidden) return; if (A().gateT < 0 || A().gateT !== koArm) koArm = -1; koArmNow(); }, 700);
     let rmU = null; try { rmU = DotNet.roomWatch(r.id, (nr) => { if (!nr) return;
       if (!fpWarned && myFp && nr[other + 'Fp' + RK] && nr[other + 'Fp' + RK] !== myFp) { fpWarned = true; rmRedo(); return; }   // 版1123：ずれていたら、画面を暗くして、準備OKからやり直す
       const oc = nr[other + 'Chg' + RK] ? JSON.parse(nr[other + 'Chg' + RK]) : [];
       if (JSON.stringify(oc) !== JSON.stringify(otherChg)) { otherChg = oc; try { A().applyExt(merged()); } catch (e) { console.error(e); } }
+      { const ko = nr[other + 'Ko' + RK]; if (typeof ko === 'number') { otherKo = ko; if (koWait != null && ko >= koWait - 0.05) koGo(); } }   // 版1131：相手もキックオフの前に来た
       { const sk = nr[other + 'Sk' + RK]; if (sk != null && sk !== skSeen) { skSeen = sk; try { A().skipExt(sk); } catch (_) {} } }   // 版1130：相手がリプレイを飛ばしたら、こちらも飛ばす
       const pzv = nr[other + 'Pz' + RK], pz = !!pzv; otherPzNow = pz;
       if (typeof pzv === 'number' && pzSeen !== pzv) { pzSeen = pzv; window.__rmHold = true;
@@ -5565,11 +5581,11 @@
     const onSubRoom = (info) => {
       const ap0 = info.apply, cn0 = info.cancel;
       let T = info.t;
-      const info2 = { ...info, cancel: () => { DotNet.roomUpdate(r.id, { [me + 'Pz' + RK]: false }).catch(() => {}); waitBan(null); if (cn0) cn0(); if (otherPzNow) holdOn(true); },
-        apply: (changes, cb) => { myChg = changes.map((c) => ({ ...c, team: myTi })); const all = merged();
+      const info2 = { ...info, cancel: () => { mySheet = false; DotNet.roomUpdate(r.id, { [me + 'Pz' + RK]: false }).catch(() => {}); waitBan(null); if (cn0) cn0(); if (otherPzNow) holdOn(true); },
+        apply: (changes, cb) => { mySheet = false; myChg = changes.map((c) => ({ ...c, team: myTi })); const all = merged();
           DotNet.roomUpdate(r.id, { [me + 'Chg' + RK]: JSON.stringify(myChg), [me + 'Pz' + RK]: false }).catch(() => {});
           ap0(all, (x) => { if (cb) cb(x); if (otherPzNow) holdOn(true); }); } };   // 相手もまだ作戦を変えていたら、相手が終わるまで待つ
-      const open = () => { myOpen = null; pendT = null; waitBan(null); info2.t = T; info2.minute = Math.min(90, Math.ceil(T / ((A().match || {}).duration || 450) * 90)); subSheet({ team: myTeamObj }, info2, rms); };
+      const open = () => { myOpen = null; pendT = null; mySheet = true; { const h = document.getElementById('rmHold'); if (h) h.hidden = true; } waitBan(null); info2.t = T; info2.minute = Math.min(90, Math.ceil(T / ((A().match || {}).duration || 450) * 90)); subSheet({ team: myTeamObj }, info2, rms); };
       if (info.atHalf) { DotNet.roomUpdate(r.id, { [me + 'Pz' + RK]: true }).catch(() => {}); holdOn(false); open(); return; }
       if (pendT != null) {   // 版1130：相手の予約で、まだボールが外に出ていない：自分も同じ時刻で止まる予約（すぐには変えられない）
         T = pendT; myOpen = open; DotNet.roomUpdate(r.id, { [me + 'Pz' + RK]: T }).catch(() => {});
