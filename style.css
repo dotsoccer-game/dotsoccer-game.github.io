@@ -4655,3 +4655,18 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 .rm-toast{position:absolute;left:50%;top:18%;transform:translateX(-50%);z-index:80;padding:12px 26px;border-radius:14px;background:rgba(10,20,50,.92);border:2px solid #e0b030;color:#fff;font:800 18px/1.4 "Hiragino Kaku Gothic ProN",sans-serif;pointer-events:none;white-space:nowrap}
 .rm-dark{position:absolute;inset:0;z-index:90;background:rgba(0,0,0,.86);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#fff;animation:rmDk .4s ease-out}.rm-dark b{font:900 30px/1.3 "Hiragino Kaku Gothic ProN",sans-serif}.rm-dark small{font:700 18px/1 sans-serif;color:#c8d4f0}@keyframes rmDk{from{opacity:0}}
 .rmprep .rmp-ok{white-space:nowrap;flex:none}
+/* 版1132：凸で良くなること（1凸・2凸・3凸） */
+.aw2-sh .aw2-help{float:right;margin:-2px 0 0;padding:3px 10px;border:2px solid #1f56c4;border-radius:999px;background:#fff;color:#1f56c4;font:900 13px/1.2 'M PLUS 1p',sans-serif;cursor:pointer}
+.aw2-road{display:flex;flex-direction:column;gap:6px;padding:10px 14px 4px}
+.aw2-rw{display:flex;align-items:center;gap:12px;min-height:40px;padding:5px 12px;border-radius:9px;background:#f3f6fb;border:2px solid #dbe4f1;color:#5a6b86}
+.aw2-rw>b{flex:none;width:46px;font:900 18px/1 'M PLUS 1p',sans-serif;color:#8a9ab4}
+.aw2-rw>span{flex:1;font:800 15px/1.35 'M PLUS 1p',sans-serif}
+.aw2-rw>span i{font-style:normal;color:#9aa8bd;font-weight:700}
+.aw2-rw>em{flex:none;font:900 12px/1 sans-serif;font-style:normal;color:#fff;background:#8a9ab4;border-radius:5px;padding:4px 7px}
+.aw2-rw.on{opacity:.62}
+.aw2-rw.nx{background:linear-gradient(#fffbe8,#fff2c2);border-color:#e3b53a;color:#3a2a00}
+.aw2-rw.nx>b{color:#b07a00}
+.gct-gain{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:4px}
+.gct-gain li{font:800 14px/1.35 'M PLUS 1p',sans-serif;color:#fff;background:rgba(255,255,255,.14);border-radius:6px;padding:4px 10px}
+.gct-gain li::before{content:'▲ ';color:#ffd23a}
+.gct-gain li.no{color:#d8dee8}.gct-gain li.no::before{content:''}

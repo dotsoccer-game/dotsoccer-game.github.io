@@ -1075,6 +1075,8 @@
   // 能力のアイコン（文字だけだと分かりにくいので、絵で見分けられるように）
   const ico = (k, cls) => `<img class="pico ${cls || ''}" src="icons/${k}.png" alt="" draggable="false">`;
   // ☆（レア度）の表示：★の数＋凸の印。cap＝育てられる上限のランク
+  // 版1132：凸の説明（ガチャの獲得ルール・覚醒の画面から開く）
+  const TOTSU_HELP = '<b>凸（とつ）とは？</b><br>同じ選手がもう一度出たり、覚醒のカケラを使ったりすると「凸」が1つ上がります（最大3凸＝完凸）。<br><b>凸すると良くなること</b><br>・<b>育てられる上限が上がる</b>（もっと高いランクまで伸ばせる。最高はS）<br>・<b>サポート効果が付く・強くなる</b>（味方を助ける効果。☆の数で、何凸で付くかが違う）<br>・<b>☆5は1凸で、固有スキルが覚醒</b><br><small>その場で能力が上がるのではなく、上がった上限まで育てて伸ばします。</small>';
   const starHTML = (n, totsu, cls) => { const t = Math.min(totsu || 0, 3); let h = ''; for (let k = 0; k < n; k++) h += `<i class="tz tz${t}">★</i>`;   /* 版476：無凸＝白、1凸＝銀、2凸＝金、完凸＝虹 */   /* 版467：凸の数で星全部の色が変わる（無凸＝黄、1凸＝青、2凸＝紫、完凸＝虹） */ return `<span class="stars s${n}${t ? ' t' + t : ''} ${cls || ''}" title="☆${n}${t >= 3 ? '・凸MAX' : t ? '・' + t + '凸' : ''}">${h}</span>`; };   // 版456：凸した分だけ、星に色がつく（1凸＝青、2凸＝紫、3凸＝虹）
   const capBadge = (g) => `<span class="capb">上限<b class="rk rk-${g}">${g}</b></span>`;
   // 版972：タイプの説明（選手の札のタイプをタップすると出る）。役わり・動き方・なり方（どの練習で近づくか）
@@ -1374,11 +1376,9 @@
       const g1 = !max ? (() => { p.totsu = tz + 1; const g = C.capGrade(p); p.totsu = tz; return g; })() : g0;
       const KK = (c) => `<img class="${c}" src="icons/kakera.png" alt="カケラ" draggable="false">`;
       const gems = [0, 1, 2].map((k) => `<i class="aw2-gem${k < tz ? ' on' : k === tz && !max ? ' nx' : ''}"></i>`).join('');
-      const u = p.uniq && D.UNIQ[p.uniq];
-      const tiles = [`<div class="aw2-tile"><svg viewBox="0 0 48 32" aria-hidden="true"><circle cx="24" cy="9" r="6.5"/><circle cx="10" cy="12" r="5"/><circle cx="38" cy="12" r="5"/><path d="M12 31c0-8 5-13 12-13s12 5 12 13z"/><path d="M0 31c0-6 4-10 10-10 2.5 0 4.5.6 6 1.8C13 25 11.6 28 11.4 31zM48 31c0-6-4-10-10-10-2.5 0-4.5.6-6 1.8 3 2.2 4.4 5.2 4.6 8.2z"/></svg><b>サポート効果が強化</b></div>`];
-      if (u) tiles.push(`<div class="aw2-tile"><svg viewBox="0 0 32 40" aria-hidden="true"><path d="M17 1c2 7 11 11 11 22a12 12 0 0 1-24 0c0-6 3-9 5-12 0 4 2 6 4 7-1-7 1-12 4-17z"/><path class="in" d="M15 22c3 2 6 5 6 9a5.5 5.5 0 0 1-11 0c0-3 2-5 3-6 0 2 1 3 2 3-1-2-1-4 0-6z"/></svg><b>固有スキルが強化</b></div>`);
-      if (g1 !== g0) tiles.push(`<div class="aw2-tile cap"><b>育てられる上限</b><span class="aw2-cap"><b class="rk rk-${g0}">${g0}</b><em>▶</em><b class="rk rk-${g1}">${g1}</b></span></div>`);
-      const note = max ? 'この選手は完凸（3凸）です' : g1 !== g0 ? '' : `能力上限は${g0}のまま`;
+      // 版1132：凸すると何が良くなるかを、1凸・2凸・3凸ごとに並べて見せる（次の凸を光らせる）
+      const road = [1, 2, 3].map((n) => { const gs = C.totsuGain(p, n - 1, n); return `<div class="aw2-rw${n <= tz ? ' on' : n === tz + 1 ? ' nx' : ''}"><b>${n}凸</b><span>${gs.length ? gs.map((x) => esc(x.txt)).join('<br>') : '<i>この凸での変化はありません</i>'}</span>${n <= tz ? '<em>済</em>' : ''}</div>`; }).join('');
+      const note = max ? 'この選手は完凸（3凸）です' : '';
       const d = document.createElement('div'); d.className = 'aw2';
       d.innerHTML = `<div class="aw2-box">
         <div class="aw2-hd">${KK('aw2-hk')}<b>選手覚醒</b></div>
@@ -1387,7 +1387,7 @@
             <div class="aw2-ph">${facePic(p, '', false)}</div><div class="aw2-rare">${starHTML(st, tz)}${capBadge(g0)}</div></div>
           <div class="aw2-r">
             <div class="aw2-sec"><div class="aw2-sh">覚醒段階</div><div class="aw2-stage"><s>//</s><b class="aw2-tz">${tz}<small>凸</small></b><span class="aw2-gems">${gems}</span>${max ? '<b class="aw2-max">完凸</b>' : `<em class="aw2-ar">▶</em><b class="aw2-tz nx">${tz + 1}<small>凸</small></b>`}<s>//</s></div></div>
-            <div class="aw2-sec"><div class="aw2-sh dk">覚醒で強くなるもの</div><div class="aw2-tiles${tiles.length > 2 ? ' t3' : ''}">${tiles.join('')}</div>${note ? `<p class="aw2-note"><span>${note}</span></p>` : ''}</div>
+            <div class="aw2-sec"><div class="aw2-sh dk">凸で良くなること<button class="aw2-help" type="button">凸とは？</button></div><div class="aw2-road">${road}</div>${note ? `<p class="aw2-note"><span>${note}</span></p>` : ''}</div>
             ${max ? '' : `<div class="aw2-cost"><span class="aw2-tag">消費</span>${KK('aw2-ck')}<b class="aw2-c${have < cost ? ' ng' : ''}">${cost}</b><i class="aw2-sep"></i><span class="aw2-have">所持</span><b class="aw2-h">${have.toLocaleString()}</b>${can ? `<em>→</em><b class="aw2-h">${(have - cost).toLocaleString()}</b>` : '<b class="aw2-ng">カケラが足りません</b>'}</div>`}
             ${!max && have < cost ? '<p class="aw2-hint">カケラは、選手の放出やスカウトでかぶった時にもらえます。</p>' : ''}
           </div>
@@ -1398,6 +1398,7 @@
       { const bx = d.querySelector('.aw2-box'), k = Math.min(1, (d.clientWidth - 16) / bx.offsetWidth, (d.clientHeight - 16) / bx.offsetHeight); bx.style.transform = `scale(${k.toFixed(3)})`; bx.style.setProperty('--k', k); }   // 画面に収まる大きさに
       d.onclick = (ev) => { ev.stopPropagation(); if (ev.target === d) d.remove(); };
       d.querySelector('.aw2-no').onclick = () => d.remove();
+      { const hb = d.querySelector('.aw2-help'); if (hb) hb.onclick = (ev) => { ev.stopPropagation(); coachAsk(TOTSU_HELP, [{ label: 'とじる', value: true }], 'sec'); }; }
       const ok = d.querySelector('.aw2-ok'); if (ok && can) ok.onclick = () => { if (C.awaken(save, p)) { try { window.DotSound && DotSound.play('skill'); } catch (_) {} done(); coachAsk(`${esc(p.name)}が覚醒しました！<br>凸 ${p.totsu}／3　育てられる上限：<b>${C.capGrade(p)}</b>`, [{ label: 'OK', value: true }]); } };
     };
   }
@@ -4685,7 +4686,7 @@
     const wire = (U) => {
       box.querySelectorAll('[data-pu]').forEach((b) => b.onclick = async () => { if (await puPick()) draw(); });
       { const bgEl = box.querySelector('.gc2-bg'); gcBgFor(U.chip, (u) => { bgEl.style.backgroundImage = `url(${u})`; bgEl.classList.add('on'); }); }
-      box.querySelector('.gc-rule').onclick = () => coachAsk('<b>獲得ルール</b><br><small>同じ選手が出たら凸（最大3凸）。完凸のあとは覚醒のカケラになります。<br>自動放出をオンにすると、はじめて出た選手のうち、その★以下はカケラになります（持っている選手は凸）。<br>チームが25人の時は、リザーブ（控え室）に入ります。</small>', [{ label: 'とじる', value: true }], 'sec');
+      box.querySelector('.gc-rule').onclick = () => coachAsk('<b>獲得ルール</b><br><small>同じ選手が出たら凸（最大3凸）。完凸のあとは覚醒のカケラになります。<br>自動放出をオンにすると、はじめて出た選手のうち、その★以下はカケラになります（持っている選手は凸）。<br>チームが25人の時は、リザーブ（控え室）に入ります。<br>凸すると、育てられる上限が上がったり、サポート効果が付いたりします。</small>', [{ label: '凸とは？', value: 'tz' }, { label: 'とじる', value: true }], 'sec').then((v) => { if (v === 'tz') coachAsk(TOTSU_HELP, [{ label: 'とじる', value: true }], 'sec'); });   // 版1132
       box.querySelector('.gc-back').onclick = () => { el.hidden = true; go('home'); };
       box.querySelector('.gc-auto').onclick = () => { g.auto = ((g.auto || 0) + 1) % 4;   /* 版979：★3以下も */ store(); draw(); };
       box.querySelector('.gc-rate').onclick = () => U.all ? coachAsk(`<b>出る確率</b><br>${C.GACHA_RATE.map(([st, pc]) => `☆${st}：${pc}%`).join('　')}<br><small>☆5が出たら、${Math.round(C.GACHA_PU_RATE * 100)}%で選んだピックアップ${C.GACHA_PU_N}人のだれか（1人あたり約${(C.GACHA_RATE[0][1] * C.GACHA_PU_RATE / C.GACHA_PU_N).toFixed(3)}%）、${Math.round((1 - C.GACHA_PU_RATE) * 100)}%でそれ以外の国内屈指${C.gachaUniqList().length - C.GACHA_PU_N}人のだれか（1人あたり約${(C.GACHA_RATE[0][1] * (1 - C.GACHA_PU_RATE) / (C.gachaUniqList().length - C.GACHA_PU_N)).toFixed(3)}%）。<br>${C.GACHA_PITY}回引くまでにピックアップの☆5が出なければ、${C.GACHA_PITY}回目でピックアップの☆5が確定（ピックアップの☆5が出たら数え直し。ピックアップ外の☆5では数え直さない）。<br>10回スカウトは、☆3以上が1人確定。</small>`, [{ label: 'とじる', value: true }], 'sec') : coachAsk(`<b>出る確率</b><br>${C.GACHA_RATE.map(([st, pc]) => `☆${st}：${pc}%`).join('　')}<br><small>☆5は今月のピックアップの${esc(U.who)}だけ。<br>このスカウトで${C.GACHA_PITY}回引くと、${esc(U.who)}が確定（出たら数え直し）。<br>10回スカウトは、☆3以上が1人確定。</small>`, [{ label: 'とじる', value: true }], 'sec');
@@ -4822,7 +4823,7 @@
       const totsuShow = (k) => {
         if (k >= ups.length) { ov.remove(); done(); return; }
         const r = ups[k];
-        ov.innerHTML = `<div class="gct"><div class="gct-card s${r.star}">${gcFace(r.tid, r.q, 'gct-face')}<b>${esc(r.q.name)}</b><div class="gct-st">${starHTML(r.star, r.from)}</div><p>凸UP！　${r.from}凸 → <span class="tz${r.to}">${r.to}凸</span>${r.to >= 3 ? '　<b class="gct-max">完凸</b>' : ''}</p></div><p class="gcs-tap">タップで次へ</p></div>`;
+        ov.innerHTML = `<div class="gct"><div class="gct-card s${r.star}">${gcFace(r.tid, r.q, 'gct-face')}<b>${esc(r.q.name)}</b><div class="gct-st">${starHTML(r.star, r.from)}</div><p>凸UP！　${r.from}凸 → <span class="tz${r.to}">${r.to}凸</span>${r.to >= 3 ? '　<b class="gct-max">完凸</b>' : ''}</p>${(() => { const gs = r.p ? C.totsuGain(r.p, r.from, r.to) : []; return `<ul class="gct-gain">${gs.length ? gs.map((x) => `<li>${esc(x.txt)}</li>`).join('') : '<li class="no">この凸での変化はありません（次の凸で良くなります）</li>'}</ul>`; })()}</div><p class="gcs-tap">タップで次へ</p></div>`;   // 版1132：何が良くなったか
         const tl = []; [...ov.querySelectorAll('.gct-st .tz')].forEach((stz, i) => tl.push(setTimeout(() => { stz.className = 'tz tz' + r.to + ' pop'; SND2('reveal'); }, 500 + i * 220)));
         ov.onclick = () => { tl.forEach(clearTimeout); totsuShow(k + 1); };
       };
