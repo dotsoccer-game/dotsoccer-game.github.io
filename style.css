@@ -4831,3 +4831,4 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 .ps2-lv small{font:700 10px/1.2 sans-serif;color:#8a4a00}
 .tz2-ps tbody th .tbadge{font-size:12px}
 .tz2-ps tbody th{text-align:center}
+.ps2-note{margin:0 12px 8px;font:700 11.5px/1.4 sans-serif;color:#6b4a00;text-align:center}

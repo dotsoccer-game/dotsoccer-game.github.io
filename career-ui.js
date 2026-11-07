@@ -1096,14 +1096,16 @@
     const ps = (D.PASSIVE || {})[p.type], st = C.ensureStar(p), tz = p.totsu || 0; if (!ps) return;
     const lv = st >= 2 ? C.pasLv(st, tz) : 0, mx = st >= 2 ? C.pasLv(st, 3) : 0, NM = ['', '1段目', '2段目', '3段目'];
     const what3 = ps.rad != null ? '味方全員に効く' : '効き目がさらに強くなる';
-    const stages = [1, 2, 3].map((l) => `<div class="ps2-lv${l === lv ? ' on' : ''}${l > mx ? ' no' : ''}"><b>${NM[l]}</b><span>${l === 1 ? '効果が付く' : l === 2 ? '効き目が強くなる' : what3}</span>${l === lv ? `<em>${lv === mx ? '今ここ（最大）' : '今ここ'}</em>` : ''}${l > mx ? `<small>☆${st}の選手は届かない</small>` : ''}</div>`).join('<i class="ps2-ar">▶</i>');
-    const nowTxt = st < 2 ? '☆1の選手には、サポート効果は付きません。' : !lv ? 'まだ付いていません。' : lv >= mx ? `<b class="ps2-now on">${NM[lv]}</b>　☆${st}の選手は、ここが最大です。` : `<b class="ps2-now on">${NM[lv]}</b>　まだ強くなれます（☆${st}の選手は${NM[mx]}まで）。`;
+    // 版1141：この選手が上がれる段階だけを並べる（届かない段階は出さず、下に一言）
+    const stages = [1, 2, 3].filter((l) => l <= Math.max(1, mx)).map((l) => `<div class="ps2-lv${l === lv ? ' on' : ''}"><b>${NM[l]}${l === mx ? '（最大）' : ''}</b><span>${l === 1 ? '効果が付く' : l === 2 ? '効き目が強くなる' : what3}</span>${l === lv ? '<em>今ここ</em>' : ''}</div>`).join('<i class="ps2-ar">▶</i>');
+    const stNote = mx >= 3 ? '☆4の選手だけが、3段目まで上がれます。' : `☆${st}の選手は${NM[mx]}が最大です。3段目まで上がれるのは、☆4の選手だけです。`;
+    const nowTxt = st < 2 ? '☆1の選手には、サポート効果は付きません。' : !lv ? 'まだ付いていません。' : lv >= mx ? `<b class="ps2-now on">${NM[lv]}</b>　これ以上は強くなりません（最大）。` : `<b class="ps2-now on">${NM[lv]}</b>　まだ強くなれます（☆${st}の選手は${NM[mx]}まで）。`;
     let el = document.getElementById('tzDoc'); if (!el) { el = document.createElement('div'); el.id = 'tzDoc'; (document.getElementById('app') || document.body).appendChild(el); }
     el.innerHTML = `<div class="tzx ps2"><div class="tz2-hd"><img src="${emblemURL(save.team.name, 48)}" alt=""><h2>サポート効果</h2><button class="tz2-x" type="button">とじる</button></div><div class="tz2-body">
       <h3 class="tz2-ttl"><span>「${esc(ps.name)}」</span></h3><p class="ps2-what">${esc(pasPlain(ps))}</p>
       <div class="tz2-g2"><div class="tz2-pnl"><h4><i>»</i>効く相手</h4><p class="tz2-tx">${ps.rad != null ? `この選手の<b>近くにいる味方</b>に効きます。3段目になると、味方全員に効きます。` : '<b>味方全員</b>に効きます。'}<br>この選手が試合に出ている間だけ効きます。同じ効果を持つ選手が何人いても、いちばん強い1人分です。</p></div>
         <div class="tz2-pnl"><h4><i>»</i>${esc(p.name)}（☆${st}・${tz >= 3 ? '完凸' : tz ? tz + '凸' : '無凸'}）</h4><p class="tz2-tx">${typeBadge(p.type)} の選手が持つ効果です。<br>今：${nowTxt}</p></div></div>
-      <div class="tz2-pnl ps2-st"><h4><i>»</i>強さの段階</h4><div class="ps2-row">${stages}</div></div>
+      <div class="tz2-pnl ps2-st"><h4><i>»</i>${esc(p.name)}の強さの段階</h4><div class="ps2-row">${stages}</div>${st >= 2 ? `<p class="ps2-note">${stNote}</p>` : ''}</div>
       <p class="ps2-btns"><button class="pas-doc" type="button" data-d="pas">サポート効果の一覧を見る</button></p></div></div>`;
     el.hidden = false;
     el.querySelector('.tz2-x').onclick = (e) => { e.stopPropagation(); el.hidden = true; };
@@ -1145,7 +1147,7 @@
     else { const PS = D.PASSIVE || {}, TBP = C.TYPES_BY_POS || {}, order = [['ゴールキーパー', 'スイーパーキーパー'], TBP.DF || [], TBP.MF || [], TBP.FW || [], ['バランス']];
       const seen = new Set(), rows = []; for (const L of order) for (const t of L) { if (seen.has(t) || !PS[t]) continue; seen.add(t); rows.push([t, PS[t]]); } for (const t in PS) if (!seen.has(t)) rows.push([t, PS[t]]);
       body = `<p class="tz2-sub">選手のタイプごとに1つ。その選手が試合に出ている間、味方を助けます。</p>
-        <table class="tz2-tb tz2-ps"><thead><tr><th>タイプ</th><th>サポート効果</th><th>試合でどうなる？</th></tr></thead><tbody>${rows.map(([t, ps]) => `<tr><th>${typeBadge(t)}</th><td><b>${esc(ps.name)}</b></td><td class="l">${esc(pasPlain(ps))}</td></tr>`).join('')}</tbody></table>
+        <table class="tz2-tb tz2-ps"><thead><tr><th>タイプ</th><th>名前</th><th>試合でどうなる？</th></tr></thead><tbody>${rows.map(([t, ps]) => `<tr><th>${typeBadge(t)}</th><td><b>${esc(ps.name)}</b></td><td class="l">${esc(pasPlain(ps))}</td></tr>`).join('')}</tbody></table>
         <p class="tz2-cap">「この選手の近くにいる味方」と書いてある効果は、3段目になると味方全員に効きます。</p>`; }
     el.innerHTML = `<div class="tzx"><div class="tz2-hd"><img src="${emblemURL(save.team.name, 48)}" alt=""><h2>${tab === 'pas' ? 'サポート効果の一覧' : '凸（とつ）のしくみ'}</h2><button class="tz2-x" type="button">とじる</button></div>
       ${tab === 'pas' ? '' : `<div class="tz2-tabs">${TZD_TABS.map(([k, l]) => `<button type="button" data-tz="${k}" class="${k === tab ? 'on' : ''}">${l}</button>`).join('')}</div>`}<div class="tz2-body">${body}</div></div>`;
