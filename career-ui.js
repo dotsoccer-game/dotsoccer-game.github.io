@@ -1107,6 +1107,8 @@
     hand: '<svg viewBox="0 0 40 26"><path d="M2 9l9-6 8 4 7-4 12 7-4 5-6-3-9 8c-2 2-5 2-7 0L2 13z"/></svg>',
     crown: '<svg viewBox="0 0 40 28"><path d="M3 8l9 7 8-12 8 12 9-7-3 17H6z"/></svg>',
     ticket: '<svg viewBox="0 0 44 28"><rect x="2" y="3" width="40" height="22" rx="4" transform="rotate(-8 22 14)"/><circle cx="22" cy="14" r="6" fill="#fff"/></svg>' };
+  // 版1139：選手カードの★の横の「?」→ 凸のしくみ（どの画面のカードでも）
+  document.addEventListener('click', (e) => { const q = e.target.closest && e.target.closest('[data-tzq]'); if (!q) return; e.stopPropagation(); e.preventDefault(); totsuDoc(); }, true);
   const TZD_TABS = [['intro', 'はじめに'], ['rare', 'レア度別'], ['kake', 'カケラの入手']];   // 版1137：サポート効果の一覧は、凸の資料とは別の画面
   function totsuDoc(tab) {
     let el = document.getElementById('tzDoc'); if (!el) { el = document.createElement('div'); el.id = 'tzDoc'; (document.getElementById('app') || document.body).appendChild(el); }
@@ -1338,7 +1340,7 @@
       <div class="pc-head"><i class="pos ${POSC[p.position]}">${p.position}</i><b>${esc(p.name)}</b>${ovrBadge(p)}<span>${esc(save.team.name)}</span></div>
       <div class="pc-main">
         <div class="pc-left">
-          <div class="pc-photo">${facePic(p, '', i >= 11)}<div class="pc-rare">${starHTML(C.ensureStar(p), p.totsu)}${capBadge(C.capGrade(p))}</div></div>
+          <div class="pc-photo">${facePic(p, '', i >= 11)}<div class="pc-rare"><div class="pc-strow">${starHTML(C.ensureStar(p), p.totsu)}<b class="ty-q pc-tzq" data-tzq="1" title="凸とは？">?</b></div>${capBadge(C.capGrade(p))}</div></div>
           <b class="pc-num">${p.number}</b>
           <div class="pc-meta"><span>タイプ</span>${typeBadge(p.type).replace('<span class="tbadge', `<span data-ty="${esc(p.type || 'バランス')}" data-pos="${esc(p.position)}" title="タップで説明" class="tbadge ty-tap`)}<b class="ty-q">?</b></div>
           <div class="pc-meta"><span>疲労度</span>${condGauge(p)}</div>
@@ -3866,7 +3868,7 @@
       <div class="pc-head"><i class="pos ${POSC[q.pos]}">${q.pos}</i><b>${esc(q.name)}</b>${ovrBadge(q)}<span>${esc(tm.name || '')}</span></div>
       <div class="pc-main">
         <div class="pc-left">
-          <div class="pc-photo">${cpuFace(tid, q, ro.kit.shirt)}<div class="pc-rare">${starHTML(C.starOf(tid, q), C.totsuOf(tid, q))}${capBadge(C.GRADES[C.capIdx(C.starOf(tid, q), C.totsuOf(tid, q))])}</div></div>
+          <div class="pc-photo">${cpuFace(tid, q, ro.kit.shirt)}<div class="pc-rare"><div class="pc-strow">${starHTML(C.starOf(tid, q), C.totsuOf(tid, q))}<b class="ty-q pc-tzq" data-tzq="1" title="凸とは？">?</b></div>${capBadge(C.GRADES[C.capIdx(C.starOf(tid, q), C.totsuOf(tid, q))])}</div></div>
           <b class="pc-num">${q.no}</b>
           <div class="pc-meta"><span>タイプ</span>${typeBadge(q.type).replace('<span class="tbadge', `<span data-ty="${esc(q.type || 'バランス')}" data-pos="${esc(q.pos || q.position || '')}" title="タップで説明" class="tbadge ty-tap`)}<b class="ty-q">?</b></div>
           ${role ? `<div class="pc-ttl${tt ? ' top' : q.role === 'ace' ? ' ace' : ''}"><i>${tt ? '♛' : q.role === 'ace' ? '★' : '◆'}</i><span>称号</span><b>${esc(role)}</b></div>` : ''}   <!-- 版470：役割ではなく「称号」 -->
