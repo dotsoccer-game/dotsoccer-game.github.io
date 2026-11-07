@@ -1081,16 +1081,16 @@
     let el = document.getElementById('tzDoc'); if (!el) { el = document.createElement('div'); el.id = 'tzDoc'; (document.getElementById('app') || document.body).appendChild(el); }
     const PL = ['—', '付く', '強くなる', '全員に'], cell = (st, tz) => { const g = C.GRADES[C.capIdx(st, tz)], g0 = tz ? C.GRADES[C.capIdx(st, tz - 1)] : g, l = C.pasLv(st, tz), l0 = tz ? C.pasLv(st, tz - 1) : l;
       return `<td class="${tz ? '' : 'z'}"><div class="tzd-cap${tz && g !== g0 ? ' up' : ''}"><small>上限</small><b class="rk rk-${g}">${g}</b></div><div class="tzd-pas${l ? ' l' + l : ''}${tz && l !== l0 ? ' up' : ''}"><small>サポート</small>${PL[l]}</div>${st >= 5 && tz >= 1 ? `<div class="tzd-uq${tz === 1 ? ' up' : ''}">固有スキル覚醒</div>` : ''}</td>`; };
-    const rows = [1, 2, 3, 4, 5].map((st) => `<tr><th><span class="tzd-st">${'★'.repeat(st)}</span><small>☆${st}</small></th>${[0, 1, 2, 3].map((tz) => cell(st, tz)).join('')}<td class="tzd-cost">${(C.AWAKE_COST || {})[st] ?? ''}<small>個</small></td></tr>`).join('');
+    const rows = [1, 2, 3, 4, 5].map((st) => `<tr><th><span class="tzd-st">${'★'.repeat(st)}</span><small>☆${st}</small></th>${[0, 1, 2, 3].map((tz) => cell(st, tz)).join('')}<td class="tzd-cost">${C.KAKERA_OF[st] || 1}<small>個</small></td></tr>`).join('');
     el.innerHTML = `<div class="tzd-paper"><div class="tzd-hd"><b>資料</b><h2>凸（とつ）のしくみ</h2><button class="tzd-x" type="button">とじる</button></div><div class="tzd-body">
-      <section><h3>1．凸とは</h3><p>同じ選手をもう一度手に入れると、その選手の「凸」が1つ上がります。<b>覚醒のカケラ</b>を使う「選手覚醒」でも上げられます。最大は<b>3凸（完凸）</b>。完凸のあとに同じ選手が出たら、覚醒のカケラになります。</p></section>
+      <section><h3>1．凸とは</h3><p>同じ選手をもう一度手に入れると、その選手の「凸」が1つ上がります。<b>覚醒のカケラ</b>を使う「選手覚醒」でも上げられます。最大は<b>3凸（完凸）</b>。完凸のあとに同じ選手が出たら、覚醒のカケラになります。</p><p>選手覚醒に使うカケラは、☆に関係なく<b>1凸につき100個</b>です。カケラは、完凸のあとのかぶり・自動放出・選手の放出でもらえます。</p></section>
       <section><h3>2．凸で良くなること</h3><ul>
         <li><b>育てられる上限が上がる</b>　特訓や試合で伸ばせる能力の、いちばん上のランクです（最高はS）。</li>
         <li><b>サポート効果が付く・強くなる</b>　選手のタイプごとの、まわりの味方を助ける効果です。「付く」→「強くなる」→「全員に」（近くの味方だけに効く効果は、味方全員に広がる。もともと全員に効く効果は、さらに強くなる）。</li>
         <li><b>固有スキルの覚醒</b>　☆5の選手だけ。1凸で固有スキルが強くなります。</li></ul>
         <p class="tzd-note">凸しても、その場で能力の数字が上がるわけではありません。上がった上限まで、育てて伸ばします。</p></section>
       <section><h3>3．☆ごとの表</h3><p class="tzd-cap2">黄色いところが、その凸で良くなる所です。</p>
-        <table class="tzd-tb"><thead><tr><th>レア度</th><th>無凸</th><th>1凸</th><th>2凸</th><th>3凸（完凸）</th><th>覚醒に使う<br>カケラ（1凸ごと）</th></tr></thead><tbody>${rows}</tbody></table></section>
+        <table class="tzd-tb"><thead><tr><th>レア度</th><th>無凸</th><th>1凸</th><th>2凸</th><th>3凸（完凸）</th><th>完凸のあと<br>かぶった時のカケラ</th></tr></thead><tbody>${rows}</tbody></table></section>
       <section><h3>4．★の色</h3><p class="tzd-stars">${[0, 1, 2, 3].map((tz) => `<span><b class="tzd-sr">${starHTML(3, tz)}</b><small>${tz ? tz + '凸' + (tz === 3 ? '（完凸）' : '') : '無凸'}</small></span>`).join('')}</p></section>
     </div></div>`;
     el.hidden = false;
