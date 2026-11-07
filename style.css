@@ -4822,3 +4822,6 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 .ps2-lv em{position:absolute;top:-9px;right:-4px;font-style:normal;font:900 10px/1 sans-serif;color:#fff;background:#d23b2a;padding:3px 6px;border-radius:999px}
 .ps2-ar{font-style:normal;color:#13285a;font-size:12px}
 .ps2-btns{text-align:center;margin:10px 0 0}
+.tz2-def{display:flex;gap:10px;align-items:flex-start;margin:2px 0 8px;padding:7px 12px;border-radius:9px;background:#fff;border:2px solid #e2b23a}
+.tz2-def>b{flex:none;padding:4px 10px;border-radius:6px;background:#13285a;color:#fff;font:900 13px/1.2 "M PLUS 1p",sans-serif}
+.tz2-def p{margin:0;font:700 12.5px/1.6 sans-serif}.tz2-def small{color:#6b7486;font-size:11px}

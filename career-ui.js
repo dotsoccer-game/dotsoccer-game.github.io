@@ -1114,7 +1114,8 @@
     const sec = (t, inner, cls) => `<div class="tz2-pnl ${cls || ''}"><h4><i>»</i>${t}</h4>${inner}</div>`;
     const big = (tz, lab) => `<div class="tz2-st"><span class="stars tz2-big">${starHTML(1, tz)}</span><b>${lab}</b></div>`;
     let body = '';
-    if (tab === 'intro') body = `<h3 class="tz2-ttl"><span>凸を上げると、選手の伸びしろが広がる！</span></h3><p class="tz2-sub">能力値はすぐには上がりません。特訓や試合で育てよう。</p>
+    if (tab === 'intro') body = `<div class="tz2-def"><b>凸（とつ）とは？</b><p>選手ひとりひとりの<b>「強くなれる段階」</b>のことです。同じ選手がガチャでもう一度出たり、覚醒のカケラで「選手覚醒」したりすると、1つ上がります。無凸（0）から始まって、最大は<b>3凸（完凸）</b>。<small>（「限界突破」の「突（とつ）」から来たよび方です）</small></p></div>
+      <h3 class="tz2-ttl"><span>凸を上げると、選手の伸びしろが広がる！</span></h3><p class="tz2-sub">能力値はすぐには上がりません。特訓や試合で育てよう。</p>
       <div class="tz2-row">${big(0, '無凸')}<em>▶</em>${big(1, '1凸')}<em>▶</em>${big(2, '2凸')}<em>▶</em>${big(3, '3凸（完凸）')}</div>
       <div class="tz2-g2">${sec('凸で変わること', `<ul class="tz2-ls"><li>${TZD_SVG.up}<b>育てられる上限が上がる</b></li><li>${TZD_SVG.hand}<b>サポート効果が付く・強くなる</b></li><li>${TZD_SVG.crown}<b>☆5は1凸で固有スキル覚醒</b></li></ul>`)}
         ${sec('凸の上げ方', `<ul class="tz2-ls"><li>${TZD_SVG.ticket}<b>ガチャで同じ選手が出る</b><span class="tz2-p">＋1凸</span></li><li><img src="icons/kakera.png" alt=""><b>覚醒のカケラ100個を使う</b><span class="tz2-p">＋1凸</span></li></ul><p class="tz2-cap">どのレア度でも、1凸につき100個。最大は3凸（完凸）</p>`)}</div>`;
