@@ -1134,7 +1134,7 @@
   function abilDoc(focus) {
     let el = document.getElementById('tzDoc'); if (!el) { el = document.createElement('div'); el.id = 'tzDoc'; (document.getElementById('app') || document.body).appendChild(el); }
     const G = { tech: '技術', phys: '体', mind: '頭と心' };
-    const card = (q) => { const d = ABIL_DOC[q.k] || { w: q.desc, p: [], pos: '' }; return `<div class="ab2${q.k === focus ? ' on' : ''}" data-ab="${q.k}"><div class="ab2-h"><img src="icons/${q.k}.png" alt=""><b>${esc(q.name)}</b><small>${esc(d.pos)}</small></div><p class="ab2-w">${esc(d.w)}</p><ul>${d.p.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>`; };
+    const card = (q) => { const d = ABIL_DOC[q.k] || { w: q.desc, p: [], pos: '' }; return `<div class="ab2${q.k === focus ? ' on' : ''}" data-ab="${q.k}"><div class="ab2-h"><img src="icons/${q.k}.png" alt=""><b>${esc(q.name)}</b></div><p class="ab2-w">${esc(d.w)}</p><ul>${d.p.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>`; };
     const groups = ['tech', 'phys', 'mind'].map((g) => `<h4 class="ab2-g"><i>»</i>${G[g]}</h4><div class="ab2-grid">${D.PARAMS.filter((q) => q.g === g).map(card).join('')}</div>`).join('');
     el.innerHTML = `<div class="tzx ab2x"><div class="tz2-hd"><img src="${emblemURL(save.team.name, 48)}" alt=""><h2>能力のしくみ</h2><button class="tz2-x" type="button">とじる</button></div><div class="tz2-body">
       <p class="tz2-sub">12の能力が、試合のどこに効くか。ランクは E → D → C → B → A → S の順に高くなります。<br>疲れていると、全部の能力が少し下がった状態で試合をします。</p>${groups}</div></div>`;
