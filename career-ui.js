@@ -1117,6 +1117,33 @@
 
 
 
+  // 版1146：能力の資料（12の能力が、試合で何に効くか。エンジンの中身に合わせた説明）
+  const ABIL_DOC = {
+    kick: { w: 'シュートの速さと、ねらった所へ飛ぶ正確さ。', p: ['シュートが速くなる（キック50で約時速95km、80で約時速120km）', 'ねらった隅へ行きやすく、遠くからでも枠に飛ぶ', 'ロングパス・クリア・FK・CKの飛ぶ距離'], pos: 'FW・攻めるMF' },
+    technique: { w: 'ボールを止める・持つ・扱う、足もとの上手さ。', p: ['パスを止めるトラップが上手くなる（ボールがはねない）', '相手に寄せられても、ボールを取られにくい', 'GKは、シュートをキャッチできるか（はじくか）に効く'], pos: '全員（GKも）' },
+    dribble: { w: '相手を抜く力と、ボールを持ったまま走る力。', p: ['フェイント・技で相手を抜ける確率が上がる', 'ボールを持っても速さが落ちにくい（85より低いと少し遅くなる）', '長い距離を自分で運ぶ'], pos: 'FW・サイドの選手' },
+    pass: { w: 'パス・クロスの正確さと強さ。', p: ['パスがずれにくく、ちょうどいい強さで届く', '相手の足が出ても、間を通る', '遠くの味方へのパス・クロスが届く'], pos: 'MF・パサー' },
+    speed: { w: '走る速さ（いちばん速い時の速さ）。', p: ['裏へ抜ける・追いかける競走に勝つ', 'カウンターで一気に前へ出る', '戻りの守備が間に合う'], pos: 'FW・サイド・DF' },
+    dash: { w: '走り出しの速さ（一歩目・切り返し）。', p: ['先にボールに触れる・こぼれ球に強い', '急に向きを変えて、ついてきた相手を置いていく', 'GKは、シュートへの反応と飛びつき'], pos: 'FW・GK' },
+    stamina: { w: '試合の終わりまで走れる力。', p: ['疲れにくい（疲れると、全部の能力が下がる）', '後半の終わりでも、走り出し・守備が落ちない', '動き回る選手（ダイナモなど）ほど大事'], pos: '全員（とくにMF）' },
+    physical: { w: '体の強さ。ぶつかり合いの強さ。', p: ['体をぶつけた時に負けない・倒れない', 'ボールを持っている時、寄せられても持ちこたえる', 'シュートやパスの強さにも少し効く'], pos: 'DF・FW' },
+    jump: { w: '高さ。高いボールへの強さ。', p: ['ヘディングの競り合いに勝つ（ジャンプ50で約2.65m、95で約3.15mまで届く）', 'GKは、横っ跳びで届く距離（50で約4m、95で約5.3m）と高いボールのキャッチ', 'CK・クロスの守り'], pos: 'DF・FW・GK' },
+    defense: { w: 'ボールを奪う力。', p: ['タックル・足を出してボールを取る', 'パスコースに入ってカットする', '相手の技・フェイントにつられにくい'], pos: 'DF・守るMF' },
+    vision: { w: '見る力と、良いプレーを選ぶ力（判断）。', p: ['通るパスを選び、取られそうなパスは出さない', '寄せてくる相手に気づく（低いとそのまま取られる）', 'DFは、ラインをそろえる・オフサイドをとる。GKは、シュートの読み'], pos: '全員（とくにMF・GK）' },
+    mental: { w: '大事な場面での強さ。', p: ['PK・試合の終わりなど、大事な場面でシュートがぶれない', 'GKは、PKでコースを読む', 'キャプテンだと、まわりの味方も落ち着く'], pos: 'キッカー・GK・キャプテン' } };
+  function abilDoc(focus) {
+    let el = document.getElementById('tzDoc'); if (!el) { el = document.createElement('div'); el.id = 'tzDoc'; (document.getElementById('app') || document.body).appendChild(el); }
+    const G = { tech: '技術', phys: '体', mind: '頭と心' };
+    const card = (q) => { const d = ABIL_DOC[q.k] || { w: q.desc, p: [], pos: '' }; return `<div class="ab2${q.k === focus ? ' on' : ''}" data-ab="${q.k}"><div class="ab2-h"><img src="icons/${q.k}.png" alt=""><b>${esc(q.name)}</b><small>${esc(d.pos)}</small></div><p class="ab2-w">${esc(d.w)}</p><ul>${d.p.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>`; };
+    const groups = ['tech', 'phys', 'mind'].map((g) => `<h4 class="ab2-g"><i>»</i>${G[g]}</h4><div class="ab2-grid">${D.PARAMS.filter((q) => q.g === g).map(card).join('')}</div>`).join('');
+    el.innerHTML = `<div class="tzx ab2x"><div class="tz2-hd"><img src="${emblemURL(save.team.name, 48)}" alt=""><h2>能力のしくみ</h2><button class="tz2-x" type="button">とじる</button></div><div class="tz2-body">
+      <p class="tz2-sub">12の能力が、試合のどこに効くか。ランクは E → D → C → B → A → S の順に高くなります。<br>疲れていると、全部の能力が少し下がった状態で試合をします。</p>${groups}</div></div>`;
+    el.hidden = false;
+    el.querySelector('.tz2-x').onclick = (e) => { e.stopPropagation(); el.hidden = true; };
+    el.onclick = (e) => { e.stopPropagation(); if (e.target === el) el.hidden = true; };
+    if (focus) { const f = el.querySelector(`[data-ab="${focus}"]`); if (f) setTimeout(() => f.scrollIntoView({ block: 'center' }), 30); }
+  }
+  document.addEventListener('click', (e) => { const q = e.target.closest && e.target.closest('[data-abq]'); if (!q) return; e.stopPropagation(); e.preventDefault(); abilDoc(q.dataset.abq || ''); }, true);
   // 版1136：凸の資料（いただいたデザイン）。タブ：はじめに／レア度別／カケラの入手／サポート効果の一覧
   const TZD_SVG = {
     up: '<svg viewBox="0 0 40 24"><rect x="1" y="6" width="6" height="12" rx="2"/><rect x="7" y="3" width="6" height="18" rx="2"/><rect x="13" y="10" width="14" height="4"/><rect x="27" y="3" width="6" height="18" rx="2"/><rect x="33" y="6" width="6" height="12" rx="2"/></svg>',
@@ -1364,7 +1391,7 @@
           ${pasRow(p)}
         </div>
         <div class="pc-right">
-          <div class="pc-icons">${icons}</div>
+          <div class="pc-icons">${icons}<b class="ty-q pc-abq" data-abq="" title="能力のしくみ">?</b></div>
           <div class="pc-grades${ups ? ' wd' : ''}">${grades}</div>
           <div class="pc-page">${body}</div>
           <div class="pc-dots"><button class="pc-nav prev ui-img" title="前の選手"><img src="icons/ui_next.png" alt="前へ" style="transform:scaleX(-1)"></button>${pages.map((nm, k) => `<button data-pg="${k}" class="${k === pcPage ? 'on' : ''}">${nm}</button>`).join('')}<button class="pc-nav next ui-img" title="次の選手"><img src="icons/ui_next.png" alt="次へ"></button></div>
@@ -3891,7 +3918,7 @@
           ${role ? `<div class="pc-ttl${tt ? ' top' : q.role === 'ace' ? ' ace' : ''}"><i>${tt ? '♛' : q.role === 'ace' ? '★' : '◆'}</i><span>称号</span><b>${esc(role)}</b></div>` : ''}   <!-- 版470：役割ではなく「称号」 -->
         </div>
         <div class="pc-right">
-          <div class="pc-icons">${icons}</div>
+          <div class="pc-icons">${icons}<b class="ty-q pc-abq" data-abq="" title="能力のしくみ">?</b></div>
           <div class="pc-grades">${grades}</div>
           <div class="pc-page">${body}</div>
           <div class="pc-dots"><button class="pc-nav prev ui-img" title="前の選手"><img src="icons/ui_next.png" alt="前へ" style="transform:scaleX(-1)"></button>${pages.map((nm, k) => `<button data-pg="${k}" class="${k === ccPage ? 'on' : ''}">${nm}</button>`).join('')}<button class="pc-nav next ui-img" title="次の選手"><img src="icons/ui_next.png" alt="次へ"></button></div>
@@ -6132,7 +6159,7 @@
     draw();
     if (loading) { try { const r = await DotNet.cloudInfo(code()); cloud = r ? { info: r.info, at: r.at } : null; } catch (_) { flash('通信できませんでした（クラウドの情報が読めません）'); } loading = false; if (document.body.contains(scr) && !scr.querySelector('.cs-dlg')) draw(); }
   }
-  window.__career = { totsuDoc: (t) => totsuDoc(t), friendSquad: (k) => friendSquad(k), roomScreen: (id, r) => roomScreen(id, r), friendMenu: (b) => friendMenu(b), roomPrep: (r, me) => roomPrep(r, me), playRoom: (r, me) => playRoom(r, me), packCode: (o) => packCode(o), openKitEditor: (o) => openKitEditor(o), drawEmblem: (c, x, y, s, lk) => drawEmblem(c, x, y, s, lk), openClub: (o) => openClub(o), playerDetail: (i, o) => playerDetail(i, o), resCard: (o) => resCard(o), seasonEndCard: (o) => seasonEndCard(o), coachNews: (l) => coachNews(l), rewardCard: (r) => rewardCard(r), gachaDemo: (st, pr, fx) => gachaDemo(st, pr, fx), storyCard: (o) => storyCard(o), gotCardsHTML: (got) => `<div class="gc-cards${got.length > 8 ? ' lots' : got.length > 4 ? ' many' : ''}">${got.map((c) => artCard(c, { ups: true })).join('')}</div><p class="cp-msg gc-msg">クラブハウスの「特訓」で、選手に最大3枚セットできます。</p>`, trainResult: (o) => trainResult(o), airport, openPost, syncPost, onlineDone, setVenue: (k) => { venueNow = k; }, champDemo, champAfter, coinShop, faceFill: () => faceFill(), openGacha, venueTalk: (se) => venueTalk(se), matchFace, openOffice, cpuCard, openClub, openAssoc, open, go, stadium, advance, subSheet, labMatch, townRect, tutPractice, shop, store: () => store(), renderHome: () => renderHome(), clubhouseBg: () => clubhouseBg(), isMatchWeek: () => isMatchWeek(), get view() { return view; }, staffFace: (k) => staffFace(k), get save() { return save; }, get drill() { return clubDrill; }, faceURL, starFace, setDrill(d) { clubDrill = d; drillT0 = -1; drillSnap = true; } };
+  window.__career = { abilDoc: (k) => abilDoc(k), totsuDoc: (t) => totsuDoc(t), friendSquad: (k) => friendSquad(k), roomScreen: (id, r) => roomScreen(id, r), friendMenu: (b) => friendMenu(b), roomPrep: (r, me) => roomPrep(r, me), playRoom: (r, me) => playRoom(r, me), packCode: (o) => packCode(o), openKitEditor: (o) => openKitEditor(o), drawEmblem: (c, x, y, s, lk) => drawEmblem(c, x, y, s, lk), openClub: (o) => openClub(o), playerDetail: (i, o) => playerDetail(i, o), resCard: (o) => resCard(o), seasonEndCard: (o) => seasonEndCard(o), coachNews: (l) => coachNews(l), rewardCard: (r) => rewardCard(r), gachaDemo: (st, pr, fx) => gachaDemo(st, pr, fx), storyCard: (o) => storyCard(o), gotCardsHTML: (got) => `<div class="gc-cards${got.length > 8 ? ' lots' : got.length > 4 ? ' many' : ''}">${got.map((c) => artCard(c, { ups: true })).join('')}</div><p class="cp-msg gc-msg">クラブハウスの「特訓」で、選手に最大3枚セットできます。</p>`, trainResult: (o) => trainResult(o), airport, openPost, syncPost, onlineDone, setVenue: (k) => { venueNow = k; }, champDemo, champAfter, coinShop, faceFill: () => faceFill(), openGacha, venueTalk: (se) => venueTalk(se), matchFace, openOffice, cpuCard, openClub, openAssoc, open, go, stadium, advance, subSheet, labMatch, townRect, tutPractice, shop, store: () => store(), renderHome: () => renderHome(), clubhouseBg: () => clubhouseBg(), isMatchWeek: () => isMatchWeek(), get view() { return view; }, staffFace: (k) => staffFace(k), get save() { return save; }, get drill() { return clubDrill; }, faceURL, starFace, setDrill(d) { clubDrill = d; drillT0 = -1; drillSnap = true; } };
   window.__career.openCloud = openCloud; window.__career.cpuCard = (t, i) => cpuCard(t, i, $("#career"));
   window.__career.shop = (t) => shop(t); window.__career.premDaily = () => premDaily();
   window.__career.embURL = () => { try { return save ? embFromLook(C.ensureClub(save).emb, 96) : ''; } catch (_) { return ''; } };   // 版680：設定のアカウントIDの横に出す、自分のクラブのエンブレム

@@ -4872,3 +4872,17 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 .ps3-boxes small{display:block;font:700 10.5px/1.3 sans-serif;color:#6b7486}
 .ps3-boxes small.ps3-max{display:inline-block;margin-left:6px;padding:3px 8px;border-radius:999px;background:#d9f3de;color:#1d6a2c;font-weight:900;vertical-align:4px}
 .ps3-note{margin:8px 0 4px;text-align:center;font:800 12.5px/1.4 sans-serif;color:#2b3550}
+/* 版1146：能力のしくみ */
+.pc-icons{position:relative}
+.pc-icons .pc-abq{position:absolute!important;right:-8px;top:-12px;margin:0;cursor:pointer;z-index:3;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+#tzDoc .ab2x{width:min(900px,100%)}
+.ab2-g{margin:8px 0 6px;font:900 15px/1.2 "M PLUS 1p",sans-serif;color:#13285a}.ab2-g i{font-style:normal;color:#e2b23a;margin-right:6px}
+.ab2-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.ab2{background:#fff;border:2px solid #b9cbe6;border-radius:9px;padding:6px 10px 6px}
+.ab2.on{border-color:#e2b23a;background:#fffaf0}
+.ab2-h{display:flex;align-items:center;gap:8px}
+.ab2-h img{width:34px;height:30px;object-fit:contain}
+.ab2-h b{font:900 17px/1.2 "M PLUS 1p",sans-serif;color:#13213f}
+.ab2-h small{margin-left:auto;font:800 10.5px/1.2 sans-serif;color:#fff;background:#13285a;padding:3px 8px;border-radius:999px;white-space:nowrap}
+.ab2-w{margin:4px 0 2px;font:800 13px/1.4 "M PLUS 1p",sans-serif;color:#13213f}
+.ab2 ul{margin:0;padding-left:18px}.ab2 li{font:600 11.5px/1.55 sans-serif;color:#2b3550}
