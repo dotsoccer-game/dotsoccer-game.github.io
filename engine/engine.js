@@ -3023,7 +3023,7 @@
         opts.push({ kind: 'dribble', mode: 'break', dir: [fwd[0], dy0 + (p.y > oneDef.y ? 0.4 : -0.4)], beat: true, v: 0.2 + sk / 50 + (xf > L - 38 ? (globalThis.__Bbeat ?? 1.2) : 0) + (dribT ? 0.4 : 0) });
       }
       { const gk = foes.find((o) => o.gk); if (gk && xf > L - 22 && hyp(gk.x - p.x, gk.y - p.y) < 7 && !foes.some((o) => !o.gk && hyp(o.x - p.x, o.y - p.y) < 4)) {   // シュートの意図：GKをかわして打つ（GKが出てきた1対1）
-          const sd = Math.sign(p.y - gk.y) || (Math.sign(GOAL_Y - p.y) || 1); opts.push({ kind: 'dribble', mode: 'break', dir: [sgn(t) * 0.5, sd * 0.85], beat: true, v: 1.2 + ((p.dribble || 50) - 50) / 50 }); } }
+          const sd = Math.sign(p.y - gk.y) || (Math.sign(GOAL_Y - p.y) || 1); opts.push({ kind: 'dribble', mode: 'break', dir: [sgn(t) * 0.5, sd * 0.85], beat: true, gkR: true, v: 1.2 + ((p.dribble || 50) - 50) / 50 }); } }
       if (xf > L - 42 && xf < L - 16 && Math.abs(p.y - GOAL_Y) > 9 && pr <= 1) {   // サイドから中へ運ぶ（シュートの角度を作る）
         const gx0 = fx(t, L - 17), gy0 = GOAL_Y + Math.sign(p.y - GOAL_Y) * 4, ddx = gx0 - p.x, ddy = gy0 - p.y, dl0 = hyp(ddx, ddy) || 1;
         let sp2 = 9; for (const o of foes) { if (o.gk) continue; const rx = o.x - p.x, ry = o.y - p.y, d2 = hyp(rx, ry); if (d2 < 9 && (rx * ddx + ry * ddy) / (d2 * dl0 || 1) > 0.5) sp2 = Math.min(sp2, d2); }
@@ -3094,6 +3094,8 @@
       try { gpDrive(p, pick.mode, pick.protect); } catch (e) { if (globalThis.__gpErr) throw e; }
       S.decision = pick.protect != null ? R.range(0.4, 0.6) : pick.beat ? R.range(0.5, 0.8) : space >= 9 ? R.range(0.45, 0.7) : R.range(0.25, 0.45);   // 運んでいる間はこまめに見直す（相手が寄ってきたら離す）
       if (pick.beat && oneDef && hyp(oneDef.x - p.x, oneDef.y - p.y) < 3 && R.next() < 0.6) skillMove(p, oneDef);
+      if (globalThis.__gkrPick && pick.gkR) globalThis.__gkrPick.push(+S.t.toFixed(1));
+      if ((globalThis.__Kgkr ?? 1) && pick.gkR) { const gk = opps(p).find((o) => o.gk && !o.off); if (gk && !(gk.diveT > 0) && !(gk.downT > 0) && hyp(gk.x - p.x, gk.y - p.y) < 3.4) skillMove(p, gk); }   // 版1144：GKと1対1で、かわしに行く時は、技でGKを抜く（GKが飛びこんで倒れ、その横を抜ける。ただ横を走り抜けるだけだと、抜いたのか分からなかった）
       if (pick.pocket && !(p.pkdT > S.t - 2.5)) { p.pkdT = S.t; bMinusRuns(t, p); if (globalThis.__tacLog) globalThis.__tacLog.push(['pocketDrb', +S.t.toFixed(1), t, p.idx]); }
       if (pick.feint != null && P[pick.feint]) {   // 版904：キックフェイント：引っかかった相手は、一瞬止まる（その間に持ち替えて打つ）
         const o = P[pick.feint]; p.feintT = S.t; S.decision = R.range(0.25, 0.4);
@@ -7874,6 +7876,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         q.vx = -lx * 4.2 - fdx * 1.5; q.vy = -ly * 4.2 - fdy * 1.5;   // 逆へつられ、少し前のめりに
         act(q, fall ? 'fall' : 'lose', fall ? 1.2 : 0.9, { o: own.idx, dx: -lx, dy: -ly });
         if (fall) q.downT = Math.max(q.downT || 0, 1.0);
+        if (q.gk && (globalThis.__Kgkr ?? 1)) { q.vx = 0; q.vy = 0; startDive(q, Math.sign(-ly) || 1, 2.2, 0.18, 'feint'); q.downT = Math.max(q.downT || 0, 1.5); q.stun = Math.max(q.stun, 1.6); q.tackleCd = Math.max(q.tackleCd, 2.0); q.touchCd = Math.max(q.touchCd || 0, 1.4); if (globalThis.__gkrLog) globalThis.__gkrLog.push({ t: +S.t.toFixed(2), team: own.team, name: own.name }); }   // 版1144：抜かれたGKは、ボールのあった側へ飛びこんで倒れる
         if (uOn(own, 'shiden')) {   // 紫電の遊戯：抜いた瞬間、紫電が走る。抜いた後はすぐに次のプレー（ノールックのラストパス・シュート）へ
           act(own, 'sdzap', 0.6, { lv: own.uniqLv || 1 }); own.sdBeat = S.t; S.decision = Math.min(S.decision, 0.12);
           if (own.uniqLv >= 2) for (const o of opps(own)) if (o !== q && !o.gk && hyp(o.x - own.x, o.y - own.y) < 5) { o.lagT = S.t + 0.6; o.stun = Math.max(o.stun || 0, 0.35); }   // 凸：抜いた勢いのまま、次の相手も一瞬置き去り
@@ -8033,6 +8036,20 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         // タックル
         if (own.gk && own.hold) return;
         if ((own.protect || 0) > S.t) return;   // 技でかわした直後は奪われない
+        // 版1144：GKとの1対1：ボールを持った相手がGKの目の前（1.9m）まで来たら、GKは足もとへ飛びこむ。取れればキャッチ。かわされたら倒れて、その横を抜けていく（今までは、GKが立ったままで、相手がすり抜けて見えた）
+        if ((globalThis.__Kgkd ?? 1) && !own.gk && !S.pk && fx(own.team, own.x) > L - 20) { const g = opps(own).find((q) => q.gk && !q.off);
+          if (g && !(g.downT > 0) && !(g.diveT > 0) && !g.hold && (g.smCd || 0) <= S.t && hyp(g.x - own.x, g.y - own.y) < 2.6 && gkInFront(g, own)) {
+            g.smCd = S.t + 3;
+            const gq = (g.vision + g.speed + g.technique) / 3, pS = clamp(0.5 + (gq - (own.dribble + own.technique) / 2) * 0.006 - (uOn(own, 'shiden') ? 0.25 : 0), 0.15, 0.8);
+            act(g, 'gkplay', 1.2, { k: 'rushOut' });
+            if (R.next() < pS) { stats[g.team].saves++; ev('save', { team: g.team, player: g.name, act: 'smother' }); gainBall(g, 'save'); return; }
+            const sd = Math.sign(own.y - g.y) || (R.next() < 0.5 ? 1 : -1);
+            g.vx = 0; g.vy = 0; startDive(g, sd, Math.max(1.0, Math.abs(own.y - g.y) + 0.8), 0.2, 'feint'); g.downT = Math.max(g.downT || 0, 1.6); g.stun = Math.max(g.stun || 0, 1.8); g.touchCd = Math.max(g.touchCd || 0, 1.5);
+            const fwd = Math.sign(fx(own.team, L) - own.x) || 1, dx = fwd * 0.55, dy = -sd * 0.85, dl = hyp(dx, dy);
+            S.dribbleDir = [dx / dl, dy / dl]; own.vx = (dx / dl) * 6.8; own.vy = (dy / dl) * 6.8; own.burstT = S.t + 0.5; own.protect = S.t + 0.9;
+            act(own, 'skill', 1.1, { k: 'gkRound' }); stats[own.team].dribbles_past++;
+            if (globalThis.__gkrLog) globalThis.__gkrLog.push({ t: +S.t.toFixed(2), team: own.team, name: own.name, gd: 1 });
+            return; } }
         // スイーパーキーパーの飛び出し：読んで詰めたGKが、抜け出した相手の足もとへ飛び込む（成功すればキャッチ・失敗すれば倒れて無人のゴール）
         for (const q of opps(own)) {
           if (q.tackleCd > 0 || q.gk || q.downT > 0 || q.slideT > 0) continue;
