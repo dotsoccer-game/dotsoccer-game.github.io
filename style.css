@@ -4886,3 +4886,10 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 .ab2-h small{margin-left:auto;font:800 10.5px/1.2 sans-serif;color:#fff;background:#13285a;padding:3px 8px;border-radius:999px;white-space:nowrap}
 .ab2-w{margin:4px 0 2px;font:800 13px/1.4 "M PLUS 1p",sans-serif;color:#13213f}
 .ab2 ul{margin:0;padding-left:18px}.ab2 li{font:600 11.5px/1.55 sans-serif;color:#2b3550}
+/* 版1148 */
+.pc-abi{display:inline-flex;cursor:pointer}
+#tzDoc .ab1x{width:min(560px,100%);height:auto;max-height:100%}
+.ab1x .tz2-hd img{width:34px;height:30px;object-fit:contain}
+.ab1-w{margin:4px 0 10px;text-align:center;font:900 17px/1.5 "M PLUS 1p",sans-serif;color:#13213f}
+.ab1-ul{margin:0;padding:8px 12px 8px 30px}.ab1-ul li{font:700 14px/1.7 "M PLUS 1p",sans-serif;color:#13213f}
+.pc-abi{display:contents;cursor:pointer}.pc-icons .pico{cursor:pointer}

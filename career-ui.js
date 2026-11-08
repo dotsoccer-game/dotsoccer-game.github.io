@@ -1143,7 +1143,19 @@
     el.onclick = (e) => { e.stopPropagation(); if (e.target === el) el.hidden = true; };
     if (focus) { const f = el.querySelector(`[data-ab="${focus}"]`); if (f) setTimeout(() => f.scrollIntoView({ block: 'center' }), 30); }
   }
-  document.addEventListener('click', (e) => { const q = e.target.closest && e.target.closest('[data-abq]'); if (!q) return; e.stopPropagation(); e.preventDefault(); abilDoc(q.dataset.abq || ''); }, true);
+  // 版1148：1つの能力の説明（選手カードのアイコンを押した時）
+  function abilOne(k) {
+    const q = D.PARAMS.find((x) => x.k === k); if (!q) return; const d = ABIL_DOC[k] || { w: q.desc, p: [] };
+    let el = document.getElementById('tzDoc'); if (!el) { el = document.createElement('div'); el.id = 'tzDoc'; (document.getElementById('app') || document.body).appendChild(el); }
+    el.innerHTML = `<div class="tzx ab1x"><div class="tz2-hd"><img src="icons/${k}.png" alt=""><h2>${esc(q.name)}</h2><button class="tz2-x" type="button">とじる</button></div><div class="tz2-body">
+      <p class="ab1-w">${esc(d.w)}</p><div class="tz2-pnl"><h4><i>»</i>試合で効くところ</h4><ul class="ab1-ul">${d.p.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>
+      <p class="ps2-btns"><button class="pas-doc" type="button" data-all="1">ほかの能力も見る</button></p></div></div>`;
+    el.hidden = false;
+    el.querySelector('.tz2-x').onclick = (e) => { e.stopPropagation(); el.hidden = true; };
+    el.querySelector('[data-all]').onclick = (e) => { e.stopPropagation(); abilDoc(k); };
+    el.onclick = (e) => { e.stopPropagation(); if (e.target === el) el.hidden = true; };
+  }
+  document.addEventListener('click', (e) => { const q = e.target.closest && e.target.closest('[data-abq]'); if (!q) return; e.stopPropagation(); e.preventDefault(); abilDoc(q.dataset.abq); }, true);   // 版1148：どの能力のアイコンを押しても、全部の説明（押した能力の所へ）
   // 版1136：凸の資料（いただいたデザイン）。タブ：はじめに／レア度別／カケラの入手／サポート効果の一覧
   const TZD_SVG = {
     up: '<svg viewBox="0 0 40 24"><rect x="1" y="6" width="6" height="12" rx="2"/><rect x="7" y="3" width="6" height="18" rx="2"/><rect x="13" y="10" width="14" height="4"/><rect x="27" y="3" width="6" height="18" rx="2"/><rect x="33" y="6" width="6" height="12" rx="2"/></svg>',
@@ -1359,7 +1371,7 @@
       const tag = add > 0 ? `<em class="${b.g !== a.g ? 'rkup' : ''}">${b.g !== a.g ? `→${b.g}` : `+${add}`}</em>` : add < 0 ? `<em class="dn">${add}</em>` : (ups ? '<em></em>' : '');
       return `<div><b class="rk rk-${a.g}">${a.g}</b>${tag}</div>`;
     }).join('');
-    const icons = D.PARAMS.map((q) => ico(q.k)).join('');
+    const icons = D.PARAMS.map((q) => `<span class="pc-abi" data-abq="${q.k}">${ico(q.k)}</span>`).join('');   // 版1148：アイコンを押すと、その能力の説明
     const pages = ['状態・記録', '詳しい能力値', '習得スキル'];
     let body = '';
     if (pcPage === 0) {
@@ -1391,7 +1403,7 @@
           ${pasRow(p)}
         </div>
         <div class="pc-right">
-          <div class="pc-icons">${icons}<b class="ty-q pc-abq" data-abq="" title="能力のしくみ">?</b></div>
+          <div class="pc-icons">${icons}</div>
           <div class="pc-grades${ups ? ' wd' : ''}">${grades}</div>
           <div class="pc-page">${body}</div>
           <div class="pc-dots"><button class="pc-nav prev ui-img" title="前の選手"><img src="icons/ui_next.png" alt="前へ" style="transform:scaleX(-1)"></button>${pages.map((nm, k) => `<button data-pg="${k}" class="${k === pcPage ? 'on' : ''}">${nm}</button>`).join('')}<button class="pc-nav next ui-img" title="次の選手"><img src="icons/ui_next.png" alt="次へ"></button></div>
@@ -3893,7 +3905,7 @@
     const list = cpuList(tid), q = list[pi], ro = C.rosterOfTeam(tid, save.season, save), tm = C.TEAM_BY_ID[tid] || {}, t = C.findTeam(save, tm.name) || {};
     const tt = C.titleOf(save, tid, q.name), G = (v) => D.grade(v), foot = cpuFoot(tid, q);
     const grades = D.PARAMS.map((pp) => `<div><b class="rk rk-${G(q[pp.k])}">${G(q[pp.k])}</b></div>`).join('');
-    const icons = D.PARAMS.map((pp) => ico(pp.k)).join('');
+    const icons = D.PARAMS.map((pp) => `<span class="pc-abi" data-abq="${pp.k}">${ico(pp.k)}</span>`).join('');
     const role = tt ? `国内屈指の${tt}` : q.role === 'ace' ? 'エース' : q.role === 'core' ? '中心選手' : '';
     const pages = ['選手情報', '習得スキル'];
     let body;
@@ -3918,7 +3930,7 @@
           ${role ? `<div class="pc-ttl${tt ? ' top' : q.role === 'ace' ? ' ace' : ''}"><i>${tt ? '♛' : q.role === 'ace' ? '★' : '◆'}</i><span>称号</span><b>${esc(role)}</b></div>` : ''}   <!-- 版470：役割ではなく「称号」 -->
         </div>
         <div class="pc-right">
-          <div class="pc-icons">${icons}<b class="ty-q pc-abq" data-abq="" title="能力のしくみ">?</b></div>
+          <div class="pc-icons">${icons}</div>
           <div class="pc-grades">${grades}</div>
           <div class="pc-page">${body}</div>
           <div class="pc-dots"><button class="pc-nav prev ui-img" title="前の選手"><img src="icons/ui_next.png" alt="前へ" style="transform:scaleX(-1)"></button>${pages.map((nm, k) => `<button data-pg="${k}" class="${k === ccPage ? 'on' : ''}">${nm}</button>`).join('')}<button class="pc-nav next ui-img" title="次の選手"><img src="icons/ui_next.png" alt="次へ"></button></div>
@@ -6159,7 +6171,7 @@
     draw();
     if (loading) { try { const r = await DotNet.cloudInfo(code()); cloud = r ? { info: r.info, at: r.at } : null; } catch (_) { flash('通信できませんでした（クラウドの情報が読めません）'); } loading = false; if (document.body.contains(scr) && !scr.querySelector('.cs-dlg')) draw(); }
   }
-  window.__career = { abilDoc: (k) => abilDoc(k), totsuDoc: (t) => totsuDoc(t), friendSquad: (k) => friendSquad(k), roomScreen: (id, r) => roomScreen(id, r), friendMenu: (b) => friendMenu(b), roomPrep: (r, me) => roomPrep(r, me), playRoom: (r, me) => playRoom(r, me), packCode: (o) => packCode(o), openKitEditor: (o) => openKitEditor(o), drawEmblem: (c, x, y, s, lk) => drawEmblem(c, x, y, s, lk), openClub: (o) => openClub(o), playerDetail: (i, o) => playerDetail(i, o), resCard: (o) => resCard(o), seasonEndCard: (o) => seasonEndCard(o), coachNews: (l) => coachNews(l), rewardCard: (r) => rewardCard(r), gachaDemo: (st, pr, fx) => gachaDemo(st, pr, fx), storyCard: (o) => storyCard(o), gotCardsHTML: (got) => `<div class="gc-cards${got.length > 8 ? ' lots' : got.length > 4 ? ' many' : ''}">${got.map((c) => artCard(c, { ups: true })).join('')}</div><p class="cp-msg gc-msg">クラブハウスの「特訓」で、選手に最大3枚セットできます。</p>`, trainResult: (o) => trainResult(o), airport, openPost, syncPost, onlineDone, setVenue: (k) => { venueNow = k; }, champDemo, champAfter, coinShop, faceFill: () => faceFill(), openGacha, venueTalk: (se) => venueTalk(se), matchFace, openOffice, cpuCard, openClub, openAssoc, open, go, stadium, advance, subSheet, labMatch, townRect, tutPractice, shop, store: () => store(), renderHome: () => renderHome(), clubhouseBg: () => clubhouseBg(), isMatchWeek: () => isMatchWeek(), get view() { return view; }, staffFace: (k) => staffFace(k), get save() { return save; }, get drill() { return clubDrill; }, faceURL, starFace, setDrill(d) { clubDrill = d; drillT0 = -1; drillSnap = true; } };
+  window.__career = { abilDoc: (k) => abilDoc(k), abilOne: (k) => abilOne(k), totsuDoc: (t) => totsuDoc(t), friendSquad: (k) => friendSquad(k), roomScreen: (id, r) => roomScreen(id, r), friendMenu: (b) => friendMenu(b), roomPrep: (r, me) => roomPrep(r, me), playRoom: (r, me) => playRoom(r, me), packCode: (o) => packCode(o), openKitEditor: (o) => openKitEditor(o), drawEmblem: (c, x, y, s, lk) => drawEmblem(c, x, y, s, lk), openClub: (o) => openClub(o), playerDetail: (i, o) => playerDetail(i, o), resCard: (o) => resCard(o), seasonEndCard: (o) => seasonEndCard(o), coachNews: (l) => coachNews(l), rewardCard: (r) => rewardCard(r), gachaDemo: (st, pr, fx) => gachaDemo(st, pr, fx), storyCard: (o) => storyCard(o), gotCardsHTML: (got) => `<div class="gc-cards${got.length > 8 ? ' lots' : got.length > 4 ? ' many' : ''}">${got.map((c) => artCard(c, { ups: true })).join('')}</div><p class="cp-msg gc-msg">クラブハウスの「特訓」で、選手に最大3枚セットできます。</p>`, trainResult: (o) => trainResult(o), airport, openPost, syncPost, onlineDone, setVenue: (k) => { venueNow = k; }, champDemo, champAfter, coinShop, faceFill: () => faceFill(), openGacha, venueTalk: (se) => venueTalk(se), matchFace, openOffice, cpuCard, openClub, openAssoc, open, go, stadium, advance, subSheet, labMatch, townRect, tutPractice, shop, store: () => store(), renderHome: () => renderHome(), clubhouseBg: () => clubhouseBg(), isMatchWeek: () => isMatchWeek(), get view() { return view; }, staffFace: (k) => staffFace(k), get save() { return save; }, get drill() { return clubDrill; }, faceURL, starFace, setDrill(d) { clubDrill = d; drillT0 = -1; drillSnap = true; } };
   window.__career.openCloud = openCloud; window.__career.cpuCard = (t, i) => cpuCard(t, i, $("#career"));
   window.__career.shop = (t) => shop(t); window.__career.premDaily = () => premDaily();
   window.__career.embURL = () => { try { return save ? embFromLook(C.ensureClub(save).emb, 96) : ''; } catch (_) { return ''; } };   // 版680：設定のアカウントIDの横に出す、自分のクラブのエンブレム
