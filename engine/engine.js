@@ -8047,7 +8047,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             g.vx = 0; g.vy = 0; startDive(g, sd, Math.max(1.0, Math.abs(own.y - g.y) + 0.8), 0.2, 'feint'); g.downT = Math.max(g.downT || 0, 1.6); g.stun = Math.max(g.stun || 0, 1.8); g.touchCd = Math.max(g.touchCd || 0, 1.5);
             const fwd = Math.sign(fx(own.team, L) - own.x) || 1, dx = fwd * 0.55, dy = -sd * 0.85, dl = hyp(dx, dy);
             S.dribbleDir = [dx / dl, dy / dl]; own.vx = (dx / dl) * 6.8; own.vy = (dy / dl) * 6.8; own.burstT = S.t + 0.5; own.protect = S.t + 0.9;
-            act(own, 'skill', 1.1, { k: 'gkRound' }); stats[own.team].dribbles_past++;
+            stats[own.team].dribbles_past++;   // 版1145：文字は出さない（動きで見せる）
             if (globalThis.__gkrLog) globalThis.__gkrLog.push({ t: +S.t.toFixed(2), team: own.team, name: own.name, gd: 1 });
             return; } }
         // スイーパーキーパーの飛び出し：読んで詰めたGKが、抜け出した相手の足もとへ飛び込む（成功すればキャッチ・失敗すれば倒れて無人のゴール）
