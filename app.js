@@ -98,6 +98,7 @@
         simW.w.onerror = () => { for (const r of simW.wait.values()) r.no(new Error('worker')); simW.wait.clear(); simW.w = null; }; }
       const id = ++simW.id, p = new Promise((ok, no) => simW.wait.set(id, { ok, no }));
       simW.w.postMessage({ id, src: simW.src, flags: simFlags(), args });
+      { const t0 = performance.now(); p.then(() => { simW.ms = performance.now() - t0; }, () => {}); }
       simW.cache.clear(); simW.cache.set(key, p); p.catch(() => { if (simW.cache.get(key) === p) simW.cache.delete(key); });
       return p;
     } catch (_) { return null; }
@@ -121,6 +122,7 @@
     closePlv();
     { const dc = document.getElementById('digestCtl'); if (dc) dc.style.display = 'none'; }
     onMatchDone = done || null;
+    pendTok++; pendAt = -1; doneKeys = new Set();
     mctx = { mine, theirs, seed, opts: opts || {}, homeShort, awayShort };
     venue = mctx.opts.venue != null ? Math.max(0, Math.min(4, mctx.opts.venue)) : 4;
     applyKits(mctx.opts.kits);
@@ -170,14 +172,38 @@
   }
   let subsAt = [];
   // ハーフタイムの交代・作戦変更：同じシードで試合を計算し直す（前半はまったく同じになる）。後半はそこから続ける
-  function applyHalf(changes, cb) {
-    const m2 = D.simulateMatch(mctx.mine, mctx.theirs, mctx.seed, { changes, oneHalf: !!mctx.opts.oneHalf, shootout: !!mctx.opts.shootout, soForce: mctx.opts.soForce, soGkFirst: mctx.opts.soGkFirst, ...(mctx.opts.newMove != null ? { newMove: !!mctx.opts.newMove } : {}) });
-    m2.homeShort = match.homeShort; m2.awayShort = match.awayShort;
-    match = m2; halfT = match.halfTime || halfT;
-    prepTimeline();
-    evIndex = 0; while (evIndex < match.events.length && match.events[evIndex].t <= simT) evIndex++;
-    const subs = match.events.filter((e) => e.type === 'sub' && e.team === 0);
-    if (cb) cb(subs);
+  // 版1155：作戦・交代を決めたら、すぐ試合に戻る。計算し直しは別の働き手で行い、その間は今の試合をそのまま流す
+  //  （変更を少し先の時刻から効かせるので、それまでの動きは計算し直しても同じ。間に合わなければ、その時刻で少しだけ待つ）
+  let pendAt = -1, pendTok = 0, doneKeys = new Set();
+  const chKey = (c) => { try { return JSON.stringify(c); } catch (_) { return String(Math.random()); } };
+  function applyHalf(changes, cb, o) {
+    o = o || {};
+    const tok = ++pendTok;
+    if (o.shift && match) {
+      const ms = Math.max(1200, simW.ms || 3500), D = Math.max(2.5, Math.min(14, (ms / 1000) * RATE * Math.max(1, speed) * syncK * 1.3 + 1));
+      const lim = simT < halfT ? halfT - 0.3 : match.duration - 3;
+      for (const c of changes) if (c && c.at != null && !doneKeys.has(chKey(c)) && c.at <= simT + 0.05) c.at = Math.round(Math.max(c.at, Math.min(simT + D, lim)) * 10) / 10;
+    }
+    const opt = { changes, ...simOpts(mctx.opts), ...(mctx.opts.newMove != null ? { newMove: !!mctx.opts.newMove } : {}) };
+    let late = !o.early;
+    const fin = (m2) => {
+      if (tok !== pendTok) return;
+      pendAt = -1;
+      m2.homeShort = match.homeShort; m2.awayShort = match.awayShort;
+      match = m2; halfT = match.halfTime || halfT;
+      prepTimeline();
+      evIndex = 0; while (evIndex < match.events.length && match.events[evIndex].t <= simT) evIndex++;
+      doneKeys = new Set(changes.map(chKey));
+      const subs = match.events.filter((e) => e.type === 'sub' && e.team === 0);
+      if (late && cb) cb(subs);
+    };
+    const p = simRun([mctx.mine, mctx.theirs, mctx.seed, opt]);
+    if (!p) { late = true; fin(D.simulateMatch(mctx.mine, mctx.theirs, mctx.seed, opt)); return; }
+    const fresh = changes.filter((c) => !doneKeys.has(chKey(c)));
+    const holdAt = fresh.length ? Math.min(...fresh.map((c) => c.at == null ? 0 : c.at)) : simT;
+    pendAt = Math.max(simT, holdAt - 0.06);
+    p.then(fin, (err) => { if (tok !== pendTok) return; try { fin(D.simulateMatch(mctx.mine, mctx.theirs, mctx.seed, opt)); } catch (e2) { pendAt = -1; showErr(e2, '交代'); } });
+    if (!late && cb) cb([]);
   }
   function prepTimeline() {
     const fr = match.frames, KI = FIX + 69 + 13;
@@ -389,6 +415,7 @@
     else {
       const simT0 = simT;
       simT += dt * RATE * speed * syncK * (speed < 4 ? slowAt(simT) : 1);   // 白夜の視界の間は、ゆっくり
+      if (pendAt >= 0 && simT > pendAt) simT = Math.max(simT0, pendAt);   // 版1155：計算し直しが届くまで、変更の時刻の手前で待つ
       if (stopAtT >= 0 && simT >= stopAtT) { simT = Math.max(simT0, stopAtT); const cb = stopAtCb; stopAtT = -1; stopAtCb = null; try { SND().play('whistle'); } catch (_) {} stop(); try { draw(); } catch (_) {} if (cb) setTimeout(cb, 0); return; }
       if (gateT >= 0 && simT >= gateT) { simT = Math.max(simT0, gateT); const cb = gateCb; gateT = -1; gateCb = null; stop(); try { draw(); } catch (_) {} if (cb) setTimeout(cb, 0); return; }
       if (koWhistleT >= 0 && simT0 < koWhistleT && simT >= koWhistleT) { SND().play('whistle'); koWhistleT = -1; }
@@ -4493,7 +4520,7 @@
           play();
         }
         if (cb) cb(subs);
-      }); } catch (err) { showErr(err, '交代'); try { if (cb) cb([]); } catch (_) {} if (!atHalf) play(); } },   // 版1025：交代の計算でエラーが出ても、止まったままにしない
+      }, { shift: !atHalf && !mctx.opts.noFF, early: !atHalf }); } catch (err) { showErr(err, '交代'); try { if (cb) cb([]); } catch (_) {} if (!atHalf) play(); } },   // 版1025：交代の計算でエラーが出ても、止まったままにしない
     });
   }
   $('.close').onclick = () => { showOverlay(null); if (!lk) play(); };   // ロッカールームから開いた時は試合を進めない
