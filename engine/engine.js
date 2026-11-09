@@ -2863,6 +2863,10 @@
       for (const q of mates(p)) {
         if (q === p || q.off) continue;
         if (q.gk && !(pr >= 1 && xf < 35)) continue;
+        if (q.gk && (globalThis.__Kog ?? 1) && (() => {   // 版1151：GKへ戻すパスが、少しそれただけで自分のゴールに入る向きなら戻さない（ゴール前・ゴールラインぞいの横パス）
+          if (xf > 26) return false; const gl = fx(t, 0), dx = q.x - p.x, dy = q.y - p.y, dl = Math.hypot(dx, dy) || 1;
+          for (const a of [-0.15, 0, 0.15]) { const ux = (dx * Math.cos(a) - dy * Math.sin(a)) / dl, uy = (dx * Math.sin(a) + dy * Math.cos(a)) / dl; if (Math.abs(ux) < 0.02 || (gl - p.x) * ux <= 0) continue; const tt = (gl - p.x) / ux, yy = p.y + uy * tt; if (tt < dl + 14 && Math.abs(yy - GOAL_Y) < POST + 1.5) return true; }
+          return fx(t, p.x) < 7 && fx(t, q.x) < 7 && Math.abs(p.y - GOAL_Y) > POST; })()) continue;
         if (q.gk && (globalThis.__Kbpg ?? 1) && ((q.downT || 0) > 0 || (q.diveT || 0) > 0)) continue;   // 版936：倒れている・飛びついている最中のGKには戻さない
         const dq = hyp(q.x - p.x, q.y - p.y); if (dq < 4 || dq > 26 + p.kick * 0.45) continue;
         const qxf = fx(t, q.x), runner = q.bRun && q.bRun.until > S.t;
@@ -8308,6 +8312,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         // バックパスは手で取れない
         const gkHands = p.gk && inBox && !bpFoot(p, b);   // 版861：バックパス（味方が足で蹴った球・スローインを直接）は手で取れない。ヘディング・胸、相手や味方に当たったはね返りは手で取れる
         const reach = gkHands ? (p.svPrep && p.svPrep.t === b.shotT && b.kind === 'shot' ? (p.svPrep.k === 'footsave' ? 0.7 : 0.45) : 0) + (uOn(p, 'ikari') ? 0.35 * gP(p) : 0) + (p.diveT > 0 ? 1.4 + (p.jump * 0.7 + p.technique * 0.3) * 0.012 + Math.max(0, p.jump * 0.7 + p.technique * 0.3 - 70) * 0.02 : b.kind === 'shot' ? 1.15 + p.technique * 0.005 + p.jump * 0.004 + Math.max(0, p.jump * 0.7 + p.technique * 0.3 - 70) * 0.012 : 1.3 + p.jump * 0.004) : b.kind === 'shot' && p.team !== b.lastTeam ? 0.55 - (b.guren ? 0.45 * Math.min(1, b.grF ?? 1) : 0) + p.technique * 0.002 + (skZ(p, 'shotBlock') ? 0.4 : 0) + ((globalThis.__Kdsb ?? 0.25) && T[p.team].attitude === 'defensive' && fx(p.team, b.x) < 25 ? (globalThis.__Kdsb ?? 0.25) + ((b.shotFrom || 0) >= 14 && T[p.team].players.filter((q) => !q.gk && !q.off && fx(p.team, q.x) < 22).length >= 5 ? (globalThis.__Kdsl ?? 0.35) : 0) : 0) + (uOn(p, 'miyabi') ? 0.9 * uP(p) : 0) + (uOn(p, 'matsuri') ? 0.6 * uP(p) * mtF(p) : 0) + (uOn(p, 'kagenui') && b.kicker === p.kgT ? 0.6 : 0) + ((p.b5 || -9) > S.t - 0.5 && fx(p.team, b.x) < 25 ? 0.15 : 0) + (fx(p.team, b.x) < 7 && Math.abs(b.y - GOAL_Y) < POST + 2 ? 0.9 : 0) : (p.team !== b.lastTeam && b.kind === 'pass' && skZ(p, 'intercept') ? 0.4 : 0) - (p.team !== b.lastTeam && b.kind === 'pass' ? (b.uSafe || 0) * 0.5 : 0) + (uOn(p, 'tetsurou') && p.team !== b.lastTeam ? 0.5 : 0) + ((p.sw5 || -9) > S.t - 0.5 && p.team !== b.lastTeam && b.kind === 'pass' ? 0.7 : 0) + (uOn(p, 'kagenui') && p.team !== b.lastTeam && b.kind === 'pass' ? (b.intended === p.kgT ? 1.3 : 0.35) : 0) + (uOn(p, 'miyabi') && b.kind === 'loose' ? 0.5 : 0) + ((globalThis.__Kreb ?? 0.4) && b.kind === 'loose' && p.team === b.lastTeam && !p.gk && P[b.lastPlayer] && P[b.lastPlayer].gk && T[p.team].attitude === 'defensive' && fx(p.team, b.x) < 16 ? (globalThis.__Kreb ?? 0.4) : 0) + (uOn(p, 'sutemi') && !gkHands ? 0.6 : 0) + ((globalThis.__Kphy ?? 1) ? (b.kind === 'loose' || hyp(b.vx, b.vy) < 5 ? 0.65 : b.kind === 'pass' && b.intended === p.idx ? 0.82 : 0.6) : (b.kind === 'loose' || hyp(b.vx, b.vy) < 5 ? 0.8 : b.kind === 'pass' && b.intended === p.idx ? 1.25 : 0.75)) + (p.team === b.lastTeam ? p.technique : p.defense) * ((globalThis.__Kphy ?? 1) ? 0.0025 : 0.003)   /* 版908：足が届くのは0.9m前後まで（設計一覧14章） */ + (p.team !== b.lastTeam ? DOM[p.team] * 0.45 : 0);   // ダイレクトのワンツーは読まれにくい
+        const ogX = (globalThis.__Kog ?? 1) && p.gk && !gkHands && b.lastTeam === p.team && b.z < 0.5 && fx(p.team, b.x) < 16 && Math.abs(b.vx) > 0.5 && (fx(p.team, 0) - b.x) * b.vx > 0 && Math.abs(b.y + b.vy * (fx(p.team, 0) - b.x) / b.vx - GOAL_Y) < POST + 0.5 ? 0.8 : 0;   // 版1151：味方の球が自分のゴールへ転がってくる時、GKは足を伸ばして止める（手が使えないので届かず、横を通されていた）
         const gkShot = gkHands && b.kind === 'shot' && b.lastTeam !== p.team;   // 版863：シュートには、キャッチできる範囲より少し遠く・高くまで、指先・こぶしで触れる（はじく・かき出す・パンチングだけ）
         if (p.gk && p.wf && b.kind === 'shot' && b.shotT === p.wf.shot && S.t < p.wf.end) continue;   // 版989：逆を突かれたGKは、そのシュートに触れない（届かないと決まった球。崩れながら戻る途中で触って、止めてしまっていた）
         if (b.z > (gkHands ? gkReachZ(p) + (gkShot ? 0.3 : 0) : 1.9)) continue;
@@ -8326,7 +8331,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         }
         const ttX = uOn(p, 'tetsurou') && b.kind === 'pass' && p.team !== b.lastTeam && b.z < 1.2 ? (p.uniqLv >= 2 ? 1.1 : 0.9) : 0;   // 鉄狼の関所：そばを通るパスに足が届く
         if (gkShot && b.z >= 1.95 && (b.z > gkReachZ(p) || d > (p.diveT > 0 ? 1.3 : 0.9))) continue;   // 版870：頭より高い球は、手が本当に届く所（高さ・距離）でしか触れない（離れた所ではじけて見えないように）
-        if (d <= (gkShot ? Math.min(reach * 1.28, p.diveT > 0 ? 2.0 : 1.3) : reach) + rcvX + ttX) cand.push({ p, d, gkHands, reach });   // 版866：シュートに触れるのは、絵の手が届く所まで（横っ跳び2.0m・立って1.3m）。離れた所ではじけて見えないように
+        if (d <= (gkShot ? Math.min(reach * 1.28, p.diveT > 0 ? 2.0 : 1.3) : reach) + rcvX + ttX + ogX) cand.push({ p, d, gkHands, reach });   // 版866：シュートに触れるのは、絵の手が届く所まで（横っ跳び2.0m・立って1.3m）。離れた所ではじけて見えないように
       }
       cand.sort((a, c) => a.d - c.d);   // こぼれ球は、ボールに近い方が先に触る（守る側・攻める側の差はない）
       for (const { p, gkHands, reach, d: dGk } of cand) {
