@@ -4899,3 +4899,30 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 .fs-meta span{flex:none;font:800 11px/1 sans-serif;color:#fff;background:#13285a;padding:3px 7px;border-radius:4px}
 .fs-meta b{flex:1;min-width:0;display:flex;align-items:center;gap:5px;font:900 15px/1.2 'M PLUS 1p',sans-serif;color:#13213f;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fs-meta b .lgi{width:22px;height:22px}
+
+/* 版1161：スペシャルメニュー：選んだ選手の能力がどう上がるか */
+.sp2-pv{margin-top:6px;background:#efe9d2;border:2px solid #d5ccaa;border-radius:12px;padding:8px 12px 8px;max-height:190px;overflow-y:auto}
+.sp2-pv .pvh{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.sp2-pv .pvh>span{font-weight:900;font-size:15px;color:#1b2a20}
+.sp2-pv .pvh small{font-size:12px;font-weight:800;color:#556}
+.sp2-pv .pvh small b{color:#1b2a20}.sp2-pv .pvh small b.hot{color:#d23a2a}
+.sp2-pv .pvt{margin:2px 0 0;font-size:12px;font-weight:800;color:#2a6a3a}
+.sp2-pv .pvrs{display:grid;gap:4px;margin-top:6px}
+.sp2-pv.two .pvrs{grid-template-columns:1fr 1fr;column-gap:30px}
+.sp2-pv .pvr{display:grid;grid-template-columns:110px 26px 1fr 40px 70px;align-items:center;gap:6px;height:30px}
+.sp2-pv.two .pvrs{gap:0 30px;margin-top:4px}.sp2-pv.two .pvr{grid-template-columns:96px 20px 30px 1fr;height:23px;gap:4px}.sp2-pv.two .pvb{display:none}.sp2-pv.two .pvn{font-size:12px}.sp2-pv.two .pvn img{width:17px;height:17px}.sp2-pv.two .rk{font-size:17px}.sp2-pv.two .pvup .rk{font-size:16px}.sp2-pv.two .pvr em{font-size:14px}.sp2-pv.two .pvr em small{display:none}
+.sp2-pv .pvn{display:flex;align-items:center;gap:4px;font-weight:900;font-size:13px;white-space:nowrap;overflow:hidden}
+.sp2-pv .pvn img,.sp2-pv .pvn svg{width:20px;height:20px;flex:none}
+.sp2-pv .rk{font-size:22px;width:auto}
+.sp2-pv .pvb{position:relative;height:12px;border-radius:6px;background:#cfc6a6;overflow:hidden}
+.sp2-pv .pvb i{position:absolute;left:0;top:0;bottom:0;background:#5a8a5a}
+.sp2-pv .pvb u{position:absolute;top:0;bottom:0;background:linear-gradient(#ffe36a,#f0a400);animation:pvBlink 1.2s ease-in-out infinite alternate}
+.sp2-pv .pvb s{position:absolute;top:0;bottom:0;background:#e06a5a;text-decoration:none}
+@keyframes pvBlink{from{opacity:.55}to{opacity:1}}
+.sp2-pv .pvup{display:flex;align-items:center;font-size:14px;color:#c05a00}
+.sp2-pv .pvup .rk{font-size:20px;margin-left:1px}
+.sp2-pv .pvr em{font-style:normal;font-weight:900;font-size:16px;color:#1d7a3a;text-align:right;white-space:nowrap}
+.sp2-pv .pvr em small{display:block;font-size:10px;color:#776;line-height:1}
+.sp2-pv .pvr em.dn{color:#d23a2a}
+.sp2-pv .pvr em.cap{font-size:11px;color:#776}
+.sp2-pv.sk{max-height:118px}

@@ -1810,6 +1810,26 @@
     const ups = known ? [...(m.all ? [`<span class="spu all">全能力<b>+${m.all}</b></span>`] : []), ...D.PARAM_KEYS.filter((k) => (m.up || {})[k]).map((k) => `<span class="spu">${ico(k)}${J[k]}<b>${m.up[k] > 0 ? '+' : ''}${m.up[k]}</b></span>`)].join('') : '<p class="sp-q">特訓で、このカードの組み合わせを試すと見つかります。<br>（色はカードの種類のヒント）</p>';
     const rate = known && m.skill ? Math.round(C.skillRate(p, m.skill) * 100) : null;
     const who = ps.map((q, i) => `<button class="spw${i === pi ? ' on' : ''}${q.injury > 0 || C.trainedThisWeek(save, q) ? ' done' : ''}" data-pi="${i}">${portrait(q)}<b>${esc(q.name)}</b><i class="pos ${POSC[q.position]}">${q.position}</i>${q.injury > 0 ? '<em>ケガ</em>' : C.trainedThisWeek(save, q) ? '<em>済</em>' : ''}</button>`).join('');
+    // 版1161：この選手が特訓したら、どの能力がどこまで上がるか（疲れ具合・上限も入れた、実際の伸び）
+    const pvHTML = (() => {
+      if (!known || gkNg) return '';
+      const pv = C.previewCards(p, m.cards, C.trainMult(save));
+      if (!pv.sp || pv.sp.id !== m.id) return '';
+      C.ensurePts(p);
+      const cap = C.capPts(p), capG = C.capGrade(p);
+      const keys = D.PARAM_KEYS.filter((k) => Math.round(pv.ups[k] || 0) !== 0);
+      if (!keys.length) return '';
+      const rows = keys.map((k) => {
+        const v = p.pts[k], add = Math.round(pv.ups[k]), to = add > 0 ? Math.min(C.PMAX - 1, Math.max(v, Math.min(cap, v + add))) : Math.max(0, v + add), eff = Math.round((to - v) * 10) / 10;
+        const a = C.rankInfo(v), b = C.rankInfo(to), up = b.g !== a.g && to > v;
+        const p1 = Math.round(a.pct * 100), p2 = up ? 100 : Math.round(b.pct * 100);
+        const note = add > 0 && eff <= 0 ? `<em class="cap">上限（${capG}）</em>` : add > 0 && eff < add ? `<em>+${Math.round(eff)}<small>上限まで</small></em>` : add < 0 ? `<em class="dn">${add}</em>` : `<em>+${add}</em>`;
+        return `<div class="pvr"><span class="pvn">${ico(k)}${J[k]}</span><b class="rk rk-${a.g}">${a.g}</b><span class="pvb"><i style="width:${Math.min(p1, p2)}%"></i>${to > v ? `<u style="left:${p1}%;width:${Math.max(0, p2 - p1)}%"></u>` : ''}${to < v ? `<s style="left:${p2}%;width:${Math.max(0, p1 - p2)}%"></s>` : ''}</span>${up ? `<b class="pvup">→<b class="rk rk-${b.g}">${b.g}</b></b>` : '<b class="pvup"></b>'}${note}</div>`;
+      }).join('');
+      const f0 = Math.round(p.fatigue || 0), f1 = Math.min(100, Math.round((p.fatigue || 0) + (m.fat ?? 100) / 6));
+      const tm = f0 <= 45 ? (f0 < 30 ? '疲れが少ないので、いつもより多めに伸びます' : '') : '疲れているので、伸びが少なくなります';
+      return `<div class="sp2-pv${keys.length > 4 ? ' two' : ''}${m.skill || m.type ? ' sk' : ''}"><div class="pvh"><span>${esc(p.name)}が特訓すると</span><small>疲労 ${f0}% → <b class="${f1 > 75 ? 'hot' : ''}">${f1}%</b>${f1 > 75 ? '（ケガをしやすくなります）' : ''}</small></div>${tm && keys.length <= 4 ? `<p class="pvt">${tm}</p>` : ''}<div class="pvrs">${rows}</div></div>`;
+    })();
     const nF = C.SP.filter((x) => found.has(x.id)).length;
     box.innerHTML = `<div class="sp2"><div class="sp2-h"><b>スペシャルメニュー</b><div class="sp2-bar"><i style="width:${(nF / C.SP.length * 100).toFixed(1)}%"></i></div><span>発見 ${nF} / ${C.SP.length}</span><button class="std-back sp2-back" title="もどる"><i class="bk-ico" aria-hidden="true"></i></button></div>
       <div class="sp2-tabs">${[['all', 'すべて'], ['skill', 'スキル'], ['type', 'タイプ'], ['up', '能力']].map(([k, l]) => `<button data-f="${k}" class="${spFilter === k ? 'on' : ''}">${l}</button>`).join('')}</div>
@@ -1820,6 +1840,7 @@
         ${known && m.type ? `<div class="sp2-sk ty"><span>近づくタイプ</span><b>${esc(m.type)}</b></div>` : ''}
         <div class="sp2-ups">${ups}</div>
         <div class="sp2-who"><span>特訓する選手</span><div class="sp2-ws">${who}</div></div>
+        ${pvHTML}
         <button class="sp2-go dotrain"${ok ? '' : ' disabled'}>${ok ? `${esc(p.name)}で特訓する！` : why}</button></div></div>`;
     el.hidden = false; el._fit();
     box.querySelector('.sp2-back').onclick = () => { el.hidden = true; renderTrain(); };
@@ -6176,7 +6197,7 @@
     draw();
     if (loading) { try { const r = await DotNet.cloudInfo(code()); cloud = r ? { info: r.info, at: r.at } : null; } catch (_) { flash('通信できませんでした（クラウドの情報が読めません）'); } loading = false; if (document.body.contains(scr) && !scr.querySelector('.cs-dlg')) draw(); }
   }
-  window.__career = { abilDoc: (k) => abilDoc(k), abilOne: (k) => abilOne(k), totsuDoc: (t) => totsuDoc(t), friendSquad: (k) => friendSquad(k), roomScreen: (id, r) => roomScreen(id, r), friendMenu: (b) => friendMenu(b), roomPrep: (r, me) => roomPrep(r, me), playRoom: (r, me) => playRoom(r, me), packCode: (o) => packCode(o), openKitEditor: (o) => openKitEditor(o), drawEmblem: (c, x, y, s, lk) => drawEmblem(c, x, y, s, lk), openClub: (o) => openClub(o), playerDetail: (i, o) => playerDetail(i, o), resCard: (o) => resCard(o), seasonEndCard: (o) => seasonEndCard(o), coachNews: (l) => coachNews(l), rewardCard: (r) => rewardCard(r), gachaDemo: (st, pr, fx) => gachaDemo(st, pr, fx), storyCard: (o) => storyCard(o), gotCardsHTML: (got) => `<div class="gc-cards${got.length > 8 ? ' lots' : got.length > 4 ? ' many' : ''}">${got.map((c) => artCard(c, { ups: true })).join('')}</div><p class="cp-msg gc-msg">クラブハウスの「特訓」で、選手に最大3枚セットできます。</p>`, trainResult: (o) => trainResult(o), airport, openPost, syncPost, onlineDone, setVenue: (k) => { venueNow = k; }, champDemo, champAfter, coinShop, faceFill: () => faceFill(), openGacha, venueTalk: (se) => venueTalk(se), matchFace, openOffice, cpuCard, openClub, openAssoc, open, go, stadium, advance, subSheet, labMatch, townRect, tutPractice, shop, store: () => store(), renderHome: () => renderHome(), clubhouseBg: () => clubhouseBg(), isMatchWeek: () => isMatchWeek(), get view() { return view; }, staffFace: (k) => staffFace(k), get save() { return save; }, get drill() { return clubDrill; }, faceURL, starFace, setDrill(d) { clubDrill = d; drillT0 = -1; drillSnap = true; } };
+  window.__career = { spTest: (pi, idx, all) => { if (all) save.spFound = C.SP.map((x) => x.id); spSel = idx; spList(pi); }, abilDoc: (k) => abilDoc(k), abilOne: (k) => abilOne(k), totsuDoc: (t) => totsuDoc(t), friendSquad: (k) => friendSquad(k), roomScreen: (id, r) => roomScreen(id, r), friendMenu: (b) => friendMenu(b), roomPrep: (r, me) => roomPrep(r, me), playRoom: (r, me) => playRoom(r, me), packCode: (o) => packCode(o), openKitEditor: (o) => openKitEditor(o), drawEmblem: (c, x, y, s, lk) => drawEmblem(c, x, y, s, lk), openClub: (o) => openClub(o), playerDetail: (i, o) => playerDetail(i, o), resCard: (o) => resCard(o), seasonEndCard: (o) => seasonEndCard(o), coachNews: (l) => coachNews(l), rewardCard: (r) => rewardCard(r), gachaDemo: (st, pr, fx) => gachaDemo(st, pr, fx), storyCard: (o) => storyCard(o), gotCardsHTML: (got) => `<div class="gc-cards${got.length > 8 ? ' lots' : got.length > 4 ? ' many' : ''}">${got.map((c) => artCard(c, { ups: true })).join('')}</div><p class="cp-msg gc-msg">クラブハウスの「特訓」で、選手に最大3枚セットできます。</p>`, trainResult: (o) => trainResult(o), airport, openPost, syncPost, onlineDone, setVenue: (k) => { venueNow = k; }, champDemo, champAfter, coinShop, faceFill: () => faceFill(), openGacha, venueTalk: (se) => venueTalk(se), matchFace, openOffice, cpuCard, openClub, openAssoc, open, go, stadium, advance, subSheet, labMatch, townRect, tutPractice, shop, store: () => store(), renderHome: () => renderHome(), clubhouseBg: () => clubhouseBg(), isMatchWeek: () => isMatchWeek(), get view() { return view; }, staffFace: (k) => staffFace(k), get save() { return save; }, get drill() { return clubDrill; }, faceURL, starFace, setDrill(d) { clubDrill = d; drillT0 = -1; drillSnap = true; } };
   window.__career.openCloud = openCloud; window.__career.cpuCard = (t, i) => cpuCard(t, i, $("#career"));
   window.__career.shop = (t) => shop(t); window.__career.premDaily = () => premDaily();
   window.__career.embURL = () => { try { return save ? embFromLook(C.ensureClub(save).emb, 96) : ''; } catch (_) { return ''; } };   // 版680：設定のアカウントIDの横に出す、自分のクラブのエンブレム
