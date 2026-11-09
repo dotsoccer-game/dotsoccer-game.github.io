@@ -4926,3 +4926,31 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 .sp2-pv .pvr em.dn{color:#d23a2a}
 .sp2-pv .pvr em.cap{font-size:11px;color:#776}
 .sp2-pv.sk{max-height:118px}
+/* 版1162：スペシャルメニューの伸び：選手カードの「詳しい能力値」と同じ並び */
+.sp2-ab{max-height:none;overflow:visible;padding:6px 10px 6px}
+.sp2-ab .ab-ic,.sp2-ab .ab-gr,.sp2-ab .ab-bars{display:grid;grid-template-columns:repeat(12,1fr);justify-items:center;gap:2px}
+.sp2-ab .ab-ic{margin-top:4px}
+.sp2-ab .ab-ic .pico{width:30px;height:27px;margin:0}
+.sp2-ab .ab-gr div{display:flex;flex-direction:column;align-items:center;line-height:1}
+.sp2-ab .ab-gr .rk{font-size:22px;-webkit-text-stroke-width:1.5px}
+.sp2-ab .ab-gr em{font-style:normal;font-size:12px;font-weight:900;color:#1a9a2a;height:13px;white-space:nowrap}
+.sp2-ab .ab-gr em.rkup{color:#e8501a}.sp2-ab .ab-gr em.dn{color:#c02020}.sp2-ab .ab-gr em.cap{color:#887;font-size:10px}
+.sp2-ab .ab-bars{margin-top:3px;background:#fdf7d6;border:2px solid #e2d8a0;border-radius:8px;padding:4px 2px 2px}
+.sp2-ab .ab-bar{display:flex;flex-direction:column;align-items:center;gap:1px}
+.sp2-ab .ab-bar .bar{position:relative;display:block;width:15px;height:54px;background:#1c2420;border:2px solid #555;border-radius:3px;overflow:hidden}
+.sp2-ab .ab-bar .bar>i{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(#7ee07a,#2f9a3a)}
+.sp2-ab .ab-bar .bar u{position:absolute;left:0;right:0;background:linear-gradient(#ffe36a,#f0a400);animation:pvBlink 1.2s ease-in-out infinite alternate}
+.sp2-ab .ab-bar .bar s{position:absolute;left:0;right:0;background:#e06a5a}
+.sp2-ab .ab-bar b{font-size:12px;font-weight:800}
+.sp2-ab.sk .ab-bars{display:none}
+/* 版1162：リザーブの欄の上に、ベンチ入りの7人 */
+.q3rbn{flex:none;border:.3cqh solid #3a5c8a;border-radius:1cqh;background:rgba(15,29,51,.7);padding:.6cqh .6cqw .8cqh}
+.q3rbn>b{display:block;color:#ffd84a;font-size:2.2cqh;font-weight:900;margin:0 0 .5cqh .3cqw}
+.q3rbn>div{display:grid;grid-template-columns:repeat(7,1fr);gap:.5cqw}
+.q3b.q3bm{width:auto;height:auto;flex-direction:column;gap:.2cqh;padding:.3cqh 0 .5cqh;border-radius:.8cqh}
+.q3b.q3bm .q3bf{width:5.6cqh;height:5.6cqh}
+.q3b.q3bm span{font-size:1.7cqh;font-weight:800;color:#fff;white-space:nowrap;overflow:hidden;max-width:100%;text-overflow:clip}
+/* 版1162：リザーブの欄の下（ヒント・まとめて放出）が、別の「.q3rf」（役割の顔の小さな絵）の大きさに引っぱられてつぶれていた */
+.sq3 .q3rf.q3rft{width:auto;height:auto;object-fit:initial;border:0;border-radius:0;background:none;image-rendering:auto;flex:none}
+/* リザーブの選手を選んだ時の板は、ピッチの上（左）に出して、右のベンチ入り・リザーブを隠さない */
+.sq3 .q3pop{right:auto;left:3cqw;top:20cqh;z-index:300;width:38cqw}
