@@ -1974,7 +1974,7 @@
     L.querySelector('.q3back').onclick = () => { const bk = $('#cvBack'); if (bk) { bk.style.visibility = ''; bk.click(); } };
     L.querySelector('.q3fm').onclick = () => { sq3Menu = !sq3Menu; renderLineup3(); };
     L.querySelectorAll('.q3menu [data-f]').forEach((b) => b.onclick = () => { tac.formation = b.dataset.f; tac.cells = C.cellsFor(b.dataset.f); sq3Menu = false; sq3Pick = -1; redo(); });
-    L.querySelector('.q3tac').onclick = () => openTacSet('tac');
+    L.querySelector('.q3tac').onclick = () => { try { openTacSet('tac'); } catch (err) { console.error(err); toast('戦術設定を開けませんでした'); } };
     /* 版1074：ベンチ・リザーブの選手をつまんだ時も、ピッチの選手と同じ顔の札を指につけて動かす */
     const mkGhost = (q) => { const d = document.createElement('div'); d.innerHTML = chip(q, -1, 0, 0); const g = d.firstElementChild; g.style.left = g.style.top = ''; g.style.zIndex = '999'; g.classList.add('q3ghost'); g.querySelectorAll('img.fc').forEach((im) => { const f = () => cutFace(im); im.addEventListener('load', f); if (im.complete) f(); }); return g; };
     const toast = (m) => { const t = document.createElement('div'); t.className = 'q3toast'; t.textContent = m; box.appendChild(t); setTimeout(() => t.remove(), 1600); };
@@ -2259,7 +2259,8 @@
   function openTacSet(tab0, onClose) {
     const tac = C.ensureTactics(save), snap = JSON.parse(JSON.stringify(tac));
     let work = JSON.parse(JSON.stringify(tac)), tab = tab0 === 'sit' ? 'sit' : 'tac', ask = false;
-    let el = document.getElementById('tacSet'); if (!el) { el = document.createElement('div'); el.id = 'tacSet'; (document.documentElement.classList.contains('stage') && document.getElementById('app') || document.body).appendChild(el); }   /* 版1063：ゲームの画面（#app）の中に出す（両側の緑・Dynamic Islandをよける） */
+    let el = document.getElementById('tacSet'); if (!el) { el = document.createElement('div'); el.id = 'tacSet'; }
+    { const host = document.documentElement.classList.contains('stage') && document.getElementById('app') || document.body; if (el.parentElement !== host || host.lastElementChild !== el) host.appendChild(el); el.style.zIndex = '950'; }   // 版1154：いつも一番手前に出す（ほかの画面の後ろに隠れて、押しても何も起きないように見えていた）   /* 版1063：ゲームの画面（#app）の中に出す（両側の緑・Dynamic Islandをよける） */
     const SIT_NM = { keep: 'そのまま', defend: '守備重視', attack: '攻撃重視', allout: '総攻撃' }, SIT_HD = { lead: 'リード', draw: '同点', behind: 'ビハインド' };
     const LEFT = ['line', 'width', 'compact', 'attitude'], RIGHT = ['press', 'pass', 'side'];
     const item = (k) => { const it = C.TACTIC_ITEMS.find((x) => x.key === k); return `<div class="tq-it"><span class="tq-in">${esc(it.name)}</span><span class="tq-seg n${it.opts.length}">${it.opts.map(([v, nm]) => `<button data-k="${k}" data-v="${v}" class="${String(work[k]) === String(v) ? 'on' : ''}">${esc(nm)}</button>`).join('')}</span></div>`; };
