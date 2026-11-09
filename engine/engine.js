@@ -719,12 +719,11 @@
     }
     // スイーパーキーパーの飛び込み：読んで詰めたGKが、抜け出した相手の足もと（シュートの瞬間も）へ飛び込む。成功すればキャッチ、失敗すれば倒れて無人のゴール
     // GKがシュートする選手の前（ゴールとの間）にいるか。GKを抜いた後ろからは、もう止められない
-    // 版1152：体を入れてボールを守る（プロテクト）時の向き。自陣の後ろ3分の1（ゴールから40m）では、自分のゴールの方へは下がらない（横・外へ逃げる）
-    //  ゴール前で寄せられたDFが、守りながら自分のゴールへドリブルで下がり続けて、GKの所まで運んでオウンゴールになっていた
+    // 版1153：体を入れてボールを守る（プロテクト）時の向き。自分のゴールの方へ下がってよい。ただし、ゴール前（ゴールラインから16m以内）まで来たら、それ以上は下がらず、外（タッチライン側）へ逃げる（ゴールラインを割る・オウンゴールにしない）
     function protDir(p, dx, dy) {
-      if (!(globalThis.__Kpbk ?? 1) || fx(p.team, p.x) > 40) return [dx, dy];
-      const s0 = sgn(p.team); if (dx * s0 < 0) dx = 0;   // 後ろ（自分のゴール）へは行かない
-      const out = Math.sign(p.y - GOAL_Y) || 1; if (Math.abs(p.y - GOAL_Y) < 20 && dy * out < 0.3) dy = out * Math.max(0.6, Math.abs(dy));   // 真ん中にいる時は、外（タッチライン側）へ
+      if (!(globalThis.__Kpbk ?? 1)) return [dx, dy];
+      const xf = fx(p.team, p.x), s0 = sgn(p.team);
+      if (xf < 16 && dx * s0 < 0) { dx = 0; const out = Math.sign(p.y - GOAL_Y) || 1; if (dy * out < 0.5) dy = out * Math.max(0.7, Math.abs(dy)); }
       return [dx, dy];
     }
     function kgOn(q) { return opps(q).some((o) => o.kgT === q.idx && uOn(o, 'kagenui') && !o.off && !(o.downT > 0) && hyp(o.x - q.x, o.y - q.y) < 3.5); }   // 版1013：影縫いに張りつかれている
@@ -2987,6 +2986,11 @@
         if ((globalThis.__Kgz ?? 1) && ((xf < 28 && pxf < 30) || (xf < 32 && near.d < 3.5 && d < 25)) && !p.gk && !q.gk && !through) {   // 版992：原理原則：自分のゴール前（28m以内）では、ゴール前に残るパス（横・後ろ・短い縦）でつながない。取られたら即失点。相手が近い・受け手に相手が近い・通り道が危ないほど強く嫌う
           const risk = clamp((6 - Math.min(near.d, 6)) / 4, 0, 1) * 0.6 + clamp((5 - Math.min(recvOpp, 5)) / 4, 0, 1) * 0.6 + Math.min(1.5, danger) * 0.8 + (Math.abs(py - GOAL_Y) < 16 && pxf < 22 ? 0.5 : 0);
           v -= (globalThis.__Kgz1 ?? 1.8) * risk; if (globalThis.__gzc) { globalThis.__gzc.n++; globalThis.__gzc.r += risk; } }
+        { const R0 = T[t].role;   // 版1153：役割（組み立ての中心・フィニッシャー）を、ふだんのパスの判断にも入れる（前は、めったに通らない古い判断の所にだけ入っていて、ほぼ効いていなかった）
+          if ((globalThis.__Khub ?? 1) && R0 && !q.gk) {
+            if (R0.hub === q && p !== q && xf < L - 28 && danger < 0.95 && recvOpp > 1.6 && !through) { v += (globalThis.__Khubv2 ?? 4.5) * (R0.hubAuto ? 0.4 : 1); if (globalThis.__hubC) globalThis.__hubC.ok++; }
+            if (R0.fin === q && p !== q && pxf > L - 32 && danger < 1.0 && recvOpp > 1.4) v += (globalThis.__Kfinv2 ?? 1.4) * (R0.finAuto ? 0.6 : 1) + (through ? 0.4 : 0);
+          } }
         let hrN = false;   // 版995：針の穴通し（きのした）：相手陣で前を向いたら、ゴール前へ抜ける味方への決定的な1本をいつも狙う（ボールを持ったら怖い存在に）
         if ((globalThis.__Khr2 ?? 1) && p.uniq === 'harinoana' && !(p.uCd > S.t) && !p.off && !S.setPiece && xf > L / 2 - 8 && !q.gk && fx(t, q.x) > L - 42 && fx(t, q.x) < offL - 0.3 && pxf > L - 40 && pxf > xf + 2 && danger < 2.4) { hrN = true; v += (globalThis.__Khr2v ?? 2.6) + (pxf > L - 30 ? 1.0 : 0) + (through ? 0.5 : 0); }
         if (danger < 0.4) bestSafe = Math.max(bestSafe, v);
@@ -3025,7 +3029,7 @@
       const bend = (() => { let s0 = 0; for (const o of foes) { const dd = hyp(o.x - p.x, o.y - p.y); if (dd < 7) s0 += (p.y - o.y) / (dd * dd + 1); } return clamp(s0 * 3, -0.9, 0.9); })();
       let dy0 = fwd[1] + bend; if ((p.y < 4 && dy0 < 0) || (p.y > W - 4 && dy0 > 0)) dy0 = -dy0 * 0.3;
       if (pr <= 1 && space >= 5 && xf < L - 16) opts.push({ kind: 'dribble', mode: space >= 7 && xf > 30 ? 'break' : 'carry', dir: [fwd[0], dy0], v: (globalThis.__Bdrv ?? 1.2) + (space - 5) * 0.25 + (pr === 0 ? 0.6 : 0) + (ph === 'gas' ? 0.7 : 0) + ((p.dribble || 50) - 50) / 100 - (held > 2.5 ? 0.8 : 0) + (bTy(p, 'アタッカー') ? 0.3 : 0) + (bTy(p, 'ビルドアップ型') && ph === 'cast' ? 0.6 : 0) - (bTy(p, 'アンカー') && xf > 45 ? 0.6 : 0) });   // ドライブ（前が空いている時だけ。中盤の相手のブロックへは運び込まない）（版906：アタッカーは多く、ビルドアップ型はキャスティングで自分で運ぶ、アンカーは上がらない）
-      if (pr === 2 && xf > ((globalThis.__Kpbk ?? 1) ? 24 : 10) && xf < L - 18 && near.q) { const ax0 = p.x - near.q.x, ay0 = p.y - near.q.y, al0 = hyp(ax0, ay0) || 1; opts.push({ kind: 'dribble', mode: 'carry', dir: protDir(p, ax0 / al0 - sgn(t) * 0.35, ay0 / al0), protect: near.q.idx, v: -0.4 + (p.technique || 50) / 120 + (bestSafe < 0 ? 0.9 : 0) - (held > 2 ? 1 : 0) }); }   // プロテクト
+      if (pr === 2 && xf > 10 && xf < L - 18 && near.q) { const ax0 = p.x - near.q.x, ay0 = p.y - near.q.y, al0 = hyp(ax0, ay0) || 1; opts.push({ kind: 'dribble', mode: 'carry', dir: protDir(p, ax0 / al0 - sgn(t) * 0.35, ay0 / al0), protect: near.q.idx, v: -0.4 + (p.technique || 50) / 120 + (bestSafe < 0 ? 0.9 : 0) - (held > 2 ? 1 : 0) }); }   // プロテクト
       // 版905：ドライブ（設計一覧3章）：真っすぐ前が詰まっていても、守備者と守備者の間（すき間）が空いていれば、そこへ運ぶ
       if (pr <= 1 && space < 5 && xf > 30 && xf < L - 16 && (globalThis.__Kgap ?? 1)) {
         let bg = 0, bd = null;
@@ -4408,6 +4412,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             p.sdOn = S.t + 0.25;
             if (!p.sdShown) { p.sdShown = true; act(p, 'skill', 1.3, { k: 'speedDribble' }); }
           }
+          if ((globalThis.__Kpbk ?? 1) && !p.gk && fx(p.team, p.x) < 9 && S.dribbleDir[0] * sgn(p.team) < 0) { const out = Math.sign(p.y - GOAL_Y) || 1; S.dribbleDir = [0, out]; }   // 版1153：自分のゴールのすぐ前では、ゴールの方へは運ばない（オウンゴール・ゴールラインを割らない）
           tx = clamp(p.x + S.dribbleDir[0] * 7, 1.5, L - 1.5); ty = clamp(p.y + S.dribbleDir[1] * 7, 1.8, W - 1.8);   // 7m先を目標に（5m先だと秒速8mで頭打ちになっていた）
           let farB = false;
           { const bb = S.ball, ex = bb.x - p.x, ey = bb.y - p.y, dB = hyp(ex, ey); if ((globalThis.__Kr2 ?? 1) && bb.z < 0.05 && dB > 0.9 && (ex * S.dribbleDir[0] + ey * S.dribbleDir[1]) / dB < 0.82) { const rv = bb.rv || [0, 0]; tx = bb.x + rv[0] * 0.35; ty = bb.y + rv[1] * 0.35; farB = true; vmax = Math.max(vmax, maxSpeed(p) * 0.8); p._bCh = hyp(rv[0], rv[1]); } }   // 版895：向きを変える前に、まず転がっているボールに追いつく（触らないとボールの向きは変わらない）
@@ -5982,7 +5987,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         const brk = w * (skZ(p, 'speedDribble') || skZ(p, 'cutIn') ? 1.4 : 1) * (space >= 5 ? 1.15 : 0.9) * (beatOK ? 1 : 0.4);
         if (S.nm && (globalThis.__Kprot ?? 1) && pressure >= 2 && xf > 12 && xf < L - 20) {   // 版901：プロテクト：強く寄せられたら、体を入れて相手から離れる方向へキープ（そのあと、相手が寄って空いた逆側へ）
           let nq = null, nd0 = 99; for (const o of opps(p)) { if (o.off || o.gk) continue; const d0 = hyp(o.x - p.x, o.y - p.y); if (d0 < nd0) { nd0 = d0; nq = o; } }
-          if (nq && nd0 < 3 && !((globalThis.__Kpbk ?? 1) && fx(p.team, p.x) < 24)) { const ax0 = p.x - nq.x, ay0 = p.y - nq.y, al0 = hyp(ax0, ay0) || 1, bk = -sgn(p.team) * 0.35; opts.push({ kind: 'dribble', mode: 'carry', w: (0.35 + p.technique / 200 + p.dribble / 250) * (1 + (p.strength || 50) / 200), dir: protDir(p, ax0 / al0 + bk, ay0 / al0), protect: nq.idx }); }
+          if (nq && nd0 < 3) { const ax0 = p.x - nq.x, ay0 = p.y - nq.y, al0 = hyp(ax0, ay0) || 1, bk = -sgn(p.team) * 0.35; opts.push({ kind: 'dribble', mode: 'carry', w: (0.35 + p.technique / 200 + p.dribble / 250) * (1 + (p.strength || 50) / 200), dir: protDir(p, ax0 / al0 + bk, ay0 / al0), protect: nq.idx }); }
         }
         { const zb = zr(p, 'break'); if (zb > 0) opts.push({ kind: 'dribble', mode: 'break', w: brk * (zb === 2 ? 1.8 : 1), dir: [dir[0], dy2] });   // 突破のドリブル：使わないエリアでは、前へは「運ぶ」だけ
           else if (zr(p, 'carry') > 0) opts.push({ kind: 'dribble', mode: 'carry', w: brk * 0.5, dir: [dir[0], dy2] }); }
