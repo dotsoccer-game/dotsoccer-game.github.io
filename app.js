@@ -122,7 +122,7 @@
     closePlv();
     { const dc = document.getElementById('digestCtl'); if (dc) dc.style.display = 'none'; }
     onMatchDone = done || null;
-    pendTok++; pendAt = -1; doneKeys = new Set();
+    pendTok++; pendAt = -1; doneKeys = new Set(); pendQ = [];
     mctx = { mine, theirs, seed, opts: opts || {}, homeShort, awayShort };
     venue = mctx.opts.venue != null ? Math.max(0, Math.min(4, mctx.opts.venue)) : 4;
     applyKits(mctx.opts.kits);
@@ -174,7 +174,7 @@
   // ハーフタイムの交代・作戦変更：同じシードで試合を計算し直す（前半はまったく同じになる）。後半はそこから続ける
   // 版1155：作戦・交代を決めたら、すぐ試合に戻る。計算し直しは別の働き手で行い、その間は今の試合をそのまま流す
   //  （変更を少し先の時刻から効かせるので、それまでの動きは計算し直しても同じ。間に合わなければ、その時刻で少しだけ待つ）
-  let pendAt = -1, pendTok = 0, doneKeys = new Set();
+  let pendAt = -1, pendTok = 0, doneKeys = new Set(), pendQ = [];
   const chKey = (c) => { try { return JSON.stringify(c); } catch (_) { return String(Math.random()); } };
   function applyHalf(changes, cb, o) {
     o = o || {};
@@ -189,6 +189,7 @@
     const fin = (m2) => {
       if (tok !== pendTok) return;
       pendAt = -1;
+      { const q = pendQ; pendQ = []; setTimeout(() => q.forEach((f) => { try { f(); } catch (e) { console.error(e); } }), 0); }
       m2.homeShort = match.homeShort; m2.awayShort = match.awayShort;
       match = m2; halfT = match.halfTime || halfT;
       prepTimeline();
@@ -200,9 +201,9 @@
     const p = simRun([mctx.mine, mctx.theirs, mctx.seed, opt]);
     if (!p) { late = true; fin(D.simulateMatch(mctx.mine, mctx.theirs, mctx.seed, opt)); return; }
     const fresh = changes.filter((c) => !doneKeys.has(chKey(c)));
-    const holdAt = fresh.length ? Math.min(...fresh.map((c) => c.at == null ? 0 : c.at)) : simT;
+    const holdAt = fresh.length ? Math.min(...fresh.map((c) => c.at == null ? halfT : c.at)) : simT;
     pendAt = Math.max(simT, holdAt - 0.06);
-    p.then(fin, (err) => { if (tok !== pendTok) return; try { fin(D.simulateMatch(mctx.mine, mctx.theirs, mctx.seed, opt)); } catch (e2) { pendAt = -1; showErr(e2, '交代'); } });
+    p.then(fin, (err) => { if (tok !== pendTok) return; try { fin(D.simulateMatch(mctx.mine, mctx.theirs, mctx.seed, opt)); } catch (e2) { pendAt = -1; { const q = pendQ; pendQ = []; q.forEach((f) => { try { f(); } catch (_) {} }); } showErr(e2, '交代'); } });
     if (!late && cb) cb([]);
   }
   function prepTimeline() {
@@ -4520,13 +4521,16 @@
           play();
         }
         if (cb) cb(subs);
-      }, { shift: !atHalf && !mctx.opts.noFF, early: !atHalf }); } catch (err) { showErr(err, '交代'); try { if (cb) cb([]); } catch (_) {} if (!atHalf) play(); } },   // 版1025：交代の計算でエラーが出ても、止まったままにしない
+      }, { shift: !atHalf && !mctx.opts.noFF, early: true }); } catch (err) { showErr(err, '交代'); try { if (cb) cb([]); } catch (_) {} if (!atHalf) play(); } },   // 版1025：交代の計算でエラーが出ても、止まったままにしない
     });
   }
   $('.close').onclick = () => { showOverlay(null); if (!lk) play(); };   // ロッカールームから開いた時は試合を進めない
   $('#htTac') && ($('#htTac').onclick = () => openSub(true));
   $('#second').onclick = () => startSecondHalf();
   function startSecondHalf() {
+    if (pendAt >= 0) {   // 版1156：ハーフタイムの作戦・交代の計算がまだなら、届いてから後半を始める（ふつうは一瞬）
+      const b = $('#second'); if (b) b.disabled = true;
+      if (!pendQ.some((f) => f.sh)) { const f = () => { if (b) b.disabled = false; startSecondHalf(); }; f.sh = 1; pendQ.push(f); } return; }
     showOverlay(null);
     const hs = match.events.filter((e) => e.type === 'sub' && Math.abs(e.t - halfT) < 1);
     // 後半は配置についた状態から始める（ワープして見えないように、配置後の記録まで進めておく）
