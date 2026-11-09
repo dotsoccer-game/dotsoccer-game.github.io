@@ -4843,6 +4843,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           ang = (lo + hi) / 2 + R.gauss() * clamp(0.03 - p.technique * 0.00025, 0.004, 0.03);
         }
       }
+      if (kind === 'shot') { S.lastShot = S.lastShot || [null, null]; S.lastShot[p.team] = { by: p.idx, t: S.t }; }   // 版1158：こぼれ球のゴールの説明用
+      if (kind === 'shot') { const lp9 = S.lastPass[p.team]; if (lp9 && lp9.rcv == null && lp9.from !== p.idx) lp9.rcv = p.idx; }   // 版1158：パスを受けた選手（ダイレクトのシュートも）。アシストは、この選手が決めた時だけ
       Object.assign(b, {
         owner: -1, kind, selfPass: false, gkPen: 0, uSafe: 0, uDelay: 0, guren: 0, tsukiP: false, trapP: false, tact: false, hari: false, hariS: 0, byP: false, aoP: false, brk: false, csPlace, csType, csGkNear, shotSkill: '', ot: 0, conv: false, pkStop: false, shotT: S.t, sx0: p.x, sy0: p.y, vx: Math.cos(ang) * speed, vy: Math.sin(ang) * speed,
         z: Math.max(b.z, 0.1), vz, spin, bs, knuckle, wob: 0, wobW: null, curveAll, curlP: kind === 'pass' && !loft && !!spin && opt.spinSign != null, aimY: ty, drive: driveG, driveUp, driveOn,
@@ -6832,14 +6834,15 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           const k = defl ? kk : P[b.lastPlayer];
           const lp = S.lastPass[scorer];
           let assist = null;
-          if (k.team === scorer && lp && lp.from !== k.idx && S.t - lp.t < 8) assist = P[lp.from].name;
+          if (k.team === scorer && lp && lp.from !== k.idx && (lp.rcv == null || lp.rcv === k.idx) && S.t - lp.t < 8) assist = P[lp.from].name;
+          const ls9 = S.lastShot && S.lastShot[scorer]; const reb = k.team === scorer && ls9 && ls9.by !== k.idx && S.t - ls9.t < 5 && !(lp && lp.t > ls9.t) ? P[ls9.by].name : null;   // 味方のシュートのこぼれ球を押し込んだ
           if (b.sotCnt === false && kk && kk.team === scorer && (b.kickKind === 'shot' || b.kickKind === 'head')) { stats[scorer].shots_on_target++; stats[scorer].off_target = Math.max(0, (stats[scorer].off_target || 0) - 1); b.sotCnt = true; for (let k9 = events.length - 1; k9 >= 0 && S.t - events[k9].t < 8; k9--) if (events[k9].type === 'shot' && events[k9].team === scorer) { events[k9].on = true; break; } }   // 版1019：枠外と見ていたシュートが入った（当たってコースが変わった・ポストに当たって入った）：枠内に数え直す（入ったシュートは必ず枠内）
           if ((globalThis.__Ksot ?? 1) && k.team === scorer) { let had = false; for (let k9 = events.length - 1; k9 >= 0 && S.t - events[k9].t < 8; k9--) if (events[k9].type === 'shot' && events[k9].team === scorer) { had = true; break; }
             if (!had) { stats[scorer].shots++; stats[scorer].shots_on_target++; ev('shot', { team: scorer, player: k.name, number: k.number, d: +(b.shotFrom || 0).toFixed(1), on: true, conv: true }); } }   // 版1019：クロス・こぼれ球がそのまま入ったゴールも、シュート（枠内）1本に数える
-          const g = { t: S.t, clock: Math.round(S.t * CLOCK_SCALE), player: k.team === scorer ? k.name : 'オウンゴール', number: k.number, assist };
+          const g = { t: S.t, clock: Math.round(S.t * CLOCK_SCALE), player: k.team === scorer ? k.name : 'オウンゴール', number: k.number, assist, reb };
           stats[scorer].goals.push(g);
           if (k.team === scorer && k.uniq === 'shiden' && (globalThis.__Ksdw ?? 1)) k.sdWarn = (k.sdWarn || 0) + 1;   // 版1098：紫電の遊戯の選手に点を取られるたびに、相手は警戒を強める
-          ev('goal', { team: scorer, player: g.player, number: k.number, assist, score: [...S.score], kind: b.kind, style: b.style || '', speed: Math.round(hyp(b.vx, b.vy) * 3.6), dist: b.shotFrom ? Math.round(b.shotFrom) : -1, knuckle: !!b.knuckle, conv: !!b.conv, hurry, roll: b.z < 0.4 && hyp(b.vx, b.vy) < 18, gkOut: (() => { const g = T[goalTeam].players[0]; return g.downT > 0 || g.diveT > 0 || fx(goalTeam, g.x) > 6; })() }); if (globalThis.__gkLog) { const g = T[goalTeam].players[0]; globalThis.__gkLog.push({ k: 'goal', pk: !!S.ball.pkShot, curve: !!S.ball.curveAll, kind: S.ball.kind, sinceShot: +(S.t - (S.ball.shotT ?? -9)).toFixed(2), lastTouch: S.ball.lastPlayer, kicker: S.ball.kicker, t: S.t, dive: g.diveT > 0 || g.downT > 0 ? (g.diveDir || 0) : 0, by: +(S.ball.y - GOAL_Y).toFixed(1), gy: +(g.y - GOAL_Y).toFixed(1), gx: +fx(goalTeam, g.x).toFixed(1), style: S.ball.style || '', dist: S.ball.shotFrom ? +S.ball.shotFrom.toFixed(0) : -1 }); }
+          ev('goal', { team: scorer, player: g.player, number: k.number, assist, reb, score: [...S.score], kind: b.kind, style: b.style || '', speed: Math.round(hyp(b.vx, b.vy) * 3.6), dist: b.shotFrom ? Math.round(b.shotFrom) : -1, knuckle: !!b.knuckle, conv: !!b.conv, hurry, roll: b.z < 0.4 && hyp(b.vx, b.vy) < 18, gkOut: (() => { const g = T[goalTeam].players[0]; return g.downT > 0 || g.diveT > 0 || fx(goalTeam, g.x) > 6; })() }); if (globalThis.__gkLog) { const g = T[goalTeam].players[0]; globalThis.__gkLog.push({ k: 'goal', pk: !!S.ball.pkShot, curve: !!S.ball.curveAll, kind: S.ball.kind, sinceShot: +(S.t - (S.ball.shotT ?? -9)).toFixed(2), lastTouch: S.ball.lastPlayer, kicker: S.ball.kicker, t: S.t, dive: g.diveT > 0 || g.downT > 0 ? (g.diveDir || 0) : 0, by: +(S.ball.y - GOAL_Y).toFixed(1), gy: +(g.y - GOAL_Y).toFixed(1), gx: +fx(goalTeam, g.x).toFixed(1), style: S.ball.style || '', dist: S.ball.shotFrom ? +S.ball.shotFrom.toFixed(0) : -1 }); }
           // 失点の時、得点者に一番近い守備者が遠ければ「マークが甘い」
           const nd = nearestOpp(k, k.x, k.y).d;
           if (nd > 4) issue(goalTeam, 'man_marking');
@@ -7223,6 +7226,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         if (S.counter) { ctLaunch(p); if (globalThis.__scnLog) globalThis.__scnLog.push(['ctr', +S.t.toFixed(1), p.team]); }   // 版842：奪った瞬間、前の選手が一斉にゴールへスプリント（中は斜めに裏へ、サイドは外のレーンを駆け上がる。ボールの後ろの中盤も追い越す）
         if (T[p.team].urg && fx(p.team, p.x) > L / 2) stats[p.team].high_wins++;
       }
+      { const lp9 = S.lastPass[p.team]; if (lp9 && lp9.rcv == null && lp9.from !== p.idx) lp9.rcv = p.idx; if (prevTeam != null && prevTeam !== p.team) { S.lastPass[prevTeam] = null; if (S.lastShot) S.lastShot[prevTeam] = null; } }   // 版1158：受けた選手を覚える・相手に取られたらアシストは消える
       const inOwnBox = fx(p.team, b.x) < 16.5 && Math.abs(b.y - GOAL_Y) < 20.2;
       p.bpFromY = p.gk && prevTeam === p.team && P[prevPlayer] && prevPlayer !== p.idx ? P[prevPlayer].y : null;   // 版863：戻してきた味方のサイド（GK経由のサイドチェンジ用）
       if (globalThis.__bpD && p.gk && inOwnBox && !bp0 && prevTeam === p.team && prevPlayer !== p.idx) globalThis.__bpD.push([how, prevKind, b.kicker, prevPlayer, b.ftBy, b.kickKind, b.kind, P[prevPlayer] ? P[prevPlayer].team === p.team : null, +S.t.toFixed(1)]);
@@ -7745,6 +7749,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         if (p.team === kt) { stats[kt].passes_completed++; (bs[b.style] ||= [0, 0])[0]++; }
         else { stats[kt].failed_passes++; (bs[b.style] ||= [0, 0])[1]++; }
       }
+      { const lp9 = S.lastPass[p.team]; if (lp9 && lp9.rcv == null && lp9.from !== p.idx) lp9.rcv = p.idx; }   // 版1158
       act(p, 'head', 0.6);
       p.touchCd = 0.5;
       const base = { owner: -1, spin: 0, bs: 0, knuckle: false, lastTeam: p.team, lastPlayer: p.idx, kicker: p.idx, kickKind: 'head', ftBy: -1, footBy: -1, offside: false, offSet: null, intended: -1 };
