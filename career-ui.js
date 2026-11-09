@@ -5911,10 +5911,13 @@
     const on = ensureOnline(), f = on.flist[k]; if (!f) return friendMenu('keep');
     const el = fullScreen('apScreen', 'ap-wrap'), box = el.querySelector('.lk-box');
     const [sk, st] = seenTxt(fSeen[f.uid]);
-    const side = `<div class="fs-info"><img class="fs-emb" src="${embFromLook(f.emb, 128)}" alt=""><b class="fs-nm">${esc(f.name)}${premMark(f.prem)}</b>${f.mgr ? `<small>${esc(f.mgr)}監督</small>` : ''}${f.rank != null ? rankBadge(f.rank) : ''}
+    let side = '';
+    const mkSide = (mgr, lg) => `<div class="fs-info"><img class="fs-emb" src="${embFromLook(f.emb, 128)}" alt=""><b class="fs-nm">${esc(f.name)}${premMark(f.prem)}</b>
+      <div class="fs-meta"><div><span>監督</span><b>${mgr ? esc(mgr) : '―'}</b></div><div><span>所属</span><b>${lg && C.LG[lg] ? `${lgBadge(lg)}${esc(C.LG[lg].name)}` : '―'}</b></div></div>${f.rank != null ? rankBadge(f.rank) : ''}
       <div class="fs-rec">あなたとの対戦 <b>${f.w || 0}勝 ${f.d || 0}分 ${f.l || 0}敗</b></div>${st ? `<span class="ap-seen s-${sk}"><i></i>${st}</span>` : ''}
       <button class="fs-room" data-a="room"><img src="icons/home_stadium.png" alt="">${(friendMenu.inv || []).some((r) => r.host === f.uid) ? 'ルームに入る' : 'ルームを作る'}</button>
       <button class="fs-del" data-a="del">フレンドから外す</button></div>`;
+    side = mkSide(f.mgr, f.lg);   // 版1150：監督名と所属リーグ
     const paint = (inner) => { box.innerHTML = `${apBg()}<div class="ap2">${apTop('スカッド', esc(f.name) + ' のスタメンとベンチ')}<div class="fs-wrap">${side}${inner}</div></div>`; el.hidden = false; el._fit && el._fit(); bind(); };
     const bind = () => { const q = (x) => box.querySelector(x);
       q('.std-back').onclick = () => friendMenu('keep');
@@ -5924,7 +5927,8 @@
         if (!(await modal(`<h2>本当に外しますか？</h2><p>${esc(f.name)} とのフレンドを外します。この操作は取り消せません。</p>`, [{ label: 'やめる', primary: true, value: false }, { label: '外す', value: true }]))) return;
         const i2 = on.flist.indexOf(f); if (i2 >= 0) { on.flist.splice(i2, 1); store(); } friendMenu('keep'); }; };
     paint('<div class="fs-main"><p class="fs-msg">チームを読みこんでいます…</p></div>');
-    let d = null; try { const pl = window.DotNet && DotNet.on && f.uid ? await DotNet.byUid(f.uid) : null; if (pl && pl.code) d = await unpackCode(pl.code); } catch (_) {}
+    let d = null, pl = null; try { pl = window.DotNet && DotNet.on && f.uid ? await DotNet.byUid(f.uid) : null; if (pl && pl.code) d = await unpackCode(pl.code); } catch (_) {}
+    { const mgr = (d && d.mgr) || (pl && pl.mgr) || f.mgr || '', lg = (d && d.lg) || (pl && pl.lg) || f.lg || ''; side = mkSide(mgr, lg); if (mgr && mgr !== f.mgr) { f.mgr = mgr; store(); } if (lg && lg !== f.lg) { f.lg = lg; store(); } }
     if (el.hidden || !box.querySelector('.fs-wrap')) return;
     if (!d || !d.team || !(d.team.players || []).length) { paint('<div class="fs-main"><p class="fs-msg">チームを読みこめませんでした。<br>通信の状態をたしかめて、もう一度開いてください。</p></div>'); return; }
     const t = d.team, ps = t.players, st11 = ps.slice(0, 11), bench = ps.slice(11, 11 + (C.BENCH_N || 7));

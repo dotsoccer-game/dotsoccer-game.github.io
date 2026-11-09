@@ -4893,3 +4893,9 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 .ab1-w{margin:4px 0 10px;text-align:center;font:900 17px/1.5 "M PLUS 1p",sans-serif;color:#13213f}
 .ab1-ul{margin:0;padding:8px 12px 8px 30px}.ab1-ul li{font:700 14px/1.7 "M PLUS 1p",sans-serif;color:#13213f}
 .pc-abi{display:contents;cursor:pointer}.pc-icons .pico{cursor:pointer}
+/* 版1150：スカッドの左に監督名・所属リーグ */
+.fs-meta{width:100%;display:flex;flex-direction:column;gap:5px;margin:2px 0}
+.fs-meta>div{display:flex;align-items:center;gap:8px;padding:5px 10px;border-radius:8px;background:#eef3fb;border:1.5px solid #c9d7ec}
+.fs-meta span{flex:none;font:800 11px/1 sans-serif;color:#fff;background:#13285a;padding:3px 7px;border-radius:4px}
+.fs-meta b{flex:1;min-width:0;display:flex;align-items:center;gap:5px;font:900 15px/1.2 'M PLUS 1p',sans-serif;color:#13213f;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fs-meta b .lgi{width:22px;height:22px}
