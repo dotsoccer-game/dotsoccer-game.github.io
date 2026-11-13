@@ -3744,10 +3744,10 @@
   }
   // ---- 成績のメニュー ----
   function statMenuHTML(myLg) {
-    const rows = LG_ORDER.map((id) => `<div class="sm-row${id === myLg ? ' mine' : ''}"><span class="sm-n">${lgBadge(id)}${LG_LABEL[id]}</span><button data-sub="table:${id}">順位表</button><button data-sub="goal:${id}">ゴール</button><button data-sub="assist:${id}">アシスト</button><button class="sm-pk" data-sub="perk:${id}">優勝特典</button></div>`).join('');
-    const cup = `<div class="sm-row"><span class="sm-n"><i class="lgb b-cup">杯</i>国内カップ</span><button data-sub="cup">組み合わせ</button><button data-sub="goal:cup">ゴール</button><button data-sub="assist:cup">アシスト</button><button class="sm-pk" data-sub="perk:cup">優勝特典</button></div>`;
+    const rows = LG_ORDER.map((id) => `<div class="sm-row${id === myLg ? ' mine' : ''}"><span class="sm-n">${lgBadge(id)}${LG_LABEL[id]}</span><button data-sub="table:${id}">順位表</button><button data-sub="goal:${id}">ゴール</button><button data-sub="assist:${id}">アシスト</button></div>`).join('');
+    const cup = `<div class="sm-row"><span class="sm-n"><i class="lgb b-cup">杯</i>国内カップ</span><button data-sub="cup">組み合わせ</button><button data-sub="goal:cup">ゴール</button><button data-sub="assist:cup">アシスト</button></div>`;
     const post = save.post ? `<div class="sm-row"><span class="sm-n"><i class="lgb b-post">決</i>昇格・入れ替え戦</span><button data-sub="post">結果</button></div>` : '';
-    return `<div class="std-body"><div class="sm-menu">${rows}${cup}${post}</div></div>`;
+    return `<div class="std-body"><div class="sm-menu">${rows}${cup}${post}<div class="sm-pkrow"><button class="sm-pk" data-sub="perk:${myLg}">各リーグの優勝特典</button></div></div></div>`;   // 版1166：優勝特典のボタンは1つだけ
   }
   function statSubHTML(sub) {
     if (sub.kind === 'table') return tableHTML(sub.id, sub.before);
