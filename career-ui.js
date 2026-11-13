@@ -1350,7 +1350,7 @@
   // 利き足のマーク（本家のように、利き足のほうが光る）
   const footSVG = (foot) => { const sole = (x, on, mir) => `<g transform="translate(${x},0)${mir ? ' scale(-1,1) translate(-14,0)' : ''}"><path d="M7 1c3 0 5 3 5 7 0 3-1 5-1 8 0 3 1 5-1 7-2 1-5 1-6-1-1-2 0-4 0-6 0-3-2-5-2-8C2 4 4 1 7 1z" fill="${on ? '#c8f03a' : '#222'}" stroke="#111" stroke-width="1"/>${on ? `<text x="7" y="12" font-size="8" font-weight="900" text-anchor="middle" fill="#2a4a00">${mir ? 'R' : 'L'}</text>` : ''}</g>`; return `<svg class="footsvg" viewBox="0 0 32 25">${sole(1, foot === 'L', false)}${sole(17, foot === 'R', true)}</svg>`; };
   const lgKey = (id) => id;   // 地域リーグは東西で別のマーク
-  const lgBadge = (id) => { const k = lgKey(id); if (ART.leagues.includes(k)) return `<img class="lgi" src="icons/lg/${k}.png?v=768" alt="">`; const b = LG_BADGE[id] || ['?', 'b-r2']; return `<i class="lgb ${b[1]}">${b[0]}</i>`; };
+  const lgBadge = (id) => { const k = lgKey(id); if (ART.leagues.includes(k)) return `<img class="lgi" src="icons/lg/${k}.png?v=${k === 'cup' ? 1168 : 768}" alt="">`; const b = LG_BADGE[id] || ['?', 'b-r2']; return `<i class="lgb ${b[1]}">${b[0]}</i>`; };
   // ================= 選手データ（カルチョビットAの一覧表のように、詰めて見やすく） =================
   function renderData() {
     const head = D.PARAMS.map((q) => `<th title="${q.name}" class="th-ico">${ico(q.k)}</th>`).join('');
