@@ -4972,3 +4972,4 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 .yp-m p small{font-size:12px;color:#6a6a5a;font-weight:700}
 .yp-c{color:#b07800;font-weight:900;white-space:nowrap}
 .yp-c img,.yp-c svg{width:16px;height:16px;vertical-align:-2px}
+.rc2-pz p.gold{border-top:2px dashed rgba(200,150,0,.5);margin-top:4px;padding-top:4px}.rc2-pz p.gold em{color:#c88a00}

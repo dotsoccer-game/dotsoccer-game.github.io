@@ -3774,6 +3774,7 @@
     const card = (r) => { const t = (C.LG[r.ids[0]] || {}).tier ?? 0, base = C.PRIZE_LG[t] || 100, mine = r.ids.includes(my), on = r.ids.includes(focus);
       return `<div class="yp-row${on ? ' on' : ''}"><img class="yp-tr" src="${trophyImg('league', r.ids[0])}" alt=""><div class="yp-m"><div class="yp-h">${r.ids.map(lgBadge).join("")}<b>${esc(r.name)}</b>${mine ? '<i class="yp-me">いまのリーグ</i>' : ''}</div>
         <p><span>賞金</span>${coin(base * 2)}<small>（1位の順位賞金 ${base}＋優勝ボーナス ${base}）</small></p>
+        ${C.GOLD_LG[r.ids[0]] ? `<p><span>スカウト</span><b class="yp-c">${COIN}${C.GOLD_LG[r.ids[0]].toLocaleString()}</b><small>（金のコイン。スカウトに使える）</small></p>` : ''}
         <p><span>${t === 4 ? '称号' : '来シーズン'}</span>${esc(r.up)}${r.upB ? `<small>昇格できたら、さらに ${coin(r.upB)}</small>` : ''}</p>
         <p><span>トロフィー</span>もらえる（クラブ情報・監督成績に残る）${t < 4 ? `<small>昇格すると、ホームの会場が${VEN[t + 1]}に改装される</small>` : ''}</p></div></div>`; };
     const cup = `<div class="yp-row${focus === 'cup' ? ' on' : ''}"><img class="yp-tr" src="${trophyImg('cup')}" alt=""><div class="yp-m"><div class="yp-h"><i class="lgb b-cup">杯</i><b>国内カップ</b></div>
@@ -4433,7 +4434,7 @@
     });
   }
   // 版834：賞金の表（新しいデザイン）
-  const prizeHTML = (pz) => `<div class="rc2-sec"><div class="rc2-sh dk">シーズンの賞金</div><div class="rc2-pz">${pz.items.map((x) => `<p><span>${esc(x.label)}</span><em>${DCOIN}${x.coins.toLocaleString()}</em></p>`).join('')}<p class="tot"><span>合計</span><em>${DCOIN}+${pz.total.toLocaleString()}</em></p></div></div>`;
+  const prizeHTML = (pz) => `<div class="rc2-sec"><div class="rc2-sh dk">シーズンの賞金</div><div class="rc2-pz">${pz.items.map((x) => `<p><span>${esc(x.label)}</span><em>${DCOIN}${x.coins.toLocaleString()}</em></p>`).join('')}<p class="tot"><span>合計</span><em>${DCOIN}+${pz.total.toLocaleString()}</em></p>${pz.gold ? `<p class="gold"><span>${esc(pz.gold.label)}（スカウトに使えるコイン）</span><em>${COIN}+${pz.gold.coins.toLocaleString()}</em></p>` : ''}</div></div>`;
   // 版834：シーズン終了の画面（新しいデザイン）：見出し・リーグの移動（昇格／残留／降格）・成績・賞金
   function seasonEndCard(se) {
     const up = se.toTier > se.fromTier, dn = se.toTier < se.fromTier, st = up ? ['up', '昇格'] : dn ? ['dn', '降格'] : ['st', '残留'], r = se.rec;
