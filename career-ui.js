@@ -3725,7 +3725,7 @@
     const others = (w) => {
       let h = '';
       for (const id of LG_ORDER) { if (id === lg.id) continue; const o = save.lgs && save.lgs[id]; if (o && o.weeks.includes(w)) h += lgBadge(id); }
-      if (C.CUP_WEEKS.includes(w)) h += '<i class="lgb b-cup">杯</i>';
+      if (C.CUP_WEEKS.includes(w)) h += lgBadge('cup');
       return h;
     };
     const nextW = Math.max(1, save.week);
@@ -3745,7 +3745,7 @@
   // ---- 成績のメニュー ----
   function statMenuHTML(myLg) {
     const rows = LG_ORDER.map((id) => `<div class="sm-row${id === myLg ? ' mine' : ''}"><span class="sm-n">${lgBadge(id)}${LG_LABEL[id]}</span><button data-sub="table:${id}">順位表</button><button data-sub="goal:${id}">ゴール</button><button data-sub="assist:${id}">アシスト</button></div>`).join('');
-    const cup = `<div class="sm-row"><span class="sm-n"><i class="lgb b-cup">杯</i>国内カップ</span><button data-sub="cup">組み合わせ</button><button data-sub="goal:cup">ゴール</button><button data-sub="assist:cup">アシスト</button></div>`;
+    const cup = `<div class="sm-row"><span class="sm-n">${lgBadge('cup')}国内カップ</span><button data-sub="cup">組み合わせ</button><button data-sub="goal:cup">ゴール</button><button data-sub="assist:cup">アシスト</button></div>`;
     const post = save.post ? `<div class="sm-row"><span class="sm-n"><i class="lgb b-post">決</i>昇格・入れ替え戦</span><button data-sub="post">結果</button></div>` : '';
     return `<div class="std-body"><div class="sm-menu">${rows}${cup}${post}<div class="sm-pkrow"><button class="sm-pk" data-sub="perk:${myLg}">各リーグの優勝特典</button></div></div></div>`;   // 版1166：優勝特典のボタンは1つだけ
   }
@@ -3777,7 +3777,7 @@
         ${C.GOLD_LG[r.ids[0]] ? `<p><span>スカウト</span><b class="yp-c">${COIN}${C.GOLD_LG[r.ids[0]].toLocaleString()}</b><small>（金のコイン。スカウトに使える）</small></p>` : ''}
         <p><span>${t === 4 ? '称号' : '来シーズン'}</span>${esc(r.up)}${r.upB ? `<small>昇格できたら、さらに ${coin(r.upB)}</small>` : ''}</p>
         <p><span>トロフィー</span>もらえる（クラブ情報・監督成績に残る）${t < 4 ? `<small>昇格すると、ホームの会場が${VEN[t + 1]}に改装される</small>` : ''}</p></div></div>`; };
-    const cup = `<div class="yp-row${focus === 'cup' ? ' on' : ''}"><img class="yp-tr" src="${trophyImg('cup')}" alt=""><div class="yp-m"><div class="yp-h"><i class="lgb b-cup">杯</i><b>国内カップ</b></div>
+    const cup = `<div class="yp-row${focus === 'cup' ? ' on' : ''}"><img class="yp-tr" src="${trophyImg('cup')}" alt=""><div class="yp-m"><div class="yp-h">${lgBadge('cup')}<b>国内カップ</b></div>
         <p><span>賞金</span>勝つたびに ${coin(5)}〜（勝ち進むほど多い）、優勝で さらに ${coin(100)}</p>
         <p><span>トロフィー</span>もらえる（クラブ情報・監督成績に残る）<small>リーグの順位や昇格には関係しない</small></p></div></div>`;
     return `<div class="std-body"><div class="yp-wrap"><div class="yp-top"><b>優勝特典</b><small>賞金はシーズンの終わり（1月の試合がすべて終わった時）にまとめてもらえます</small></div>${ROWS.map(card).join('')}${cup}</div></div>`;

@@ -816,15 +816,16 @@
     all.push({ name: save.team.name, lg: myLgId(save) });
     const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
     const reg2 = shuffle(all.filter((t) => /^reg.2$/.test(t.lg)));
-    const pre = reg2.slice(0, 4).map((t) => t.name), slots = Array(64).fill(null);
-    // D1 → D2 の順に、ばらばらの場所へ
-    const place = (list) => { const n = list.length; shuffle(list).forEach((t, k) => { let i = Math.floor((k * 64) / n); while (slots[i] !== null) i = (i + 1) % 64; slots[i] = t.name; }); };
-    place(all.filter((t) => t.lg === 'd1')); place(all.filter((t) => t.lg === 'd2'));
-    const free = () => { const f = slots.map((v, i) => (v === null ? i : -1)).filter((i) => i >= 0); return f[Math.floor(r() * f.length)]; };
-    const preSlots = [free()]; slots[preSlots[0]] = '#pre0'; preSlots.push(free()); slots[preSlots[1]] = '#pre1';
-    const rest = shuffle(all.filter((t) => t.lg !== 'd1' && t.lg !== 'd2' && !pre.includes(t.name)));
-    for (const t of rest) slots[free()] = t.name;
-    save.cup = { season: save.season, ver: 3, round: 0, bracket: slots.slice(), slots, pre: [[pre[0], pre[1]], [pre[2], pre[3]]], preSlots, log: [], hist: [], champion: null, alive: all.map((t) => t.name), waiting: [], bye: null };
+    const pre = reg2.slice(0, 4).map((t) => t.name);
+    // 版1167：シード（強い順に1〜64番）で組む。1回戦は1番と64番、2番と63番…のように、強いチームと弱いチームが当たる。
+    //  強いチーム同士は勝ち上がった先（シード1と2は決勝）で当たる。同じリーグの中の順番は毎年くじで変わる
+    const TIER = { d1: 4, d2: 3, d3: 2, regE1: 1, regW1: 1, regE2: 0, regW2: 0 };
+    const seeded = shuffle(all.filter((t) => !pre.includes(t.name))).sort((a, b) => (TIER[b.lg] ?? 0) - (TIER[a.lg] ?? 0)).map((t) => t.name);   // 62チーム（並べ替えは同じリーグなら、くじの順のまま）
+    seeded.push('#pre0', '#pre1');   // 63・64番：出場決定戦の勝者
+    let order = [1, 2]; while (order.length < 64) { const n = order.length * 2; order = order.flatMap((x) => [x, n + 1 - x]); }   // 1,64,32,33,16,49,… の並び（1と2は反対の山）
+    const slots = order.map((sd) => seeded[sd - 1]);
+    const preSlots = [slots.indexOf('#pre0'), slots.indexOf('#pre1')];
+    save.cup = { season: save.season, ver: 3, seeded: 1, round: 0, bracket: slots.slice(), slots, pre: [[pre[0], pre[1]], [pre[2], pre[3]]], preSlots, log: [], hist: [], champion: null, alive: all.map((t) => t.name), waiting: [], bye: null };
     save.cup.pairs = save.cup.pre.map((x) => x.slice());
   }
   // カップ戦（CPU同士）：力の差がはっきり出る。準決勝はほぼD1、ときどきD2のジャイアントキリング
@@ -1999,6 +2000,7 @@
     if (save.world) for (const id in save.world.leagues) for (const t of save.world.leagues[id]) if (ROSTERS[t.id]) t.lvl = lvlAt(t.id, save.season);   // 固定選手の強さに合わせる
     if (save.league) ensureOthers(save);
     if (save.cup && save.cup.ver !== 2 && save.cup.ver !== 3) migrateCal2(save);
+    if (save.cup && save.cup.ver === 3 && !save.cup.seeded && save.cup.round === 0 && !(save.cup.log || []).length && !(save.cup.hist || []).length) newCup(save);   // 版1167：まだ1試合もしていないカップは、シードで組み直す
     if (save.cup && save.cup.ver === 2) {   // 毎回組み合わせを決め直す方式 → 最初から最後まで決まっているトーナメントへ（今の週までの試合は進めておく）
       const log = save.cup.log || []; newCup(save); save.cup.log = log;
       while (save.cup.round < CUP_WEEKS.length && CUP_WEEKS[save.cup.round] < save.week && !save.cup.champion) resolveCupRound(save, null);
