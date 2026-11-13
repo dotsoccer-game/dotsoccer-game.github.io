@@ -2098,9 +2098,10 @@
   // 版506：スカウトで来た選手は、育てる前の弱い状態（能力はE〜C）。得意・不得意の形（どの能力が高いか）はそのまま残す
   // 版980：☆5（国内屈指）は、入団した時点で総合60くらいある（得意・不得意の形はそのまま、全部の能力を同じだけ上げる）
   function gachaFloor(p, star) {
-    const tgt = star >= 5 ? 60 : 0; if (!tgt) return; ensurePts(p);
-    const ov = () => KEYS.reduce((a, k) => a + p[k], 0) / KEYS.length;
-    for (let i = 0; i < 400 && ov() < tgt; i++) for (const k of KEYS) { p.pts[k] = Math.round((p.pts[k] + 2) * 10) / 10; p[k] = toEng(p.pts[k]); }
+    // 版1164：☆3・☆4も、来た時から目に見えて強く（監督の指定：☆3＝65・☆4＝68、☆5は60のまま。☆5は固有スキルと上限Sが特別）
+    const tgt = ({ 3: 65, 4: 68, 5: 60 })[star] || 0; if (!tgt) return; ensurePts(p);
+    const ov = () => KEYS.reduce((a, k) => a + p[k], 0) / KEYS.length, cp = capPts(p);
+    for (let i = 0; i < 600 && ov() < tgt; i++) { let moved = false; for (const k of KEYS) { if (p.pts[k] >= cp) continue; p.pts[k] = Math.min(cp, Math.round((p.pts[k] + 2) * 10) / 10); p[k] = toEng(p.pts[k]); moved = true; } if (!moved) break; }
   }
   function gachaWeak(p) {
     if (p.gweak >= 2) return; if (p.gweak) { p.skills = []; p.gweak = 2; return; } ensurePts(p);
