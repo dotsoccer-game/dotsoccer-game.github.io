@@ -3653,6 +3653,7 @@
         if (m && bd && (H.classList.contains('short') || H.classList.contains('phone'))) { m.style.zoom = 1; requestAnimationFrame(() => { const z0 = parseFloat(getComputedStyle(m.parentElement).zoom) || 1, avail = bd.clientHeight / z0 - 24, need = m.offsetHeight + 12; m.style.zoom = Math.max(0.6, Math.min(1.5, avail / need)).toFixed(3); }); } }
       box.querySelectorAll('[data-tab]').forEach((b) => b.onclick = () => { S.tab = b.dataset.tab; S.sub = null; S.direct = false; draw(); });
       box.querySelectorAll('[data-sub]').forEach((b) => b.onclick = () => { const [kind, id] = b.dataset.sub.split(':'); S.sub = { kind, id }; draw(); });
+      { const on = box.querySelector('.yp-row.on:not(.mine0)'); if (on && S.sub && S.sub.kind === 'perk') { const w = on.parentElement; w.scrollTop = Math.max(0, on.offsetTop - w.offsetTop - 30); } }   // 版1163：選んだリーグの特典が見える所まで
       box.querySelectorAll('[data-cupr]').forEach((b) => b.onclick = () => { S.cupRound = +b.dataset.cupr; draw(); });
       box.querySelectorAll('[data-cupv]').forEach((b) => b.onclick = () => { S.cupView = b.dataset.cupv; draw(); });
       box.querySelectorAll('[data-team]').forEach((b) => b.onclick = () => { S.sub = { kind: 'team', id: b.dataset.team, back: S.sub, backTab: S.tab, view: 'info' }; S.tab = 'stats'; draw(); });
@@ -3743,8 +3744,8 @@
   }
   // ---- 成績のメニュー ----
   function statMenuHTML(myLg) {
-    const rows = LG_ORDER.map((id) => `<div class="sm-row${id === myLg ? ' mine' : ''}"><span class="sm-n">${lgBadge(id)}${LG_LABEL[id]}</span><button data-sub="table:${id}">順位表</button><button data-sub="goal:${id}">ゴール</button><button data-sub="assist:${id}">アシスト</button></div>`).join('');
-    const cup = `<div class="sm-row"><span class="sm-n"><i class="lgb b-cup">杯</i>国内カップ</span><button data-sub="cup">組み合わせ</button><button data-sub="goal:cup">ゴール</button><button data-sub="assist:cup">アシスト</button></div>`;
+    const rows = LG_ORDER.map((id) => `<div class="sm-row${id === myLg ? ' mine' : ''}"><span class="sm-n">${lgBadge(id)}${LG_LABEL[id]}</span><button data-sub="table:${id}">順位表</button><button data-sub="goal:${id}">ゴール</button><button data-sub="assist:${id}">アシスト</button><button class="sm-pk" data-sub="perk:${id}">優勝特典</button></div>`).join('');
+    const cup = `<div class="sm-row"><span class="sm-n"><i class="lgb b-cup">杯</i>国内カップ</span><button data-sub="cup">組み合わせ</button><button data-sub="goal:cup">ゴール</button><button data-sub="assist:cup">アシスト</button><button class="sm-pk" data-sub="perk:cup">優勝特典</button></div>`;
     const post = save.post ? `<div class="sm-row"><span class="sm-n"><i class="lgb b-post">決</i>昇格・入れ替え戦</span><button data-sub="post">結果</button></div>` : '';
     return `<div class="std-body"><div class="sm-menu">${rows}${cup}${post}</div></div>`;
   }
@@ -3752,11 +3753,34 @@
     if (sub.kind === 'table') return tableHTML(sub.id, sub.before);
     if (sub.kind === 'goal' || sub.kind === 'assist') return rankHTML(sub.id, sub.kind);
     if (sub.kind === 'cup') return cupHTML();
+    if (sub.kind === 'perk') return perkHTML(sub.id);
     if (sub.kind === 'post') return postHTML();
     if (sub.kind === 'team') return teamHTML(sub.id, sub.view);
     return '';
   }
   const lgName = (id) => (id === 'cup' ? '国内カップ' : id === 'post' ? '昇格・入れ替え戦' : LG_LABEL[id] || '');
+  /* 版1163：それぞれのリーグ（と国内カップ）で優勝すると、何がもらえるか。いつでも「成績」から見られる */
+  function perkHTML(focus) {
+    const my = save.league.id, regOf = (id) => id.replace(/[EW]/, '');
+    const coin = (n) => `<b class="yp-c">${DCOIN}${n.toLocaleString()}</b>`;
+    const ROWS = [
+      { id: 'd1', ids: ['d1'], name: 'D1リーグ', up: '日本一のクラブ（いちばん上のリーグ）', upB: 0 },
+      { id: 'd2', ids: ['d2'], name: 'D2リーグ', up: 'D1への入れ替え戦へ（2位までが出場。勝てばD1へ）', upB: C.PRIZE_UP[4] },
+      { id: 'd3', ids: ['d3'], name: 'D3リーグ', up: 'そのままD2へ昇格', upB: C.PRIZE_UP[3] },
+      { id: 'reg1', ids: ['regE1', 'regW1'], name: '地域1部リーグ（東・西）', up: '「D3昇格トーナメント」へ（2位までが出場。勝てばD3へ）', upB: C.PRIZE_UP[2] },
+      { id: 'reg2', ids: ['regE2', 'regW2'], name: '地域2部リーグ（東・西）', up: 'そのまま地域1部へ昇格', upB: C.PRIZE_UP[1] },
+    ];
+    const VEN = ['市民グラウンド', '運動公園', 'スタジアム', 'スタジアム', '大きなスタジアム'];
+    const card = (r) => { const t = (C.LG[r.ids[0]] || {}).tier ?? 0, base = C.PRIZE_LG[t] || 100, mine = r.ids.includes(my), on = r.ids.includes(focus);
+      return `<div class="yp-row${on ? ' on' : ''}"><img class="yp-tr" src="${trophyImg('league', r.ids[0])}" alt=""><div class="yp-m"><div class="yp-h">${r.ids.map(lgBadge).join("")}<b>${esc(r.name)}</b>${mine ? '<i class="yp-me">いまのリーグ</i>' : ''}</div>
+        <p><span>賞金</span>${coin(base * 2)}<small>（1位の順位賞金 ${base}＋優勝ボーナス ${base}）</small></p>
+        <p><span>${t === 4 ? '称号' : '来シーズン'}</span>${esc(r.up)}${r.upB ? `<small>昇格できたら、さらに ${coin(r.upB)}</small>` : ''}</p>
+        <p><span>トロフィー</span>もらえる（クラブ情報・監督成績に残る）${t < 4 ? `<small>昇格すると、ホームの会場が${VEN[t + 1]}に改装される</small>` : ''}</p></div></div>`; };
+    const cup = `<div class="yp-row${focus === 'cup' ? ' on' : ''}"><img class="yp-tr" src="${trophyImg('cup')}" alt=""><div class="yp-m"><div class="yp-h"><i class="lgb b-cup">杯</i><b>国内カップ</b></div>
+        <p><span>賞金</span>勝つたびに ${coin(5)}〜（勝ち進むほど多い）、優勝で さらに ${coin(100)}</p>
+        <p><span>トロフィー</span>もらえる（クラブ情報・監督成績に残る）<small>リーグの順位や昇格には関係しない</small></p></div></div>`;
+    return `<div class="std-body"><div class="yp-wrap"><div class="yp-top"><b>優勝特典</b><small>賞金はシーズンの終わり（1月の試合がすべて終わった時）にまとめてもらえます</small></div>${ROWS.map(card).join('')}${cup}</div></div>`;
+  }
   function tableHTML(id, before) {
     const t = C.leagueTable(save, id); if (!t) return '';
     const n = t.rows.length; before = t.round <= 1 ? [] : before && before.length ? before : C.prevOrder(save, id);   // 第1節が終わっただけなら、矢印は全部→
