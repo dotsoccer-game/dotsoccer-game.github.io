@@ -1974,9 +1974,26 @@
       for (let i = 0; i < 2000 && ov() < 60; i++) { let lo = KEYS[0]; for (const k of KEYS) if (p.pts[k] < p.pts[lo]) lo = k; p.pts[lo] = Math.round((p.pts[lo] + 3) * 10) / 10; p[lo] = toEng(p.pts[lo]); }
     }
   }
+  /* 版1164a：版1164より前にスカウトで来た☆3・☆4の選手にも、今の新しい選手と同じだけ上乗せする。
+     来た時の能力（同じ選手を作り直して、弱くした状態）から、版1164の上げ方で上がる分を、能力ごとに今の能力へ足す（育てた分はそのまま残る） */
+  function fix1164(save) {
+    if (save.fix1164) return; save.fix1164 = 1; let n = 0;
+    for (const p of [...((save.team && save.team.players) || []), ...(save.reserve || [])]) {
+      const st = ensureStar(p); if ((st !== 3 && st !== 4) || !p.gsrc || p.g1164) continue;
+      const m = /^(.*)_(\d+)$/.exec(p.gsrc); if (!m) continue; const q = gachaQ(m[1], +m[2]); if (!q) continue;
+      const base = rosterPlayer(q, 0); delete base.topHair; delete base.role; base.star = st; base.totsu = p.totsu || 0; base.gweak = 0; gachaWeak(base);
+      const b0 = Object.fromEntries(KEYS.map((k) => [k, base.pts[k]])); gachaFloor(base, st);
+      ensurePts(p); if (KEYS.every((k) => p.pts[k] >= base.pts[k] - 0.5)) { p.g1164 = 1; continue; }   // 版1164〜1169の間に来た選手（もう上がっている）は足さない
+      const cp = capPts(p); let up = 0;
+      for (const k of KEYS) { const d = Math.max(0, base.pts[k] - b0[k]); if (d <= 0) continue; const v = Math.min(cp, Math.round((p.pts[k] + d) * 10) / 10); up += v - p.pts[k]; p.pts[k] = Math.max(p.pts[k], v); p[k] = toEng(p.pts[k]); }
+      p.g1164 = 1; if (up > 0) n++;
+    }
+    if (n) save.fix1164n = n;
+  }
   function migrate(save) {
     try { gachaFixOld(save); } catch (_) {}
     try { fix980(save); } catch (_) {}
+    try { fix1164(save); } catch (e) { console.error(e); }
     try { for (const p of [...((save.team && save.team.players) || []), ...(save.reserve || [])]) if ((D.LEFTY_UNIQ || []).includes(p.uniq)) p.foot = 'L'; } catch (_) {}   // 版984：左利きの国内屈指
     try { for (const p of [...((save.team && save.team.players) || []), ...(save.reserve || [])]) if (p.suspend > 0 && !p.susp) p.suspend = 0; syncSuspend(save); } catch (_) {}   // 版835：前の仕組みで残っていた出場停止（年をまたいだものなど）は消す   // 版506：スカウトで来た強い選手を、弱い状態に
     // ランクの幅を変えた（E→Dを短く）：今までの育成ポイントを、同じランクの同じ位置に移しかえる
@@ -2095,7 +2112,7 @@
     const used = new Set([...ps, ...save.reserve].map((x) => x.number)); let n = q.no; if (used.has(n)) { n = 12; while (used.has(n)) n++; } p.number = n;   // 版559：控え室（リザーブ）の選手の番号も見る（26番が何人もできていた）
     p.star = pick.star; p.totsu = 0; p.gsrc = pick.tid + '_' + pick.no; p.faceKey = faceKeyOf(pick.tid, q) || undefined;
     { const hc = topHc || (p.faceKey && root.STAR_HAIR && root.STAR_HAIR[p.faceKey]); if (hc != null) p.hairColor = hc; }   // 版555：国内屈指級はその選手だけの髪の色（CPUの時と同じ）
-    p.fatigue = 10; p.cond = 0; p.injury = 0; p.games = 0; p.foot = (D.LEFTY_UNIQ || []).includes(p.uniq) ? 'L' : p.foot || (Math.random() < 0.2 ? 'L' : 'R'); delete p.age; gachaWeak(p); gachaFloor(p, pick.star);
+    p.fatigue = 10; p.cond = 0; p.injury = 0; p.games = 0; p.foot = (D.LEFTY_UNIQ || []).includes(p.uniq) ? 'L' : p.foot || (Math.random() < 0.2 ? 'L' : 'R'); delete p.age; gachaWeak(p); gachaFloor(p, pick.star); p.g1164 = 1;
     if (full) { p.gNew = 1; save.reserve.push(p); } else ps.push(p);   // 版915：リザーブに入った新しい選手は、リザーブの一番上に出す（gNew）
     return { kind: 'new', p, star: pick.star, q, tid: pick.tid, reserve: full };
   }
@@ -2140,5 +2157,5 @@
     const picks = []; for (let i = 0; i < n; i++) picks.push(gachaOne(save, bn, r, n >= 10 && i === n - 1 && !picks.some((x) => x.star >= 3) ? 3 : 0));   // 10連は☆3以上を1人確定
     return { banner: bn, results: picks.map((pk) => { const res = gachaApply(save, pk); if (pk.off) res.off = true; return res; }) };
   }
-  root.DotCareer = { PRIZE_LG, PRIZE_UP, GOLD_LG, totsuGain, pasLv, gachaPick, setGachaPick, gachaReady, GACHA_PU_N, GACHA_PU_RATE, gachaUniqList, cpuSkills, skKind, slotsOf, skillsOf, syncSuspend, PREFS, prefRegion, setHometown, earnCoins, earnedOf, homeTier, myNextLg, PREM, premOn, cardMax, awaken, awakeCost, AWAKE_COST, registerGuest, guestCode, GUESTS, champPeek, CARD_MAX, noSkillLg, gachaBanner, gachaPull, gachaPoolAll, ensureGacha, GACHA_RATE, GACHA_COST, GACHA_PITY, KAKERA_OF, oppKits, BENCH_N, kitsPair, d1Round, pinWatch, faceKeyOf, cpuTeam, ensureStar, starOf, totsuOf, capGrade, capPts, capIdx, GRADES, rosterAt, lvlAt, retiredAt, titleOf, ensureTitles, evalTitles, CUP_LABELS, cupIn, ensureClub, renameClub, kitsFor, KIT_DEFAULT, EMB_DEFAULT, TEAMS, TEAM_BY_ID, ROSTERS, rosterOfTeam, leagueTable, prevOrder, goalRank, recordGoals, CUP_WEEKS_ALL: CUP_WEEKS, leagueWeeksOf: leagueWeeks, POST_WEEKS, CARDS, CAT_NAME, SP, findSpecial, previewCards, trainCards, trainOne, weekTick, GRID_R, GRID_C, zoneOf, cellsFor, formationLabel, FORMATIONS, TACTIC_ITEMS, STYLES, SITU_DEFAULT, SITU_ACTS, SITU_ROWS, SITU_FROM, ensureTactics, slotRoles, applyTactics, skillRate, endWeek, SEASON_WEEKS, INJURIES, TYPE_TUNE, COND_NAME, condOf, trainedThisWeek, trainsDone, trainLimit, trainMult, campState, campAdvance, CAMP, slotInfo, SLOT_MAX, SKILL_RATE, rewardCards, newLeague, newCup, playFixture, peekRound, afterOfficial, playPractice, practiceOpponent, practiceOptions, teamLook, recordStats, teamLevel, findTeam, CUP_WEEKS, CAMPS, LG, rankInfo, PMAX, PRICE, buyCard, buyPack, toEng, toPts, migrate, ensurePts, TEAM_MENUS: TEAM_PTS, MENUS, SPECIAL, LEAGUES, PNAME, newCareer, menusFor, train, learnSkill, slots, skillChance, nextFixture, finishRound, standings, endSeason, opponentTeam, matchTeam, avgParam, decideType, TYPES_BY_POS };
+  root.DotCareer = { _t: { gachaWeak, gachaFloor, fix1164, rosterPlayer, gachaQ }, PRIZE_LG, PRIZE_UP, GOLD_LG, totsuGain, pasLv, gachaPick, setGachaPick, gachaReady, GACHA_PU_N, GACHA_PU_RATE, gachaUniqList, cpuSkills, skKind, slotsOf, skillsOf, syncSuspend, PREFS, prefRegion, setHometown, earnCoins, earnedOf, homeTier, myNextLg, PREM, premOn, cardMax, awaken, awakeCost, AWAKE_COST, registerGuest, guestCode, GUESTS, champPeek, CARD_MAX, noSkillLg, gachaBanner, gachaPull, gachaPoolAll, ensureGacha, GACHA_RATE, GACHA_COST, GACHA_PITY, KAKERA_OF, oppKits, BENCH_N, kitsPair, d1Round, pinWatch, faceKeyOf, cpuTeam, ensureStar, starOf, totsuOf, capGrade, capPts, capIdx, GRADES, rosterAt, lvlAt, retiredAt, titleOf, ensureTitles, evalTitles, CUP_LABELS, cupIn, ensureClub, renameClub, kitsFor, KIT_DEFAULT, EMB_DEFAULT, TEAMS, TEAM_BY_ID, ROSTERS, rosterOfTeam, leagueTable, prevOrder, goalRank, recordGoals, CUP_WEEKS_ALL: CUP_WEEKS, leagueWeeksOf: leagueWeeks, POST_WEEKS, CARDS, CAT_NAME, SP, findSpecial, previewCards, trainCards, trainOne, weekTick, GRID_R, GRID_C, zoneOf, cellsFor, formationLabel, FORMATIONS, TACTIC_ITEMS, STYLES, SITU_DEFAULT, SITU_ACTS, SITU_ROWS, SITU_FROM, ensureTactics, slotRoles, applyTactics, skillRate, endWeek, SEASON_WEEKS, INJURIES, TYPE_TUNE, COND_NAME, condOf, trainedThisWeek, trainsDone, trainLimit, trainMult, campState, campAdvance, CAMP, slotInfo, SLOT_MAX, SKILL_RATE, rewardCards, newLeague, newCup, playFixture, peekRound, afterOfficial, playPractice, practiceOpponent, practiceOptions, teamLook, recordStats, teamLevel, findTeam, CUP_WEEKS, CAMPS, LG, rankInfo, PMAX, PRICE, buyCard, buyPack, toEng, toPts, migrate, ensurePts, TEAM_MENUS: TEAM_PTS, MENUS, SPECIAL, LEAGUES, PNAME, newCareer, menusFor, train, learnSkill, slots, skillChance, nextFixture, finishRound, standings, endSeason, opponentTeam, matchTeam, avgParam, decideType, TYPES_BY_POS };
 })(typeof window !== 'undefined' ? window : globalThis);

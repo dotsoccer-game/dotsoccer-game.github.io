@@ -656,6 +656,8 @@
   const TIPS = ['選手は試合に出るほど「判断」が伸びます。', 'スペシャル（スキル）の特訓は、関係する能力が高いほど成功しやすい。', '同じスキルを持つ先輩がいると、スキルを覚えやすくなります。', '疲れたまま特訓すると伸びが落ち、ケガをすることも。休養も大事。', 'スキル枠は、能力が上がると増えていきます。', '特訓で動きのくせ（裏パラ）が変わり、選手タイプが変わることがあります。'];
   function renderHome() {
     ensure();
+    if (save.fix1164n) { const n = save.fix1164n; delete save.fix1164n; store();   // 版1164a：前にスカウトで来た☆3・☆4の選手を強くしたお知らせ（1回だけ）
+      setTimeout(() => modal(`<h2>スカウトの選手が強くなりました</h2><p>スカウトで来る☆3・☆4の選手を、来た時から強くしました（☆3は総合65・☆4は総合68）。<br>これまでにスカウトで来た☆3・☆4の選手 <b>${n}人</b>にも、同じだけ能力を足しました。<br><small>育てて伸ばした分は、そのまま残っています。</small></p>`, [{ label: 'OK', value: true, primary: true }]), 600); }
     const k = cal(save.week);
     $('#hmMonth').innerHTML = dotNum(k.m); $('#hmWeek').innerHTML = dotNum(k.w);
     if (document.getElementById('cv-home').classList.contains('home2')) { renderHome2(k); return; }
