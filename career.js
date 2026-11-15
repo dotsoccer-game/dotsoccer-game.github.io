@@ -923,7 +923,7 @@
   function payPrize(save, fromId, pos, n0, toId) {
     const t0 = LG[fromId].tier, base = PRIZE_LG[t0] || 100;
     addPrize(save, `${LG[fromId].name} ${pos}位`, Math.round(base * Math.max(0.2, 1 - (pos - 1) / Math.max(1, n0 - 1) * 0.8) / 10) * 10);
-    if (pos === 1) addPrize(save, `${LG[fromId].name} 優勝ボーナス`, base);
+    if (pos === 1) addPrize(save, `${LG[fromId].name} 優勝ボーナス`, base * 10);   // 版1177：優勝ボーナスを10倍に
     if (toId && LG[toId].tier > t0) addPrize(save, `${LG[toId].name}へ昇格ボーナス`, PRIZE_UP[LG[toId].tier] || 0);
     const pz = save.prize && save.prize.season === save.season ? save.prize.items.filter((x) => x.coins > 0) : [], total = pz.reduce((a, x) => a + x.coins, 0);
     earnCoins(save, total); save.lastPrize = { season: save.season, items: pz, total }; save.prize = null; save.prizePaid = save.season;
@@ -954,7 +954,7 @@
       let w = win; if (w === null) { w = so ? !!so.win : koWinner(r, teamLevel(save), fx.opp.lvl, [0, 0]) === 0; out.pk = true; if (so) out.pkScore = so.score.slice(); }
       out.win = w; save.cup.log.push({ label: fx.label, opp: fx.opp.name, s: myScore, win: w, pk: out.pk, week: fx.week });
       resolveCupRound(save, { win: w, s: myScore, pk: out.pk });
-      if (w) { out.prize = addPrize(save, '国内カップ', 5 + save.cup.round * 3); if (save.cup.champion === save.team.name) out.prize += addPrize(save, '国内カップ 優勝', 100); }
+      if (w) { out.prize = addPrize(save, '国内カップ', 150); if (save.cup.champion === save.team.name) out.prize += addPrize(save, '国内カップ 優勝', 1000); }   // 版1177：カップは1勝ごとに150、優勝でさらに1000
       out.champion = save.cup.champion === save.team.name;
       return out;
     }
