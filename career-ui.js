@@ -3776,7 +3776,6 @@
     const card = (r) => { const t = (C.LG[r.ids[0]] || {}).tier ?? 0, base = C.PRIZE_LG[t] || 100, mine = r.ids.includes(my), on = r.ids.includes(focus);
       return `<div class="yp-row${on ? ' on' : ''}"><img class="yp-tr" src="${trophyImg('league', r.ids[0])}" alt=""><div class="yp-m"><div class="yp-h">${r.ids.map(lgBadge).join("")}<b>${esc(r.name)}</b>${mine ? '<i class="yp-me">いまのリーグ</i>' : ''}</div>
         <p><span>賞金</span>${coin(base * 2)}<small>（1位の順位賞金 ${base}＋優勝ボーナス ${base}）</small></p>
-        ${C.GOLD_LG[r.ids[0]] ? `<p><span>スカウト</span><b class="yp-c">${COIN}${C.GOLD_LG[r.ids[0]].toLocaleString()}</b><small>（金のコイン。スカウトに使える）</small></p>` : ''}
         <p><span>${t === 4 ? '称号' : '来シーズン'}</span>${esc(r.up)}${r.upB ? `<small>昇格できたら、さらに ${coin(r.upB)}</small>` : ''}</p>
         <p><span>トロフィー</span>もらえる（クラブ情報・監督成績に残る）${t < 4 ? `<small>昇格すると、ホームの会場が${VEN[t + 1]}に改装される</small>` : ''}</p></div></div>`; };
     const cup = `<div class="yp-row${focus === 'cup' ? ' on' : ''}"><img class="yp-tr" src="${trophyImg('cup')}" alt=""><div class="yp-m"><div class="yp-h">${lgBadge('cup')}<b>国内カップ</b></div>

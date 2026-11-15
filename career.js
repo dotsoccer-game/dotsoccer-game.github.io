@@ -918,7 +918,7 @@
   /* v747 賞金：シーズン中にためて、シーズンが終わった時にまとめてコインで受け取る */
   const PRIZE_LG = [30, 60, 120, 200, 300];   /* v748：多すぎたので約3分の1に */   // リーグの格ごとの順位賞金（優勝の額。順位が下がるほど少なく）
   const PRIZE_UP = [0, 100, 150, 250, 500];
-  const GOLD_LG = { d3: 400, d2: 700, d1: 1000 };   // 版1165：Dリーグ優勝で、スカウトに使える金のコイン     // 昇格ボーナス（上がった先のリーグ）
+  const GOLD_LG = {};   // 版1173：Dリーグ優勝の金のコインはやめた（金のコインはランクマッチでもらえる）     // 昇格ボーナス（上がった先のリーグ）
   /* v762：リーグの賞金を足して、たまった賞金をまとめて払う */
   function payPrize(save, fromId, pos, n0, toId) {
     const t0 = LG[fromId].tier, base = PRIZE_LG[t0] || 100;
@@ -927,7 +927,6 @@
     if (toId && LG[toId].tier > t0) addPrize(save, `${LG[toId].name}へ昇格ボーナス`, PRIZE_UP[LG[toId].tier] || 0);
     const pz = save.prize && save.prize.season === save.season ? save.prize.items.filter((x) => x.coins > 0) : [], total = pz.reduce((a, x) => a + x.coins, 0);
     earnCoins(save, total); save.lastPrize = { season: save.season, items: pz, total }; save.prize = null; save.prizePaid = save.season;
-    { const g = pos === 1 ? GOLD_LG[fromId] || 0 : 0; if (g) { save.coins = (save.coins || 0) + g; save.lastPrize.gold = { label: `${LG[fromId].name} 優勝`, coins: g }; } }   // 版1165：D1〜D3の優勝は、スカウト（ガチャ）に使える金のコインも（Dコインではない）
     return save.lastPrize;
   }
   /* v762：シーズンの終わり＝自分の1月の試合（入れ替え戦・親善試合など）がすべて終わった時。結果と来季のリーグ、賞金をまとめる */
