@@ -657,7 +657,7 @@
   function renderHome() {
     ensure();
     if (save.fix1164n) { const n = save.fix1164n; delete save.fix1164n; store();   // 版1164a：前にスカウトで来た☆3・☆4の選手を強くしたお知らせ（1回だけ）
-      setTimeout(() => modal(`<h2>スカウトの選手が強くなりました</h2><p>スカウトで来る☆3・☆4の選手を、来た時から強くしました（☆3は総合65・☆4は総合68）。<br>これまでにスカウトで来た☆3・☆4の選手 <b>${n}人</b>にも、同じだけ能力を足しました。<br><small>育てて伸ばした分は、そのまま残っています。</small></p>`, [{ label: 'OK', value: true, primary: true }]), 600); }
+      setTimeout(() => modal(`<div class="pm2-scout"><div class="pm2-sc-card"><i class="pm2-sc-fx"></i>${(() => { const q = [...save.team.players, ...(save.reserve || [])].find((x) => x.gsrc && (x.star === 3 || x.star === 4)) || save.team.players[0]; try { return `<img src="${faceURL(q)}" alt="">`; } catch (_) { return ''; } })()}<span>★★★★</span></div><div class="pm2-sc-m"><h2>スカウトの選手が強くなりました</h2><div class="pm2-chips"><span>☆3　総合65</span><span>☆4　総合68</span></div><p>これまでにスカウトで来た☆3・☆4の選手 <b>${n}人</b> にも反映しました。<br><small>育てて伸ばした分は、そのまま残っています。</small></p></div></div>`, [{ label: 'OK', value: true, primary: true }], { head: 'お知らせ' }), 600); }
     const k = cal(save.week);
     $('#hmMonth').innerHTML = dotNum(k.m); $('#hmWeek').innerHTML = dotNum(k.w);
     if (document.getElementById('cv-home').classList.contains('home2')) { renderHome2(k); return; }
@@ -2634,17 +2634,37 @@
     const hist = save.history.length ? save.history.map((h) => `<p>シーズン${h.season}　${esc(h.league)}　${esc(h.msg)}</p>`).join('') : '<p>まだありません</p>';
     $('#clubLayer').innerHTML = `<div class="dpanel assoc"><h2>${esc(lg.name)}　<small>シーズン${save.season}</small></h2><div class="as-grid"><div><h4>順位表</h4>${table}<h4>これまでの戦績</h4>${hist}<button id="crReset" class="quiet">最初からやり直す</button></div><div><h4>日程</h4><p class="cupinfo">${cupInfo}</p><table class="sched">${sched}</table></div></div></div>`;
     $('#crReset').onclick = async () => {
-      const ok = await modal('<h2>最初からやり直しますか？</h2><p>育てた選手・順位はすべて消えます。</p>', [{ label: 'やり直す', value: true }, { label: 'やめる', value: false, primary: true }]);
+      const ok = await modal('<h2>最初からやり直しますか？</h2><p>育てた選手・順位はすべて消えます。</p>', [{ label: 'やめる', value: false, primary: true }, { label: 'やり直す', value: true, danger: true }], { head: '最終確認', icon: 'danger' });
       if (ok) { save = C.newCareer(); store(); runners.length = 0; go('home'); }
     };
   }
 
   // ---------- モーダル ----------
-  function modal(html, buttons) {
-    $('#crModalBody').innerHTML = html + `<div class="cr-mbtns">${buttons.map((b, k) => `<button data-k="${k}" class="${b.primary ? 'primary ' : ''}${ibCls(b.label, !!b.primary || buttons.length === 1)}">${esc(b.label)}</button>`).join('')}</div>`;
-    $('#crModal').hidden = false;
-    return new Promise((res) => { $('#crModalBody').querySelectorAll('.cr-mbtns button').forEach((el) => el.onclick = () => { $('#crModal').hidden = true; res(buttons[+el.dataset.k].value); }); });
+  // 版1178：ポップアップの新しい見た目（紺の帯に見出し・金の線・クリーム色の中身・左上の小さな印・とじるボタン）
+  //  o.head：帯の見出し（なければ「お知らせ」）　o.icon：左上の印（trophy・warn・danger・friend・ok・id・train）　o.hdIcon：帯の中の印（signal）　o.grid：ボタンを3列に
+  const PM_IC = {
+    trophy: '<svg viewBox="0 0 24 24"><path fill="#8a5a10" d="M5 3h14v3a6 6 0 0 1-5 5.9V15h3v3H7v-3h3v-3.1A6 6 0 0 1 5 6z"/><rect x="6" y="19" width="12" height="2" fill="#8a5a10"/></svg>',
+    warn: '<svg viewBox="0 0 24 24"><path fill="#8a5a10" d="M12 2 23 21H1z"/><rect x="11" y="8" width="2" height="7" fill="#fff8e6"/><rect x="11" y="17" width="2" height="2" fill="#fff8e6"/></svg>',
+    danger: '<svg viewBox="0 0 24 24"><path fill="#b0202a" d="M12 2 23 21H1z"/><rect x="11" y="8" width="2" height="7" fill="#fff"/><rect x="11" y="17" width="2" height="2" fill="#fff"/></svg>',
+    friend: '<svg viewBox="0 0 24 24"><circle cx="8" cy="7" r="3" fill="#24508e"/><circle cx="16" cy="7" r="3" fill="#24508e"/><rect x="3" y="11" width="10" height="8" rx="3" fill="#24508e"/><rect x="11" y="11" width="10" height="8" rx="3" fill="#24508e"/></svg>',
+    ok: '<svg viewBox="0 0 24 24"><path d="M4 12.5 9.5 18 20 6.5" fill="none" stroke="#1d8a4a" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    id: '<svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="3" fill="#24508e"/><circle cx="8" cy="11" r="2.4" fill="#fff"/><rect x="12" y="9" width="7" height="2" fill="#fff"/><rect x="12" y="13" width="7" height="2" fill="#fff"/></svg>',
+    train: '<svg viewBox="0 0 24 24"><rect x="3" y="14" width="4" height="6" fill="#24508e"/><rect x="10" y="10" width="4" height="10" fill="#24508e"/><rect x="17" y="5" width="4" height="15" fill="#24508e"/></svg>',
+    signal: '<svg viewBox="0 0 24 24"><rect x="2" y="15" width="4" height="6" fill="#f5b81e"/><rect x="8" y="11" width="4" height="10" fill="#f5b81e"/><rect x="14" y="7" width="4" height="14" fill="#f5b81e"/><rect x="20" y="3" width="3" height="18" fill="#f5b81e"/></svg>',
+  };
+  function modal(html, buttons, o) {
+    o = o || {}; const M = $('#crModal'); M.classList.add('pm2m');
+    const lab = (b) => b.label === 'OK' ? 'とじる' : b.label;
+    const cls = (b) => b.danger ? 'pm2-dan' : b.primary ? 'pm2-pri' : o.grid ? 'pm2-opt' : 'pm2-sec';
+    $('#crModalBody').innerHTML = `<div class="pm2"><div class="pm2-hd">${o.hdIcon ? `<i class="pm2-hi">${PM_IC[o.hdIcon]}</i>` : ''}<b>${o.head || 'お知らせ'}</b></div><div class="pm2-bd${o.icon ? ' has-ic' : ''}${o.cls ? ' ' + o.cls : ''}">${o.icon ? `<i class="pm2-ic pm2-ic-${o.icon}">${PM_IC[o.icon]}</i>` : ''}${html}</div>
+      <div class="pm2-btns${o.grid ? ' grid' : ''}">${buttons.map((b, k) => `<button data-k="${k}" class="${cls(b)}">${esc(lab(b))}</button>`).join('')}</div></div>`;
+    M.hidden = false;
+    const sh = M.querySelector('.sheet'), fit = () => { const bx = M.querySelector('.pm2'); if (!bx) return; bx.style.transform = ''; const k = Math.min(1, (M.clientWidth - 24) / bx.offsetWidth, (M.clientHeight - 24) / bx.offsetHeight); bx.style.transform = k < 1 ? `scale(${k.toFixed(3)})` : ''; };
+    fit(); requestAnimationFrame(fit); if (sh) sh.scrollTop = 0;
+    return new Promise((res) => { $('#crModalBody').querySelectorAll('.pm2-btns button').forEach((el) => el.onclick = () => { M.hidden = true; res(buttons[+el.dataset.k].value); }); });
   }
+  // 版1178：すぐ消える小さなお知らせ（「フレンドIDをコピーしました」など）
+  function pmToast(msg) { const t = document.createElement('div'); t.className = 'pm2-toast'; t.innerHTML = `<i>${PM_IC.ok.replace('#1d8a4a', '#fff')}</i><b>${esc(msg)}</b>`; (document.getElementById('app') || document.body).appendChild(t); setTimeout(() => t.classList.add('out'), 1500); setTimeout(() => t.remove(), 1900); }
   const pname = (k) => C.PNAME[k] || k;
   // 版834：新しいデザインの結果カード（覚醒の画面と同じ見た目：青い帯の見出し・白い枠・大きいボタン）。画面に合わせて縮む
   //  o.tag：見出しの上の小さい札　o.title：見出し　o.theme：'win'（金）・'lose'（灰）・''（青）　o.body：中身　o.btn：ボタン
@@ -2725,8 +2745,8 @@
       else {
         const nm = D.SKILLS[o.learned].name;
         const kind = C.skKind(o.learned), kn = kind === 'trait' ? '特性' : '技';
-        const pk = await modal(`<h2>${esc(p.name)}が「${esc(nm)}」を覚えようとしている！</h2><p>${kn}の枠（${C.slotsOf(p, kind)}つ）がいっぱいです。忘れる${kn}を1つ選んでください。</p>`,
-          [...C.skillsOf(p, kind).map((k) => ({ label: `${D.SKILLS[k].name}を忘れる`, value: k })), { label: `${nm}を覚えない`, value: null }]);
+        const pk = await modal(`<h2 class="pm2-big">${esc(nm)}</h2><p>${esc(p.name)}が新しい${kn}を覚えようとしています。<br>忘れる${kn}を1つ選んでください。</p>`,
+          [...C.skillsOf(p, kind).map((k) => ({ label: D.SKILLS[k].name, value: k })), { label: '覚えない', value: null, primary: true }], { head: kind === 'trait' ? '特性習得' : 'スキル習得', grid: true });
         if (pk) { C.learnSkill(p, o.learned, pk); o.got = true; o.forgot = pk; } else o.skipped = true;
       }
       store();
@@ -2784,7 +2804,7 @@
     if (res.camp) { const cp = res.camp, summer = cp.name === '夏合宿', chips = [['特訓', `週${C.CAMP.trains}回`], ['カードの効果', `${C.CAMP.mult}倍`], ['全体練習', '充実'], ['ケガ', '注意']];   // 版805：始まりの知らせと同じ4つ
       if (res.campDone) await campCard({ name: cp.name, summer, title: `${esc(cp.name)}終了！`, weeks: cp.weeks, done: cp.weeks, msg: `${cp.weeks}週間の合宿で、全員がひとまわり成長しました。<br>${summer ? '9月から<b>リーグ後半戦</b>です！' : '3月から<b>新シーズン</b>です！'}`, extra: tc, btn: 'OK' });
       else await campCard({ name: cp.name, summer, title: `${cp.week}週目 終了`, weeks: cp.weeks, done: cp.week, chips, msg: `全体練習で、全員が少しずつ成長しました。<br>あと<b>${cp.weeks - cp.week}週</b>です。`, extra: tc, btn: 'OK' }); }
-    else if (tc) await modal(`<h2>今週の練習</h2>${tc}`, [{ label: 'OK', primary: true }]);
+    else if (tc) await modal(`<h2>今週の練習</h2><div class="pm2-rows">${tc}</div>`, [{ label: 'OK', primary: true }], { head: '練習結果', icon: 'train' });
     if (res.leagueDone) {   /* 版744：本家のように、リーグ戦が終わったら秘書が結果と来年のことを伝えて、協会の順位表（昇格・降格の色分け）を見せる */
       await facesReady();
       const pos = res.pos, id = save.league.id, nT = ((save.league && save.league.teams) || []).length || 8, lg = save.league.name, F = { name: '秘書', face: staffFace('sec'), art: !!staffImg.sec };
@@ -3424,7 +3444,8 @@
     }
     const r = D.simulateMatch(mt.team, opp, seed, { frames: false });
     const goals = r.events.filter((e) => e.type === 'goal').map((e) => `${Math.ceil((D.gameSec ? D.gameSec(r, e.t) : e.t * r.clockScale) / 60)}分 ${esc(e.player)}`).join('　') || '得点なし';
-    await modal(`<h2>試合結果</h2><p class="cr-score">${esc(save.team.short)} ${r.score[0]} − ${r.score[1]} ${esc(opTeamInfo.short)}</p><p>${goals}</p>`, [{ label: 'OK', primary: true }]);
+    { const rs = r.score[0] > r.score[1] ? ['win', '勝利'] : r.score[0] < r.score[1] ? ['lose', '敗戦'] : ['draw', '引き分け'];
+    await modal(`<div class="pm2-res ${rs[0]}"><span>${rs[1]}</span></div><div class="pm2-score"><b>${esc(save.team.short)}</b><em>${r.score[0]} − ${r.score[1]}</em><b>${esc(opTeamInfo.short)}</b></div><p class="pm2-goals">${goals}</p>`, [{ label: 'OK', primary: true }], { head: '試合結果' }); }
     done(r.score.slice(), r.events, lineupRestore(mt.played.slice()));
   }
   async function stadium(afterTrain) {
@@ -5361,7 +5382,7 @@
     setTimeout(() => { try { watchPost(); } catch (_) {} }, 800);   // 版624   // 版610：対戦のリンクから開いた
     if (window.__tut && window.__tut.boot(save)) return;   // はじめて遊ぶ人：チュートリアル（クラブ作りもその中で）
     if (!save.clubSet && !clubAsked && (save.week || 1) <= 1 && save.season === 1) { clubAsked = true; openClub({ first: true, onDone: () => go('home') }); }   // はじめて：クラブを作る
-    if (save.migratedWorld) { delete save.migratedWorld; store(); modal('<h2>リーグが新しくなりました</h2><p>地域2部（東・西）→ 地域1部（東・西）→ D3 → D2 → D1 の7リーグになりました。選手はそのままで、<b>地域2部リーグ西</b>の開幕（3月1週）からのスタートです。</p>', [{ label: 'OK', primary: true }]); }
+    if (save.migratedWorld) { delete save.migratedWorld; store(); modal('<h2>リーグが新しくなりました</h2><p>地域2部（東・西）→ 地域1部（東・西）→ D3 → D2 → D1</p><p>選手はそのまま、地域2部リーグ西の開幕（3月1週）からスタートします。</p>', [{ label: 'OK', primary: true }], { head: 'お知らせ', icon: 'trophy' }); }
   }
   $('#goCareer').onclick = open;
   // 確認画面用：次の公式戦を、試合前の画面を飛ばしてそのまま観る（結果は記録しない）
@@ -5447,7 +5468,7 @@
     const text = `${save.team.name}（${save.manager ? save.manager + '監督' : ''}）と「ドットサッカー」で対戦しよう！リンクを開くと対戦できます。`;
     try { if (navigator.share) { await navigator.share({ title: 'ドットサッカー 対戦', text, url }); return 'shared'; } } catch (e) { if (e && e.name === 'AbortError') return 'cancel'; }
     try { await navigator.clipboard.writeText(text + '\n' + url); return 'copied'; } catch (_) {}
-    await modal(`<h2>チームコード</h2><p>下の文字をすべてコピーして、友達に送ってください。</p><textarea class="ap-code" readonly onclick="this.select()">${esc(url)}</textarea>`, [{ label: 'とじる', primary: true }]);
+    await modal(`<h2>チームコード</h2><p>下の文字をすべてコピーして、友達に送ってください。</p><textarea class="ap-code" readonly onclick="this.select()">${esc(url)}</textarea>`, [{ label: 'とじる', primary: true }], { head: 'チームコード' });
     return 'shown';
   }
   // はじめて上がったランクだけ、ごほうび（攻めでも守りでも）
@@ -5546,7 +5567,7 @@
       box.querySelector('[data-a="allread"]').onclick = () => { list.forEach((x) => markRead(x.id)); store(); draw(); postBadge(); };
       box.querySelector('[data-a="clear"]').onclick = () => { p.items = p.items.filter((x) => !x.read || (x.kind === 'freq' && !x.done)); store(); draw(); };
       box.querySelectorAll('[data-ok]').forEach((b) => b.onclick = async () => { const it = p.items.find((x) => x.id === b.dataset.ok); if (!it) return;
-        b.disabled = true; try { await DotNet.sendMail(it.uid, { type: 'fok', ...myCard() }); } catch (_) { b.disabled = false; return modal('<h2>通信できませんでした</h2><p>もう一度押してください。</p>', [{ label: 'OK', primary: true }]); }
+        b.disabled = true; try { await DotNet.sendMail(it.uid, { type: 'fok', ...myCard() }); } catch (_) { b.disabled = false; return modal('<h2>通信できませんでした</h2><p>通信状態を確認して、もう一度お試しください。</p>', [{ label: 'OK', primary: true }], { head: '通信エラー', hdIcon: 'signal' }); }
         on.flist = on.flist || []; if (!on.flist.some((f) => f.uid === it.uid)) on.flist.unshift({ uid: it.uid, fid: it.fid, name: it.name, mgr: it.mgr, emb: it.emb, rank: it.rank, w: 0, d: 0, l: 0 });
         it.done = 'ok'; it.read = true; store(); draw(); postBadge(); });
       box.querySelectorAll('[data-room]').forEach((b) => b.onclick = () => { const it = p.items.find((x) => x.id === b.dataset.room); if (!it) return; it.read = true; store(); el.hidden = true; joinRoom(it.room); });
@@ -5565,21 +5586,21 @@
       const id = await DotNet.createRoom(f.uid, { hostCode: code, hostName: me.name, hostMgr: me.mgr, hostEmb: me.emb, guestName: f.name, guestMgr: f.mgr || '', guestEmb: f.emb || null });
       DotNet.sendMail(f.uid, { type: 'room', room: id, ...me }).catch(() => {});
       return id;
-    } catch (e) { modal('<h2>ルームを作れませんでした</h2><p>通信の状態をたしかめてください。</p>', [{ label: 'OK', primary: true }]); return null; }
+    } catch (e) { modal('<h2>ルームを作れませんでした</h2><p>通信の状態をたしかめてください。</p>', [{ label: 'OK', primary: true }], { head: '対戦ルーム', icon: 'warn' }); return null; }
   }
   async function joinRoom(id) {
     if (!(await verLatest({ jn: id }))) return;
     let r = null; try { r = await DotNet.roomGet(id); } catch (_) {}
-    if (!r || r.state !== 'open') return modal('<h2>このルームはもう閉じています</h2>', [{ label: 'OK', primary: true }]);
+    if (!r || r.state !== 'open') return modal('<h2>このルームはもう閉じています</h2>', [{ label: 'OK', primary: true }], { head: '対戦ルーム', icon: 'warn' });
     try { const code = await packCode(C.guestCode(save)), me = myCard(); await DotNet.roomUpdate(id, { guestIn: true, guestCode: code, guestName: me.name, guestMgr: me.mgr, guestEmb: me.emb }); }
-    catch (_) { return modal('<h2>ルームに入れませんでした</h2>', [{ label: 'OK', primary: true }]); }
+    catch (_) { return modal('<h2>ルームに入れませんでした</h2>', [{ label: 'OK', primary: true }], { head: '対戦ルーム', icon: 'warn' }); }
     roomScreen(id, 'guest');
   }
   function roomScreen(id, role) {
     const el = fullScreen('roomScreen', 'ap-wrap rm-wrap'), box = el.querySelector('.lk-box');
     let r = null, unsub = null, started = false, cdT = 0;
     const me = role, other = role === 'host' ? 'guest' : 'host';
-    const leave = async (msg) => { if (unsub) unsub(); unsub = null; clearInterval(cdT); el.hidden = true; if (!started) { try { await DotNet.roomUpdate(id, { state: 'closed' }); } catch (_) {} } if (msg) await modal(msg, [{ label: 'OK', primary: true }]); friendMenu(); };
+    const leave = async (msg) => { if (unsub) unsub(); unsub = null; clearInterval(cdT); el.hidden = true; if (!started) { try { await DotNet.roomUpdate(id, { state: 'closed' }); } catch (_) {} } if (msg) await modal(msg, [{ label: 'OK', primary: true }], { head: '対戦ルーム', icon: 'warn' }); friendMenu(); };
     const side = (who) => { const nm = r[who + 'Name'] || '', mg = r[who + 'Mgr'] || '', inn = r[who + 'In'], rd = r[who + 'Ready'];
       return `<div class="rm-side ${who}${inn ? '' : ' wait'}${rd ? ' ready' : ''}"><small>${who === 'host' ? 'ホーム' : 'アウェー'}</small><div class="rm-sb"><img src="${embFromLook(r[who + 'Emb'], 128)}" alt=""><b>${esc(nm)}</b><span>${mg ? esc(mg) + '監督' : ''}</span><em>${!inn ? '入室待ち…' : rd ? '準備OK！' : '準備中'}</em></div></div>`; };
     const draw = () => {
@@ -5597,7 +5618,7 @@
     };
     unsub = DotNet.roomWatch(id, async (nr) => {
       if (started) return;
-      if (!nr || nr.state === 'closed') { if (unsub) unsub(); unsub = null; el.hidden = true; await modal('<h2>ルームが閉じられました</h2><p>相手が退出しました。</p>', [{ label: 'OK', primary: true }]); friendMenu(); return; }
+      if (!nr || nr.state === 'closed') { if (unsub) unsub(); unsub = null; el.hidden = true; await modal('<h2>ルームが閉じられました</h2><p>相手が退出しました。</p>', [{ label: 'OK', primary: true }], { head: '対戦ルーム', icon: 'warn' }); friendMenu(); return; }
       r = nr; draw();
       if (r.state === 'open' && r.hostReady && r.guestReady) DotNet.roomStart(id).catch(() => {});
       if (r.state === 'go' && r.seed && r.hostCode && r.guestCode) {
@@ -5605,7 +5626,7 @@
         const wait = Math.max(0, Math.min(6000, (r.startAt || 0) - Date.now()));
         let left = Math.ceil(wait / 1000); const cd = box.querySelector('.rm-cd'); if (cd) cd.textContent = left > 0 ? `キックオフまで ${left}…` : 'キックオフ！';
         cdT = setInterval(() => { left--; const c2 = box.querySelector('.rm-cd'); if (c2) c2.textContent = left > 0 ? `キックオフまで ${left}…` : 'キックオフ！'; }, 1000);
-        setTimeout(async () => { clearInterval(cdT); el.hidden = true; try { const r2 = await roomPrep(r, me); await playRoom(r2, me); } catch (e) { console.error(e); modal('<h2>試合を始められませんでした</h2>', [{ label: 'OK', primary: true }]); } }, wait);   // 版1114：3・2・1のあと、入場通路に並んだ所でスタメンを選ぶ
+        setTimeout(async () => { clearInterval(cdT); el.hidden = true; try { const r2 = await roomPrep(r, me); await playRoom(r2, me); } catch (e) { console.error(e); modal('<h2>試合を始められませんでした</h2>', [{ label: 'OK', primary: true }], { head: '対戦ルーム', icon: 'warn' }); } }, wait);   // 版1114：3・2・1のあと、入場通路に並んだ所でスタメンを選ぶ
       }
     });
   }
@@ -5758,7 +5779,7 @@
       await new Promise((ok) => setTimeout(ok, 2600));
       try { A().showScreen('career'); } catch (_) {} { const m = document.getElementById('match'); if (m) m.hidden = true; }
       dk.remove();
-      if (round >= 3) { modal('<h2>フレンド対戦を中止しました</h2><p>通信の状態をたしかめて、もう一度ルームを作ってください。</p>', [{ label: 'OK', primary: true }]); friendMenu(); return; }
+      if (round >= 3) { modal('<h2>フレンド対戦を中止しました</h2><p>通信の状態をたしかめて、もう一度ルームを作ってください。</p>', [{ label: 'OK', primary: true }], { head: '対戦ルーム', icon: 'warn' }); friendMenu(); return; }
       try { const r2 = await roomPrep(r0, me, round + 1); await playRoom({ ...r2, _orig: r0 }, me, round + 1); } catch (e) { console.error(e); friendMenu(); }
     };
     const onSubRoom = (info) => {
@@ -5810,15 +5831,15 @@
   // フレンド申請を送る（空港・事務所の「フレンド」から）
   async function sendFriendReq(idText) {
     const on = ensureOnline(), id = String(idText || '').replace(/\D/g, '');
-    if (id.length !== 8) return modal('<h2>8けたのフレンドIDを入れてください</h2>', [{ label: 'OK', primary: true }]);
-    if (id === on.fid) return modal('<h2>それはあなたのIDです</h2>', [{ label: 'OK', primary: true }]);
+    if (id.length !== 8) return modal('<h2>8けたのフレンドIDを入れてください</h2>', [{ label: 'OK', primary: true }], { head: 'フレンドID', icon: 'id' });
+    if (id === on.fid) return modal('<h2>それはあなたのIDです</h2>', [{ label: 'OK', primary: true }], { head: 'フレンドID', icon: 'id' });
     let p = null; try { p = await DotNet.byFid(id); } catch (_) {}
-    if (!p) return modal('<h2>見つかりませんでした</h2><p>IDをもう一度たしかめてください。</p>', [{ label: 'OK', primary: true }]);
-    const ok = await modal(`<h2>フレンド申請</h2><div class="ap-vs"><img src="${embFromLook(p.emb, 64)}" alt=""><b>${esc(p.name)}</b></div><p>${p.mgr ? esc(p.mgr) + '監督　' : ''}${rankBadge(Math.max(0, Math.min(4, p.rank || 0)))}</p><p class="hintp">相手のポストに申請が届きます。相手が承認すると、フレンドになります。</p>`, [{ label: '申請する', primary: true, value: true }, { label: 'やめる', value: false }]);
+    if (!p) return modal('<h2>見つかりませんでした</h2><p>IDをもう一度たしかめてください。</p>', [{ label: 'OK', primary: true }], { head: 'フレンドID', icon: 'id' });
+    const ok = await modal(`<h2 class="pm2-emb"><img src="${embFromLook(p.emb, 64)}" alt="">${esc(p.name)}</h2><p class="pm2-st">${p.mgr ? esc(p.mgr) + '監督　' : ''}${RANKS[Math.max(0, Math.min(4, p.rank || 0))].n}</p><p>相手のポストに申請が届きます。承認されるとフレンドになります。</p>`, [{ label: 'やめる', value: false }, { label: '申請する', primary: true, value: true }], { head: 'フレンド申請', icon: 'friend' });
     if (!ok) return false;
-    try { await DotNet.sendMail(p.uid, { type: 'freq', ...myCard() }); } catch (_) { return modal('<h2>通信できませんでした</h2>', [{ label: 'OK', primary: true }]); }
+    try { await DotNet.sendMail(p.uid, { type: 'freq', ...myCard() }); } catch (_) { return modal('<h2>通信できませんでした</h2><p>通信状態を確認して、もう一度お試しください。</p>', [{ label: 'OK', primary: true }], { head: '通信エラー', hdIcon: 'signal' }); }
     on.fsent = [...new Set([...(on.fsent || []), p.uid])]; store();
-    await modal(`<h2>申請しました！</h2><p>${esc(p.name)}が承認すると、あなたのポストにお知らせが届きます。</p>`, [{ label: 'OK', primary: true }]);
+    await modal(`<h2>申請しました！</h2><p>${esc(p.name)}が承認すると、あなたのポストにお知らせが届きます。</p>`, [{ label: 'OK', primary: true }], { head: 'フレンド申請', icon: 'ok' });
     return true;
   }
   // 版616：ランキング（全国のRP順）
@@ -5930,7 +5951,7 @@
     let f = on.friends.find((x) => x.name === srcName);
     if (!f) { f = { name: srcName, w: 0, d: 0, l: 0 }; on.friends.unshift(f); } else { on.friends.splice(on.friends.indexOf(f), 1); on.friends.unshift(f); }
     f.code = await packCode(d); f.at = Date.now(); on.friends = on.friends.slice(0, 8); store();
-    const ok = await modal(`<h2>フレンド対戦</h2><div class="ap-vs"><img src="${emblemURL(g.name, 64)}" alt=""><b>${esc(g.name)}</b></div><p>${d.mgr ? esc(d.mgr) + '監督の' : ''}チームと対戦します。</p><p class="hintp">選手の疲れ・ケガ・週は進みません。</p>`, [{ label: '対戦する', primary: true, value: true }, { label: 'やめる', value: false }]);
+    const ok = await modal(`<h2 class="pm2-emb"><img src="${emblemURL(g.name, 64)}" alt="">${esc(g.name)}</h2><p class="pm2-st">${d.mgr ? esc(d.mgr) + '監督の' : ''}チームと対戦します。</p><p>選手の疲れ・ケガ・週は進みません。</p>`, [{ label: 'やめる', value: false }, { label: '対戦する', primary: true, value: true }], { head: 'フレンド対戦', icon: 'friend' });
     if (!ok) return airport();
     const op = { name: g.name, short: g.short, srcName, fuid: o.uid };
     runMatch('フレンド対戦', '', op, (score) => onlineDone('friend', op, score), { comp: 'フレンド対戦', label: '', home: true, online: 'friend' });
@@ -5982,8 +6003,8 @@
       q('.std-back').onclick = () => friendMenu('keep');
       q('[data-a="room"]').onclick = async (e) => { const b = e.currentTarget, inv = (friendMenu.inv || []).find((r) => r.host === f.uid); if (inv) { el.hidden = true; return joinRoom(inv.id); } b.disabled = true; const id = await makeRoom(f); b.disabled = false; if (id) { el.hidden = true; roomScreen(id, 'host'); } };
       q('[data-a="del"]').onclick = async () => {
-        if (!(await modal(`<h2>${esc(f.name)} をフレンドから外しますか？</h2><p>外すと、このクラブとはフレンド対戦ができなくなります。<br>もう一度フレンドになるには、申請しなおしが必要です。</p>`, [{ label: '外さない', primary: true, value: false }, { label: '外す', value: true }]))) return;
-        if (!(await modal(`<h2>本当に外しますか？</h2><p>${esc(f.name)} とのフレンドを外します。この操作は取り消せません。</p>`, [{ label: 'やめる', primary: true, value: false }, { label: '外す', value: true }]))) return;
+        if (!(await modal(`<h2>フレンドから外しますか？</h2><p class="pm2-st">${esc(f.name)}</p><p>解除するとフレンド対戦ができなくなります。</p><p>もう一度フレンドになるには、申請しなおす必要があります。</p>`, [{ label: '外さない', primary: true, value: false }, { label: '外す', value: true, danger: true }], { head: 'フレンド解除', icon: 'danger' }))) return;
+        if (!(await modal(`<div class="pm2-fin"><i>${PM_IC.danger}</i><h2>フレンドから外しますか？</h2></div><p class="pm2-name">${esc(f.name)}</p><p>この操作は取り消せません。</p>`, [{ label: 'やめる', primary: true, value: false }, { label: '外す', value: true, danger: true }], { head: '最終確認' }))) return;
         const i2 = on.flist.indexOf(f); if (i2 >= 0) { on.flist.splice(i2, 1); store(); } friendMenu('keep'); }; };
     paint('<div class="fs-main"><p class="fs-msg">チームを読みこんでいます…</p></div>');
     let d = null, pl = null; try { pl = window.DotNet && DotNet.on && f.uid ? await DotNet.byUid(f.uid) : null; if (pl && pl.code) d = await unpackCode(pl.code); } catch (_) {}
@@ -6026,7 +6047,7 @@
     q('.std-back').onclick = () => { close(); if (friendMenu.back) friendMenu.back(); else airport(); };
     if (net && !friendMenu.invLoaded) { friendMenu.invLoaded = true; DotNet.roomInvites().then((v) => { friendMenu.inv = v; if (!el.hidden && v.length) friendMenu('keep'); }).catch(() => {}).finally(() => setTimeout(() => { friendMenu.invLoaded = false; }, 3000)); }
     if (net && !on.fid) publishMe().then((fid) => { const e = q('#apMyId'); if (e) e.textContent = fid ? fmtFid(fid) : 'つながりません'; if (!fid) { const n = document.createElement('p'); n.className = 'ap-note ap-err'; n.textContent = '通信できませんでした（' + ((window.DotNet && DotNet.err) || '不明') + '）'; const m = q('.ap-myid'); m && m.after(n); } });
-    if (q('[data-a="copyid"]')) q('[data-a="copyid"]').onclick = async () => { try { await navigator.clipboard.writeText(on.fid || ''); modal('<h2>フレンドIDをコピーしました</h2>', [{ label: 'OK', primary: true }]); } catch (_) {} };
+    if (q('[data-a="copyid"]')) q('[data-a="copyid"]').onclick = async () => { try { await navigator.clipboard.writeText(on.fid || ''); pmToast('フレンドIDをコピーしました'); } catch (_) {} };
     if (q('[data-a="add"]')) q('[data-a="add"]').onclick = async () => { if (await sendFriendReq(q('#apFid').value)) friendMenu('keep'); };
     box.querySelectorAll('[data-fu]').forEach((b) => b.onclick = async () => {   // 版622：ルームを作って、相手が入るのを待つ
       const f = on.flist[+b.dataset.fu], inv = (friendMenu.inv || []).find((r) => r.host === f.uid);
@@ -6041,7 +6062,7 @@
     const el = fullScreen('apScreen', 'ap-wrap'), box = el.querySelector('.lk-box');
     const nx = last ? null : RANK_REWARD[i + 1], gotNx = !last && rankIdx(on.best || 0) >= i + 1;
     if (on.rkNew) { const L = on.rkLast; on.rkNew = 0; store();   // 新しいシーズンのお知らせ（1回だけ）
-      setTimeout(() => modal(`<h2>${+on.rkSeason.slice(5)}月のランクマッチが始まりました</h2><p>${+L.season.slice(5)}月の最後のライセンス：<b>${RANKS[L.rank].n}</b>（${L.rp} RP）<br>今月は <b>${RANKS[L.start].n}ライセンス</b>（${RANK_AT[L.start]} RP）からスタートです。<br><small>ライセンス取得のごほうびは、今月また上がればもらえます。シーズンは月末まで。</small></p>`, [{ label: 'OK', value: true, primary: true }]), 400); }
+      setTimeout(() => modal(`<h2>${+on.rkSeason.slice(5)}月のランクマッチが始まりました</h2><p class="pm2-st">${+L.season.slice(5)}月の最終ライセンス：${RANKS[L.rank].n}（${L.rp} RP）</p><p>今月は ${RANKS[L.start].n}ライセンス（${RANK_AT[L.start]} RP）からスタートします。</p><p>ライセンス取得のごほうびは今月も獲得できます。シーズンは月末まで。</p>`, [{ label: 'OK', value: true, primary: true }], { head: 'ランクマッチ', icon: 'trophy' }), 400); }
     const ladder = RANKS.map((R, k) => `<div class="ap-lad${k === i ? ' on' : ''}${k < i ? ' done' : ''}" style="--rc:${R.c}"><img src="icons/lic/${R.k}.png" alt="" draggable="false"><small>${R.n}</small></div>`).join('<span class="ap-lad-ln"></span>');
     const net = !!(window.DotNet && DotNet.on), f0 = (on.flist || [])[0];
     const statRow = (ic, l, v) => `<div><span class="ap-si">${AP_SVG[ic]}</span><small>${l}</small><b>${v}</b></div>`;
@@ -6076,7 +6097,7 @@
   async function checkVsLink() {
     const m = location.hash.match(/vs=([A-Za-z0-9_\-]+)/); if (!m || !save) return;
     history.replaceState(null, '', location.pathname + location.search);
-    modal('<h2>フレンド対戦は、フレンドどうしだけです</h2><p>空港かクラブ事務所の「フレンド」で、相手のフレンドIDに申請してください。相手が承認するとフレンドになり、対戦できます。</p>', [{ label: 'OK', primary: true }]);   // 版621：リンクだけでは対戦しない
+    modal('<h2>フレンド対戦は、フレンドどうしだけです</h2><p>空港かクラブ事務所の「フレンド」で、相手のフレンドIDに申請してください。相手が承認するとフレンドになり、対戦できます。</p>', [{ label: 'OK', primary: true }], { head: 'フレンド対戦', icon: 'friend' });   // 版621：リンクだけでは対戦しない
   }
   // ---------- 版672：データ引き継ぎ（クラウドに保存・クラウドから復元）  版674：画面を新しいデザインに ----------
   const cloudInfoOf = (sv) => { const k = cal(sv.week || 1); return { season: sv.season || 1, m: k.m, w: k.w, mgr: sv.manager || '', team: (sv.team && sv.team.name) || '', lg: (sv.league && sv.league.name) || '', emb: (sv.club && sv.club.emb) || null }; };
@@ -6237,7 +6258,7 @@
     if (loading) { try { const r = await DotNet.cloudInfo(code()); cloud = r ? { info: r.info, at: r.at } : null; } catch (_) { flash('通信できませんでした（クラウドの情報が読めません）'); } loading = false; if (document.body.contains(scr) && !scr.querySelector('.cs-dlg')) draw(); }
   }
   window.__career_rw = (i) => { const main = Object.keys(C.CARDS).filter((c) => C.CARDS[c].cat !== 'sup' && !C.CARDS[c].sp); const RW = RANK_REWARD[i]; resCard(rewardCard({ rank: i, coins: RW.coins, kak: RW.kak, cards: Array.from({ length: RW.cards }, () => main[Math.floor(Math.random() * main.length)]) })); };
-  window.__career = { airport: () => airport(), rankConfirm: (...a) => rankConfirm(...a), resTest: (n) => { save.reserve = save.team.players.slice(11, 11 + (n || 6)).map((q, k) => ({ ...JSON.parse(JSON.stringify(q)), name: q.name + "R" + k })); }, spTest: (pi, idx, all) => { if (all) save.spFound = C.SP.map((x) => x.id); spSel = idx; spList(pi); }, abilDoc: (k) => abilDoc(k), abilOne: (k) => abilOne(k), totsuDoc: (t) => totsuDoc(t), friendSquad: (k) => friendSquad(k), roomScreen: (id, r) => roomScreen(id, r), friendMenu: (b) => friendMenu(b), roomPrep: (r, me) => roomPrep(r, me), playRoom: (r, me) => playRoom(r, me), packCode: (o) => packCode(o), openKitEditor: (o) => openKitEditor(o), drawEmblem: (c, x, y, s, lk) => drawEmblem(c, x, y, s, lk), openClub: (o) => openClub(o), playerDetail: (i, o) => playerDetail(i, o), resCard: (o) => resCard(o), seasonEndCard: (o) => seasonEndCard(o), coachNews: (l) => coachNews(l), rewardCard: (r) => rewardCard(r), gachaDemo: (st, pr, fx) => gachaDemo(st, pr, fx), storyCard: (o) => storyCard(o), gotCardsHTML: (got) => `<div class="gc-cards${got.length > 8 ? ' lots' : got.length > 4 ? ' many' : ''}">${got.map((c) => artCard(c, { ups: true })).join('')}</div><p class="cp-msg gc-msg">クラブハウスの「特訓」で、選手に最大3枚セットできます。</p>`, trainResult: (o) => trainResult(o), airport, openPost, syncPost, onlineDone, setVenue: (k) => { venueNow = k; }, champDemo, champAfter, coinShop, faceFill: () => faceFill(), openGacha, venueTalk: (se) => venueTalk(se), matchFace, openOffice, cpuCard, openClub, openAssoc, open, go, stadium, advance, subSheet, labMatch, townRect, tutPractice, shop, store: () => store(), renderHome: () => renderHome(), clubhouseBg: () => clubhouseBg(), isMatchWeek: () => isMatchWeek(), get view() { return view; }, staffFace: (k) => staffFace(k), get save() { return save; }, get drill() { return clubDrill; }, faceURL, starFace, setDrill(d) { clubDrill = d; drillT0 = -1; drillSnap = true; } };
+  window.__career = { modal: (h, b, o) => modal(h, b, o), pmToast: (m) => pmToast(m), airport: () => airport(), rankConfirm: (...a) => rankConfirm(...a), resTest: (n) => { save.reserve = save.team.players.slice(11, 11 + (n || 6)).map((q, k) => ({ ...JSON.parse(JSON.stringify(q)), name: q.name + "R" + k })); }, spTest: (pi, idx, all) => { if (all) save.spFound = C.SP.map((x) => x.id); spSel = idx; spList(pi); }, abilDoc: (k) => abilDoc(k), abilOne: (k) => abilOne(k), totsuDoc: (t) => totsuDoc(t), friendSquad: (k) => friendSquad(k), roomScreen: (id, r) => roomScreen(id, r), friendMenu: (b) => friendMenu(b), roomPrep: (r, me) => roomPrep(r, me), playRoom: (r, me) => playRoom(r, me), packCode: (o) => packCode(o), openKitEditor: (o) => openKitEditor(o), drawEmblem: (c, x, y, s, lk) => drawEmblem(c, x, y, s, lk), openClub: (o) => openClub(o), playerDetail: (i, o) => playerDetail(i, o), resCard: (o) => resCard(o), seasonEndCard: (o) => seasonEndCard(o), coachNews: (l) => coachNews(l), rewardCard: (r) => rewardCard(r), gachaDemo: (st, pr, fx) => gachaDemo(st, pr, fx), storyCard: (o) => storyCard(o), gotCardsHTML: (got) => `<div class="gc-cards${got.length > 8 ? ' lots' : got.length > 4 ? ' many' : ''}">${got.map((c) => artCard(c, { ups: true })).join('')}</div><p class="cp-msg gc-msg">クラブハウスの「特訓」で、選手に最大3枚セットできます。</p>`, trainResult: (o) => trainResult(o), airport, openPost, syncPost, onlineDone, setVenue: (k) => { venueNow = k; }, champDemo, champAfter, coinShop, faceFill: () => faceFill(), openGacha, venueTalk: (se) => venueTalk(se), matchFace, openOffice, cpuCard, openClub, openAssoc, open, go, stadium, advance, subSheet, labMatch, townRect, tutPractice, shop, store: () => store(), renderHome: () => renderHome(), clubhouseBg: () => clubhouseBg(), isMatchWeek: () => isMatchWeek(), get view() { return view; }, staffFace: (k) => staffFace(k), get save() { return save; }, get drill() { return clubDrill; }, faceURL, starFace, setDrill(d) { clubDrill = d; drillT0 = -1; drillSnap = true; } };
   window.__career.openCloud = openCloud; window.__career.cpuCard = (t, i) => cpuCard(t, i, $("#career"));
   window.__career.shop = (t) => shop(t); window.__career.premDaily = () => premDaily();
   window.__career.embURL = () => { try { return save ? embFromLook(C.ensureClub(save).emb, 96) : ''; } catch (_) { return ''; } };   // 版680：設定のアカウントIDの横に出す、自分のクラブのエンブレム
