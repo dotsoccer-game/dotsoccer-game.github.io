@@ -459,6 +459,7 @@
     return slots;
   }
 
+  const SUBS_MAX = 5;   // 版1179：交代は1試合5人まで（前は3人）
   function simulateMatch(homeIn, awayIn, seed, opts) {
     opts = opts || {};
     const rec = opts.frames !== false || !!opts.acts;   // acts：絵は作らず、動作の記録だけ残す（確認画面の集計用）
@@ -499,7 +500,7 @@
       const roles = t.roles || {};
       return {
         tac, roles, situ: t.situ || null, sitAct: 'keep',
-        autoSubs: !!t.autoSubs, subsLeft: 3, lastSubT: -999, bench: t.players.slice(11).filter((q) => !(q.injury > 0)).map((q) => ({ ...q })),
+        autoSubs: !!t.autoSubs, subsLeft: SUBS_MAX, lastSubT: -999, bench: t.players.slice(11).filter((q) => !(q.injury > 0)).map((q) => ({ ...q })),
         ti, name: t.name, short: t.short || t.name, color: t.color || (ti ? 'red' : 'blue'), lgId: t.lgId || null,
         line_height: t.line_height || 3, attitude: t.attitude || 'balanced',
         policies: (t.policies || []).slice(0, 5), activePolicy: -1, mods, urg: 0,
@@ -8765,7 +8766,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         while (pendingCh.length && pendingCh[0].at < S.t + 1) applyHalfChange(pendingCh.shift());
         for (const tm of T) if (tm.autoSubs) {
           // 相手チーム：この試合で何人替えるか（2〜3人）を決めて、ハーフタイムに替えることもある
-          tm.subPlan = Math.min(tm.subsLeft, tm.bench.filter((q) => q.position !== 'GK').length, R.next() < 0.5 ? 3 : 2);
+          tm.subPlan = Math.min(tm.subsLeft, tm.bench.filter((q) => q.position !== 'GK').length, R.next() < 0.5 ? 4 : 3);   // 版1179：交代枠5人。CPUはふつう3〜4人
           tm.subNext = 50 + R.range(0, 8);
           if (R.next() < 0.35) autoSub(tm);
         }
@@ -8922,9 +8923,9 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       if (step % 10 === 5 && curHalf === 2) {
         const minute = S.t * CLOCK_SCALE / 60;
         for (const tm of T) {
-          if (!tm.autoSubs || !tm.subPlan || 3 - tm.subsLeft >= tm.subPlan) continue;
+          if (!tm.autoSubs || !tm.subPlan || SUBS_MAX - tm.subsLeft >= tm.subPlan) continue;
           // 予定の時間になった・へとへとの選手がいる・残り時間が少ない、のどれかで交代（必ず予定の人数は替える）
-          const left = tm.subPlan - (3 - tm.subsLeft);
+          const left = tm.subPlan - (SUBS_MAX - tm.subsLeft);
           const spent = minute >= 50 && tm.players.some((p) => !p.gk && (p.curV ?? p.cur) < 28);
           if (minute >= tm.subNext || spent || minute >= 80 - left * 6) {
             // プレーが切れた時にまとめて替える（終盤は残りの人数をいっぺんに）

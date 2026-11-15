@@ -2386,7 +2386,7 @@
     root.querySelectorAll('[data-sk]').forEach((bt) => bt.onclick = () => { situ[bt.dataset.sk] = bt.dataset.sv; after(); });
   }
   // ================= 選手交代（試合中いつでも／ハーフタイム）：カルチョビットAのように、ボードで選んで「はい」 =================
-  // ms：この試合の記録（ピッチの選手・使った控え・配置・作戦）。交代は1試合3人まで
+  // ms：この試合の記録（ピッチの選手・使った控え・配置・作戦）。交代は1試合5人まで
   const battery = (st) => { const n = Math.max(0, Math.min(5, Math.ceil(st / 20))); return `<i class="bat ${st < 35 ? 'low' : st < 60 ? 'mid' : ''}">${'<b></b>'.repeat(n)}${'<b class="e"></b>'.repeat(5 - n)}</i>`; }   // 版997：電池の中にスタミナの数字 → 版1012：数字は出さない;
   function subSheet(mt, info, ms) {
     const ps = mt.team.players, base = C.ensureTactics(save);
@@ -2402,7 +2402,7 @@
     let el = document.getElementById('htModal');
     if (!el) { el = document.createElement('div'); el.id = 'htModal'; document.getElementById('app').appendChild(el); }
     el.className = 'modal sb-wrap sb2-wrap q3sub-wrap';
-    const left = () => 3 - ms.used.length - plan.subs.length;
+    const left = () => 5 - ms.used.length - plan.subs.length;   // 版1179：交代枠5人
     const onPitch = () => { const a = ms.on.slice(); for (const x of plan.subs) a[x.slot] = x.bench; return a; };
     const stamOf = (k) => { const x = plan.subs.find((y) => y.slot === k); return x ? Math.round(100 - (ps[x.bench].fatigue || 0) * 0.5) : Math.round(info.stamina[k]); };
     // ボードの寸法（1080×600の箱で組んで、画面に合わせて拡大縮小）
