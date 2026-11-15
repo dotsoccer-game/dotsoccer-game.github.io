@@ -5450,14 +5450,14 @@
     const main = Object.keys(C.CARDS).filter((c) => C.CARDS[c].cat !== 'sup' && !C.CARDS[c].sp), sup = Object.keys(C.CARDS).filter((c) => C.CARDS[c].cat === 'sup');
     const cards = Array.from({ length: RW.cards }, () => (Math.random() < 0.25 && sup.length ? sup[Math.floor(Math.random() * sup.length)] : main[Math.floor(Math.random() * main.length)]));
     save.cards = save.cards || {}; for (const c of cards) save.cards[c] = Math.min(C.cardMax(save), (save.cards[c] || 0) + 1);
-    C.ensureGacha(save); save.kakera = (save.kakera || 0) + RW.kak; C.earnCoins(save, RW.coins);
+    C.ensureGacha(save); save.kakera = (save.kakera || 0) + RW.kak; save.coins = (save.coins || 0) + RW.coins;   // 版1174：ランクマッチのごほうびは金のコイン（スカウトに使う）。Dリーグの賞金は銀のDコイン
     return { cards, kak: RW.kak, coins: RW.coins, rank: i1 };
   }
   // 版834：スコアの段（左に自分、右に相手。エンブレムと名前、大きい数字）
   const rcScore = (score, op) => `<div class="rc2-score"><div class="rc2-tm"><img src="${emblemURL(save.team.name, 96)}" alt=""><b>${esc(save.team.name)}</b></div><div class="rc2-sc"><b class="${score[0] > score[1] ? 'w' : ''}">${score[0]}</b><i>−</i><b class="${score[1] > score[0] ? 'w' : ''}">${score[1]}</b></div><div class="rc2-tm"><img src="${emblemURL(op.srcName || op.name, 96)}" alt=""><b>${esc(op.name)}</b></div></div>`;
   // 版834：ライセンス取得のごほうび（新しいデザイン）
   const rewardCard = (rw) => ({ tag: 'ライセンス取得', title: `${RANKS[rw.rank].n}ライセンス 取得のごほうび！`, theme: 'win', body: `<div class="rc2-lic">${rankBadge(rw.rank, true)}</div>
-    <div class="rc2-gifts"><div class="rc2-gift"><img src="icons/dcoin.png" alt=""><span>Dコイン</span><b>+${rw.coins}</b></div>${rw.kak ? `<div class="rc2-gift"><img src="icons/kakera.png" alt=""><span>覚醒のカケラ</span><b>+${rw.kak}</b></div>` : ''}<div class="rc2-gift"><img src="icons/cb_train.png" alt=""><span>特訓カード</span><b>${rw.cards.length}枚</b></div></div>
+    <div class="rc2-gifts"><div class="rc2-gift"><img src="icons/coin.png" alt=""><span>金のコイン</span><b>+${rw.coins}</b></div>${rw.kak ? `<div class="rc2-gift"><img src="icons/kakera.png" alt=""><span>覚醒のカケラ</span><b>+${rw.kak}</b></div>` : ''}<div class="rc2-gift"><img src="icons/cb_train.png" alt=""><span>特訓カード</span><b>${rw.cards.length}枚</b></div></div>
     ${RANK_REWARD[rw.rank].pack ? `<p class="rc2-note">${RANK_REWARD[rw.rank].pack}つき</p>` : ''}<div class="rc2-cards">${[...new Set(rw.cards)].map((c) => { const n = rw.cards.filter((x) => x === c).length; return `<div class="rc2-cw">${artCard(c, { ups: true })}${n > 1 ? `<i>×${n}</i>` : ''}</div>`; }).join('')}</div>` });
   const rewardHTML = (rw) => `<h2>${rankBadge(rw.rank, true)} 取得のごほうび！</h2><p class="coin big">${COIN}+${rw.coins} コイン${rw.kak ? `　／　覚醒のカケラ +${rw.kak}` : ''}</p><p>特訓カード ${rw.cards.length}枚${RANK_REWARD[rw.rank].pack ? `（${RANK_REWARD[rw.rank].pack}）` : ''}</p><div class="hrow rw ap-rw">${[...new Set(rw.cards)].map((c) => { const n = rw.cards.filter((x) => x === c).length; return `<div class="ap-rwc">${artCard(c, { ups: true })}${n > 1 ? `<b>×${n}</b>` : ''}</div>`; }).join('')}</div>`;
   // ================= 版618：ポスト（フレンド申請・守備の結果・お知らせ） =================
