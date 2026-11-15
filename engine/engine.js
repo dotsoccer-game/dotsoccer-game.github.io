@@ -3684,7 +3684,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             if (p.sk.has('oneOnOne') && own && own.team !== tm.ti && bxf < 22 && Math.abs(b.y - GOAL_Y) < 14 && !opps(own).some((q) => !q.gk && hyp(q.x - own.x, q.y - own.y) < 3)) {
               const dd = hyp(bxf, b.y - GOAL_Y); tx = clamp(dd * 0.38, 2, 8); ty = GOAL_Y + (b.y - GOAL_Y) * (tx / Math.max(dd, 1)); u = true;
             }
-            const react = 0.34 - p.vision * 0.0012 - p.technique * 0.0008 - (p.sk.has('superReflex') ? 0.05 : 0) - (p.uniq === 'ikari' && b.kind === 'shot' ? 0.08 * gP(p) : 0) + (b.csPlace && b.kind === 'shot' ? (b.csType === 'ground' && b.csGkNear > 0.5 ? 0.24 : 0.12) : 0) + (b.shotSkill === 'toeKick' && b.kind === 'shot' ? 0.06 : 0) + (b.kind === 'shot' ? b.uDelay || 0 : 0);   // トゥーキックは構えがないので、GKの反応が遅れる   // 打たれてから反応するまでの一瞬（うまいGKほど早い）。置きに行くコントロールショットは出だしが少し遅れる
+            const react = 0.34 - p.vision * 0.0012 - p.technique * 0.0008 - (p.sk.has('superReflex') ? 0.05 : 0) - (p.uniq === 'ikari' && b.kind === 'shot' ? 0.08 * gP(p) : 0) + (b.csPlace && b.kind === 'shot' ? ((globalThis.__Kfr2 ?? 1) && (b.shotFrom ?? 0) > 16 && /^ground/.test(b.csType || '') ? 0 : b.csType === 'ground' && b.csGkNear > 0.5 ? 0.24 : 0.12) : 0) + (b.shotSkill === 'toeKick' && b.kind === 'shot' ? 0.06 : 0) + (b.kind === 'shot' ? b.uDelay || 0 : 0);   // トゥーキックは構えがないので、GKの反応が遅れる   // 打たれてから反応するまでの一瞬（うまいGKほど早い）。置きに行くコントロールショットは出だしが少し遅れる
             if (globalThis.__csT2 && b.csPlace && (b.kind === 'shot' || b.kind === 'loose')) globalThis.__csT2.push([+S.t.toFixed(2), b.kind, b.lastTeam, tm.ti, +react.toFixed(2), +(b.shotT ?? -9).toFixed(2)]);
             if (b.kind === 'shot' && b.lastTeam !== tm.ti && S.t - (b.shotT ?? -9) < react) { tx = fx(tm.ti, p.x); ty = p.y; u = false; }
             else if (b.kind === 'shot' && b.lastTeam !== tm.ti) {
@@ -4666,7 +4666,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             csGkNear = g0 ? ((g0.y - GOAL_Y) * ns > POST - 0.9 || g0.vy * ns > 1.2 ? 1 : 0) : 0; }   // ニアの柱に寄っている／ニアへ動いている
           const gNear = csGkNear > 0.5, pg = gNear ? 0.2 : 0.03;
           csType = r < pg ? 'ground' : r < pg + (gNear ? 0.16 : 0.1) ? 'groundStrong' : r < 0.62 ? 'loft' : 'strong'; if (globalThis.__csForce) csType = globalThis.__csForce;
-          speed *= csType === 'strong' ? R.range(1.12, 1.25) : csType === 'loft' ? R.range(0.82, 0.95) : csType === 'groundStrong' ? R.range(1.08, 1.2) : R.range(0.98, 1.08); }
+          speed *= csType === 'strong' ? R.range(1.12, 1.25) : csType === 'loft' ? R.range(0.82, 0.95) : csType === 'groundStrong' ? R.range(1.08, 1.2) : (globalThis.__Kgsp ?? 1) ? R.range(1.12, 1.22) : R.range(0.98, 1.08); }   // 版1172：ゴロのコントロールショットに、スピード感を（ゆるすぎるゴロが入っていた）
         if (opt.skill === 'powerMid' || opt.skill === 'nearPost') speed = R.range(35, 37.5) * (0.9 + p.kick * 0.001);   // 溜めて時速130km前後
         // 大事な場面（PK・終盤の接戦）はメンタルが低いと精度が落ちる
         const late = (S.t % HALF) > HALF * 0.85 && Math.abs(S.score[0] - S.score[1]) <= 1;
@@ -7529,8 +7529,10 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             // 版929：ゆるい球（時速47km未満）は、体の届く所に来たら、誰が蹴っても止める（ボテボテのシュートがGKの前を抜けない）
             let slowF = 0; if ((globalThis.__Kslow ?? 1) && sp < 13 && !b.knuckle && !(b.drive > 0 && b.driveOn) && !(p.downT > 0)) { slowF = 0.95 - Math.max(0, sp - 8) * 0.04; prob = Math.max(prob, slowF); }
             // 構えているGKに、地面を転がるゆるいシュート（コロコロ）は通用しない
-            const rolling = b.z < 0.4 && b.vz < 1 && sp < 12.5 && fx(p.team, p.x) < 6 && !(b.csPlace && b.csGkNear > 0.5);   // ニア寄りのGKの逆を突くコロコロは別
+            const rolling = b.z < 0.4 && b.vz < 1 && sp < 12.5 && fx(p.team, p.x) < 6 && !(b.csPlace && b.csGkNear > 0.5 && (shotD <= 16 || !(globalThis.__Kfr2 ?? 1)));   // 近くからなら、ゆるいゴロでもGKの重心の逆へ流し込める（ペナルティエリアの中から打った時だけ）
             if (rolling) prob = Math.max(prob, 0.96);
+            // 版1172：遠く（16m超）からのゴロ・低い球は、どんなシュートでも、どのGKでも基本は止める（時速61km未満95%・83km未満90%・それより速くても80%）
+            if ((globalThis.__Kfr2 ?? 1) && shotD > 16 && b.z < 0.7 && b.vz < 2 && !b.knuckle && !(b.drive > 0 && b.driveOn)) prob = Math.max(prob, sp < 17 ? 0.95 : sp < 23 ? 0.9 : 0.8);   // 遠くからのゴロは、強めの球でも、GKは見て止められる
             // クロスがそのままゴールへ向かってきた：GKは落ち着いて処理する
             if (b.conv) prob = Math.max(prob, 0.93);
             // PKストッパー：読みが当たれば高確率で触る
@@ -7540,7 +7542,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             const gLv = (globalThis.__Ksh2 ?? 1) ? 0.45 + 0.55 * clamp((skill - 45) / 37, 0, 1) : 1;   // 版963：下のリーグのGKは、遠めの球でも確実には止められない（遅い球ほど止める、の決まりを、GKのうまさで弱める）
             if (shotD > 14 && !b.pkStop) {
               const tight = Math.abs(yAt - GOAL_Y) > POST - 1.1 || (b.z > BAR - 0.7 && Math.abs(yAt - GOAL_Y) > POST - 1.8);   // サイドネットぎりぎり・上の隅
-              if (b.csPlace && b.csType === 'ground' && !(b.csGkNear > 0.5)) prob = Math.max(prob, 0.92);   // コロコロ：GKがニア寄りでなければ、構えて止める
+              if (b.csPlace && b.csType === 'ground' && (!(b.csGkNear > 0.5) || (shotD > 16 && (globalThis.__Kfr2 ?? 1)))) prob = Math.max(prob, 0.92);   // 版1172：ニア寄りのGKの逆を突くゴロが入るのは、近く（ペナルティエリアの中）から打った時だけ   // 版1172：遠くからなら、GKがニア寄りでも止める   // コロコロ：GKがニア寄りでなければ、構えて止める
               else if (b.csPlace && Math.abs(yAt - GOAL_Y) > POST - 1.6) prob = Math.max(prob, 0.38);   // 置きに行くコントロールショット：隅へ正確に置いた球は止めにくいが、うまいGKなら指先で届くこともある
               else if (b.drive > 0 && b.driveOn) { /* ドライブシュート：バーの上を越えると見せて急に落ちる球は、GKの目測が狂う */ }
               else if (sp < 16.5 && !b.knuckle) prob = Math.max(prob, (tight ? 0.86 : 0.96) * gLv);
@@ -8393,6 +8395,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             const tipL = () => { const r = tipIn(); if (r && globalThis.__tipLog) globalThis.__tipLog.push({ d: +(b.shotFrom || 0).toFixed(1), off: +off.toFixed(2), sp: +sp.toFixed(1), prob: +prob.toFixed(2), miss: !!(pre && pre.miss), dive: p.diveT > 0 ? 1 : 0 }); return r; };
             const coreHit = (globalThis.__Kgktip ?? 1) && off < 0.7 && sp < 22 && !b.knuckle && dGk < 1.3 && !(p.downT > 0);   // 版970：手・体の真ん中に来たゆるい球は、すり抜けて入らない（必ずどこかで止める・はじく）
             if (pre && pre.miss && !coreHit) { if (tipL()) continue; p.touchCd = 1.2; continue; }   // 届かないと決まった横っ跳び：手はボールの手前
+            if ((globalThis.__Kpre ?? 1) && pre && !pre.miss && !fingerOnly) prob = Math.max(prob, Math.min(0.995, pre.est));   // 版1172：飛ぶ前に「届く」と決めた球は、そのとおり止める（同じくじで、飛ぶ前は届く・触る時は外れる、になって、正しく飛んだのに体の横を抜けていた）
             const gkRoll = pre ? pre.r : R.next(); if (globalThis.__gkTry) globalThis.__gkTry.push({ st: b.shotT, prob: +prob.toFixed(2), roll: +gkRoll.toFixed(2), off: +off.toFixed(2), dGk: +dGk.toFixed(2), sp: +sp.toFixed(1), z: +b.z.toFixed(2), pre: pre ? (pre.miss ? 'miss' : 'try') : 'none', dive: p.diveT > 0 ? 1 : 0 });
             // 超反応：決まったと思った瞬間に指先で触る／1対1の鬼：体を投げ出して、体のどこかに当てる
             const reflex = gkRoll >= prob && p.sk.has('superReflex') && shotD < 17 && R.next() < 0.12 + p.technique * 0.0015;
