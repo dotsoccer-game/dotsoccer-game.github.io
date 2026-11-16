@@ -1365,6 +1365,7 @@
   let pcPage = 0;
   // 版856：総合力（12能力の平均）。固有スキルの強さもこれで決まる
   const ovrBadge = (q) => { const v = Math.round(D.PARAMS.reduce((a, x) => a + (+q[x.k] || 0), 0) / D.PARAMS.length), g = D.grade(v); return `<em class="pc-ovr" title="総合力（12能力の平均）">総合<i>${v}</i></em>`; };
+  let pcKit = null;   // 版1190：フレンドの選手カード（相手のユニフォームで描く）
   function playerCardHTML(i, ups, embed) {
     const ps = save.team.players, p = ps[i];
     C.ensurePts(p);
@@ -1398,7 +1399,7 @@
       <div class="pc-head"><i class="pos ${POSC[p.position]}">${p.position}</i><b>${esc(p.name)}</b>${ovrBadge(p)}<span>${esc(save.team.name)}</span></div>
       <div class="pc-main">
         <div class="pc-left">
-          <div class="pc-photo">${facePic(p, '', i >= 11)}<div class="pc-rare"><div class="pc-strow">${starHTML(C.ensureStar(p), p.totsu)}<b class="ty-q pc-tzq" data-tzq="1" title="凸とは？">?</b></div>${capBadge(C.capGrade(p))}</div></div>
+          <div class="pc-photo">${facePic(p, '', i >= 11, pcKit || undefined)}<div class="pc-rare"><div class="pc-strow">${starHTML(C.ensureStar(p), p.totsu)}<b class="ty-q pc-tzq" data-tzq="1" title="凸とは？">?</b></div>${capBadge(C.capGrade(p))}</div></div>
           <b class="pc-num">${p.number}</b>
           <div class="pc-meta"><span>タイプ</span>${typeBadge(p.type).replace('<span class="tbadge', `<span data-ty="${esc(p.type || 'バランス')}" data-pos="${esc(p.position)}" title="タップで説明" class="tbadge ty-tap`)}<b class="ty-q">?</b></div>
           <div class="pc-meta"><span>疲労度</span>${condGauge(p)}</div>
@@ -6006,6 +6007,27 @@
   // 版1133：ログインが近い人から上に（わからない人は下。同じなら今までの順）
   const fOrder = (L) => L.map((f, k) => k).sort((a, b) => { const v = (f) => { const x = fSeen[f.uid]; return x ? Math.max(x.seen || 0, x.at || 0) : 0; }; return v(L[b]) - v(L[a]) || a - b; });
   // 版1133：フレンドのスカッド（スタメン・ベンチ）。フレンドから外すのも、ここから（すぐには外れない：確認が2回）
+  // 版1190：フレンドの選手カード（能力・スキルを見るだけ。自分の選手カードと同じ絵で、相手のチームの選手を出す）
+  function friendCard(ps, i, teamName, kit, embSrc, host) {
+    let el = document.getElementById('fcModal');
+    if (!el) { el = document.createElement('div'); el.id = 'fcModal'; el.className = 'modal pc-wrap'; }
+    if (el.parentNode !== host) host.appendChild(el);
+    if (pcPage === 0) pcPage = 1;   // 疲労・記録のページは、相手の選手にはないので「詳しい能力値」から
+    const real = save.team; let html = '';
+    try { save.team = { ...real, name: teamName, players: ps }; pcKit = kit; html = playerCardHTML(i, null, false); } finally { save.team = real; pcKit = null; }
+    el.innerHTML = html; el.hidden = false; el.style.zIndex = 60;
+    { const im = el.querySelector('.pc-emb'); if (im && embSrc) im.src = embSrc; }
+    el.querySelectorAll('.pc-dots [data-pg="0"], .pc-meta:has(.cnd)').forEach((x) => x.remove());   // 疲労度・記録のページは出さない
+    el.querySelectorAll('[data-pasq]').forEach((b) => b.onclick = (e) => { e.stopPropagation(); pasHelp(ps[i]); });
+    bindSkillDesc(el);
+    const n = ps.length, go = (k) => friendCard(ps, (k + n) % n, teamName, kit, embSrc, host);
+    el.querySelectorAll('[data-pg]').forEach((b) => b.onclick = (e) => { e.stopPropagation(); pcPage = +b.dataset.pg; go(i); });
+    el.querySelector('.pc-nav.prev').onclick = (e) => { e.stopPropagation(); go(i - 1); };
+    el.querySelector('.pc-nav.next').onclick = (e) => { e.stopPropagation(); go(i + 1); };
+    el.querySelector('.pc-close').onclick = () => { el.hidden = true; };
+    el.onclick = (e) => { if (e.target === el) el.hidden = true; };
+    try { faceFill(); } catch (_) {}
+  }
   async function friendSquad(k) {
     const on = ensureOnline(), f = on.flist[k]; if (!f) return friendMenu('keep');
     const el = fullScreen('apScreen', 'ap-wrap'), box = el.querySelector('.lk-box');
@@ -6035,10 +6057,11 @@
     let slots = null; try { slots = D.buildSlots(t); } catch (_) {}
     const rels = slots ? slots.filter((x) => !x.gk).map((x) => x.rel) : [0, 1], r0 = Math.min(...rels), r1 = Math.max(...rels);
     const chip = (p, i) => { const sl = slots && slots[i]; let x = 50, y = 88; if (sl) { x = 8 + (sl.y / 68) * 84; y = sl.gk || p.position === 'GK' ? 89 : 74 - ((sl.rel - r0) / Math.max(1, r1 - r0)) * 62; } else { x = 10 + (i % 4) * 26; y = 15 + Math.floor(i / 4) * 30; }
-      return `<div class="fs-chip" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%"><div class="fs-fc">${facePic(p, 'fs-face', false, fkit)}</div><span><i class="pos ${POSC[p.position]}">${p.position}</i>${esc(p.name)}</span></div>`; };
-    const row = (p) => `<div class="fs-bn"><i class="pos ${POSC[p.position]}">${p.position}</i><b>${p.number || ''}</b><span>${esc(p.name)}</span>${starHTML(C.ensureStar(p), p.totsu)}</div>`;
+      return `<div class="fs-chip" data-fp="${i}" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%"><div class="fs-fc">${facePic(p, 'fs-face', false, fkit)}</div><span><i class="pos ${POSC[p.position]}">${p.position}</i>${esc(p.name)}</span></div>`; };
+    const row = (p, k) => `<div class="fs-bn" data-fp="${11 + k}"><i class="pos ${POSC[p.position]}">${p.position}</i><b>${p.number || ''}</b><span>${esc(p.name)}</span>${starHTML(C.ensureStar(p), p.totsu)}</div>`;
     paint(`<div class="fs-main"><div class="fs-pitch"><em class="fs-form">${esc(t.formation || '')}</em><div class="fs-lines"></div>${st11.map(chip).join('')}</div>
       <div class="fs-bench"><h4>ベンチ <small>${bench.length}人</small></h4>${bench.length ? bench.map(row).join('') : '<p class="fs-msg">ベンチの選手はいません</p>'}</div></div>`);
+    box.querySelectorAll('[data-fp]').forEach((c) => c.onclick = () => friendCard(ps, +c.dataset.fp, t.name || f.name, fkit, embFromLook(f.emb, 80), el));   // 版1190：タップで選手カード（能力・スキル）
     try { faceFill(); } catch (_) {}
   }
   async function friendMenu(back) {
@@ -6278,7 +6301,7 @@
     if (loading) { try { const r = await DotNet.cloudInfo(code()); cloud = r ? { info: r.info, at: r.at } : null; } catch (_) { flash('通信できませんでした（クラウドの情報が読めません）'); } loading = false; if (document.body.contains(scr) && !scr.querySelector('.cs-dlg')) draw(); }
   }
   window.__career_rw = (i) => { const main = Object.keys(C.CARDS).filter((c) => C.CARDS[c].cat !== 'sup' && !C.CARDS[c].sp); const RW = RANK_REWARD[i]; resCard(rewardCard({ rank: i, coins: RW.coins, kak: RW.kak, cards: Array.from({ length: RW.cards }, () => main[Math.floor(Math.random() * main.length)]) })); };
-  window.__career = { faceURL: (p, b, k) => faceURL(p, b, k), modal: (h, b, o) => modal(h, b, o), pmToast: (m) => pmToast(m), airport: () => airport(), rankConfirm: (...a) => rankConfirm(...a), resTest: (n) => { save.reserve = save.team.players.slice(11, 11 + (n || 6)).map((q, k) => ({ ...JSON.parse(JSON.stringify(q)), name: q.name + "R" + k })); }, spTest: (pi, idx, all) => { if (all) save.spFound = C.SP.map((x) => x.id); spSel = idx; spList(pi); }, abilDoc: (k) => abilDoc(k), abilOne: (k) => abilOne(k), totsuDoc: (t) => totsuDoc(t), friendSquad: (k) => friendSquad(k), roomScreen: (id, r) => roomScreen(id, r), friendMenu: (b) => friendMenu(b), roomPrep: (r, me) => roomPrep(r, me), playRoom: (r, me) => playRoom(r, me), packCode: (o) => packCode(o), openKitEditor: (o) => openKitEditor(o), drawEmblem: (c, x, y, s, lk) => drawEmblem(c, x, y, s, lk), openClub: (o) => openClub(o), playerDetail: (i, o) => playerDetail(i, o), resCard: (o) => resCard(o), seasonEndCard: (o) => seasonEndCard(o), coachNews: (l) => coachNews(l), rewardCard: (r) => rewardCard(r), gachaDemo: (st, pr, fx) => gachaDemo(st, pr, fx), storyCard: (o) => storyCard(o), gotCardsHTML: (got) => `<div class="gc-cards${got.length > 8 ? ' lots' : got.length > 4 ? ' many' : ''}">${got.map((c) => artCard(c, { ups: true })).join('')}</div><p class="cp-msg gc-msg">クラブハウスの「特訓」で、選手に最大3枚セットできます。</p>`, trainResult: (o) => trainResult(o), airport, openPost, syncPost, onlineDone, setVenue: (k) => { venueNow = k; }, champDemo, champAfter, coinShop, faceFill: () => faceFill(), openGacha, venueTalk: (se) => venueTalk(se), matchFace, openOffice, cpuCard, openClub, openAssoc, open, go, stadium, advance, subSheet, labMatch, townRect, tutPractice, shop, store: () => store(), renderHome: () => renderHome(), clubhouseBg: () => clubhouseBg(), isMatchWeek: () => isMatchWeek(), get view() { return view; }, staffFace: (k) => staffFace(k), get save() { return save; }, get drill() { return clubDrill; }, faceURL, starFace, setDrill(d) { clubDrill = d; drillT0 = -1; drillSnap = true; } };
+  window.__career = { faceURL: (p, b, k) => faceURL(p, b, k), modal: (h, b, o) => modal(h, b, o), pmToast: (m) => pmToast(m), airport: () => airport(), rankConfirm: (...a) => rankConfirm(...a), resTest: (n) => { save.reserve = save.team.players.slice(11, 11 + (n || 6)).map((q, k) => ({ ...JSON.parse(JSON.stringify(q)), name: q.name + "R" + k })); }, spTest: (pi, idx, all) => { if (all) save.spFound = C.SP.map((x) => x.id); spSel = idx; spList(pi); }, abilDoc: (k) => abilDoc(k), abilOne: (k) => abilOne(k), totsuDoc: (t) => totsuDoc(t), friendSquad: (k) => friendSquad(k), friendCard: (...a) => friendCard(...a), roomScreen: (id, r) => roomScreen(id, r), friendMenu: (b) => friendMenu(b), roomPrep: (r, me) => roomPrep(r, me), playRoom: (r, me) => playRoom(r, me), packCode: (o) => packCode(o), openKitEditor: (o) => openKitEditor(o), drawEmblem: (c, x, y, s, lk) => drawEmblem(c, x, y, s, lk), openClub: (o) => openClub(o), playerDetail: (i, o) => playerDetail(i, o), resCard: (o) => resCard(o), seasonEndCard: (o) => seasonEndCard(o), coachNews: (l) => coachNews(l), rewardCard: (r) => rewardCard(r), gachaDemo: (st, pr, fx) => gachaDemo(st, pr, fx), storyCard: (o) => storyCard(o), gotCardsHTML: (got) => `<div class="gc-cards${got.length > 8 ? ' lots' : got.length > 4 ? ' many' : ''}">${got.map((c) => artCard(c, { ups: true })).join('')}</div><p class="cp-msg gc-msg">クラブハウスの「特訓」で、選手に最大3枚セットできます。</p>`, trainResult: (o) => trainResult(o), airport, openPost, syncPost, onlineDone, setVenue: (k) => { venueNow = k; }, champDemo, champAfter, coinShop, faceFill: () => faceFill(), openGacha, venueTalk: (se) => venueTalk(se), matchFace, openOffice, cpuCard, openClub, openAssoc, open, go, stadium, advance, subSheet, labMatch, townRect, tutPractice, shop, store: () => store(), renderHome: () => renderHome(), clubhouseBg: () => clubhouseBg(), isMatchWeek: () => isMatchWeek(), get view() { return view; }, staffFace: (k) => staffFace(k), get save() { return save; }, get drill() { return clubDrill; }, faceURL, starFace, setDrill(d) { clubDrill = d; drillT0 = -1; drillSnap = true; } };
   window.__career.openCloud = openCloud; window.__career.cpuCard = (t, i) => cpuCard(t, i, $("#career"));
   window.__career.shop = (t) => shop(t); window.__career.premDaily = () => premDaily();
   window.__career.embURL = () => { try { return save ? embFromLook(C.ensureClub(save).emb, 96) : ''; } catch (_) { return ''; } };   // 版680：設定のアカウントIDの横に出す、自分のクラブのエンブレム
