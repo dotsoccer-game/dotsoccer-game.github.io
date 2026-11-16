@@ -563,7 +563,7 @@
     { go: 'shop', ico: '🛒', t: 'ショップ', s: 'カード・コイン', x: 718, y: 450, area: [700, 486, 218, 146] },
     { go: 'lineup', ico: '👥', t: 'クラブ事務所', s: 'チーム編成', x: 1046, y: 446, area: [980, 468, 190, 168] },
     { go: 'stadium', ico: '⚽', t: 'スタジアム', s: '試合会場', x: 240, y: 408, area: [140, 280, 620, 300] },
-    { go: 'post', ico: '📮', t: 'ポスト', s: 'お知らせ・フレンド', x: 730, y: 262, area: [668, 250, 70, 80] },   // 版620
+    { go: 'post', ico: '📮', t: 'ポスト', s: 'お知らせ・フレンド', x: 805, y: 226, area: [743, 220, 70, 80] },   // 版620　版1183：大きいスタジアムと重ならない所へ
   ];
   const H2_ICO = {}; ['stadium', 'club', 'online', 'assoc', 'shop', 'lineup', 'post'].forEach((k) => { const im = new Image(); im.src = `icons/home_${k}.png`; H2_ICO[k] = im; });
   const H2_POST = new Image(); H2_POST.src = 'icons/post.png';
@@ -593,8 +593,8 @@
     // 版619：クラブハウスの前のポスト（未読があると数字を出して、ぴょこぴょこ）
     if (H2_POST.complete && H2_POST.naturalWidth) {
       const n = (() => { try { return postUnread(); } catch (_) { return 0; } })(), tt = (t || 0) / 1000, hop = n ? Math.max(0, Math.sin(tt * 5)) * 5 : 0;
-      const ph = 62, pw = ph * H2_POST.naturalWidth / H2_POST.naturalHeight, px = 700 - pw / 2, py = 322 - ph - hop;
-      c.save(); c.fillStyle = 'rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(700, 322, 18, 6, 0, 0, 7); c.fill(); c.drawImage(H2_POST, px, py, pw, ph); c.restore();
+      const ph = 62, pw = ph * H2_POST.naturalWidth / H2_POST.naturalHeight, px = 775 - pw / 2, py = 292 - ph - hop;
+      c.save(); c.fillStyle = 'rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(775, 292, 18, 6, 0, 0, 7); c.fill(); c.drawImage(H2_POST, px, py, pw, ph); c.restore();
       if (n) { const bx = px + pw - 4, by = py + 6; c.save(); c.fillStyle = '#e8323a'; c.strokeStyle = '#fff'; c.lineWidth = 3; c.beginPath(); c.arc(bx, by, 14, 0, 7); c.fill(); c.stroke();
         c.fillStyle = '#fff'; c.font = '900 17px "M PLUS 1p",sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(n > 9 ? '9+' : String(n), bx, by + 1); c.restore(); }
       hs.push({ go: 'post', r: { x: px - 14, y: py - 14, w: pw + 28, h: ph + 26 } });
@@ -2689,7 +2689,7 @@
       const d = document.createElement('div'); d.className = 'rc2' + (o.who ? ' who' : '');
       d.innerHTML = `${o.who ? `<img class="rc2-bg" src="${clubhouseBg()}" alt=""><img class="rc2-who${staffImg[o.who] ? ' art' : ''}" src="${staffFace(o.who)}" alt="">` : ''}<div class="rc2-box ${o.theme || ''}"><div class="rc2-hd">${o.tag ? `<span class="rc2-tag">${o.tag}</span>` : ''}<b>${o.title}</b></div><div class="rc2-body">${o.body}</div><div class="rc2-btns"><button class="rc2-ok">${esc(o.btn || 'OK')}</button></div></div>`;
       (document.getElementById('app') || document.body).appendChild(d);
-      const bx = d.querySelector('.rc2-box'), fit = () => { bx.style.transform = ''; const k = Math.min(1, (d.clientWidth - 16 - (o.who ? 330 : 0)) / bx.offsetWidth, (d.clientHeight - 16) / bx.offsetHeight); bx.style.transform = `scale(${k.toFixed(3)})`; };
+      const bx = d.querySelector('.rc2-box'), fit = () => { bx.style.transform = ''; const k = Math.min(1, (d.clientWidth - 16 - (o.who ? 230 : 0)) / bx.offsetWidth, (d.clientHeight - 16) / bx.offsetHeight); bx.style.transform = `scale(${k.toFixed(3)})`; };
       fit(); requestAnimationFrame(fit); try { faceFill(); } catch (_) {}
       d.querySelector('.rc2-ok').onclick = (e) => { e.stopPropagation(); d.remove(); done(); };
     });

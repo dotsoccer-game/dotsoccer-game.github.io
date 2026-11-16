@@ -1087,8 +1087,8 @@
     const nf = nextFixture(save), busy = new Set(nf && nf.week <= save.week && nf.opp ? [nf.opp.name] : []);
     // 近い実力（同じリーグ＋前後のリーグで、強さの差が小さい順）
     const region = save.world.region;
-    const near = all.filter((t) => !busy.has(t.name) && Math.abs(t.tier - myTier) <= 1 && t.lvl <= me + 7 && !(t.tier <= 1 && t.region && t.region !== region))
-      .map((t) => ({ t, d: Math.abs(t.lvl - me) + (t.lg === myLg ? -5 : 0) + r() * 5 })).sort((a, b) => a.d - b.d).slice(0, 5).map((x) => x.t);
+    const near = all.filter((t) => !busy.has(t.name) && Math.abs(t.tier - myTier) <= 1 && !(t.tier <= 1 && t.region && t.region !== region))
+      .map((t) => ({ t, d: Math.abs(t.lvl - me) + (t.lg === myLg ? -5 : 0) + r() * 5 + (t.lvl > me + 7 ? 40 : 0) })).sort((a, b) => a.d - b.d).slice(0, 5).map((x) => x.t);   // 版1183：実力の近い相手が足りない時は、少し強い相手でうめる（相手がいなくなっていた）
     const list = near.slice();
     // 格上：そのリーグが今週お休みのときだけ、ときどき
     if (r() < 0.5) {
