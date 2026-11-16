@@ -1859,7 +1859,7 @@
         ${known && m.skill ? `<div class="sp2-sk"><span>覚えるスキル</span><b>${esc(D.SKILLS[m.skill].name)}</b><div class="sp2-rate"><i style="width:${rate}%"></i><em>${esc(p.name)}の成功率 ${rate}%</em></div></div>` : ''}
         ${known && m.type ? `<div class="sp2-sk ty"><span>近づくタイプ</span><b>${esc(m.type)}</b></div>` : ''}
         <div class="sp2-ups">${ups}</div>
-        <div class="sp2-who"><span>特訓する選手</span><div class="sp2-ws">${who}</div></div>
+
         ${pvHTML}
         <button class="sp2-go dotrain"${ok ? '' : ' disabled'}>${ok ? `${esc(p.name)}で特訓する！` : why}</button></div></div>`;
     el.hidden = false; el._fit();

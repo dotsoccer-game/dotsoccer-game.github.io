@@ -5037,10 +5037,12 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 .pm2-toast i svg{width:28px;height:28px}
 .pm2-toast b{color:#fff;font-size:24px;font-weight:900}
 /* 版1186：スキル・タイプのメニューでも、能力のメーターを出す（その分、上のカードを少し小さく） */
-.sp2-d:has(.sp2-ab.sk) .spc.big{width:78px;height:94px;border-width:3px}
-.sp2-d:has(.sp2-ab.sk) .spc.big em{font-size:12px}
 .sp2-d:has(.sp2-ab.sk) h3{margin:3px 0 3px;font-size:21px}
 .sp2-d:has(.sp2-ab.sk) .sp2-sk{padding:3px 10px;margin-bottom:4px;gap:4px 10px}
 .sp2-d:has(.sp2-ab.sk) .sp2-ups{min-height:30px}
 .sp2-d:has(.sp2-ab.sk) .sp2-who{margin-top:4px}
 .sp2-pv.sp2-ab.sk{max-height:none;padding-top:4px;padding-bottom:6px}
+/* 版1189：特訓する選手の列をなくした分、能力のメーターを高く */
+.sp2-pv.sp2-ab{margin-top:8px}
+.sp2-ab .ab-bar .bar{height:150px}
+.sp2-ab.sk .ab-bar .bar{height:104px}
