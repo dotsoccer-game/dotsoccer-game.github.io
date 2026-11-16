@@ -4942,7 +4942,7 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 .sp2-ab .ab-bar .bar u{position:absolute;left:0;right:0;background:linear-gradient(#ffe36a,#f0a400);animation:pvBlink 1.2s ease-in-out infinite alternate}
 .sp2-ab .ab-bar .bar s{position:absolute;left:0;right:0;background:#e06a5a}
 .sp2-ab .ab-bar b{font-size:12px;font-weight:800}
-.sp2-ab.sk .ab-bars{display:none}
+.sp2-ab.sk .ab-bars{margin-top:2px}.sp2-ab.sk .ab-bar .bar{height:38px}
 /* 版1162：リザーブの欄の上に、ベンチ入りの7人 */
 .q3rbn{flex:none;border:.3cqh solid #3a5c8a;border-radius:1cqh;background:rgba(15,29,51,.7);padding:.6cqh .6cqw .8cqh}
 .q3rbn>b{display:block;color:#ffd84a;font-size:2.2cqh;font-weight:900;margin:0 0 .5cqh .3cqw}
@@ -5036,3 +5036,11 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 .pm2-toast i{width:44px;height:44px;border-radius:50%;background:#12b026;display:grid;place-items:center}
 .pm2-toast i svg{width:28px;height:28px}
 .pm2-toast b{color:#fff;font-size:24px;font-weight:900}
+/* 版1186：スキル・タイプのメニューでも、能力のメーターを出す（その分、上のカードを少し小さく） */
+.sp2-d:has(.sp2-ab.sk) .spc.big{width:78px;height:94px;border-width:3px}
+.sp2-d:has(.sp2-ab.sk) .spc.big em{font-size:12px}
+.sp2-d:has(.sp2-ab.sk) h3{margin:3px 0 3px;font-size:21px}
+.sp2-d:has(.sp2-ab.sk) .sp2-sk{padding:3px 10px;margin-bottom:4px;gap:4px 10px}
+.sp2-d:has(.sp2-ab.sk) .sp2-ups{min-height:30px}
+.sp2-d:has(.sp2-ab.sk) .sp2-who{margin-top:4px}
+.sp2-pv.sp2-ab.sk{max-height:none;padding-top:4px;padding-bottom:6px}
