@@ -1848,7 +1848,7 @@
           bar: `<div class="ab-bar"><i class="bar"><i style="height:${Math.min(p1, p2)}%"></i>${to > v ? `<u style="bottom:${p1}%;height:${Math.max(0, p2 - p1)}%"></u>` : ''}${to < v ? `<s style="bottom:${p2}%;height:${Math.max(0, p1 - p2)}%"></s>` : ''}</i><b>${Math.floor(v)}</b></div>` };
       });
       const f0 = Math.round(p.fatigue || 0), f1 = Math.min(100, Math.round((p.fatigue || 0) + (m.fat ?? 100) / 6));
-      return `<div class="sp2-pv sp2-ab${m.skill || m.type ? ' sk' : ''}"><div class="pvh"><span>${esc(p.name)}が特訓すると</span><small>疲労 ${f0}% → <b class="${f1 > 75 ? 'hot' : ''}">${f1}%</b>${f1 > 75 ? '（ケガをしやすくなります）' : ''}</small></div>
+      return `<div class="sp2-pv sp2-ab${m.skill || m.type ? ' sk' : ''}"><div class="pvh"><span class="pvme"><i class="pvfc">${facePic(p, 'pvface', pi >= 11)}</i><i class="pos ${POSC[p.position]}">${p.position}</i><em>${p.number || ''}</em><b>${esc(p.name)}</b>が特訓すると</span><small>疲労 ${f0}% → <b class="${f1 > 75 ? 'hot' : ''}">${f1}%</b>${f1 > 75 ? '（ケガをしやすくなります）' : ''}</small></div>
         <div class="ab-ic">${col.map((c) => c.ic).join('')}</div><div class="ab-gr">${col.map((c) => c.gr).join('')}</div><div class="ab-bars">${col.map((c) => c.bar).join('')}</div></div>`;
     })();
     const nF = C.SP.filter((x) => found.has(x.id)).length;

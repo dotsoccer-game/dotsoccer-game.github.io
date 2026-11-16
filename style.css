@@ -5046,3 +5046,13 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 .sp2-pv.sp2-ab{margin-top:8px}
 .sp2-ab .ab-bar .bar{height:150px}
 .sp2-ab.sk .ab-bar .bar{height:104px}
+/* 版1191：メーターは選手カードと同じくらいの高さに。だれの特訓か、顔・ポジション・背番号・名前で */
+.sp2-ab .ab-bar .bar{height:92px}
+.sp2-ab.sk .ab-bar .bar{height:80px}
+.sp2-pv .pvh{align-items:center}
+.sp2-pv .pvme{display:flex;align-items:center;gap:6px;font-weight:900;font-size:15px;color:#1b2a20}
+.sp2-pv .pvme .pvfc{display:block;width:44px;height:44px;border-radius:50%;overflow:hidden;border:2px solid #fff;background:#cfd9e8;box-shadow:0 2px 4px rgba(0,0,0,.25);flex:none}
+.sp2-pv .pvme .pvfc img{width:100%;height:100%;object-fit:cover;object-position:50% 12%}
+.sp2-pv .pvme .pos{min-width:0;font-size:12px;padding:1px 4px}
+.sp2-pv .pvme em{font-style:normal;font-size:15px;color:#556}
+.sp2-pv .pvme b{font-size:20px;margin-right:2px}
