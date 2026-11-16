@@ -12,9 +12,13 @@
 
   // ---------- セーブ ----------
   function load() { try { const s = localStorage.getItem(KEY); if (s) { const o = JSON.parse(s); if (o && o.version === 1) return o; } } catch (e) { /* 保存できない環境 */ } return null; }
+  // 版1187：GKの所（スタメンの1番目）には、いつもGKを。登録ポジションを変えて、GKの所にGKでない選手がいる時は、チームのGKと入れかえる（入れかえられずに動けなくなっていた）
+  function fixGK() { try { const ps = save && save.team && save.team.players; if (!ps || !ps[0] || ps[0].position === 'GK') return false;
+    let j = -1; for (let k = 1; k < ps.length; k++) if (ps[k].position === 'GK' && !(ps[k].injury > 0)) { j = k; break; } if (j < 0) for (let k = 1; k < ps.length; k++) if (ps[k].position === 'GK') { j = k; break; } if (j < 0) return false;
+    const a = ps[0]; ps[0] = ps[j]; ps[j] = a; const pc = save.plan && save.plan.cards; if (pc) { const e0 = pc[0], ej = pc[j]; if (ej) pc[0] = ej; else delete pc[0]; if (e0) pc[j] = e0; else delete pc[j]; } return true; } catch (_) { return false; } }
   function store() { try { if (save) save.savedAt = Date.now(); localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { /* 無視 */ } }
   function ensure() {
-    if (!save) save = load();
+    if (!save) { save = load(); if (fixGK()) store(); }   // 版1187：読みこんだ時に、GKの所を直す（試合の途中ではしない）
     if (!save) { save = C.newCareer(); store(); }
     save.plan = save.plan || { team: 'base', cards: {} };
     save.plan.cards = save.plan.cards || {};
@@ -1548,7 +1552,7 @@
         dlg(`${esc(p.name)}の背番号`, h, (d) => d.querySelectorAll('[data-n]').forEach((x) => x.onclick = () => { const n = +x.dataset.n, q = used.get(n); if (q === p) { d.remove(); return; } if (q) q.number = p.number; p.number = n; done(); }));
       } else if (a === 'pos') {
         const POS = [['GK', 'ゴールキーパー'], ['DF', 'ディフェンダー'], ['MF', 'ミッドフィルダー'], ['FW', 'フォワード']];
-        dlg(`${esc(p.name)}の登録ポジション`, `<div class="pe-pos">${POS.map(([k, l]) => `<button data-p="${k}" class="${p.position === k ? 'me' : ''}"><i class="pos ${POSC[k]}">${k}</i><span>${l}</span></button>`).join('')}</div><p class="pe-note">試合で出るポジションは、スタメン画面のマスで決まります。</p>`, (d) => d.querySelectorAll('[data-p]').forEach((x) => x.onclick = () => { p.position = x.dataset.p; done(); }));
+        dlg(`${esc(p.name)}の登録ポジション`, `<div class="pe-pos">${POS.map(([k, l]) => `<button data-p="${k}" class="${p.position === k ? 'me' : ''}"><i class="pos ${POSC[k]}">${k}</i><span>${l}</span></button>`).join('')}</div><p class="pe-note">試合で出るポジションは、スタメン画面のマスで決まります。</p>`, (d) => d.querySelectorAll('[data-p]').forEach((x) => x.onclick = () => { p.position = x.dataset.p; fixGK(); done(); }));
       } else {
         dlg(`${esc(p.name)}の登録名`, `<input class="pe-name" maxlength="6" value="${esc(p.name)}"><p class="pe-note">6文字まで。チームのほかの選手と同じ名前は使えません。</p><p class="pe-err" hidden></p><div class="pe-btns"><button class="pe-ok primary ib ib-ok ib-img">決定</button></div>`, (d) => {
           const inp = d.querySelector('.pe-name'); setTimeout(() => inp.focus(), 50);
@@ -1877,7 +1881,7 @@
   let pick = -1, sqTab = 'pos';
   function swapPlayers(i, j) {
     const ps = save.team.players, a = ps[i], b = ps[j];
-    if ((i === 0 || j === 0) && (a.position === 'GK') !== (b.position === 'GK')) return false;   // GKの位置はGKだけ
+    if ((i === 0 && b.position !== 'GK') || (j === 0 && a.position !== 'GK')) return false;   // GKの位置はGKだけ（版1187：GKの所へ入るのがGKなら入れかえてよい）
     ps[i] = b; ps[j] = a;
     const pc = save.plan.cards || (save.plan.cards = {}); const ea = pc[i], eb = pc[j]; if (eb) pc[i] = eb; else delete pc[i]; if (ea) pc[j] = ea; else delete pc[j];
     return true;
@@ -1968,6 +1972,7 @@
     return { TY0, TY1, HW0, HW1, tx, ty, RV, VR, CU, px, py, field, board };
   }
   function renderLineup3() {
+    if (fixGK()) store();   // 版1187
     const ps = save.team.players, tac = C.ensureTactics(save), cells = tac.cells, R = C.GRID_R, COLS = C.GRID_C;
     /* 版1072：置いた所そのまま（マスに合わせない）なので、重なりを直す処理（unpile）はしない */
     const L = $('#clubLayer'); { const bk = $('#cvBack'); if (bk) bk.style.visibility = 'hidden'; }
@@ -2096,6 +2101,7 @@
     });
   }
   function renderLineup2() {
+    if (fixGK()) store();   // 版1187
     const keepRes = (document.querySelector('#clubLayer .s2st-l') || {}).scrollTop || 0;   // 版561：リザーブを選んでも、一覧の位置をそのままに
     const ps = save.team.players, tac = C.ensureTactics(save), cells = tac.cells, roles = C.slotRoles(cells);
     const R = C.GRID_R, COLS = C.GRID_C;
