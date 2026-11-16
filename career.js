@@ -270,7 +270,7 @@
     const t = matchTeam(save).team, cl = ensureClub(save);
     t.players = t.players.map((p) => { const q = { ...p }; try { ensurePts(p); q.bg = Object.fromEntries(KEYS.map((k) => [k, rankInfo(p.pts[k]).g])); } catch (_) {}   // 版629：表示用の素の能力ランク（調子・疲れの影響なし）
       for (const k of ['pts', 'fatigue', 'injury', 'games', 'cond', 'startCur', 'goals', 'assists', 'hist', 'log']) delete q[k]; return q; });
-    return { v: 1, name: save.team.name, short: save.team.short, mgr: save.manager || '', lg: save.league.id, emb: cl.emb, kit: cl.kit, kit2: cl.kit2, team: t };
+    return { v: 1, name: save.team.name, short: save.team.short, mgr: save.manager || '', lg: save.league.id, emb: cl.emb, kit: cl.kit, kit2: cl.kit2, gk: cl.gk, team: t };
   }
   function findTeam(save, name) {
     if (GUESTS[name]) return { ...GUESTS[name] };

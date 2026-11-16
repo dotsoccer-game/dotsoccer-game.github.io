@@ -1587,7 +1587,7 @@
     });
   }
   // 画像が読み込めたら、待っていた顔をまとめて差し替える
-  function faceFill() { document.querySelectorAll('img[data-face]').forEach((im) => { const fp = facePending.get(im.dataset.face); const u = fp && faceURL(fp.p, fp.bib); if (u) { im.src = u; im.removeAttribute('data-face'); } }); }
+  function faceFill() { document.querySelectorAll('img[data-face]').forEach((im) => { const fp = facePending.get(im.dataset.face); const u = fp && faceURL(fp.p, fp.bib, fp.kit); if (u) { im.src = u; im.removeAttribute('data-face'); } }); }
   // 瞳の色（茶のまま・黒・青灰・緑・琥珀）
   const FACE_IRIS = [null, '#2a1a12', '#4f6f8f', '#4f7a4a', '#9a6a2a'];   // そのまま（茶）・黒・青灰・緑・琥珀
   // 顔は1枚絵のまま使う（貼り替え・変形はしない）。同じチームの中では全員ちがう顔になるように選ぶ
@@ -1617,12 +1617,15 @@
   }
   // 顔の絵（dataURL）。まだ読み込めていなければ null
   // bib：控え選手はユニフォームの上にビブス（肩から下の胴の部分だけ、蛍光色のメッシュ）
-  function faceURL(p, bib) {
-    if (p.faceKey && window.STAR_FACES && p.faceKey in window.STAR_FACES) return starFace(p.faceKey, (C.ensureClub(save).kit || {}).shirt || '#2f6fd6', p.position === 'GK', STAR_FIT);   // 版505：スカウトで来た選手は、元の顔
+  // 版1180：kit＝そのクラブのユニフォーム（{shirt, gk}）。無ければ自分のクラブ。フレンドのスカッドでは相手のユニフォームで描く
+  const kitOf = (kit) => kit || { shirt: (C.ensureClub(save).kit || {}).shirt || '#2f6fd6', gk: ((C.ensureClub(save).gk) || {}).shirt || '#f2c230' };
+  function faceURL(p, bib, kit) {
+    const K = kitOf(kit);
+    if (p.faceKey && window.STAR_FACES && p.faceKey in window.STAR_FACES) return starFace(p.faceKey, K.shirt, p.position === 'GK', STAR_FIT, K.gk);   // 版505：スカウトで来た選手は、元の顔
     faceLoad();
     if (!faceTotal || faceLoaded < faceTotal) return null;
     const g = faceGenes(p), set = window.FACE_SET, F = set[g.id], skin = FACE_SKIN[p.skin || 0] || FACE_SKIN[0], hair = FACE_HAIR[p.hairColor || 0] || FACE_HAIR[0], gk = p.position === 'GK';
-    const key = [g.id, g.hs, g.iris, skin, hair, gk ? ((C.ensureClub(save).gk) || {}).shirt : 0, bib ? 1 : 0].join('|');
+    const key = [g.id, g.hs, g.iris, skin, hair, gk ? K.gk : K.shirt, bib ? 1 : 0].join('|');
     if (faceCache.has(key)) return faceCache.get(key);
     const B = faceDataOf(g.id), W = B.W, H = B.H;
     const c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d');
@@ -1639,13 +1642,13 @@
     }
     const ts = hexRgb(skin), th = hexRgb(hair), bs = F.skin;
     const thL = th[0] * 0.3 + th[1] * 0.59 + th[2] * 0.11, hairK = (thL > 90 ? 1.08 : 1) / set[g.hs].hairL;   // 明るい髪は少し持ち上げる
-    const tg = hexRgbU(((C.ensureClub(save).gk) || {}).shirt || '#f2c230');   // 版651：GKのユニフォームの色
+    const tg = hexRgbU(gk ? K.gk : K.shirt);   // 版651：GKのユニフォームの色（版1180：選手も、そのクラブのユニフォームの色に）
     for (let i = 0; i < px.length; i += 4) {
       if (!px[i + 3]) continue;
       const r = px[i], gg = px[i + 1], b = px[i + 2];
       if (md[i] > 200) { const l = (r * 0.3 + gg * 0.59 + b * 0.11) * hairK; px[i] = Math.min(255, th[0] * l + (l > 1 ? (l - 1) * 30 : 0)); px[i + 1] = Math.min(255, th[1] * l + (l > 1 ? (l - 1) * 26 : 0)); px[i + 2] = Math.min(255, th[2] * l + (l > 1 ? (l - 1) * 22 : 0)); }
       else if (md[i + 1] > 128) { px[i] = Math.min(255, r * ts[0] / bs[0]); px[i + 1] = Math.min(255, gg * ts[1] / bs[1]); px[i + 2] = Math.min(255, b * ts[2] / bs[2]); }
-      else if (gk && md[i + 2] > 250) { const l = (r * 0.3 + gg * 0.59 + b * 0.11) / F.shirtL; px[i] = Math.min(255, tg[0] * l); px[i + 1] = Math.min(255, tg[1] * l); px[i + 2] = Math.min(255, tg[2] * l); }
+      else if (md[i + 2] > 250) { const l = (r * 0.3 + gg * 0.59 + b * 0.11) / F.shirtL; px[i] = Math.min(255, tg[0] * l); px[i + 1] = Math.min(255, tg[1] * l); px[i + 2] = Math.min(255, tg[2] * l); }
     }
     if (bib) {
       // 胴の真ん中（両肩の内側）だけを塗る。えりぐりは元のユニフォームのまま残す
@@ -1668,10 +1671,10 @@
   // 顔の<img>（読み込み前はドット絵を出しておき、読み込めたら差し替え）
   let faceRetryT = 0, faceRetryN = 0;
   function faceRetry() { if (faceRetryT) return; faceRetryN = 0; const tick = () => { faceRetryT = 0; try { faceFill(); } catch (_) {} if (document.querySelector('img[data-face]') && ++faceRetryN < 20) faceRetryT = setTimeout(tick, 400); }; faceRetryT = setTimeout(tick, 300); }
-  function facePic(p, cls, bib) {
-    const url = faceURL(p, bib);
+  function facePic(p, cls, bib, kit) {
+    const url = faceURL(p, bib, kit);
     if (url) return `<img class="fc ${cls || ''}" src="${url}" alt="" draggable="false">`;
-    const id = 'f' + (p.name || '') + (p.number || '') + (bib ? 'b' : ''); facePending.set(id, { p, bib });
+    const id = 'f' + (p.name || '') + (p.number || '') + (bib ? 'b' : '') + (kit ? kit.shirt + kit.gk : ''); facePending.set(id, { p, bib, kit });
     faceRetry();   // 版513：読み込みが終わったのに入れ替わらない顔が残らないよう、少し待って入れ直す
     return `<img class="fc ${cls || ''}" data-face="${esc(id)}" src="${sprURL.get(sprKey(p)) || BLANK}" alt="" draggable="false">`;
   }
@@ -3910,8 +3913,9 @@
   function starKey(tid, q) { const F = window.STAR_FACES; if (F && q && q.face && !q.face.startsWith('mob_') && q.face in F) return q.face; if (F && q && q.face) return null; return F && q && !q.gen && (tid + '_' + q.no) in F ? tid + '_' + q.no : null; }   /* 移籍してきた選手は、元の顔のまま（版455） */
   // 版513：自分のチームに来た選手の顔は、ほかの選手と同じ大きさに見えるよう縮めて下にそろえる
   const STAR_FIT = 0.8;
-  function starFace(key, shirt, gk, fit) {
-    const ck = key + '|' + shirt + '|' + (gk ? ((C.ensureClub(save).gk) || {}).shirt : 0) + '|' + (fit || 1); if (starURLs.has(ck)) return starURLs.get(ck);
+  function starFace(key, shirt, gk, fit, gkShirt) {
+    gkShirt = gkShirt || ((C.ensureClub(save).gk) || {}).shirt;
+    const ck = key + '|' + shirt + '|' + (gk ? gkShirt : 0) + '|' + (fit || 1); if (starURLs.has(ck)) return starURLs.get(ck);
     let L = starImgs[key];
     if (!L) { L = starImgs[key] = { img: new Image(), n: 0 }; L.img.onload = L.img.onerror = () => { L.n = 1; starFill(); try { faceFill(); } catch (_) {} }; L.img.src = `faces/star/${key}.png`; }
     if (!L.n) return null;
@@ -3927,7 +3931,7 @@
         for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nx = xx + dx, ny = yy + dy; if (nx < 0 || nx >= W || ny < y0 || ny >= H) continue; const n = ny * W + nx; if (!mask[n] && blue(n * 4)) { mask[n] = 1; st.push(n); } } }
       // 線の内側のすき間（しわの線など）も塗る：上下左右が青の画素
       for (let yy = y0 + 1; yy < H - 1; yy++) for (let xx = 1; xx < W - 1; xx++) { const k = yy * W + xx; if (!mask[k] && px[k * 4 + 3] > 0 && mask[k - 1] && mask[k + 1] && mask[k - W] && mask[k + W]) mask[k] = 2; }
-      const t = gk ? hexRgb(((C.ensureClub(save).gk) || {}).shirt || '#f2c230') : hexRgb(shirt || '#2f6fd6'), base = window.STAR_FACES[key] || 80;
+      const t = gk ? hexRgb(gkShirt || '#f2c230') : hexRgb(shirt || '#2f6fd6'), base = window.STAR_FACES[key] || 80;
       for (let k = 0; k < W * H; k++) if (mask[k]) { const i = k * 4, l = (px[i] * 0.3 + px[i + 1] * 0.59 + px[i + 2] * 0.11) / base; px[i] = Math.min(255, t[0] * l); px[i + 1] = Math.min(255, t[1] * l); px[i + 2] = Math.min(255, t[2] * l); }
       x.putImageData(d, 0, 0);
       if (fit && fit < 1) { const c2 = document.createElement('canvas'), H2 = Math.round(W * 308 / 320); c2.width = W; c2.height = H2; c2.getContext('2d').drawImage(c, (W - W * fit) / 2, H2 - H * fit, W * fit, H * fit); url = c2.toDataURL(); /* ほかの選手の顔（320×308）と同じ形・同じ頭の大きさに */ } else url = c.toDataURL();
@@ -6011,11 +6015,12 @@
     { const mgr = (d && d.mgr) || (pl && pl.mgr) || f.mgr || '', lg = (d && d.lg) || (pl && pl.lg) || f.lg || ''; side = mkSide(mgr, lg); if (mgr && mgr !== f.mgr) { f.mgr = mgr; store(); } if (lg && lg !== f.lg) { f.lg = lg; store(); } }
     if (el.hidden || !box.querySelector('.fs-wrap')) return;
     if (!d || !d.team || !(d.team.players || []).length) { paint('<div class="fs-main"><p class="fs-msg">チームを読みこめませんでした。<br>通信の状態をたしかめて、もう一度開いてください。</p></div>'); return; }
+    const fkit = { shirt: ((d.kit || pl && pl.kit) || {}).shirt || '#2f6fd6', gk: (d.gk || {}).shirt || '#f2c230' };   // 版1180：相手のユニフォーム
     const t = d.team, ps = t.players, st11 = ps.slice(0, 11), bench = ps.slice(11, 11 + (C.BENCH_N || 7));
     let slots = null; try { slots = D.buildSlots(t); } catch (_) {}
     const rels = slots ? slots.filter((x) => !x.gk).map((x) => x.rel) : [0, 1], r0 = Math.min(...rels), r1 = Math.max(...rels);
     const chip = (p, i) => { const sl = slots && slots[i]; let x = 50, y = 88; if (sl) { x = 8 + (sl.y / 68) * 84; y = sl.gk || p.position === 'GK' ? 89 : 74 - ((sl.rel - r0) / Math.max(1, r1 - r0)) * 62; } else { x = 10 + (i % 4) * 26; y = 15 + Math.floor(i / 4) * 30; }
-      return `<div class="fs-chip" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%"><div class="fs-fc">${facePic(p, 'fs-face', false)}</div><span><i class="pos ${POSC[p.position]}">${p.position}</i>${esc(p.name)}</span></div>`; };
+      return `<div class="fs-chip" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%"><div class="fs-fc">${facePic(p, 'fs-face', false, fkit)}</div><span><i class="pos ${POSC[p.position]}">${p.position}</i>${esc(p.name)}</span></div>`; };
     const row = (p) => `<div class="fs-bn"><i class="pos ${POSC[p.position]}">${p.position}</i><b>${p.number || ''}</b><span>${esc(p.name)}</span>${starHTML(C.ensureStar(p), p.totsu)}</div>`;
     paint(`<div class="fs-main"><div class="fs-pitch"><em class="fs-form">${esc(t.formation || '')}</em><div class="fs-lines"></div>${st11.map(chip).join('')}</div>
       <div class="fs-bench"><h4>ベンチ <small>${bench.length}人</small></h4>${bench.length ? bench.map(row).join('') : '<p class="fs-msg">ベンチの選手はいません</p>'}</div></div>`);
@@ -6258,7 +6263,7 @@
     if (loading) { try { const r = await DotNet.cloudInfo(code()); cloud = r ? { info: r.info, at: r.at } : null; } catch (_) { flash('通信できませんでした（クラウドの情報が読めません）'); } loading = false; if (document.body.contains(scr) && !scr.querySelector('.cs-dlg')) draw(); }
   }
   window.__career_rw = (i) => { const main = Object.keys(C.CARDS).filter((c) => C.CARDS[c].cat !== 'sup' && !C.CARDS[c].sp); const RW = RANK_REWARD[i]; resCard(rewardCard({ rank: i, coins: RW.coins, kak: RW.kak, cards: Array.from({ length: RW.cards }, () => main[Math.floor(Math.random() * main.length)]) })); };
-  window.__career = { modal: (h, b, o) => modal(h, b, o), pmToast: (m) => pmToast(m), airport: () => airport(), rankConfirm: (...a) => rankConfirm(...a), resTest: (n) => { save.reserve = save.team.players.slice(11, 11 + (n || 6)).map((q, k) => ({ ...JSON.parse(JSON.stringify(q)), name: q.name + "R" + k })); }, spTest: (pi, idx, all) => { if (all) save.spFound = C.SP.map((x) => x.id); spSel = idx; spList(pi); }, abilDoc: (k) => abilDoc(k), abilOne: (k) => abilOne(k), totsuDoc: (t) => totsuDoc(t), friendSquad: (k) => friendSquad(k), roomScreen: (id, r) => roomScreen(id, r), friendMenu: (b) => friendMenu(b), roomPrep: (r, me) => roomPrep(r, me), playRoom: (r, me) => playRoom(r, me), packCode: (o) => packCode(o), openKitEditor: (o) => openKitEditor(o), drawEmblem: (c, x, y, s, lk) => drawEmblem(c, x, y, s, lk), openClub: (o) => openClub(o), playerDetail: (i, o) => playerDetail(i, o), resCard: (o) => resCard(o), seasonEndCard: (o) => seasonEndCard(o), coachNews: (l) => coachNews(l), rewardCard: (r) => rewardCard(r), gachaDemo: (st, pr, fx) => gachaDemo(st, pr, fx), storyCard: (o) => storyCard(o), gotCardsHTML: (got) => `<div class="gc-cards${got.length > 8 ? ' lots' : got.length > 4 ? ' many' : ''}">${got.map((c) => artCard(c, { ups: true })).join('')}</div><p class="cp-msg gc-msg">クラブハウスの「特訓」で、選手に最大3枚セットできます。</p>`, trainResult: (o) => trainResult(o), airport, openPost, syncPost, onlineDone, setVenue: (k) => { venueNow = k; }, champDemo, champAfter, coinShop, faceFill: () => faceFill(), openGacha, venueTalk: (se) => venueTalk(se), matchFace, openOffice, cpuCard, openClub, openAssoc, open, go, stadium, advance, subSheet, labMatch, townRect, tutPractice, shop, store: () => store(), renderHome: () => renderHome(), clubhouseBg: () => clubhouseBg(), isMatchWeek: () => isMatchWeek(), get view() { return view; }, staffFace: (k) => staffFace(k), get save() { return save; }, get drill() { return clubDrill; }, faceURL, starFace, setDrill(d) { clubDrill = d; drillT0 = -1; drillSnap = true; } };
+  window.__career = { faceURL: (p, b, k) => faceURL(p, b, k), modal: (h, b, o) => modal(h, b, o), pmToast: (m) => pmToast(m), airport: () => airport(), rankConfirm: (...a) => rankConfirm(...a), resTest: (n) => { save.reserve = save.team.players.slice(11, 11 + (n || 6)).map((q, k) => ({ ...JSON.parse(JSON.stringify(q)), name: q.name + "R" + k })); }, spTest: (pi, idx, all) => { if (all) save.spFound = C.SP.map((x) => x.id); spSel = idx; spList(pi); }, abilDoc: (k) => abilDoc(k), abilOne: (k) => abilOne(k), totsuDoc: (t) => totsuDoc(t), friendSquad: (k) => friendSquad(k), roomScreen: (id, r) => roomScreen(id, r), friendMenu: (b) => friendMenu(b), roomPrep: (r, me) => roomPrep(r, me), playRoom: (r, me) => playRoom(r, me), packCode: (o) => packCode(o), openKitEditor: (o) => openKitEditor(o), drawEmblem: (c, x, y, s, lk) => drawEmblem(c, x, y, s, lk), openClub: (o) => openClub(o), playerDetail: (i, o) => playerDetail(i, o), resCard: (o) => resCard(o), seasonEndCard: (o) => seasonEndCard(o), coachNews: (l) => coachNews(l), rewardCard: (r) => rewardCard(r), gachaDemo: (st, pr, fx) => gachaDemo(st, pr, fx), storyCard: (o) => storyCard(o), gotCardsHTML: (got) => `<div class="gc-cards${got.length > 8 ? ' lots' : got.length > 4 ? ' many' : ''}">${got.map((c) => artCard(c, { ups: true })).join('')}</div><p class="cp-msg gc-msg">クラブハウスの「特訓」で、選手に最大3枚セットできます。</p>`, trainResult: (o) => trainResult(o), airport, openPost, syncPost, onlineDone, setVenue: (k) => { venueNow = k; }, champDemo, champAfter, coinShop, faceFill: () => faceFill(), openGacha, venueTalk: (se) => venueTalk(se), matchFace, openOffice, cpuCard, openClub, openAssoc, open, go, stadium, advance, subSheet, labMatch, townRect, tutPractice, shop, store: () => store(), renderHome: () => renderHome(), clubhouseBg: () => clubhouseBg(), isMatchWeek: () => isMatchWeek(), get view() { return view; }, staffFace: (k) => staffFace(k), get save() { return save; }, get drill() { return clubDrill; }, faceURL, starFace, setDrill(d) { clubDrill = d; drillT0 = -1; drillSnap = true; } };
   window.__career.openCloud = openCloud; window.__career.cpuCard = (t, i) => cpuCard(t, i, $("#career"));
   window.__career.shop = (t) => shop(t); window.__career.premDaily = () => premDaily();
   window.__career.embURL = () => { try { return save ? embFromLook(C.ensureClub(save).emb, 96) : ''; } catch (_) { return ''; } };   // 版680：設定のアカウントIDの横に出す、自分のクラブのエンブレム
