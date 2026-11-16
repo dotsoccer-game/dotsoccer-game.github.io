@@ -1618,14 +1618,26 @@
   // 顔の絵（dataURL）。まだ読み込めていなければ null
   // bib：控え選手はユニフォームの上にビブス（肩から下の胴の部分だけ、蛍光色のメッシュ）
   // 版1180：kit＝そのクラブのユニフォーム（{shirt, gk}）。無ければ自分のクラブ。フレンドのスカッドでは相手のユニフォームで描く
-  const kitOf = (kit) => kit || { shirt: (C.ensureClub(save).kit || {}).shirt || '#2f6fd6', gk: ((C.ensureClub(save).gk) || {}).shirt || '#f2c230' };
+  const kitOf = (kit) => { const k = kit || { ...(C.ensureClub(save).kit || {}), gk: ((C.ensureClub(save).gk) || {}).shirt }; return { shirt: k.shirt || '#2f6fd6', sub: k.sub || '#ffffff', pat: k.pat || 'solid', gk: k.gk || '#f2c230' }; };
+  // 版1181：ユニフォームの柄（縦じま・横じま・胸ライン・たすき・ハーフ）を顔の絵のシャツにも。x,y：画素　cx：体の真ん中　top：シャツのいちばん上　u：柄の太さの目安
+  function kitPatIsSub(K, x, y, cx, top, u, sh) {
+    const dx = x - cx, dy = y - top, f = dy / Math.max(1, sh);   // f：シャツの上から下までを0〜1で
+    switch (K.pat) {
+      case 'vstripe': return ((Math.floor((dx + u * 0.5) / u) % 2) + 2) % 2 === 1;
+      case 'hstripe': return f > 0.22 && Math.floor((f - 0.22) / 0.2) % 2 === 0;
+      case 'band': return f > 0.38 && f < 0.72;
+      case 'sash': return Math.abs(dx - sh * 0.9 + dy * 2.1) < sh * 0.3;
+      case 'half': return dx > 0;
+      default: return false;
+    }
+  }
   function faceURL(p, bib, kit) {
     const K = kitOf(kit);
-    if (p.faceKey && window.STAR_FACES && p.faceKey in window.STAR_FACES) return starFace(p.faceKey, K.shirt, p.position === 'GK', STAR_FIT, K.gk);   // 版505：スカウトで来た選手は、元の顔
+    if (p.faceKey && window.STAR_FACES && p.faceKey in window.STAR_FACES) return starFace(p.faceKey, K.shirt, p.position === 'GK', STAR_FIT, K.gk, K);   // 版505：スカウトで来た選手は、元の顔
     faceLoad();
     if (!faceTotal || faceLoaded < faceTotal) return null;
     const g = faceGenes(p), set = window.FACE_SET, F = set[g.id], skin = FACE_SKIN[p.skin || 0] || FACE_SKIN[0], hair = FACE_HAIR[p.hairColor || 0] || FACE_HAIR[0], gk = p.position === 'GK';
-    const key = [g.id, g.hs, g.iris, skin, hair, gk ? K.gk : K.shirt, bib ? 1 : 0].join('|');
+    const key = [g.id, g.hs, g.iris, skin, hair, gk ? K.gk : [K.shirt, K.sub, K.pat].join(','), bib ? 1 : 0].join('|');
     if (faceCache.has(key)) return faceCache.get(key);
     const B = faceDataOf(g.id), W = B.W, H = B.H;
     const c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d');
@@ -1642,13 +1654,14 @@
     }
     const ts = hexRgb(skin), th = hexRgb(hair), bs = F.skin;
     const thL = th[0] * 0.3 + th[1] * 0.59 + th[2] * 0.11, hairK = (thL > 90 ? 1.08 : 1) / set[g.hs].hairL;   // 明るい髪は少し持ち上げる
-    const tg = hexRgbU(gk ? K.gk : K.shirt);   // 版651：GKのユニフォームの色（版1180：選手も、そのクラブのユニフォームの色に）
+    const tg = hexRgbU(gk ? K.gk : K.shirt), tsub = hexRgbU(K.sub);
+    let ftop = H; if (!gk && K.pat !== 'solid') { for (let y = (H * 0.55) | 0; y < H && ftop === H; y++) { let n = 0; for (let x2 = 0; x2 < W; x2++) { const j = (y * W + x2) * 4; if (px[j + 3] && md[j] <= 200 && md[j + 1] <= 128 && md[j + 2] > 250) n++; } if (n > W * 0.06) ftop = y; }  }   // 版651：GKのユニフォームの色（版1180：選手も、そのクラブのユニフォームの色に）
     for (let i = 0; i < px.length; i += 4) {
       if (!px[i + 3]) continue;
       const r = px[i], gg = px[i + 1], b = px[i + 2];
       if (md[i] > 200) { const l = (r * 0.3 + gg * 0.59 + b * 0.11) * hairK; px[i] = Math.min(255, th[0] * l + (l > 1 ? (l - 1) * 30 : 0)); px[i + 1] = Math.min(255, th[1] * l + (l > 1 ? (l - 1) * 26 : 0)); px[i + 2] = Math.min(255, th[2] * l + (l > 1 ? (l - 1) * 22 : 0)); }
       else if (md[i + 1] > 128) { px[i] = Math.min(255, r * ts[0] / bs[0]); px[i + 1] = Math.min(255, gg * ts[1] / bs[1]); px[i + 2] = Math.min(255, b * ts[2] / bs[2]); }
-      else if (md[i + 2] > 250) { const l = (r * 0.3 + gg * 0.59 + b * 0.11) / F.shirtL; px[i] = Math.min(255, tg[0] * l); px[i + 1] = Math.min(255, tg[1] * l); px[i + 2] = Math.min(255, tg[2] * l); }
+      else if (md[i + 2] > 250) { const l = (r * 0.3 + gg * 0.59 + b * 0.11) / F.shirtL, q = i >> 2, c = !gk && K.pat !== 'solid' && kitPatIsSub(K, q % W, (q / W) | 0, F.ex, ftop, F.d * 0.62, H - ftop) ? tsub : tg; px[i] = Math.min(255, c[0] * l); px[i + 1] = Math.min(255, c[1] * l); px[i + 2] = Math.min(255, c[2] * l); }
     }
     if (bib) {
       // 胴の真ん中（両肩の内側）だけを塗る。えりぐりは元のユニフォームのまま残す
@@ -1674,7 +1687,7 @@
   function facePic(p, cls, bib, kit) {
     const url = faceURL(p, bib, kit);
     if (url) return `<img class="fc ${cls || ''}" src="${url}" alt="" draggable="false">`;
-    const id = 'f' + (p.name || '') + (p.number || '') + (bib ? 'b' : '') + (kit ? kit.shirt + kit.gk : ''); facePending.set(id, { p, bib, kit });
+    const id = 'f' + (p.name || '') + (p.number || '') + (bib ? 'b' : '') + (kit ? [kit.shirt, kit.sub, kit.pat, kit.gk].join(',') : ''); facePending.set(id, { p, bib, kit });
     faceRetry();   // 版513：読み込みが終わったのに入れ替わらない顔が残らないよう、少し待って入れ直す
     return `<img class="fc ${cls || ''}" data-face="${esc(id)}" src="${sprURL.get(sprKey(p)) || BLANK}" alt="" draggable="false">`;
   }
@@ -3913,9 +3926,10 @@
   function starKey(tid, q) { const F = window.STAR_FACES; if (F && q && q.face && !q.face.startsWith('mob_') && q.face in F) return q.face; if (F && q && q.face) return null; return F && q && !q.gen && (tid + '_' + q.no) in F ? tid + '_' + q.no : null; }   /* 移籍してきた選手は、元の顔のまま（版455） */
   // 版513：自分のチームに来た選手の顔は、ほかの選手と同じ大きさに見えるよう縮めて下にそろえる
   const STAR_FIT = 0.8;
-  function starFace(key, shirt, gk, fit, gkShirt) {
+  function starFace(key, shirt, gk, fit, gkShirt, K) {
     gkShirt = gkShirt || ((C.ensureClub(save).gk) || {}).shirt;
-    const ck = key + '|' + shirt + '|' + (gk ? gkShirt : 0) + '|' + (fit || 1); if (starURLs.has(ck)) return starURLs.get(ck);
+    if (!K) K = kitOf(); if (shirt && shirt !== K.shirt) K = { ...K, shirt };
+    const ck = key + '|' + shirt + '|' + K.sub + '|' + K.pat + '|' + (gk ? gkShirt : 0) + '|' + (fit || 1); if (starURLs.has(ck)) return starURLs.get(ck);
     let L = starImgs[key];
     if (!L) { L = starImgs[key] = { img: new Image(), n: 0 }; L.img.onload = L.img.onerror = () => { L.n = 1; starFill(); try { faceFill(); } catch (_) {} }; L.img.src = `faces/star/${key}.png`; }
     if (!L.n) return null;
@@ -3932,7 +3946,9 @@
       // 線の内側のすき間（しわの線など）も塗る：上下左右が青の画素
       for (let yy = y0 + 1; yy < H - 1; yy++) for (let xx = 1; xx < W - 1; xx++) { const k = yy * W + xx; if (!mask[k] && px[k * 4 + 3] > 0 && mask[k - 1] && mask[k + 1] && mask[k - W] && mask[k + W]) mask[k] = 2; }
       const t = gk ? hexRgb(gkShirt || '#f2c230') : hexRgb(shirt || '#2f6fd6'), base = window.STAR_FACES[key] || 80;
-      for (let k = 0; k < W * H; k++) if (mask[k]) { const i = k * 4, l = (px[i] * 0.3 + px[i + 1] * 0.59 + px[i + 2] * 0.11) / base; px[i] = Math.min(255, t[0] * l); px[i + 1] = Math.min(255, t[1] * l); px[i + 2] = Math.min(255, t[2] * l); }
+      let mtop = H; for (let y = (H * 0.5) | 0; y < H && mtop === H; y++) { let n = 0; for (let x = 0; x < W; x++) n += mask[y * W + x] ? 1 : 0; if (n > W * 0.06) mtop = y; }
+      const ts = hexRgb(K.sub || '#ffffff'), pat = !gk && K.pat && K.pat !== 'solid';
+      for (let k = 0; k < W * H; k++) if (mask[k]) { const i = k * 4, l = (px[i] * 0.3 + px[i + 1] * 0.59 + px[i + 2] * 0.11) / base, cc = pat && kitPatIsSub(K, k % W, (k / W) | 0, W / 2, mtop, W * 0.1, H - mtop) ? ts : t; px[i] = Math.min(255, cc[0] * l); px[i + 1] = Math.min(255, cc[1] * l); px[i + 2] = Math.min(255, cc[2] * l); }
       x.putImageData(d, 0, 0);
       if (fit && fit < 1) { const c2 = document.createElement('canvas'), H2 = Math.round(W * 308 / 320); c2.width = W; c2.height = H2; c2.getContext('2d').drawImage(c, (W - W * fit) / 2, H2 - H * fit, W * fit, H * fit); url = c2.toDataURL(); /* ほかの選手の顔（320×308）と同じ形・同じ頭の大きさに */ } else url = c.toDataURL();
     } catch (e) { /* 読み込めない環境では、元の青いシャツのまま */ }
@@ -6015,7 +6031,7 @@
     { const mgr = (d && d.mgr) || (pl && pl.mgr) || f.mgr || '', lg = (d && d.lg) || (pl && pl.lg) || f.lg || ''; side = mkSide(mgr, lg); if (mgr && mgr !== f.mgr) { f.mgr = mgr; store(); } if (lg && lg !== f.lg) { f.lg = lg; store(); } }
     if (el.hidden || !box.querySelector('.fs-wrap')) return;
     if (!d || !d.team || !(d.team.players || []).length) { paint('<div class="fs-main"><p class="fs-msg">チームを読みこめませんでした。<br>通信の状態をたしかめて、もう一度開いてください。</p></div>'); return; }
-    const fkit = { shirt: ((d.kit || pl && pl.kit) || {}).shirt || '#2f6fd6', gk: (d.gk || {}).shirt || '#f2c230' };   // 版1180：相手のユニフォーム
+    const fkit = { ...((d.kit || pl && pl.kit) || {}), gk: (d.gk || {}).shirt || '#f2c230' };   // 版1180：相手のユニフォーム
     const t = d.team, ps = t.players, st11 = ps.slice(0, 11), bench = ps.slice(11, 11 + (C.BENCH_N || 7));
     let slots = null; try { slots = D.buildSlots(t); } catch (_) {}
     const rels = slots ? slots.filter((x) => !x.gk).map((x) => x.rel) : [0, 1], r0 = Math.min(...rels), r1 = Math.max(...rels);
