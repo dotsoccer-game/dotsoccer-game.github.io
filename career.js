@@ -1078,7 +1078,7 @@
     const key = wkKey(save);
     // 版792：順位は、ほかのリーグの相手も、そのリーグでの今の順位を出す（開くたびに新しい順位で）
     const rankOf = (t) => { try { const tb = leagueTable(save, t.lg); const k = tb ? tb.rows.findIndex((x) => x.name === t.name) : -1; return k >= 0 ? k + 1 : 0; } catch (e) { return 0; } };
-    if (save.practiceOpts && save.practiceOpts.key === key) return save.practiceOpts.list.map((t) => ({ ...t, rank: rankOf(t) }));
+    if (save.practiceOpts && save.practiceOpts.key === key && (save.practiceOpts.list || []).length) return save.practiceOpts.list.map((t) => ({ ...t, rank: rankOf(t) }));
     let s0 = (save.season * 977 + save.week * 131 + 7) >>> 0;
     const r = () => { s0 = (Math.imul(s0, 1664525) + 1013904223) >>> 0; let x = s0 ^ (s0 >>> 16); x = Math.imul(x, 0x45d9f3b) >>> 0; return ((x ^ (x >>> 16)) >>> 0) / 4294967296; };
     const me = teamLevel(save), myLg = myLgId(save), myTier = LG[myLg].tier;
@@ -1090,6 +1090,7 @@
     const near = all.filter((t) => !busy.has(t.name) && Math.abs(t.tier - myTier) <= 1 && !(t.tier <= 1 && t.region && t.region !== region))
       .map((t) => ({ t, d: Math.abs(t.lvl - me) + (t.lg === myLg ? -5 : 0) + r() * 5 + (t.lvl > me + 7 ? 40 : 0) })).sort((a, b) => a.d - b.d).slice(0, 5).map((x) => x.t);   // 版1183：実力の近い相手が足りない時は、少し強い相手でうめる（相手がいなくなっていた）
     const list = near.slice();
+    if (list.length < 3) for (const x of all.filter((t) => !busy.has(t.name) && !list.includes(t)).map((t) => ({ t, d: Math.abs(t.tier - myTier) * 20 + Math.abs(t.lvl - me) + r() * 5 })).sort((a, b) => a.d - b.d).slice(0, 5 - list.length)) list.push(x.t);   // 版1184：それでも足りなければ、どのリーグからでも
     // 格上：そのリーグが今週お休みのときだけ、ときどき
     if (r() < 0.5) {
       const strong = all.filter((t) => t.tier > myTier && t.lvl >= me + 8 && !list.includes(t) && !leagueWeeks(2 * (LG[t.lg].size - 1), t.lg).includes(save.week));
