@@ -12,13 +12,9 @@
 
   // ---------- セーブ ----------
   function load() { try { const s = localStorage.getItem(KEY); if (s) { const o = JSON.parse(s); if (o && o.version === 1) return o; } } catch (e) { /* 保存できない環境 */ } return null; }
-  // 版1187：GKの所（スタメンの1番目）には、いつもGKを。登録ポジションを変えて、GKの所にGKでない選手がいる時は、チームのGKと入れかえる（入れかえられずに動けなくなっていた）
-  function fixGK() { try { const ps = save && save.team && save.team.players; if (!ps || !ps[0] || ps[0].position === 'GK') return false;
-    let j = -1; for (let k = 1; k < ps.length; k++) if (ps[k].position === 'GK' && !(ps[k].injury > 0)) { j = k; break; } if (j < 0) for (let k = 1; k < ps.length; k++) if (ps[k].position === 'GK') { j = k; break; } if (j < 0) return false;
-    const a = ps[0]; ps[0] = ps[j]; ps[j] = a; const pc = save.plan && save.plan.cards; if (pc) { const e0 = pc[0], ej = pc[j]; if (ej) pc[0] = ej; else delete pc[0]; if (e0) pc[j] = e0; else delete pc[j]; } return true; } catch (_) { return false; } }
   function store() { try { if (save) save.savedAt = Date.now(); localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { /* 無視 */ } }
   function ensure() {
-    if (!save) { save = load(); if (fixGK()) store(); }   // 版1187：読みこんだ時に、GKの所を直す（試合の途中ではしない）
+    if (!save) save = load();
     if (!save) { save = C.newCareer(); store(); }
     save.plan = save.plan || { team: 'base', cards: {} };
     save.plan.cards = save.plan.cards || {};
@@ -1552,7 +1548,7 @@
         dlg(`${esc(p.name)}の背番号`, h, (d) => d.querySelectorAll('[data-n]').forEach((x) => x.onclick = () => { const n = +x.dataset.n, q = used.get(n); if (q === p) { d.remove(); return; } if (q) q.number = p.number; p.number = n; done(); }));
       } else if (a === 'pos') {
         const POS = [['GK', 'ゴールキーパー'], ['DF', 'ディフェンダー'], ['MF', 'ミッドフィルダー'], ['FW', 'フォワード']];
-        dlg(`${esc(p.name)}の登録ポジション`, `<div class="pe-pos">${POS.map(([k, l]) => `<button data-p="${k}" class="${p.position === k ? 'me' : ''}"><i class="pos ${POSC[k]}">${k}</i><span>${l}</span></button>`).join('')}</div><p class="pe-note">試合で出るポジションは、スタメン画面のマスで決まります。</p>`, (d) => d.querySelectorAll('[data-p]').forEach((x) => x.onclick = () => { p.position = x.dataset.p; fixGK(); done(); }));
+        dlg(`${esc(p.name)}の登録ポジション`, `<div class="pe-pos">${POS.map(([k, l]) => `<button data-p="${k}" class="${p.position === k ? 'me' : ''}"><i class="pos ${POSC[k]}">${k}</i><span>${l}</span></button>`).join('')}</div><p class="pe-note">試合で出るポジションは、スタメン画面のマスで決まります。</p>`, (d) => d.querySelectorAll('[data-p]').forEach((x) => x.onclick = () => { p.position = x.dataset.p; done(); }));
       } else {
         dlg(`${esc(p.name)}の登録名`, `<input class="pe-name" maxlength="6" value="${esc(p.name)}"><p class="pe-note">6文字まで。チームのほかの選手と同じ名前は使えません。</p><p class="pe-err" hidden></p><div class="pe-btns"><button class="pe-ok primary ib ib-ok ib-img">決定</button></div>`, (d) => {
           const inp = d.querySelector('.pe-name'); setTimeout(() => inp.focus(), 50);
@@ -1881,8 +1877,8 @@
   let pick = -1, sqTab = 'pos';
   function swapPlayers(i, j) {
     const ps = save.team.players, a = ps[i], b = ps[j];
-    if ((i === 0 && b.position !== 'GK') || (j === 0 && a.position !== 'GK')) return false;   // GKの位置はGKだけ（版1187：GKの所へ入るのがGKなら入れかえてよい）
-    ps[i] = b; ps[j] = a;
+    // 版1188：GKの所には誰でも入れられる（GKでない選手は、試合でほとんどシュートを止められない）
+    ps[i] = b; ps[j] = a; if ((i === 0 || j === 0) && ps[0].position !== 'GK') pmToast('GKでない選手がゴールを守ります。シュートはほとんど止められません');
     const pc = save.plan.cards || (save.plan.cards = {}); const ea = pc[i], eb = pc[j]; if (eb) pc[i] = eb; else delete pc[i]; if (ea) pc[j] = ea; else delete pc[j];
     return true;
   }
@@ -1972,7 +1968,6 @@
     return { TY0, TY1, HW0, HW1, tx, ty, RV, VR, CU, px, py, field, board };
   }
   function renderLineup3() {
-    if (fixGK()) store();   // 版1187
     const ps = save.team.players, tac = C.ensureTactics(save), cells = tac.cells, R = C.GRID_R, COLS = C.GRID_C;
     /* 版1072：置いた所そのまま（マスに合わせない）なので、重なりを直す処理（unpile）はしない */
     const L = $('#clubLayer'); { const bk = $('#cvBack'); if (bk) bk.style.visibility = 'hidden'; }
@@ -2038,7 +2033,7 @@
     { const b = L.querySelector('.q3rlx'); if (b) b.onclick = (e) => { e.stopPropagation(); sq3Role = null; renderLineup3(); }; }
     /* リザーブとチームの入れ替え（前の画面と同じ決まり：GKの所はGKだけ、入れ替わった選手の役割は外す） */
     const swapRes3 = (k, i) => { const r = rsv[k]; if (!r || !ps[i]) return;
-      if (i === 0 && r.position !== 'GK') { toast('GKの所には、GKの選手しか入れられません'); return; }
+      if (i === 0 && r.position !== 'GK') toast('GKでない選手がゴールを守ります。シュートはほとんど止められません');   // 版1188
       const out = ps[i]; ps[i] = r; rsv[k] = out; { const pc = save.plan && save.plan.cards; if (pc) delete pc[i]; }
       for (const key in (tac.roles || {})) if (tac.roles[key] === out.name) tac.roles[key] = null;
       sq3R = -1; sq3Pick = -1; redo(); };
@@ -2101,7 +2096,6 @@
     });
   }
   function renderLineup2() {
-    if (fixGK()) store();   // 版1187
     const keepRes = (document.querySelector('#clubLayer .s2st-l') || {}).scrollTop || 0;   // 版561：リザーブを選んでも、一覧の位置をそのままに
     const ps = save.team.players, tac = C.ensureTactics(save), cells = tac.cells, roles = C.slotRoles(cells);
     const R = C.GRID_R, COLS = C.GRID_C;
@@ -2188,7 +2182,7 @@
     // 版517：リザーブとチームの入れかえ（タップでもドラッグでも）
     function swapRes(k, i) {
       const ps = save.team.players, r = save.reserve[k]; if (!r || !ps[i]) return;
-      if (i === 0 && r.position !== 'GK') { coachAsk('GKの所には、GKの選手しか入れられません。', [{ label: 'OK', value: true }]); return; }
+      if (i === 0 && r.position !== 'GK') pmToast('GKでない選手がゴールを守ります。シュートはほとんど止められません');   // 版1188
       const out = ps[i]; ps[i] = r; save.reserve[k] = out; { const pc = save.plan && save.plan.cards; if (pc) delete pc[i]; }
       { const tac = C.ensureTactics(save); for (const key in (tac.roles || {})) if (tac.roles[key] === out.name) tac.roles[key] = null; }
       sqRes = -1; pick = -1; sqPop = -1; done();
@@ -2508,8 +2502,7 @@
           if (kind === 'b') {
             if (!to) return; if (left() <= 0) { toastS('交代枠はもうありません'); return; }
             const k = +to.dataset.k, out = ps[onPitch()[k]];
-            if ((k === 0) !== (q.position === 'GK')) { toastS('GKはGKとしか交代できません'); return; }
-            const ok = await ask(`${esc(out.name)}に代えて<br>${esc(q.name)}を起用しますか？`);
+            const ok = await ask(`${esc(out.name)}に代えて<br>${esc(q.name)}を起用しますか？${k === 0 && q.position !== 'GK' ? '<br><small>GKでない選手がゴールを守ります。シュートはほとんど止められません。</small>' : ''}`);   // 版1188：GKの所にも誰でも
             if (ok) { const old = plan.subs.findIndex((x) => x.slot === k); if (old >= 0) plan.subs.splice(old, 1); plan.subs.push({ slot: k, bench: id }); }
             draw(); return;
           }

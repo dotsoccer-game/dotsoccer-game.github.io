@@ -477,7 +477,7 @@
         ...fillParams({ ...p }, 0), team: ti, idx, slot,
         x: 0, y: 0, vx: 0, vy: 0, cur: clamp(p.startCur ?? 100, 30, 100), facing: ti ? -1 : 1,
         touchCd: 0, tackleCd: 0, stun: 0, run: 0, runCd: R.range(2, 6), mark: -1,
-        gk: i === 0, sk: new Set((p.skills || []).map((k) => (k === 'feint' ? 'bodyFeint' : k === 'dribbleShot' ? 'driveShot' : k))),   // 旧ドリブルシュートはドライブシュートに
+        gk: i === 0, notGK: i === 0 && p.position !== 'GK', sk: new Set((p.skills || []).map((k) => (k === 'feint' ? 'bodyFeint' : k === 'dribbleShot' ? 'driveShot' : k))),   // 旧ドリブルシュートはドライブシュートに
       };
       // 攻撃的GK（飛び出しを持つ）：高い位置で裏へのボールをケア。守備的GK：ゴール前でどっしり、セービングが高め
       if (!q.gk) slotPos(q);   // 版920：置いた場所で動きを決める
@@ -587,7 +587,7 @@
       }
       for (const sb of ch.subs || []) {
         const k = tm.players.findIndex((p) => p.slotIdx === sb.slot), old = tm.players[k];   // 名簿の位置で探す（退場者がいても正しい選手を替える）
-        if (!old || !sb.player || k === 0 && sb.player.position !== 'GK' || tm.subsLeft <= 0) continue;
+        if (!old || !sb.player || tm.subsLeft <= 0) continue;   // 版1188：GKの所にも誰でも入れられる（GKでない選手は、ほとんど止められない）
         doSub(tm, k, sb.player);
       }
       // 版1084：試合中の作戦：マンマークの指名（味方の名簿の位置 me → 相手の名前 opp）と、選手ごとの指示（攻撃参加・守備）
@@ -1666,7 +1666,7 @@
         g.smCd = S.t + 2.5;
         const gq = (g.vision + g.dash + g.technique + g.jump) / 4, aq = (own.dribble + own.technique) / 2;
         const pS = clamp(0.42 + (gq - aq) * 0.006 + (g.sk.has('oneOnOne') ? 0.15 : 0) + (uOn(g, 'sutemi') ? 0.3 : 0) + (uOn(g, 'ikari') ? 0.15 : 0) - (uOn(own, 'shiden') ? 0.25 : 0), 0.15, 0.8);
-        const pS2 = late ? pS * 0.6 : pS;   // 横・後ろからの最後の一歩は、止められる見込みが下がる
+        const pS2 = (late ? pS * 0.6 : pS) * (g.notGK ? 0.3 : 1);   // 版1188：GKでない選手は、飛び出しても止められない   // 横・後ろからの最後の一歩は、止められる見込みが下がる
         const bodyB = d < 1.2 || R.next() < 0.4;   // 版945：足を伸ばして止める／体を大きく広げて止める（体に当てる）
         g.saveT = 0.75; g.saveK = own.y - g.y > 0 ? 9 : 10;   /* 版952：絵はいつも片足を伸ばす形（当たる所が足か体か） */ g.vx *= 0.3; g.vy *= 0.3; g.touchCd = Math.max(g.touchCd || 0, 0.5);   // 版943：グラウンダーを足で止める絵（片足を伸ばす）で止めに行く
         if (globalThis.__gkcLog) globalThis.__gkcLog.push({ t: S.t, block: 1, pS });
@@ -7568,6 +7568,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             if (globalThis.__gkp && off < 0.2 && shotD > 16) globalThis.__gkp.push({ prob, skill, shotD, sp, corner, pace, trick, kq: P[b.kicker].kick * 0.6 + P[b.kicker].technique * 0.4, base: 0.27 + (skill - 50) * 0.0058 + (1 - Math.min(1, off)) * 0.32, drive: b.drive > 0 && b.driveOn, guren: !!b.guren, kn: !!b.knuckle });
             if (!ik && !b.pkStop && !rolling && !b.conv) prob *= globalThis.__Kgkm ?? 0.68;
             if (globalThis.__Kslf ?? 1) prob = Math.max(prob, slowF);   // 版1109：ゆるい球は必ず止める、の決まりは、全体を弱くする（×0.68）より後で効かせる（ボテボテのシュートがGKの横を抜けていた）   // 版966：GKを全体に少し弱く（引き分けより、勝ったり負けたりする方が面白い）。白亜の城壁・PKストッパー・コロコロ・クロスの処理は別
+            if (p.notGK) prob = Math.min(prob * 0.3, 0.2);   // 版1188：GKでない選手がゴールを守る：ほとんど止められない
             return { prob, skill, shotD, oneGK, rolling };
     }
     // カットインの角度：前から内側へ 25°〜90°（真横）の5つから選ぶ（ゲームとカットイン確認画面で同じ計算）
@@ -8112,7 +8113,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             g.smCd = S.t + 3;
             const gq = (g.vision + g.speed + g.technique) / 3, pS = clamp(0.5 + (gq - (own.dribble + own.technique) / 2) * 0.006 - (uOn(own, 'shiden') ? 0.25 : 0), 0.15, 0.8);
             act(g, 'gkplay', 1.2, { k: 'rushOut' });
-            if (R.next() < pS) { stats[g.team].saves++; ev('save', { team: g.team, player: g.name, act: 'smother' }); gainBall(g, 'save'); return; }
+            if (R.next() < pS * (g.notGK ? 0.3 : 1)) { stats[g.team].saves++; ev('save', { team: g.team, player: g.name, act: 'smother' }); gainBall(g, 'save'); return; }
             const sd = Math.sign(own.y - g.y) || (R.next() < 0.5 ? 1 : -1);
             g.vx = 0; g.vy = 0; startDive(g, sd, Math.max(1.0, Math.abs(own.y - g.y) + 0.8), 0.2, 'feint'); g.downT = Math.max(g.downT || 0, 1.6); g.stun = Math.max(g.stun || 0, 1.8); g.touchCd = Math.max(g.touchCd || 0, 1.5);
             const fwd = Math.sign(fx(own.team, L) - own.x) || 1, dx = fwd * 0.55, dy = -sd * 0.85, dl = hyp(dx, dy);
@@ -8403,6 +8404,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             const coreHit = (globalThis.__Kgktip ?? 1) && off < 0.7 && sp < 22 && !b.knuckle && dGk < 1.3 && !(p.downT > 0);   // 版970：手・体の真ん中に来たゆるい球は、すり抜けて入らない（必ずどこかで止める・はじく）
             if (pre && pre.miss && !coreHit) { if (tipL()) continue; p.touchCd = 1.2; continue; }   // 届かないと決まった横っ跳び：手はボールの手前
             if ((globalThis.__Kpre ?? 1) && pre && !pre.miss && !fingerOnly) prob = Math.max(prob, Math.min(0.995, pre.est));   // 版1172：飛ぶ前に「届く」と決めた球は、そのとおり止める（同じくじで、飛ぶ前は届く・触る時は外れる、になって、正しく飛んだのに体の横を抜けていた）
+            if (p.notGK) prob = Math.min(prob, 0.15);   // 版1188：GKでない選手：飛ぶ前の見こみがあっても、ほとんど止められない
             const gkRoll = pre ? pre.r : R.next(); if (globalThis.__gkTry) globalThis.__gkTry.push({ st: b.shotT, prob: +prob.toFixed(2), roll: +gkRoll.toFixed(2), off: +off.toFixed(2), dGk: +dGk.toFixed(2), sp: +sp.toFixed(1), z: +b.z.toFixed(2), pre: pre ? (pre.miss ? 'miss' : 'try') : 'none', dive: p.diveT > 0 ? 1 : 0 });
             // 超反応：決まったと思った瞬間に指先で触る／1対1の鬼：体を投げ出して、体のどこかに当てる
             const reflex = gkRoll >= prob && p.sk.has('superReflex') && shotD < 17 && R.next() < 0.12 + p.technique * 0.0015;
@@ -8414,7 +8416,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
               p.touchCd = 0.8; return; }
             // GKの体の正面（手が届くど真ん中）に来た球は、止められなくても必ずどこかに当たる（「今の止めてたでしょ」をなくす）
             const bodyHit = ((off < (shotD < 12 ? 0.28 : 0.42) || (pre && off < 0.85)) && !b.knuckle && !b.csPlace) || coreHit;   // 置きに行くコントロールショットは、GKの手がぎりぎり届かない隅へ置く   // 至近距離は体の正面でも反応が間に合わないことがある   // 届くと決まった横っ跳びも、必ず触る
-            if (gkRoll < prob || bodyHit) {
+            if (gkRoll < prob || (bodyHit && !(p.notGK && !coreHit))) {   // 版1188：GKでない選手は、体の正面でも止まるのはゆるい球だけ
               { const hr = p.diveT > 0 ? 1.1 : 0.8, dy0 = yAt - p.y;   // 版866：触った瞬間、ボールはGKの手の先（体からhrの所まで）にそろえる
                 if (b.z < 1.95 && !((globalThis.__Kgkc2 ?? 1) && b.px != null)) { b.x = p.x + sgn(p.team) * 0.3; b.y = p.y + clamp(dy0, -hr, hr); } else if (b.px != null) {   /* 版912：低い球も、ボールが通った線の上で手に当たる（手の所へ飛び移らない） */ const u0 = segDist(p.x, p.y, b.px, b.py, b.x, b.y).u; b.x = b.px + (b.x - b.px) * u0; b.y = b.py + (b.y - b.py) * u0; if (b.pz != null) b.z = b.pz + (b.z - b.pz) * u0; } /* 版869・870：頭より高い球は手の位置へ動かさず、このコマで通った線の上の、手にいちばん近い所（本当に触れた所）にそろえる */ b.bs = 0; b.drive = 0; b.driveOn = false; b.driveUp = 0; b.curveAll = false; b.wobW = null; gkReachTo(p, b); }   // 版866：GKが触ったら、シュートの回転（ドライブの落ちる力など）は消える
               const high = b.z > 1.7, diving = p.diveT > 0;
