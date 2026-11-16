@@ -2838,6 +2838,7 @@
         let bl = 0, blk0 = null; for (const o of foes) { if (o.gk) continue; const sd = segDist(o.x, o.y, p.x, p.y, fx(t, L), GOAL_Y); if (sd.d < 1.3 && sd.u > 0.05) { bl++; if (hyp(o.x - p.x, o.y - p.y) < 7 && (!blk0 || hyp(o.x - p.x, o.y - p.y) < hyp(blk0.x - p.x, blk0.y - p.y))) blk0 = o; } }
         let v = (globalThis.__Bsh ?? 4.8) + ((globalThis.__Kshv ?? 1) && dGoal < 24 && bl <= 1 ? (globalThis.__Kshv1 ?? 0.6) : 0) - Math.max(0, dGoal - 10) * 0.15 - Math.max(0, dGoal - 20) * 0.25 - bl * 0.8 + (p.kick - 50) / 60 + (ph === 'fin' ? 1.2 : 0) + (dGoal < 12 ? 1.0 : 0) + (pr >= 1 && bl === 0 ? 0.4 : 0);
         if (Math.abs(p.y - GOAL_Y) > (L - xf) * 1.1) v -= 1.4;
+        if ((globalThis.__Kang ?? 1) && !S.fkDirect) { const ex0 = Math.max(0.1, L - xf), ey0 = Math.abs(p.y - GOAL_Y); if (ey0 > POST) { const vis0 = Math.atan2(ey0 + POST, ex0) - Math.atan2(ey0 - POST, ex0); v -= clamp((0.3 - vis0) / 0.2, 0, 1) * 3.5; } }   // 版1182：ゴールラインぎわ（角度ゼロ）からは、まず打たない（折り返す）
         if (bl === 0 && dGoal < 20) v += globalThis.__Bopen ?? 1.0;   // コースが空いていれば打つ
         // 版905：シュートはエリア1・2（ゴール前）で打つ（設計一覧3章）。それより遠くからは、キックの強い選手がコースの空いている時だけ
         if (dGoal > (globalThis.__Kfd ?? 21) && (globalThis.__Kfar ?? 1)) v -= (p.kick || 50) >= 70 && bl === 0 ? 0.6 : 1.6;
@@ -3677,12 +3678,12 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             { const anc = GOAL_Y + clamp((b.y - GOAL_Y) * 0.12, -1.2, 1.2), k = clamp(tx / Math.max(bxf, tx + 0.5), 0, 1);   // ゴールの中心より少しニア寄りの点
               ty = clamp(anc + (b.y - anc) * k, GOAL_Y - (tx > 8 ? 14 : POST - 0.3), GOAL_Y + (tx > 8 ? 14 : POST - 0.3)) + posErr * 0.4 * Math.sin(S.t * 0.61 + p.idx * 2.3); }
             // 角度のない所（ゴールライン近く・ポストより外）にボールがある：前に出ずにゴールライン上でニアポストの内側に立つ。ニアを消しつつ、ファーへの球にも手が届く
-            if (bxf < 10 && Math.abs(b.y - GOAL_Y) > POST - 0.5 && Math.abs(b.y - GOAL_Y) < 22 && S.poss !== tm.ti) { tx = Math.min(tx, 0.9); ty = GOAL_Y + Math.sign(b.y - GOAL_Y) * (POST - 1.3); u = true; }
+            if (bxf < 10 && Math.abs(b.y - GOAL_Y) > POST - 0.5 && Math.abs(b.y - GOAL_Y) < 22 && (S.poss !== tm.ti || ((globalThis.__Kang ?? 1) && bxf < 6 && !(own && own.idx === p.idx)))) {   /* 版1182：ゴールラインぎわの球は、味方が触っていても（奪い返されてすぐ打たれる）ニアポストで待つ */ tx = Math.min(tx, 0.9); ty = GOAL_Y + Math.sign(b.y - GOAL_Y) * (POST - ((globalThis.__Kang ?? 1) && Math.abs(b.y - GOAL_Y) > bxf * 2 ? 0.7 : 1.3)); u = true; }   // 版1182：真横に近い所からは、ニアポストにぴったり付く（ポストとの間を抜かれない）
             // スイーパーキーパーの読み：相手が裏へ走り出したのを見て、DFラインの裏のスペースへ先に出ておく。抜け出した相手には、正面から詰める
             const lcDrop = S.lcStep && S.lcStep.team === tm.ti && S.lcStep.mode === 'drop' && S.lcStep.until > S.t;   // ラインを下げている時は、GKはゴールを守る
             if ((p.skRead || 0) > S.t && !lcDrop && S.poss !== tm.ti && !(own && own.team !== tm.ti && bxf < 30)) { const lineB = Math.min(...tm.players.filter((q) => !q.gk && !q.off).map((q) => fx(tm.ti, q.x))); tx = Math.max(tx, clamp(lineB - 9, 4, uOn(p, 'sutemi') ? 18 : 14)); }
             // 1対1の鬼：フリーで向かってくる相手には、前へ出て角度を消し、体を投げ出す準備
-            if (p.sk.has('oneOnOne') && own && own.team !== tm.ti && bxf < 22 && Math.abs(b.y - GOAL_Y) < 14 && !opps(own).some((q) => !q.gk && hyp(q.x - own.x, q.y - own.y) < 3)) {
+            if (p.sk.has('oneOnOne') && own && own.team !== tm.ti && bxf < 22 && Math.abs(b.y - GOAL_Y) < 14 && (!(globalThis.__Kang ?? 1) || !(bxf < 10 && Math.abs(b.y - GOAL_Y) > POST - 0.5 && Math.abs(b.y - GOAL_Y) > bxf * 1.5)) &&   /* 版1182：ゴールラインぎわ（角度のない所）の相手には前へ出ない（ニアポストで待つ） */ !opps(own).some((q) => !q.gk && hyp(q.x - own.x, q.y - own.y) < 3)) {
               const dd = hyp(bxf, b.y - GOAL_Y); tx = clamp(dd * 0.38, 2, 8); ty = GOAL_Y + (b.y - GOAL_Y) * (tx / Math.max(dd, 1)); u = true;
             }
             const react = 0.34 - p.vision * 0.0012 - p.technique * 0.0008 - (p.sk.has('superReflex') ? 0.05 : 0) - (p.uniq === 'ikari' && b.kind === 'shot' ? 0.08 * gP(p) : 0) + (b.csPlace && b.kind === 'shot' ? ((globalThis.__Kfr2 ?? 1) && (b.shotFrom ?? 0) > 16 && /^ground/.test(b.csType || '') ? 0 : b.csType === 'ground' && b.csGkNear > 0.5 ? 0.24 : 0.12) : 0) + (b.shotSkill === 'toeKick' && b.kind === 'shot' ? 0.06 : 0) + (b.kind === 'shot' ? b.uDelay || 0 : 0);   // トゥーキックは構えがないので、GKの反応が遅れる   // 打たれてから反応するまでの一瞬（うまいGKほど早い）。置きに行くコントロールショットは出だしが少し遅れる
@@ -3706,6 +3707,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
               const pin = (globalThis.__Kgkpin ?? 1) ? POST - 0.4 : POST + 0.8;   // 版1171：シュートを追って、ポストの外まで歩いて行かない（枠の外から巻いて入る球に、ポストの外で待って逆を取られていた）
               ty = clamp(tG < 0.7 ? yG : yc, GOAL_Y - pin, GOAL_Y + pin);
               tx = tG < 0.7 ? fx(tm.ti, p.x) : 0.8; u = true;      // 迫ってきたら下がらずにその場で構える
+              // 版1182：ゴールラインぎわ（角度ゼロ）からの球が、GKより後ろ（ゴールライン寄り）を通ってくる：一歩下がって、その通り道に体を入れる（GKの背中とゴールラインの間を抜けて入っていた）
+              { const bfx = fx(tm.ti, b.x), pfx = fx(tm.ti, p.x); if ((globalThis.__Kang ?? 1) && bfx < pfx - 0.15 && bfx < 3 && Math.abs(b.vy) > Math.abs(b.vx) && Math.sign(b.vy) === Math.sign(p.y - b.y)) { tx = Math.max(0.15, bfx); ty = clamp(p.y, GOAL_Y - pin, GOAL_Y + pin); u = true; } }
               // 版1012：頭の上を越えてくる球（超ロング・ループ）：その場で構えても届かない。ボールを見ながら全力でゴールへ下がり、落ちてくる所でかき出す
               const zAtG = b.z + (b.vz || 0) * tG - 4.9 * tG * tG, overG = (globalThis.__Kgkb ?? 1) && fx(tm.ti, p.x) > 4.5 && tG > 0.05 && zAtG > 2.45 + (p.jump || 50) * 0.008 && onFrameY(yc);
               if (overG) { tx = 0.6; ty = clamp(yc, GOAL_Y - POST + 0.3, GOAL_Y + POST - 0.3); u = true; p.bkPedT = S.t; }
@@ -4388,7 +4391,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             const sd = Math.sign(p.y - GOAL_Y) || 1, nx = sgn(p.team) * 0.35, ny = sd * 0.94, nl = hyp(nx, ny); S.dribbleDir = [nx / nl, ny / nl]; }
           if ((uOn(p, 'shiden') || (p.hariT || 0) > S.t || (p.finT || 0) > S.t)) S.dribbleDir = sdFwd(p, S.dribbleDir[0], S.dribbleDir[1]);
           // ゴール前（30m以内）を運んでいる時、外へ流れていたら少しずつゴールの方へ向き直す（コントロールショットを持つ選手は、外へ流れて巻くのもあり）
-          if (!skZ(p, 'controlShot') && fx(p.team, p.x) > L - ((globalThis.__Kdin ?? 1) ? 50 : 30) && Math.abs(p.y - GOAL_Y) > 3 && Math.sign(S.dribbleDir[1]) === Math.sign(p.y - GOAL_Y)) {   // 版971：50m以内から
+          if ((!skZ(p, 'controlShot') || ((globalThis.__Kang ?? 1) && fx(p.team, p.x) > L - 10)) && fx(p.team, p.x) > L - ((globalThis.__Kdin ?? 1) ? 50 : 30) &&   /* 版1182：コントロールショットを持つ選手も、ゴールラインぎわ（10m以内）まで外へ流れ続けない */ Math.abs(p.y - GOAL_Y) > 3 && Math.sign(S.dribbleDir[1]) === Math.sign(p.y - GOAL_Y)) {   // 版971：50m以内から
             const gx = fx(p.team, L) - p.x, gy = GOAL_Y - p.y, gl = hyp(gx, gy) || 1, k = fx(p.team, p.x) > L - 30 ? 0.12 : 0.06;
             const nx = S.dribbleDir[0] * (1 - k) + gx / gl * k, ny = S.dribbleDir[1] * (1 - k) + gy / gl * k, nl = hyp(nx, ny) || 1; S.dribbleDir = [nx / nl, ny / nl]; }
           // 版973：相手陣（ゴールまで50m以内）で、ゴールの方を向かずに運んでいたら（タッチライン沿いに縦へなど）、ゴールの方へ向き直す。ゴールの方の通り道（3.5m以内）に相手がいる時は、そのまま
@@ -5403,6 +5406,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       if (b.shotOnTarget) s.shots_on_target++; else s.off_target++; b.sotCnt = !!b.shotOnTarget;   // 版1019：枠外と数えたシュートが入ったら、枠内に数え直す
       
       if (globalThis.__gkLog) { const g = T[1 - p.team].players[0], gxl = fx(1 - p.team, 0), sx = fx(1 - p.team, p.x), ga = Math.atan2(p.y - GOAL_Y, sx), gy = GOAL_Y + Math.tan(ga) * fx(1 - p.team, g.x); globalThis.__gkLog.push({ k: 'shot', t: S.t, gkX: +fx(1 - p.team, g.x).toFixed(1), gkY: +(g.y - GOAL_Y).toFixed(1), idealY: +(gy - GOAL_Y).toFixed(1), sd: +b.shotFrom.toFixed(1), sy: +(p.y - GOAL_Y).toFixed(1), on: b.shotOnTarget, down: (g.downT > 0 || g.diveT > 0) ? 1 : 0 }); }
+      if (globalThis.__angLog) { const ex = Math.abs(L - fx(p.team, p.x)), ey = Math.abs(p.y - GOAL_Y); globalThis.__angLog.push({ t: S.t, team: p.team, ex: +ex.toFixed(1), ey: +ey.toFixed(1), vis: +(Math.atan2(ey + POST, ex) - Math.atan2(Math.max(0, ey - POST), ex)).toFixed(3), sk: S.ball.shotSkill || '', fk: !!S.fkDirect }); }
       ev('shot', { team: p.team, player: p.name, number: p.number, d: +b.shotFrom.toFixed(1), on: b.shotOnTarget, knuckle: !!b.knuckle, chip: !!chip, one: !!S.ball.oneOnOne, power: Math.round(hyp(b.vx, b.vy) * 3.6), sk: S.ball.shotSkill || '' });
     }
 
@@ -5687,6 +5691,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         let v = 4.8 - (dGoal - 10) * 0.13 - Math.max(0, dGoal - 16) * 0.4 - DOM[p.team] * Math.max(0, dGoal - 18) * 0.35   /* 力の差があるなら、確実に決まる所まで運ぶ */   /* 遠すぎるミドルは打たない。崩してから */ + p.goal_wait / 110 + p.kick / 160 - blockers * 0.9 + tm.mods.attack;
         if ((globalThis.__Kshv ?? 1) && blockers === 0 && dGoal < 30) v += Math.max(0, Math.min(dGoal, 26) - 16) * (globalThis.__Kshv2 ?? 0.28);   // 版967：コースが空いていれば、16〜25mのミドルも打つ（打てる時に打つ）
         if (Math.abs(p.y - GOAL_Y) > (L - xf) * 1.1) v -= 1.2;
+        // 版1182：ゴールラインぎわ（角度ゼロ）からは、まず打たない。見えるゴールの幅がほとんどない所は、折り返し・クロスを選ぶ
+        if ((globalThis.__Kang ?? 1) && !S.fkDirect) { const ex0 = Math.max(0.1, L - xf), ey0 = Math.abs(p.y - GOAL_Y); if (ey0 > POST) { const vis0 = Math.atan2(ey0 + POST, ex0) - Math.atan2(ey0 - POST, ex0); v -= clamp((0.3 - vis0) / 0.2, 0, 1) * 3.5; } }
         if (dGoal < 11) v += 0.8;
         if (S.fkDirect) v += 1.4 + blockers * 0.9;
         v += Math.max(0, p.kick + p.vision - 100) / 80;   // うまい選手は決められる位置なら迷わず打つ
@@ -5991,7 +5997,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         if ((p.y < 4 && dy2 < 0) || (p.y > W - 4 && dy2 > 0)) dy2 = -dy2 * 0.3;   // タッチライン際では外へ向かわない
         if ((globalThis.__Kdin ?? 1) && xf > L / 2 - 10 && Math.abs(p.y - GOAL_Y) > 6 && Math.sign(dy2) === Math.sign(p.y - GOAL_Y)) dy2 = Math.sign(dy2) * Math.min(Math.abs(dy2), 0.3);   // 版971：相手陣でゴールから外へ流れない（外へ逃げるのは少しだけ。ゴールの方が空いていれば、そちらへ切り込む）
         // ゴール前（約28m以内）で外へ流れると、自分でシュートの角度を消してしまう。コントロールショットを持たない選手は、外へは流れずゴールへ向かう
-        if (xf > L - 28 && !skZ(p, 'controlShot') && Math.abs(p.y - GOAL_Y) > 4 && Math.sign(dy2) === Math.sign(p.y - GOAL_Y)) dy2 = Math.sign(dy2) * Math.min(Math.abs(dy2) * 0.25, Math.abs(dir[1]) * 0.3) + (GOAL_Y - p.y) / (Math.abs(p.y - GOAL_Y) || 1) * 0.15;
+        if (xf > L - 28 && (!skZ(p, 'controlShot') || ((globalThis.__Kang ?? 1) && xf > L - 10)) && Math.abs(p.y - GOAL_Y) > 4 && Math.sign(dy2) === Math.sign(p.y - GOAL_Y)) dy2 = Math.sign(dy2) * Math.min(Math.abs(dy2) * 0.25, Math.abs(dir[1]) * 0.3) + (GOAL_Y - p.y) / (Math.abs(p.y - GOAL_Y) || 1) * 0.15;
         // 相手のバイタルエリアで前が空いていれば、どんどん仕掛ける
         if (xf > L - 38 && space > 4) w *= 1.8;
         if (S.counter > 0 && S.poss === p.team && space >= 5 && pressure <= 1 && xf < L - 22) w *= 1.5 + p.dash / 100 + p.dribble / 200;   // 版843：足の速い・ドリブルのうまい選手ほど、長く運ぶ   // 版842：カウンター：前が空いていれば、持った選手も運んで一気に前へ
@@ -7502,7 +7508,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             const trick = b.knuckle ? 0.1 : Math.abs(b.spin || 0) > 0.4 ? 0.06 : 0;          // 無回転・カーブは難しい
             // 角度：シュート位置から見えるゴールの幅（ラジアン）。角度がないほど、近くても・1対1でも、GKの正面に来やすい
             let visA = 1; if (b.sx0 != null && b.kind === 'shot' && !b.pkShot) { const ex = Math.abs(fx(p.team, 0) - b.sx0), ey = Math.abs(b.sy0 - GOAL_Y); if (ey > POST) visA = Math.atan2(ey + POST, ex) - Math.atan2(ey - POST, ex); }
-            const narrowF = clamp(visA / 0.6, b.shotSkill === 'controlShot' ? 0.55 : 0.15, 1);   // コントロールショットは角度がなくても巻いて隅へ置けるが、真横からは楽ではない
+            const narrowF = clamp(visA / 0.6, b.shotSkill === 'controlShot' ? ((globalThis.__Kang ?? 1) ? 0.15 + 0.4 * clamp((visA - 0.1) / 0.2, 0, 1) : 0.55) : 0.15, 1);   // 版1182：角度ゼロに近い所からは、コントロールショットでも流し込めない   // コントロールショットは角度がなくても巻いて隅へ置けるが、真横からは楽ではない
             let prob = clamp(0.27 + (globalThis.__Kgk ?? 0) + (skill - 50) * 0.0058 + ((globalThis.__Ksh2 ?? 1) ? Math.min(0, skill - (globalThis.__Kgkr0 ?? 70)) * (globalThis.__Kgkw ?? 0.009) : 0) +   /* 版964：さらに弱く。版963：下手なGK（総合55未満）は、もっと止められない */ (1 - Math.min(1, off)) * 0.32 + pace + (shotD > 20 ? 0.2 : shotD > 16 ? 0.08 : shotD < 9 ? -0.12 : 0) - corner - trick, 0.08, 0.97);
             if (p.diveT > 0) prob -= 0.04;
             prob += p.gkAtk ? -0.04 : 0.025;   // 守備的GKはセービングが高い
@@ -7518,7 +7524,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             if (b.sx0 != null && b.kind === 'shot' && !b.pkShot) {
               const gxl = fx(p.team, 0), ex = Math.abs(gxl - b.sx0), ey = Math.abs(b.sy0 - GOAL_Y);
               const vis = Math.atan2(ey + POST, ex) - Math.atan2(Math.max(0, ey - POST), ex);   // シュート位置から見えるゴールの角度（ラジアン）
-              if (ey > POST && vis < 0.45) prob += (0.45 - vis) * (b.shotSkill === 'controlShot' ? 0.6 : 2.0);   // 角度が狭いほど止めやすい（真横に近いほど大きく上がる）
+              if (ey > POST && vis < 0.45) prob += (0.45 - vis) * (b.shotSkill === 'controlShot' ? ((globalThis.__Kang ?? 1) ? 0.6 + 1.4 * clamp((0.25 - vis) / 0.15, 0, 1) : 0.6) : 2.0);   // 版1182：真横に近い所からは、巻いても入らない   // 角度が狭いほど止めやすい（真横に近いほど大きく上がる）
             }
             // 蹴った選手のうまさ（キック・テクニック）：Sの選手が打てば、弱いGKではまず止められない
             { const kq = P[b.kicker]; if (kq) prob -= Math.max(0, (kq.kick * 0.6 + kq.technique * 0.4) - skill) * 0.022 * Math.min(1, 0.45 + off * 1.6) * (0.4 + 0.6 * narrowF); }
