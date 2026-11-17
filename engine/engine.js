@@ -5564,6 +5564,17 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           const rD = hyp(tx - q.x, ty - q.y), oD = Math.min(99, ...opps(p).filter((o) => !o.off && !o.gk).map((o) => hyp(tx - o.x, ty - o.y)));
           if (oD < rD * 0.45) { ura = false; tx = q.x; ty = q.y; }   // 前線の味方（ポストプレー）の胸へ、そのまま当てる
         }
+        if (ura && (globalThis.__Klps ?? 1) && lpUra(p)) {   // 版1229：裏へは「人」ではなく「スペース」へ。相手DF・GKより先に味方が追いつける所に、ワンバウンド目を落とす（バウンドしてから追いつくのでよい）
+          const mdS = 36 + (p.physical || 50) * 0.34; let best = null, bsc = -1e9;
+          for (let ax = offL + 7; ax <= Math.min(L - 22, offL + 24); ax += 1.5) for (let dy = -11; dy <= 11; dy += 2.2) {
+            const X = fx(p.team, ax), Y = clamp(q.y + dy, 5, W - 5), dB = hyp(X - p.x, Y - p.y); if (dB > mdS) continue;
+            const tB = dB / 23, tF = hyp(X - q.x, Y - q.y) / maxSpeed(q);
+            let tD = 99; for (const o of opps(p)) { if (o.off) continue; tD = Math.min(tD, hyp(X - o.x, Y - o.y) / maxSpeed(o) + (o.gk ? 0.35 : 0.45)); }
+            const sc = (tD - Math.max(tF, tB + 0.25)) * 3 - Math.abs(dy) * 0.04 + (ax - offL) * 0.04;
+            if (sc > bsc) { bsc = sc; best = [X, Y]; } }
+          if (best && bsc > -1.2) { tx = best[0]; ty = best[1]; } else if (best) { ura = false; tx = q.x; ty = q.y; }   // 空いた所がなければ、胸もとへ
+          if (globalThis.__lpS) globalThis.__lpS.push(+bsc.toFixed(2));
+        }
         if (globalThis.__Klp6 ?? 1) {   // 版1204：飛ぶ距離はフィジカル（いちばん遠くて、相手のペナルティアークの少し手前まで）。狙った所へ落とす正確さはキック
           const fxx = Math.min(fx(p.team, tx), L - 22); tx = fx(p.team, fxx);
           const md = 36 + (p.physical || 50) * 0.34, dd0 = hyp(tx - p.x, ty - p.y); if (dd0 > md) { tx = p.x + (tx - p.x) * md / dd0; ty = p.y + (ty - p.y) * md / dd0; }
@@ -5577,7 +5588,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           const fly = (vz0) => { let x = 0, z = 0.6, vh = v, vz = vz0, top = z; for (let k = 0; k < 80; k++) { x += vh * DT; const sp = Math.hypot(vh, vz); vh -= AIR * sp * vh * DT; vz -= (9.8 + AIR * sp * vz - LIFT * bs * vh) * DT; z += vz * DT; if (z > top) top = z; if (x >= endD) return { z, top }; if (z <= 0) return { z: -1 - (endD - x) / endD, top }; } return { z: 9, top }; };
           let lo = 0.5, hi = 14; for (let k = 0; k < 18; k++) { const m = (lo + hi) / 2, r = fly(m); if ((feet ? r.z > -0.5 ? 1 : 0 : r.z > zT ? 1 : 0)) hi = m; else lo = m; }
           let vz = feet ? Math.max(1.2, (lo + hi) / 2) : (lo + hi) / 2; if (!feet && fly(vz).top < 2.8) vz = Math.max(vz, 3.2);   // 頭の上は越える
-          if (fly(vz).top > 4.8) { let a0 = 0.5, a1 = vz; for (let k = 0; k < 16; k++) { const m = (a0 + a1) / 2; if (fly(m).top > 4.8) a1 = m; else a0 = m; } vz = a0; }   // 低弾道：いちばん高い所でも5m弱まで。届かない分は、手前で弾んで伸びる
+          { const TOP = ura && (globalThis.__Klps ?? 1) && lpUra(p) ? 6.8 : 4.8; if (fly(vz).top > TOP) { let a0 = 0.5, a1 = vz; for (let k = 0; k < 16; k++) { const m = (a0 + a1) / 2; if (fly(m).top > TOP) a1 = m; else a0 = m; } vz = a0; } }   // 版1229：裏のスペースへは、狙った所でワンバウンドするように（高さは7m弱まで）   // 低弾道：いちばん高い所でも5m弱まで。届かない分は、手前で弾んで伸びる
           if ((globalThis.__Klp5 ?? 1) && !feet) {   // 版1204：相手DFの頭の上（3.4m以上）を越えてから落ちる弾道を選ぶ。低く速すぎると、ラインの手前でDFに頭で弾かれる
             const ln = ura ? offL + ((globalThis.__Klph ?? 1) ? 5 : -1.5) : Math.min(offL, fx(p.team, q.x)) - 4, cD = clamp(d * (ln - fx(p.team, p.x)) / Math.max(1, fx(p.team, tx) - fx(p.team, p.x)), 5, endD - 2);
             const zAt = (vh0, vz0, D0) => { let x = 0, z = 0.6, vh = vh0, w = vz0; for (let k = 0; k < 90; k++) { x += vh * DT; const sp = Math.hypot(vh, w); vh -= AIR * sp * vh * DT; w -= (9.8 + AIR * sp * w - LIFT * bs * vh) * DT; z += w * DT; if (x >= D0) return z; if (z <= 0) return -1; } return 9; };
