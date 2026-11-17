@@ -248,7 +248,7 @@
     shiden:     { sw: '相手陣内でドリブルを仕掛けたとき', se: 'ドリブル突破が大きく決まりやすくなり、抜いた後のパス・シュートも正確に', st: '抜いた勢いで次の相手もかわす', name: '紫電の遊戯', chip: ['#4e0404', '#ff7070', '#ffe0e0'],     who: 'かまた',   face: 'kobe_7', hair: '#ff8c8c', skin: 2,      type: 'ファンタジスタ',     when: 'ドリブルで仕掛けたとき（相手陣内）', what: 'フェイント系の技はいつでも全部使える。発動中はドリブル突破の成功率が大きく上がり、フェイントを連続で何回でも出せる。抜いた後のノールックのラストパス・シュートも正確になる。凸すると、抜いた勢いのまま次の相手も置き去りにする', dur: 8, cd: 12, ch: 0.8 },
     kage:       { sw: '相手陣内で、前にFWがいる時にボールを持ったとき', se: '相手に見失われ、FWが一番打ちやすい所へ取られないパスを刺す', st: '見失わせる時間が長く、さらに正確に', name: '影の一刺し', chip: ['#212731', '#90aedf', '#e8eef7'],   who: 'かめい',   face: 'tokyo_8', hair: '#b8bec8', skin: 1,     type: 'シャドー',           when: '相手陣内（センターフォワードの後ろ）で、前に味方のFWがいる時にボールを持ったとき', what: 'ストライカーを活かす影。影のように気配を消して（銀色の残像）、寄せてくる相手は一瞬かめいを見失い、囲まれずに前を向ける。同時に前のFWが、ゴール前の打てる所へ動き出す。かめいはFWがいちばん打ちやすい所へ、相手に取られない1本（銀の光の尾）を刺し、受けたFWはトラップせずにそのまま打つ。刺したかめいはそのままゴール前へ走り込み、FWが打てない時はかめいへ返して、かめいが決める。FWにDFが寄ったら、空いた背後のスペースへ自分で抜けて打つ（凸：見失わせる時間が長く、パスもシュートもさらに正確）', dur: 4, cd: 8, ch: 1 },
     tetsurou:   { sw: '自陣ゴール前の真ん中に相手が来たとき', se: '素早く寄せてボールを奪い、すぐ縦パスでカウンターの起点に', st: '守る範囲が広く、さらに速く寄せる', name: '鉄狼の関所', chip: ['#1e2733', '#618dd1', '#e8eef7'],     who: 'さかぐち', face: 'sapporo_7', hair: '#6c7f9c',   type: 'アンカー',           when: '自陣のゴール前の真ん中（バイタルエリア）に、相手がボールを運んできた・パスを通そうとしたとき', what: '関所を閉じる（鋼色の門）。狼のような速さで寄せて、ほぼ確実にボールを奪い切る（ドリブルの技もほとんど通じない）。そばを通るパスにも足が届いてカットする。奪ったら、すぐ前の味方へ正確な縦パスを出して、カウンターの起点になる（凸：関所が広く、寄せがさらに速く、奪った後のパスがさらに正確）', dur: 3, cd: 10, ch: 1 },
-    midori:     { sw: '自陣でボールを持ち、相手がプレスに来るとき', se: 'プレスを引きつけて、空いた味方へつなぐ。発動するたびにチームのパスが良くなっていく', st: '引きつける相手が3人に', name: '翠の起点', chip: ['#044e24', '#33ff8d', '#e0ffee'],       who: 'むらおか', face: 'sendai_2', hair: '#00a84a',    type: 'ビルドアップ型',     when: '自陣でボールを持ち、相手がプレスに来られる所にいるとき', what: '誘い込んで、組み立てる。わざとボールを晒して相手のプレスを引き寄せ（翠の点線）、相手のDFラインも押し上げさせて陣形を前のめりにする。引きつけ切った瞬間、食いつかれて空いたフリーの味方へつなぐ（翠の光の尾）。受けた味方は前を向いて落ち着いてプレーでき、しばらくはチーム全体のパスがつながりやすい（数的優位）。組み立てている間もDFは守備の形を保つので、取られても崩れない。発動するたびに、チーム全員のパスの精度と速さ、ボールの持ちやすさ、仕掛けやすさが積み重なって上がっていく（試合の間ずっと）（凸：引き寄せる相手が3人、ラインがさらに上がり、つながりやすい時間が長い）', dur: 5, cd: 11, ch: 1 },
+    midori:     { sw: '自陣でボールを持ち、相手がプレスに来るとき', se: 'プレスを引きつけて、空いた味方へつなぐ。発動するたびに、中盤までのチームのパス回しが良くなっていく', st: '引きつける相手が3人に', name: '翠の起点', chip: ['#044e24', '#33ff8d', '#e0ffee'],       who: 'むらおか', face: 'sendai_2', hair: '#00a84a',    type: 'ビルドアップ型',     when: '自陣でボールを持ち、相手がプレスに来られる所にいるとき', what: '誘い込んで、組み立てる。わざとボールを晒して相手のプレスを引き寄せ（翠の点線）、相手のDFラインも押し上げさせて陣形を前のめりにする。引きつけ切った瞬間、食いつかれて空いたフリーの味方へつなぐ（翠の光の尾）。受けた味方は前を向いて落ち着いてプレーでき、しばらくはチーム全体のパスがつながりやすい（数的優位）。組み立てている間もDFは守備の形を保つので、取られても崩れない。発動するたびに、チーム全員のパスの精度と速さ、ボールの持ちやすさ、仕掛けやすさが積み重なって上がっていく（試合の間ずっと）（凸：引き寄せる相手が3人、ラインがさらに上がり、つながりやすい時間が長い）', dur: 5, cd: 11, ch: 1 },
     sutemi:     { sw: '相手のスルーパスが出たとき', se: '先に触れると見たら飛び出して、必ずボールに触る', st: 'パスが出た瞬間に飛び出す', name: '捨て身の守護神', chip: ['#5a0616', '#ff4d6d', '#ffe8ec'], who: 'なかむら', face: 'hakata_1', hair: '#a8102e', skin: 2,    type: 'スイーパーキーパー', when: '相手のスルーパス・裏へのボールが出たとき', what: '飛び出しの超強化版。裏へのボールに相手より先に着けると判断した瞬間、全力で飛び出して必ずボールに触る（エリアの外では大きく蹴り出す）。凸すると、パスが出た瞬間に読んで1歩目から飛び出す', dur: 3, cd: 40, ch: 1 },
   };
   // 最初の持ち主（rosters.js の国内屈指）→ 固有スキル
@@ -635,6 +635,8 @@
     const CELEB_LONG = 9.0, CELEB_SHORT = 5.0, CELEB_HURRY = 7.5;   // ゴール後の喜び〜戻りの時間（3点差より開いたら短く）
     const side = [1, -1];
     const sgn = (ti) => side[ti];
+    // 版1225：翠の起点の積み重ねが効くのは、ボールを持つ選手（パスを出す選手）が中盤まで（相手陣の奥3分の1に入るまで）にいる時だけ。崩しの場面は港の指揮者の役目
+    function mdK(p) { const k = (p && T[p.team].mdStack) || 0; if (!k || !(globalThis.__Kmd3 ?? 1)) return k; return fx(p.team, p.x) < L * 2 / 3 ? k : 0; }
     // 港の指揮者（おおかわ）：指揮が続いている間の、チーム全体の強さ（0＝なし 1＝無凸 2＝凸）
     const condLv = (ti) => { for (const m of T[ti].players) if (m.uniq === 'minato' && m.uOn > S.t && !m.off) return m.uniqLv >= 2 ? 2 : 1; return 0; };
     // 左右の持ち場：名簿の配置は「右へ攻める向き」で作ってある（y が小さい方が左）。左へ攻めるときは上下を裏返す
@@ -921,7 +923,7 @@
       }
       if (q.uniq !== 'kinshachi' && ksTeam(q.team)) a += 0.05;   // 金鯱の心臓：かいがいると、チーム全体の守備が整って、競り合いに少し強い
       if (opps(own).some((o) => (o.kgT === own.idx || o.mark === own.idx) && uOn(o, 'kagenui'))) a += 0.45;   // 影縫い
-      { const k = T[own.team].mdStack || 0; if (k) a -= (globalThis.__Kmd2 ?? 1) ? Math.min(0.75, 0.12 * k + (k >= 4 ? 0.25 : 0)) : Math.min(0.45, 0.12 * k); }   /* 版1219：4段たまったら、ほとんど取られない */   /* 版452 翠の起点の積み重ね：落ち着いて持てる（奪われにくい） */
+      { const k = mdK(own); if (k) a -= (globalThis.__Kmd2 ?? 1) ? Math.min(0.75, 0.12 * k + (k >= 4 ? 0.25 : 0)) : Math.min(0.45, 0.12 * k); }   /* 版1219：4段たまったら、ほとんど取られない */   /* 版452 翠の起点の積み重ね：落ち着いて持てる（奪われにくい） */
       if ((own.tactBuff || 0) > S.t) a -= 0.08;   // 指揮の余韻：奪われにくい
       { const c = condLv(own.team); if (c) a -= c >= 2 ? 0.34 : 0.28; }   // 港の指揮者：テンポよく回されて、相手のプレスが空回りする
       if ((own.hariT || 0) > S.t) a -= own.hariLv >= 2 ? 0.8 : 0.65;   // 針の穴通しの1本で抜け出した：勢いのまま、追いつかれても奪われにくい
@@ -934,7 +936,7 @@
     function uDrib(own, q) {
       let a = 0;
       if ((own.tactBuff || 0) > S.t) a += own.tactLv >= 2 ? 0.15 : 0.1;   // 指揮の余韻
-      { const k = T[own.team].mdStack || 0; if (k) a += Math.min(0.3, 0.08 * k); }   /* 版452 翠の起点の積み重ね：前を向いて仕掛けやすい */
+      { const k = mdK(own); if (k) a += Math.min(0.3, 0.08 * k); }   /* 版452 翠の起点の積み重ね：前を向いて仕掛けやすい */
       if (uOn(own, 'shiden')) a += 0.7 * uP(own);   // 紫電の遊戯：屈指のDFでも手を焼く
       if (opps(own).some((o) => (o.kgT === own.idx || o.mark === own.idx) && uOn(o, 'kagenui'))) a -= 0.45;
       if (uOn(q, 'matsuri')) a -= 0.45 * mtF(q);   // ドン！と体を当てて、抜かせない
@@ -3116,7 +3118,7 @@
       }
       if (globalThis.__gpDbg && gpG) { const ex = gpG.k === 'dc' ? (gpG.ph === 1 && p.idx === gpG.b ? [gpG.c] : gpG.ph === 2 && p.idx === gpG.c ? [gpG.a] : null) : gpG.k === 'sh' && p.idx === gpG.a ? [gpG.c] : gpG.k === 'br' && gpG.ph === 2 && p.idx === gpG.a ? gpG.r : null;
         if (ex) { const o = opts.filter((o) => o.kind === 'pass' && o.q && ex.includes(o.q.idx)); const srt = opts.slice().sort((x, y) => y.v - x.v), bv = srt[0].v; globalThis.__gpDbg.push([gpG.k + (gpG.ph || ''), o.length ? +Math.max(...o.map((x) => x.v)).toFixed(1) : null, +bv.toFixed(1), o.length ? +Math.min(...o.map((x) => x.danger ?? 9)).toFixed(2) : null, srt.slice(0, 3).map((x) => x.kind + (x.mode || '') + ':' + x.v.toFixed(1)).join(' ')]); } }   // 版924：デカラ：背負ったまま無理に前を向かない（預けられる味方がいる時）
-      { const mk = (globalThis.__Kmd2 ?? 1) && !p.gk && !S.setPiece ? Math.min(4, T[t].mdStack || 0) : 0;   // 版1219：翠の起点：たまるほど、短いパスでテンポよく回す
+      { const mk = (globalThis.__Kmd2 ?? 1) && !p.gk && !S.setPiece ? Math.min(4, mdK(p)) : 0;   // 版1219：翠の起点：たまるほど、短いパスでテンポよく回す
         if (mk && xf < L - 18) for (const o of opts) { const dd = o.d ?? (o.q ? hyp(o.q.x - p.x, o.q.y - p.y) : 30); if (o.kind === 'pass' && !o.cross && dd < 20 && (o.danger ?? 1) < 0.7) o.v += 0.5 * mk; else if (o.kind === 'dribble') o.v -= mk >= 4 && opts.some((o2) => o2.kind === 'pass' && (o2.danger ?? 1) < 0.9) ? 4 : 0.45 * mk; else if (o.kind === 'pass' && dd > 28 && !o.through) o.v -= 0.15 * mk; } }
       // 選ぶ：判断（視野）の高い選手ほど、一番良い選択にはっきり寄る
       const sharp = 0.9 + (p.vision || 50) / 45;
@@ -4830,7 +4832,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         speed = v3 * Math.cos(elev); vz = v3 * Math.sin(elev);
         ang += (opt.acc ?? 1) * R.gauss() * clamp(0.06 - p.pass * 0.0006 + pressure * 0.04 + fatigueK * 0.03 + d * 0.0005, 0.01, 0.2);
       } else {
-        const vEnd = (opt.vEnd || (3.5 + d * 0.1 + p.pass * 0.065) * (1 + DOM[p.team] * 0.2)) * (kind === 'pass' && T[p.team].mdStack && !globalThis.__mdNoSpd ? Math.min(1.12, Math.pow(1.03, T[p.team].mdStack)) : 1);   /* 版451 翠の起点の積み重ね：パスの速さ（1回ごとに1.08倍・最大1.4倍。速すぎるとトラップが難しくなるので控えめ） */   // 格上はテンポよく強いパス   // うまい選手ほど強く正確なパス（相手に追いつかれにくい）
+        const vEnd = (opt.vEnd || (3.5 + d * 0.1 + p.pass * 0.065) * (1 + DOM[p.team] * 0.2)) * (kind === 'pass' && mdK(p) && !globalThis.__mdNoSpd ? Math.min(1.12, Math.pow(1.03, mdK(p))) : 1);   /* 版451 翠の起点の積み重ね：パスの速さ（1回ごとに1.08倍・最大1.4倍。速すぎるとトラップが難しくなるので控えめ） */   // 格上はテンポよく強いパス   // うまい選手ほど強く正確なパス（相手に追いつかれにくい）
         speed = solve((v) => rollEnd(v, d), 4, 40, vEnd);
         if (opt.arriveT) { const rt = (v) => { let x = 0, vv = v, t = 0; while (x < d && t < 8) { x += vv * DT; vv -= groundDec(vv) * DT; t += DT; if (vv <= 0.1) return 99; } return t; };
           let lo = 4, hi = maxV; for (let k = 0; k < 20; k++) { const m = (lo + hi) / 2; if (rt(m) > opt.arriveT) lo = m; else hi = m; } speed = Math.max(speed * 0.8, (lo + hi) / 2); }   // 月影の抜け出し：走り込む本人と同時に着く強さ
@@ -5220,7 +5222,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         //   （相手より先に触れそうな時だけ。間に合わない時は飛び出さずにゴールを守る）
         if (thr || (style && fx(p.team, tx) > offL - 1 && fx(p.team, tx) > L - 40)) { const og = opps(p).find((o) => o.gk && o.uniq === 'sutemi');
           if (og && og.uniqLv >= 2 && !og.off && !(og.downT > 0) && fx(og.team, tx) < 22 && fx(og.team, tx) > 12 && !style) { const tG = hyp(tx - og.x, ty - og.y) / (maxSpeed(og) * 1.35), tR = hyp(tx - q.x, ty - q.y) / Math.max(1, maxSpeed(q)); if (tG < tR - 0.1 && !T[og.team].players.some((m) => !m.gk && !m.off && hyp(tx - m.x, ty - m.y) / Math.max(1, maxSpeed(m)) < tG + 0.3) && uFire(og, 'sutemi') && globalThis.__sutEarly) globalThis.__sutEarly.n++; } } }   // 味方のDFが先に拾えるなら、GKは出ない   // 凸：パスが出た瞬間に読んで、飛び出す1歩目から発動（確実に先に触れる時だけ。浮き球には出ない）
-      if (T[p.team].mdStack) { uAcc /= Math.min(3, Math.pow(1.3, T[p.team].mdStack)); uSafe = Math.max(uSafe, Math.min((globalThis.__Kmd2 ?? 1) ? 0.85 : 0.6, T[p.team].mdStack * ((globalThis.__Kmd2 ?? 1) ? 0.2 : 0.15))); }   /* 版1219：4段でパスはほぼ通る */   /* 版451 翠の起点の積み重ね：パスの精度（1回ごとに1.15倍・最大2倍） */
+      if (mdK(p)) { uAcc /= Math.min(3, Math.pow(1.3, mdK(p))); uSafe = Math.max(uSafe, Math.min((globalThis.__Kmd2 ?? 1) ? 0.85 : 0.6, mdK(p) * ((globalThis.__Kmd2 ?? 1) ? 0.2 : 0.15))); }   /* 版1219：4段でパスはほぼ通る */   /* 版451 翠の起点の積み重ね：パスの精度（1回ごとに1.15倍・最大2倍） */
       if (skill === 'pinpointCross') { uSafe = Math.max(uSafe, 0.45); q.ppShot = S.t + 3; }   // 版838：ピンポイントクロス：相手に触られにくく、受けた選手のシュートも正確に
       const accP = (PASS_ACC[skill] ?? 1) * (p.type === 'パサー' && (through || skill === 'throughPass' || skill === 'loftedThrough') ? 0.72 : 1) * uAcc;   // パサーのスルーパスは正確
       if (hrNow && !style && (globalThis.__Khrl ?? 1) && opps(p).some((o) => { if (o.gk || o.off) return false; const sd = segDist(o.x, o.y, p.x, p.y, tx, ty); return sd.u > 0.04 && sd.u < 0.95 && sd.d < 1.4; })) style = 'drive';   // 版942：針の穴通し：グラウンダーのコースのすぐそばにDFがいるなら、足もとを抜かずに浮かせて越える
@@ -5619,6 +5621,13 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       if (p.gk && !p.hold && !S.setPiece && !S.restart && S.ball.owner === p.idx && gkFeet(p)) return;   // 版863：足もとのボール（バックパス）：GKもビルドアップに加わる
       if (!p.gk && !S.setPiece && S.ball.owner === p.idx && S.ball.z > 0.15) { S.decision = 0.05; return; }   // 版812：胸・ももで止めたボールが足もとに落ちてくるまでは、蹴らない（頭の上から真っすぐ飛んでいた。ワンタッチで打つ時も、落ちてから）
       if (S.forceShot != null) { const a = S.forceShot, h = S.forceHow; S.forceShot = null; S.forceHow = null; shoot(p, a, h); return; }
+      // 版1225：月影の抜け出しに合わせたスルーパスは、新しい判断（版902〜）の選手でも出す（これまでは新しい判断の選手が持つと、出されずに終わっていた）
+      if (S.forcePass && (globalThis.__Ktk3 ?? 1)) { const fp = S.forcePass, q = P[fp.to];
+        if (S.t > fp.until || !q || q.off || q.team !== p.team || p.idx === fp.to || p.gk) S.forcePass = null;
+        else if (S.t < fp.at && p.idx === fp.from) { S.decision = Math.max(S.decision, fp.at - S.t); return; }   // 走り出すのを待ってから出す
+        else if (S.t >= fp.at) { S.forcePass = null; if (globalThis.__fp) globalThis.__fp.push(S.t);
+          const q2 = fp.pick ? tactPick(p, fp.pick) || q : q, thr = !fp.pick || (q2.tact && q2.tact.role === 'ura');
+          startPass(p, q2, thr, false, thr && skZ(p, 'throughPass') && !((p.skLock || 0) > S.t) ? 'throughPass' : null); return; } }
       const uqOld = (globalThis.__Kuq ?? 1) && (p.uniq || p.lgcyTest || (p.hariT || 0) > S.t || (p.byT || 0) > S.t || (p.finT || 0) > S.t || (p.uzDrive && p.uzDrive.until > S.t) || (p.mdFree || 0) > S.t || (p.mdDrive || 0) > S.t || (p.mtCounter || 0) > S.t || (p.tsukiGuard || 0) > S.t || (p.aoFast || 0) > S.t);   // 版914：固有スキルを持つ選手と、固有スキルの効果を受けている選手は、固有スキルの判断が入っている判断（版907まで）を使う（新しい判断には固有スキルの判断がなく、出なかった。設計一覧18章）
       if (brainOn() && (globalThis.__bAtk ?? 1) && !uqOld && !p.gk && !S.setPiece && !S.restart && S.ball.owner === p.idx) {   // 版902：原理原則から作り直した判断
         if (emptyGoal(p)) { shoot(p, null, null); return; }
@@ -6139,7 +6148,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         if (c && !p.gk && dGoal > 21) for (const o of opts) if (o.kind === 'shot') o.w *= 0.03;   // 指揮の間は、遠くから打たずにゴール前まで運ぶ
         if (condLv(p.team) && !p.gk && !uOn(p, 'shiden') && dGoal > 22 && opts.some((o) => o.kind === 'pass' && (o.danger ?? 1) < 0.9)) for (const o of opts) if (o.kind === 'dribble') o.w *= 0.005; }   // 指揮の間はドリブルしない：持たずにはたく   // ダイレクトで受けたら、持たずにそのままはたく
       // 版1219：翠の起点：たまるほど、チーム全体が短いパスをテンポよく回す（ワンタッチ・ツータッチ）。1人で運ぶ・大きく蹴るは減る。相手は追いかけても取れずに振り回される
-      { const mk = (globalThis.__Kmd2 ?? 1) && !p.gk && !S.setPiece ? Math.min(4, T[p.team].mdStack || 0) : 0;
+      { const mk = (globalThis.__Kmd2 ?? 1) && !p.gk && !S.setPiece ? Math.min(4, mdK(p)) : 0;
         if (mk && dGoal > 18 && opts.some((o) => o.kind === 'pass' && (o.d ?? 99) < 20 && (o.danger ?? 1) < 0.7)) for (const o of opts) {
           const dd = o.d ?? (o.q ? hyp(o.q.x - p.x, o.q.y - p.y) : 30);
           if (o.kind === 'pass' && dd < 20 && (o.danger ?? 1) < 0.7) o.w *= 1 + 1.2 * mk; else if (o.kind === 'pass' && dd > 28 && !o.through) o.w *= Math.max(0.4, 1 - 0.15 * mk); else if (o.kind === 'dribble') o.w *= mk >= 4 ? 0.02 : Math.max(0.1, 1 - 0.22 * mk); } }
@@ -7409,7 +7418,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           }
         }
       }
-      S.decision = p.gk ? (p.hold ? R.range(1.0, 1.8) : p.gkOutT === S.t ? 0.08 : 0.3) : S.mustClear && S.mustClear.i === p.idx ? 0.08 : clamp(R.range(0.25, 0.7) - p.vision * 0.004, 0.1, 0.7) * ((globalThis.__Kphy ?? 1) && S.nm && S.t - (p.scanT ?? -9) < 1.2 && hyp(p.vx, p.vy) > 3 ? 0.5 : 1) * ((globalThis.__Kmd2 ?? 1) && !p.gk && T[p.team].mdStack ? Math.max(0.3, 1 - 0.175 * T[p.team].mdStack) : 1);   // 版1219：翠の起点がたまるほど、受けてすぐ離す（テンポよく回す）   // 版908b：首を振ってから走りながら受けた選手は、考える時間が半分   // うまい選手ほど判断が早い（プレーが速い）
+      S.decision = p.gk ? (p.hold ? R.range(1.0, 1.8) : p.gkOutT === S.t ? 0.08 : 0.3) : S.mustClear && S.mustClear.i === p.idx ? 0.08 : clamp(R.range(0.25, 0.7) - p.vision * 0.004, 0.1, 0.7) * ((globalThis.__Kphy ?? 1) && S.nm && S.t - (p.scanT ?? -9) < 1.2 && hyp(p.vx, p.vy) > 3 ? 0.5 : 1) * ((globalThis.__Kmd2 ?? 1) && !p.gk && mdK(p) ? Math.max(0.3, 1 - 0.175 * mdK(p)) : 1);   // 版1219：翠の起点がたまるほど、受けてすぐ離す（テンポよく回す）   // 版908b：首を振ってから走りながら受けた選手は、考える時間が半分   // うまい選手ほど判断が早い（プレーが速い）
       if (!p.gk && how !== 'tackle' && condLv(p.team)) S.decision = Math.min(S.decision, 0.28);
       if (uOn(p, 'kinshachi')) S.decision = Math.min(S.decision, p.uniqLv >= 2 ? 0.1 : 0.12);
       if (uOn(p, 'aonoouza')) { S.decision = Math.min(S.decision, 0.08); p.protect = Math.max(p.protect || 0, S.t + 1.0); }   // 蒼の王座：受けたら、食いついてきたCBをいなして、すぐに穴へ   // 金鯱の心臓：受けたらすぐ次へ（判断が速い）   // 港の指揮者：受けたらすぐ次へ（テンポよく回す）
