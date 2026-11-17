@@ -2133,7 +2133,7 @@
     const PK = D.PARAMS.map((q) => q.k);
     const badge = (q) => {
       if (q.injury > 0) return '<i class="s2b inj">＋</i>';
-      if (q.suspend > 0) return '<i class="s2b sus"></i>';
+      if (q.suspend > 0 && !(C.noSusp && C.noSusp())) return '<i class="s2b sus"></i>';
       if (sqShow !== 'cond') return `<i class="s2b cdot ${condDot(q)}"><em class="cdn">${Math.round(q.fatigue || 0)}</em></i>`;
       return `<i class="s2b cdot ${condDot(q)}"><em class="cdn">${Math.round(q.fatigue || 0)}</em></i><span class="s2ca">${condArrow(q, 22)}</span>`;
     };
@@ -2417,6 +2417,9 @@
     if (!ms.on) { ms.on = [...Array(11).keys()]; ms.used = []; ms.out = []; ms.subsIn = []; ms.changes = []; ms.cells = (mt.team.cells || C.cellsFor(mt.team.formation)).map((c) => c && { ...c }); ms.att = base.attitude || 'balanced'; ms.cur = {}; }
     // 今回の変更（「戻る」で試合に伝える）
     if (!ms.marks) { ms.marks = []; ms.orders = {}; }
+    // 版1217：交代を決めても、実際にピッチに入るのは次にボールが止まった時。まだ入っていない交代（予約）は、もう一度代えたら「なかったこと」にする（交代枠を使わない）
+    if (!ms.pend) ms.pend = [];
+    { const evs = ((A().match || {}).events) || []; ms.pend = ms.pend.filter((x) => !evs.some((e) => e.type === 'sub' && e.team === (info.my || 0) && e.in === ps[x.bench].name && e.t < info.t - 0.05)); }
     if (!ms.tq) { ms.tq = {}; for (const k of ['style', 'line', 'width', 'compact', 'attitude', 'press', 'pass', 'side']) ms.tq[k] = base[k]; if (!ms.tq.attitude) ms.tq.attitude = 'balanced'; }   /* 版1086：この試合のチーム戦術（試合中に変えても、保存はしない） */   /* 版1084：マークの指名・選手ごとの指示・ライン・プレス */
     if (!ms.roles) ms.roles = { ...(base.roles || {}) };   // 版1112：試合中の役割設定（名前で持つ）
     let subRole = null;
@@ -2509,9 +2512,18 @@
           const tg = document.elementFromPoint(e.clientX, e.clientY), to = tg && tg.closest('.q3fw, .q3n') && tg.closest('.q3p');
           if (kind === 'b') {
             if (!to) return; if (left() <= 0) { toastS('交代枠はもうありません'); return; }
-            const k = +to.dataset.k, out = ps[onPitch()[k]];
+            const k = +to.dataset.k, pd0 = ms.pend.find((x) => x.slot === k && !plan.subs.some((y) => y.slot === k)), out = pd0 ? ps[pd0.prev] : ps[onPitch()[k]];   // 版1217：予約の交代をやり直す時は、もとの選手に代える
             const ok = await ask(`${esc(out.name)}に代えて<br>${esc(q.name)}を起用しますか？${k === 0 && q.position !== 'GK' ? '<br><small>GKでない選手がゴールを守ります。シュートはほとんど止められません。</small>' : ''}`);   // 版1188：GKの所にも誰でも
-            if (ok) { const old = plan.subs.findIndex((x) => x.slot === k); if (old >= 0) plan.subs.splice(old, 1); plan.subs.push({ slot: k, bench: id }); }
+            if (ok) {
+              const pd = ms.pend.findIndex((x) => x.slot === k);
+              if (pd >= 0) {   // 版1217：まだピッチに入っていない予約の交代を取り消して、もとの選手と代える（交代は1人分）
+                const x = ms.pend[pd], bn = ps[x.bench].name, pn = ps[x.prev].name; ms.pend.splice(pd, 1);
+                ms.on[k] = x.prev; const ui = ms.used.lastIndexOf(x.bench); if (ui >= 0) ms.used.splice(ui, 1);
+                if (ms.subsIn) { const si = ms.subsIn.lastIndexOf(bn); if (si >= 0) ms.subsIn.splice(si, 1); }
+                const oi = ms.out.lastIndexOf(pn); if (oi >= 0) ms.out.splice(oi, 1);
+                for (const c of ms.changes) if (c.subs) c.subs = c.subs.filter((y) => !(y.slot === k && y.player && y.player.name === bn));
+              }
+              const old = plan.subs.findIndex((x) => x.slot === k); if (old >= 0) plan.subs.splice(old, 1); plan.subs.push({ slot: k, bench: id }); }
             draw(); return;
           }
           const k = id; if (k === 0) { draw(); return; }
@@ -2627,7 +2639,7 @@
       setTimeout(() => {
         ms.changes.push(ch);
         info.apply(ms.changes, () => {
-          for (const x of plan.subs) { ms.out.push(ps[ms.on[x.slot]].name); ms.on[x.slot] = x.bench; ms.used.push(x.bench); (ms.subsIn || (ms.subsIn = [])).push(ps[x.bench].name); }
+          for (const x of plan.subs) { ms.pend.push({ slot: x.slot, bench: x.bench, prev: ms.on[x.slot] }); ms.out.push(ps[ms.on[x.slot]].name); ms.on[x.slot] = x.bench; ms.used.push(x.bench); (ms.subsIn || (ms.subsIn = [])).push(ps[x.bench].name); }
           ms.cells = plan.cells; ms.att = plan.tq.attitude; ms.marks = plan.marks; ms.orders = plan.orders; ms.tq = plan.tq; ms.roles = { ...plan.roles };
           el.hidden = true;
         });
@@ -3446,6 +3458,7 @@
     return names.map((n) => save.team.players.findIndex((q) => q.name === n)).filter((i) => i >= 0);
   }
   async function runMatch(title, sub, opTeamInfo, done, meta) {
+    C.setNoSusp(!!(meta && meta.online)); { const d0 = done; done = (...a) => { C.setNoSusp(false); return d0(...a); }; }   // 版1217：ランクマッチ・フレンド対戦では、公式戦の出場停止（レッドカード）は関係ない
     venueNow = venueOf(opTeamInfo, meta); try { venImg('side'); venImg('goal'); loadCrowd(); } catch (_) {}   // 版603：会場の絵を先に読む
     if (!(meta && meta.skipPre)) lineupKeep();
     /* 版1073：相手と試合の種は先に決め、試合前の画面を開いた時に試合の計算を始めておく（「試合開始」で止まらないように） */
