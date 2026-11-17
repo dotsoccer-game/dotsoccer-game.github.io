@@ -319,7 +319,7 @@
         if (!sh) { for (const a of actsOf[i] || []) if (a.a === 'skill' && a.k === 'lowPunt' && Math.abs(a.t - t0) < 0.25) { list[k].lp = true; break; } }   // 版1200：低弾道パントキック（GK）は、体を倒して横から叩くボレーの絵で
       }
       const shot = list[k].shot;
-      if (list[k].lp) { if (d >= -0.38 && d <= 0.5) return { pose: d < 0 ? 'bigWindup' : 'follow', dx: list[k].dx, dy: list[k].dy, shot: true, d, sk: (globalThis.__Klpv ?? 0) ? 'volley' : null, t0: list[k].t }; continue; }
+      if (list[k].lp) { if (d >= -0.38 && d <= 0.5) return { pose: d < 0 ? 'bigWindup' : 'follow', dx: list[k].dx, dy: list[k].dy, shot: true, d, sk: (globalThis.__Klpv ?? 0) ? 'volley' : null, t0: list[k].t, lp: true }; continue; }
       if (shot && list[k].sk === 'toeKick') { if (d >= -0.08 && d <= 0.18) return { pose: d < 0 ? 'bigWindup' : 'follow', dx: list[k].dx, dy: list[k].dy, shot: true, d, sk: 'toeKick', t0: list[k].t }; if (d > 0.18) continue; return null; }   // トゥーキック：走ったまま、ほとんど構えずにつま先で突く
       if (shot) { if (d >= -0.38) return { pose: d < 0 ? 'bigWindup' : 'follow', dx: list[k].dx, dy: list[k].dy, shot: true, d, sk: list[k].sk, dsh: list[k].dsh, t0: list[k].t }; }
       else if (d >= -0.3 && d <= 0.32) return { pose: d < 0 ? 'windup' : 'kick', dx: list[k].dx, dy: list[k].dy, d, ev: list[k] };
@@ -3065,7 +3065,7 @@
         }
       }
       const gkCode = i === 0 ? st.gk[0] : i === 11 ? st.gk[1] : 0;
-      let kp = gkCode ? null : kickPose(i);
+      let kp = gkCode ? ((globalThis.__Klpl ?? 1) ? (() => { const k0 = kickPose(i); return k0 && k0.lp ? k0 : null; })() : null) : kickPose(i);   // 版1207：低弾道パントは、手で持っている間から蹴る構え（体を倒す）を見せる
       // 走りながらのパス（パス確認画面と同じ）：体の向き（16方向で±1以内）へ走っている最中のパスは、止まらずにそのまま蹴る
       //   振りかぶりは短く（ボールを蹴り足へ0.07秒 → 軸足0.05秒 → 振りかぶり0.065秒 → 接触）、それまでは走りの絵のまま。蹴った後も0.25秒で走りへ戻る
       if (kp && !kp.shot && kp.ev) {
@@ -3174,7 +3174,7 @@
         ctx.restore(); r = { top: q.y - 17 * px, px: r.px };
         gloom(q.x, r.top - 2 * px, px, i);
       }
-      else if (info.gk && gkCode) { kpBall = st.ball; r = drawKeeper(q, p, info, team, facing, f4, gkCode, team); }
+      else if (info.gk && gkCode && !(kp && kp.lp)) { kpBall = st.ball; r = drawKeeper(q, p, info, team, facing, f4, gkCode, team); }
       else if (info.gk && !kp && p.sp < 2.6 && st.owner >= 0 && (st.owner < 11 ? 0 : 1) !== team && (() => { const gx = p.x < 52.5 ? 0 : 105;   /* 版877：構えるのは相手がボールを持っている間だけ（シュートが飛んでいる間に構えたまま見送らない） */ return Math.hypot(st.ball.x - gx, st.ball.y - 34) < 32; })()) {   // 版865：後半はゴールが入れかわるので、GKのいる側のゴールで測る。こぼれ球（だれも持っていない）の時も構える
         // 版864：相手がシュートを打てる所でボールを持っている：腰を落とし、両手を広げて構える（棒立ちにしない）
         const bq = proj(st.ball.x, st.ball.y); dmFacing = Math.atan2((bq.y - q.y) / 0.45, bq.x - q.x);
@@ -3437,6 +3437,7 @@
           }
           ctx.globalAlpha = 1;
         }
+        if (kp && kp.lp && (globalThis.__Klpl ?? 1)) { const mk = proj(p.x + (kp.dx || 0) * 10, p.y + (kp.dy || 0) * 10), lat = (mk.x - q.x) / (Math.hypot(mk.x - q.x, (mk.y - q.y) / 0.55) || 1), e = kp.d < 0 ? Math.min(1, (kp.d + 0.38) / 0.3) : Math.max(0, 1 - kp.d / 0.5 * 0.7); tilt = -(Math.sign(lat) || 1) * Math.max(0.25, Math.abs(lat)) * 0.55 * e; }   // 版1207：低弾道パント：低い所で叩くために、上体を大きく後ろへ倒す（蹴る向きと反対へ）
         const g = lift ? P3(p.x, p.y, lift) : q;
         if (lift) { ctx.fillStyle = 'rgba(0,30,0,0.3)'; ctx.beginPath(); ctx.ellipse(q.x, q.y, 4.5 * 2.5 * q.s, 1.5 * 2.5 * q.s, 0, 0, 7); ctx.fill(); }
         if (ghost) { const gp = (kp && kp.pose) || pokePose; for (let k = 3; k >= 1; k--) { ctx.save(); ctx.globalAlpha = 0.16 * (4 - k); ctx.translate(g.x + dxs - ghost[0] * k * 4.5 * q.s, g.y - hop - ghost[1] * k * 4.5 * q.s); if (tilt) ctx.rotate(tilt); sprite(0, 0, q.s, info, team, facing, f4, false, arms, true, gp, p.sp, view); ctx.restore(); } ctx.globalAlpha = 1; }   // 残像（動いてきた側に薄く3つ）
