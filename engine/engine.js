@@ -3014,9 +3014,10 @@
       const boxMates = (globalThis.__Kfb ?? 1) ? mates(p).filter((m) => !m.off && !m.gk && m !== p && ((fx(t, m.x) > L - (globalThis.__Kbx ?? 24) && Math.abs(m.y - GOAL_Y) < 18) || (m.bRun && m.bRun.until > S.t && fx(t, m.bRun.x) > L - 18 && fx(t, m.x) > L - (globalThis.__Kbr ?? 30)))).length : 9;
       if (xf > L - 34 && Math.abs(p.y - GOAL_Y) > 11 && (boxMates >= ((globalThis.__Kwg ?? 1) ? 1 : 2) || held > (globalThis.__Kcrh ?? ((globalThis.__Kwg ?? 1) ? 2.0 : 3.5)))) {   // 版1211：中に1人いれば上げる
         const sd = Math.sign(p.y - GOAL_Y), spots = [[L - 6, GOAL_Y + sd * 4, 'near'], [L - 11, GOAL_Y, 'pk'], [L - 6, GOAL_Y - sd * 5, 'far'], [L - 15, GOAL_Y + sd * 2, 'cut']];
+        if (globalThis.__Kcr3 ?? 1) { const oL = fx(t, offsideLine(t)); for (const m of mates(p)) { if (m === p || m.off || m.gk) continue; const mx = fx(t, m.x); if (mx < L - 38 || mx < oL - 14 || Math.abs(m.y - GOAL_Y) > 20) continue; spots.push([Math.min(L - 5, Math.max(mx + 7, Math.min(oL + 4, L - 5))), GOAL_Y + (m.y - GOAL_Y) * 0.6, 'run']); } }   // 版1212：走り込む味方の前（DFラインの裏・ゴール前）へ落とすクロス。決まった所（ニア・ファー）だけだと、中に誰も間に合わなかった
         for (const [sx0, sy, k] of spots) {
           const sx = fx(t, sx0), dS = hyp(sx - p.x, sy - p.y); if (dS < 6 || dS > 38) continue;
-          const chip = k === 'far' || (dS > 18 && k !== 'cut');
+          const chip = k === 'far' || k === 'run' || (dS > 18 && k !== 'cut');
           const tb = 0.2 + dS / (chip ? 16 : passAvgV(p, dS));
           let bq = null, tq = 99; for (const q of mates(p)) { if (q === p || q.off || q.gk) continue; const t0 = hyp(sx - q.x, sy - q.y) / maxSpeed(q) + 0.2; if (t0 < tq) { tq = t0; bq = q; } }
           if (!bq) continue;
@@ -3024,11 +3025,11 @@
           let to = 99; for (const o of foes) to = Math.min(to, bDefT(o, t, sx, sy) - 0.05);
           const margin = to - Math.max(tb, tq);
           if (globalThis.__crDbg) globalThis.__crDbg.m.push([k, +margin.toFixed(2), +(tq - tb).toFixed(2)]);
-          const crM = chip ? -(globalThis.__Kcrm ?? 1.6) : -0.2;   // 版905：浮き球のクロスは、相手と競り合いになる所でも上げる（中で合わせる味方が走り込んでいれば）
-          if (margin < crM || tq > tb + 0.8) continue;   // 浮き球のクロスは、競り合いになっても良い（先に触れなくても、ほぼ同時なら）
+          const crM = chip ? -((globalThis.__Kcr2 ?? 1) ? (globalThis.__Kcrm2 ?? 2.8) : (globalThis.__Kcrm ?? 1.6)) : ((globalThis.__Kcr2 ?? 1) ? -0.9 : -0.2);   // 版1212：クロスは、中で競り合いになる所へも上げる（DFの方が先に着く所でも、走り込んで合わせにいく）   // 版905：浮き球のクロスは、相手と競り合いになる所でも上げる（中で合わせる味方が走り込んでいれば）
+          if (margin < crM || tq > tb + ((globalThis.__Kcr2 ?? 1) ? 1.4 : 0.8)) continue;   // 浮き球のクロスは、競り合いになっても良い（先に触れなくても、ほぼ同時なら）
           const lm = chip ? 2 : laneMargin(t, p.x, p.y, sx, sy, -1); if (lm < 0.3) continue;
           const runIn = (globalThis.__Kfb ?? 1) ? (mates(p).some((m) => m.bRun && m.bRun.until > S.t && fx(t, m.bRun.x) > L - 18) ? 0.5 : pr <= 1 ? -0.4 : 0) : 0;   // 版907：クロスは、走り込む味方が動き出したのを見てから（寄せが弱ければ待つ）
-          opts.push({ kind: 'pass', q: bq, through: !chip, chip, space: [sx, sy], d: dS, danger: margin < 0.2 ? 0.6 : 0.3, v: 1.2 + runIn + clamp(margin, -1.6, 1) * (chip ? 0.6 : 1.2) + (chip ? (((bq.jump || 50) - 50) / 60) : 0) + (k === 'cut' ? 0.3 : 0) + (ph === 'fin' ? 0.4 : 0) + ((p.kick || 50) - 50) / 100, cross: k });
+          opts.push({ kind: 'pass', q: bq, through: !chip, chip, space: [sx, sy], d: dS, danger: margin < 0.2 ? 0.6 : 0.3, v: 1.2 + ((globalThis.__Kcr2 ?? 1) ? (globalThis.__Kcrv ?? 0.8) : 0) + runIn + clamp(margin, -1.6, 1) * (chip ? 0.6 : 1.2) + (chip ? (((bq.jump || 50) - 50) / 60) : 0) + (k === 'cut' ? 0.3 : 0) + (ph === 'fin' ? 0.4 : 0) + ((p.kick || 50) - 50) / 100, cross: k });
         }
       }
       // ドリブル
@@ -4645,7 +4646,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
 
     function kick(p, tx, ty, kind, loft, opt) {
       opt = opt || {};
-      if (globalThis.__crsLog && loft === 'cross' && kind === 'pass' && S.ball.owner === p.idx) globalThis.__crsLog.push({ t: S.t, i: p.idx, tx, ty, sp: !!S.setPiece });
+      if (globalThis.__crsLog && kind === 'pass' && loft && loft !== 'clear' && !p.gk && S.ball.owner === p.idx && fx(p.team, p.x) > L - 36 && Math.abs(p.y - GOAL_Y) > 11 && fx(p.team, tx) > L - 20 && Math.abs(ty - GOAL_Y) < 20) globalThis.__crsLog.push({ t: S.t, i: p.idx, tx, ty, sp: !!S.setPiece, loft });   // 確認用：サイドからゴール前への浮き球
       S.ball.kT = S.t; S.ball.kX = S.ball.x; S.ball.kY = S.ball.y;   // 版908：蹴った時刻と場所（近くから強く蹴られた球は止められない：設計一覧14章）
       if (loft === 'clear' || (p.gk && kind === 'pass' && fx(p.team, p.x) < 20 && hyp(tx - p.x, ty - p.y) > 30)) { const tmc = T[p.team], ds = tmc.players.filter((m) => !m.gk && !m.off && m.slot && m.slot.line === 0).map((m) => fx(p.team, m.x)).sort((a0, c0) => a0 - c0); tmc.clearT = S.t; tmc.clearTo = (ds[1] ?? ds[0] ?? 15) + 7; { const d1 = tmc.players.filter((m) => !m.gk && !m.off && m.slot && m.slot.line === 0).sort((a0, c0) => Math.abs(a0.y - GOAL_Y) - Math.abs(c0.y - GOAL_Y))[0]; if (globalThis.__tacLog) globalThis.__tacLog.push(['stepup', +S.t.toFixed(1), p.team, d1 ? d1.idx : p.idx]); } }   // 版878：クリア・大きく蹴り出した：ラインを上げる合図（クリアした時のラインから7m上げる）
       const b = S.ball;
@@ -7830,7 +7831,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       if (xf > L - 17 && Math.abs(p.y - GOAL_Y) < 13) {
         const nf = skZ(p, 'nearRun') || skZ(p, 'farWait');   // ニア・ファーで合わせるのが得意
         const gr = uFire(p, 'guren'), lv2 = gr && p.uniqLv >= 2;   // 紅蓮の牙：ヘディングシュートでも出る
-        const gx = fx(p.team, L), ty = GOAL_Y + (gr ? (R.next() < 0.5 ? -1 : 1) * R.range(2.8, 3.9) : nf ? (GOAL_Y - p.y > 0 ? 1 : -1) * R.range(2.4, 3.8) : R.gauss() * 2.4);   // 出たら隅へ正確に
+        const gk6 = (globalThis.__Kcr6 ?? 1) ? opps(p).find((q) => q.gk && !q.off) : null, away6 = gk6 ? (gk6.y > GOAL_Y ? -1 : 1) : (R.next() < 0.5 ? -1 : 1);   // 版1212：ヘディングは、GKのいない側へ叩きつける（頭の強さ・うまさで正確に）
+        const gx = fx(p.team, L), ty = GOAL_Y + (gr ? (R.next() < 0.5 ? -1 : 1) * R.range(2.8, 3.9) : nf ? (GOAL_Y - p.y > 0 ? 1 : -1) * R.range(2.4, 3.8) : gk6 ? (R.next() < 0.7 ? away6 * R.range(1.2, 3.4) : R.gauss() * 2.4) + R.gauss() * clamp(1.6 - ((p.jump || 50) + (p.technique || 50)) * 0.008, 0.3, 1.4) : R.gauss() * 2.4);   // 出たら隅へ正確に
         const dx = gx - b.x, dy = ty - b.y, d = hyp(dx, dy) || 1, v = (10 + p.physical * 0.07 + R.next() * 3) * (gr ? (lv2 ? 1.5 : 1.35) : 1);   // 叩きつける強いヘディング
         Object.assign(b, base, { kind: 'shot', vx: (dx / d) * v, vy: (dy / d) * v, vz: gr ? R.range(-1.6, 0.2) : R.range(-2.6, 0.8), style: 'head', shotT: S.t, shotFrom: hyp(fx(p.team, L) - p.x, GOAL_Y - p.y), gkPen: 0, uDelay: 0, guren: 0, uSafe: 0, csPlace: false, curveAll: false, drive: 0 });
         if (nf) b.gkPen = 0.08;
@@ -8353,6 +8355,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           const sp = hyp(b.vx, b.vy);
           let how = null;
           if (skZ(p, 'volley') && b.z >= 0.35 && b.z <= 1.4 && d < 1.6 * kR) how = 'volley';
+          else if ((globalThis.__Kcr4 ?? 1) && !p.sk.has('volley') && b.z >= 0.35 && b.z <= 1.2 && d < 1.3 * kR && b.kind === 'pass' && P[b.kicker] && P[b.kicker].team === p.team && R.next() < (globalThis.__Kcr4p ?? 0.45)) how = 'volleyB';   // 版1212：ボレーを覚えていなくても、味方のクロスには足で合わせられる（覚えた選手より、出る回数も正確さも下）
           else if (skZ(p, 'divingHeader') && b.z >= 0.3 && b.z <= 1.0 && sp > 5 && d < 1.7 * kR) how = 'divingHeader';
           else if (skZ(p, 'bicycle') && b.z >= 1.3 && b.z <= 2.5 && d < 1.4 * kR && b.vz < 0.5) {
             // バイシクル：味方のクロス、または自分の頭上を後ろへ越えていく球（ゴールに背を向けている時）だけ
@@ -8360,7 +8363,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             const cross = b.kind === 'pass' && (b.style === 'cross' || b.style === 'high' || b.style === 'lob') && b.kicker !== p.idx;
             if ((cross && hyp(b.vx, b.vy) > 4) || (away && hyp(b.vx, b.vy) > 3)) how = 'bicycle';
           }
-          if (!how || R.next() > 0.75 || oppFirst(p, b)) continue;   // 版948：相手が先に触れる球は、ボレーで合わせたことにしない
+          if (!how || (how !== 'volleyB' && R.next() > 0.75) || oppFirst(p, b)) continue;
+          const basicV = how === 'volleyB'; if (basicV) how = 'volley';   // 版948：相手が先に触れる球は、ボレーで合わせたことにしない
           // 味方へのパスならパス成功として数える
           if (b.kind === 'pass' && b.kicker >= 0 && P[b.kicker].team === p.team && !b.selfPass) stats[p.team].passes_completed++;
           Object.assign(b, { owner: p.idx, kind: 'owned', vx: 0, vy: 0, vz: 0, lastTeam: p.team, lastPlayer: p.idx, intended: -1 });
@@ -8394,7 +8398,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           if ((globalThis.__Kair ?? 1) && hc.length && b.z > 1.35) for (const p of P) { if (p.gk || p.off || hc.includes(p) || p.downT > 0 || p.slideT > 0 || p.touchCd > 0) continue; const atkBox = fx(p.team, b.x) > L - 20 && Math.abs(b.y - GOAL_Y) < 20; if (hyp(p.x - b.x, p.y - b.y) < (atkBox ? 3.2 : 1.7) && b.z < headZ(p) + 0.6 && (atkBox || fx(p.team, b.x) < 20)) { act(p, 'jump', 0.55); p.touchCd = 0.35; if (globalThis.__hcLog && atkBox) globalThis.__hcLog.push({ atkJump: 1 }); } }   // 版1029：ゴール前の空中戦：近くにいる両チームの選手も、いっしょに跳んで競る（届かなかった方も跳んでいるのが見える）
           if (hc.length && (b.z > 1.35 || contested) && !(b.style === 'head' && !contested)) {
             let best = null, bsc = -1e9;
-            for (const p of hc) { const sc = p.jump * 0.75 + p.physical * 0.3 + p.technique * 0.15 + R.next() * 26 - hyp(p.x - b.x, p.y - b.y) * 25 + (skZ(p, 'aerial') ? 28 : 0) + (p.position === 'DF' ? 6 * aura(p, 'bodyVoice') : 0) + (uOn(p, 'matsuri') ? 32 * mtF(p) : 0) + ((p.b5 || -9) > S.t - 0.5 && fx(p.team, b.x) < 18 ? 10 : 0) + (lpB && p.idx === b.intended && b.z < 2.1 ? 40 : 0); if (sc > bsc) { bsc = sc; best = p; } }
+            for (const p of hc) { const sc = p.jump * 0.75 + p.physical * 0.3 + p.technique * 0.15 + R.next() * 26 - hyp(p.x - b.x, p.y - b.y) * 25 + (skZ(p, 'aerial') ? 28 : 0) + (p.position === 'DF' ? 6 * aura(p, 'bodyVoice') : 0) + (uOn(p, 'matsuri') ? 32 * mtF(p) : 0) + ((p.b5 || -9) > S.t - 0.5 && fx(p.team, b.x) < 18 ? 10 : 0) + (lpB && p.idx === b.intended && b.z < 2.1 ? 40 : 0) + ((globalThis.__Kcr5 ?? 1) && p.team === b.lastTeam && (b.style === 'cross' || b.style === 'high' || b.style === 'lob') && fx(p.team, b.x) > L - 18 && Math.abs(b.y - GOAL_Y) < 20 ? (globalThis.__Kcr5v ?? 16) : 0); if (sc > bsc) { bsc = sc; best = p; } }   // 版1212：ゴール前のクロスに走り込んだ攻める側は、勢いをつけて飛び込める（待って構えるDFより有利）
             if (lpB && (globalThis.__Klp7 ?? 1) && b.z < 2.1) { const rc = hc.find((p) => p.idx === b.intended); if (rc) { const dr = hyp(rc.x - b.x, rc.y - b.y), dd = Math.min(9, ...hc.filter((p) => p.team !== rc.team).map((p) => hyp(p.x - b.x, p.y - b.y))); if (dr <= dd + 0.2) best = rc; } }   // 版1204：胸の高さへ落ちてくる球に、受け手が相手より近くで構えていれば、受け手が先に触る（球に正対して待てる）   // 空中戦の鬼：競り合いにめっぽう強い
             for (const p of hc) if (p !== best) { act(p, 'jump', 0.55); p.touchCd = 0.4; }
             if ((globalThis.__Kbd ?? 0) && contested) { const o = hc.filter((p) => p.team !== best.team).sort((a0, c0) => hyp(a0.x - best.x, a0.y - best.y) - hyp(c0.x - best.x, c0.y - best.y))[0];   // 版1028：空中戦の競り合い：同時に跳んだ相手と、空中で体をぶつけ合う（勝った方が頭で触る）
