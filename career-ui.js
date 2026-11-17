@@ -21,6 +21,7 @@
     save.cards = save.cards || { shoot: 3, dribble: 2, pass: 2, tech: 2, dash: 2, run: 2, muscle: 2, defend: 2, tactic: 2, massage: 1 };
     save.spFound = save.spFound || [];
     C.migrate(save);
+    setTimeout(() => { try { rkForfeit(); } catch (_) {} }, 0);   // 版1213：ランクマッチの途中で終わっていたら、負けにする
     if (save.lineupKeep) lineupRestore([]);   // 版804：試合の途中でアプリを閉じた時も、スタメンはクラブハウスの形に戻す
     save.phase = 'train';
     warm();
@@ -5886,6 +5887,7 @@
     let html = '', rewards = null;
     const resTxt = res === 'W' ? '勝利！' : res === 'D' ? '引き分け' : '敗北…';
     if (kind === 'rank') {
+      delete on.rkPend;
       const before = on.rp, i0 = rankIdx(before);
       on.rp = res === 'W' ? before + RP_WIN : res === 'D' ? Math.max(0, before + RP_DRAW) : Math.max(0, before - RP_LOSE);   // 版617：下がる（降格あり）
       on[res.toLowerCase()]++;
@@ -5913,13 +5915,16 @@
       store(); try { renderHome(); } catch (_) {}
     })();
   }
-  function rankOpponent() {
-    const on = ensureOnline(), R = RANKS[rankIdx(on.rp)];
-    const lgs = R.lg.filter((id) => save.world.leagues[id] && id !== save.league.id || (save.world.leagues[id] && R.lg.length === 1));
-    let list = []; for (const id of (lgs.length ? lgs : R.lg)) for (const t of (save.world.leagues[id] || [])) if (t.name !== save.team.name) list.push(t);
-    if (R.part && list.length) { const s = list.slice().sort((a, b) => (b.lvl || 0) - (a.lvl || 0)); list = s.slice(Math.floor(s.length * R.part[0]), Math.max(1, Math.ceil(s.length * R.part[1]))); }
-    if (!list.length) for (const id in save.world.leagues) for (const t of save.world.leagues[id]) if (t.name !== save.team.name) list.push(t);
-    return list[Math.floor(Math.random() * list.length)];
+  function rankOpponent() {   // 版1213：CPUのクラブ（級に合わせた強さ。同じ級でもRPが上がるほど少し強い。S級は国内屈指の選手の選抜チーム）
+    const on = ensureOnline(), i = rankIdx(on.rp), last = i === RANKS.length - 1, lo = RANK_AT[i], hi = last ? lo + 300 : RANK_AT[i + 1];
+    return C.rankCpu(save, i, (on.rp - lo) / Math.max(1, hi - lo));
+  }
+  // 版1213：ランクマッチは、相手が決まったら取り消せない。試合の途中でアプリを閉じた・通信が切れて戻れなかった時は、次に開いた時に負け
+  function rkForfeit() {
+    const on = save.online; if (!on || !on.rkPend) return;
+    const pd = on.rkPend; delete on.rkPend;
+    const before = on.rp || 0; on.rp = Math.max(0, before - RP_LOSE); on.l = (on.l || 0) + 1; store();
+    setTimeout(() => { try { modal(`<h2>ランクマッチ：負け</h2><p class="pm2-st">${esc(pd.name || '相手')}とのランクマッチの途中で終わったので、負けになりました（${before} → ${on.rp} RP）。</p>`, [{ label: 'OK', primary: true }]); } catch (_) {} }, 800);
   }
   // 版613：自分のクラブをオンラインに公開（ロビーを開いた時・対戦のあと）
   let pubBusy = false;
@@ -5935,15 +5940,17 @@
   function embFromLook(lk, size) { if (!lk) return 'icons/home_lineup.png'; const k = JSON.stringify(lk) + size; if (!embLookCache.has(k)) { const cv = document.createElement('canvas'); cv.width = size; cv.height = size; try { drawEmblem(cv.getContext('2d'), size / 2, size / 2, size * 0.92, lk); } catch (_) {} embLookCache.set(k, cv.toDataURL()); } return embLookCache.get(k); }
   const fmtFid = (s) => (s ? String(s).replace(/(\d{4})(\d{4})/, '$1 $2') : '');
   async function startRank() {
+    { const ok0 = await modal(`<h2>ランクマッチを始めますか？</h2><p class="pm2-st">相手が決まったら、やめられません。<br>試合の途中でアプリを閉じたり、通信が切れて戻れなかったりすると、負け（−${RP_LOSE}RP）になります。</p>`, [{ label: 'やめる', value: false }, { label: '始める', value: true, primary: true }]); if (!ok0) return airport(); }
     const on = ensureOnline(), ri = rankIdx(on.rp), R = RANKS[ri];
     let op = null, who = '', live = null;
     if (window.DotNet && DotNet.on) {   // 版613：オンライン：同じくらいのランクの、ほかの監督のクラブ
-      try { const rv = await DotNet.rankRival(ri); if (rv && rv.code) { const d = await unpackCode(rv.code); const g = C.registerGuest(save, d); op = { name: g.name, short: g.short, ruid: rv.uid }; who = `${rv.mgr ? esc(rv.mgr) + '監督の' : ''}クラブ　${rankBadge(Math.max(0, Math.min(4, rv.rank || 0)))}`; live = rv; } } catch (_) {}
+      try { const rv = await DotNet.rankRival(ri, on.rkLast); if (rv && rv.code) { const d = await unpackCode(rv.code); const g = C.registerGuest(save, d); op = { name: g.name, short: g.short, ruid: rv.uid }; who = `${rv.mgr ? esc(rv.mgr) + '監督の' : ''}クラブ　${rankBadge(Math.max(0, Math.min(4, rv.rank || 0)))}`; live = rv; } } catch (_) {}
     }
     if (!op) { op = rankOpponent(); who = 'CPUのクラブ'; }
     if (!op) return;
-    const ok = await rankConfirm(ri, op, live);   // 版634：専用の画面（ホーム／アウェーのカードとVS）
-    if (!ok) return airport();
+    if (live && live.uid) on.rkLast = live.uid;
+    on.rkPend = { name: op.name, at: Date.now() }; store();   // 版1213：ここから先は取り消せない（アプリを閉じたら負け）
+    await rankConfirm(ri, op, live);   // 版634：専用の画面（ホーム／アウェーのカードとVS）。版1213：やめるボタンはなし。3秒で試合へ
     runMatch('ランクマッチ', '', op, (score) => onlineDone('rank', op, score), { comp: 'ランクマッチ', label: R.n, home: true, online: 'rank' });
   }
   // 版634：ランクマッチの相手が見つかった画面
@@ -5960,14 +5967,15 @@
         </div>
         <div class="rk-rps"><span class="w"><b>勝利</b><em>+${RP_WIN}<small>RP</small></em></span><span class="d"><b>引き分け</b><em>${RP_DRAW}<small>RP</small></em></span><span class="l"><b>敗北</b><em>−${RP_LOSE}<small>RP</small></em></span></div>
         <p class="rk-note">RPが今の級の下限を割ると、ライセンスが1つ下がります。<br>選手の疲れ・ケガ・週は進みません。</p>
-        <div class="rk-btns"><button class="rk-no">やめる</button><button class="rk-go">${AP_SVG.ball}対戦する</button></div>
+        <div class="rk-btns"><button class="rk-go">${AP_SVG.ball}<span class="rk-cd">3</span>秒後に試合開始</button></div>
       </div></div>`;
+    { const bk = box.querySelector('.std-back'); if (bk) bk.remove(); }   // 版1213：相手を見てから戻れないように
     el.hidden = false; el._fit && el._fit();
     return new Promise((res) => {
-      const done = (v) => { el.hidden = true; res(v); };
-      box.querySelector('.rk-go').onclick = () => done(true);
-      box.querySelector('.rk-no').onclick = () => done(false);
-      box.querySelector('.std-back').onclick = () => done(false);
+      let n = 3, fired = false; const cd = box.querySelector('.rk-cd'), go = box.querySelector('.rk-go');
+      const done = () => { if (fired) return; fired = true; clearInterval(iv); el.hidden = true; res(true); };
+      const iv = setInterval(() => { n--; if (cd) cd.textContent = String(Math.max(0, n)); if (n <= 0) done(); }, 1000);
+      go.onclick = done;   // 押せば、すぐ始まる
     });
   }
   async function startFriend(d, o) {
@@ -6307,7 +6315,7 @@
     if (loading) { try { const r = await DotNet.cloudInfo(code()); cloud = r ? { info: r.info, at: r.at } : null; } catch (_) { flash('通信できませんでした（クラウドの情報が読めません）'); } loading = false; if (document.body.contains(scr) && !scr.querySelector('.cs-dlg')) draw(); }
   }
   window.__career_rw = (i) => { const main = Object.keys(C.CARDS).filter((c) => C.CARDS[c].cat !== 'sup' && !C.CARDS[c].sp); const RW = RANK_REWARD[i]; resCard(rewardCard({ rank: i, coins: RW.coins, kak: RW.kak, cards: Array.from({ length: RW.cards }, () => main[Math.floor(Math.random() * main.length)]) })); };
-  window.__career = { faceURL: (p, b, k) => faceURL(p, b, k), modal: (h, b, o) => modal(h, b, o), pmToast: (m) => pmToast(m), airport: () => airport(), rankConfirm: (...a) => rankConfirm(...a), resTest: (n) => { save.reserve = save.team.players.slice(11, 11 + (n || 6)).map((q, k) => ({ ...JSON.parse(JSON.stringify(q)), name: q.name + "R" + k })); }, spTest: (pi, idx, all) => { if (all) save.spFound = C.SP.map((x) => x.id); spSel = idx; spList(pi); }, abilDoc: (k) => abilDoc(k), abilOne: (k) => abilOne(k), totsuDoc: (t) => totsuDoc(t), friendSquad: (k) => friendSquad(k), friendCard: (...a) => friendCard(...a), roomScreen: (id, r) => roomScreen(id, r), friendMenu: (b) => friendMenu(b), roomPrep: (r, me) => roomPrep(r, me), playRoom: (r, me) => playRoom(r, me), packCode: (o) => packCode(o), openKitEditor: (o) => openKitEditor(o), drawEmblem: (c, x, y, s, lk) => drawEmblem(c, x, y, s, lk), openClub: (o) => openClub(o), playerDetail: (i, o) => playerDetail(i, o), resCard: (o) => resCard(o), seasonEndCard: (o) => seasonEndCard(o), coachNews: (l) => coachNews(l), rewardCard: (r) => rewardCard(r), gachaDemo: (st, pr, fx) => gachaDemo(st, pr, fx), storyCard: (o) => storyCard(o), gotCardsHTML: (got) => `<div class="gc-cards${got.length > 8 ? ' lots' : got.length > 4 ? ' many' : ''}">${got.map((c) => artCard(c, { ups: true })).join('')}</div><p class="cp-msg gc-msg">クラブハウスの「特訓」で、選手に最大3枚セットできます。</p>`, trainResult: (o) => trainResult(o), airport, openPost, syncPost, onlineDone, setVenue: (k) => { venueNow = k; }, champDemo, champAfter, coinShop, faceFill: () => faceFill(), openGacha, venueTalk: (se) => venueTalk(se), matchFace, openOffice, cpuCard, openClub, openAssoc, open, go, stadium, advance, subSheet, labMatch, townRect, tutPractice, shop, store: () => store(), renderHome: () => renderHome(), clubhouseBg: () => clubhouseBg(), isMatchWeek: () => isMatchWeek(), get view() { return view; }, staffFace: (k) => staffFace(k), get save() { return save; }, get drill() { return clubDrill; }, faceURL, starFace, setDrill(d) { clubDrill = d; drillT0 = -1; drillSnap = true; } };
+  window.__career = { faceURL: (p, b, k) => faceURL(p, b, k), modal: (h, b, o) => modal(h, b, o), pmToast: (m) => pmToast(m), airport: () => airport(), startRank: () => startRank(), rkForfeit: () => rkForfeit(), rankConfirm: (...a) => rankConfirm(...a), resTest: (n) => { save.reserve = save.team.players.slice(11, 11 + (n || 6)).map((q, k) => ({ ...JSON.parse(JSON.stringify(q)), name: q.name + "R" + k })); }, spTest: (pi, idx, all) => { if (all) save.spFound = C.SP.map((x) => x.id); spSel = idx; spList(pi); }, abilDoc: (k) => abilDoc(k), abilOne: (k) => abilOne(k), totsuDoc: (t) => totsuDoc(t), friendSquad: (k) => friendSquad(k), friendCard: (...a) => friendCard(...a), roomScreen: (id, r) => roomScreen(id, r), friendMenu: (b) => friendMenu(b), roomPrep: (r, me) => roomPrep(r, me), playRoom: (r, me) => playRoom(r, me), packCode: (o) => packCode(o), openKitEditor: (o) => openKitEditor(o), drawEmblem: (c, x, y, s, lk) => drawEmblem(c, x, y, s, lk), openClub: (o) => openClub(o), playerDetail: (i, o) => playerDetail(i, o), resCard: (o) => resCard(o), seasonEndCard: (o) => seasonEndCard(o), coachNews: (l) => coachNews(l), rewardCard: (r) => rewardCard(r), gachaDemo: (st, pr, fx) => gachaDemo(st, pr, fx), storyCard: (o) => storyCard(o), gotCardsHTML: (got) => `<div class="gc-cards${got.length > 8 ? ' lots' : got.length > 4 ? ' many' : ''}">${got.map((c) => artCard(c, { ups: true })).join('')}</div><p class="cp-msg gc-msg">クラブハウスの「特訓」で、選手に最大3枚セットできます。</p>`, trainResult: (o) => trainResult(o), airport, openPost, syncPost, onlineDone, setVenue: (k) => { venueNow = k; }, champDemo, champAfter, coinShop, faceFill: () => faceFill(), openGacha, venueTalk: (se) => venueTalk(se), matchFace, openOffice, cpuCard, openClub, openAssoc, open, go, stadium, advance, subSheet, labMatch, townRect, tutPractice, shop, store: () => store(), renderHome: () => renderHome(), clubhouseBg: () => clubhouseBg(), isMatchWeek: () => isMatchWeek(), get view() { return view; }, staffFace: (k) => staffFace(k), get save() { return save; }, get drill() { return clubDrill; }, faceURL, starFace, setDrill(d) { clubDrill = d; drillT0 = -1; drillSnap = true; } };
   window.__career.openCloud = openCloud; window.__career.cpuCard = (t, i) => cpuCard(t, i, $("#career"));
   window.__career.shop = (t) => shop(t); window.__career.premDaily = () => premDaily();
   window.__career.embURL = () => { try { return save ? embFromLook(C.ensureClub(save).emb, 96) : ''; } catch (_) { return ''; } };   // 版680：設定のアカウントIDの横に出す、自分のクラブのエンブレム
