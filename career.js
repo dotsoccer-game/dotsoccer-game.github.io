@@ -1465,7 +1465,7 @@
   }
   const capIdx = (star, totsu) => Math.min(5, star + 1 + (totsu || 0));   // GRADES の番号（2＝C … 5＝S）
   // 版1232：限界突破ゲージ。上限で止まって伸びなかった特訓の分が、その選手のゲージにたまる。満タン（LIM_NEED）になると上限が1段上がる（Sまで）。凸（サポート・固有スキルの覚醒）とは別
-  const LIM_NEED = 300;
+  const LIM_NEED = 200;
   const capTz = (p) => (p.totsu || 0) + (p.capUp || 0);
   const capGrade = (p) => GRADES[capIdx(ensureStar(p), capTz(p))];
   const capPts = (p) => { const i = capIdx(ensureStar(p), capTz(p)); return i >= 5 ? PMAX : RANK[i][2] - 0.1; };
