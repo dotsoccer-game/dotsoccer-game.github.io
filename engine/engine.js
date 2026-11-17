@@ -736,18 +736,36 @@
       if (!gk || dg > 25) return false;
       return ((gk.downT > 0 || gk.diveT > 0) && dg < 16) || (hyp(gk.x - gx, gk.y - GOAL_Y) > 9 && segDist(gk.x, gk.y, p.x, p.y, gx, GOAL_Y).d > 3) || (fx(p.team, gk.x) < fx(p.team, p.x) - 0.5 && dg < 22);
     }
+    // 版1219：飛び出したGKがボールを取った時：ペナルティエリアの中なら手で抱える。外なら手は使えないので、足でボールを止めて自分のボールにする（キャッチの絵にしない）
+    function gkGrab(gg, act0) {
+      const b = S.ball, inBox = fx(gg.team, b.x) < 16.5 && Math.abs(b.y - GOAL_Y) < 20.2;
+      if (inBox || !(globalThis.__Ksut2 ?? 1)) { stats[gg.team].saves++; ev('save', { team: gg.team, player: gg.name, act: act0 }); gainBall(gg, 'save'); return; }
+      gainBall(gg, 'control'); gg.hold = false; gg.protect = Math.max(gg.protect || 0, S.t + 0.5); gg.sweepT = S.t; S.decision = 0;
+    }
+    // 版1219：捨て身の守護神：出ている間は、ボールを持った相手のすぐ近く（2.8m）まで来たら、必ず足もとへ飛び込んでボールに触る
+    function sutemiTackle(g, own) {
+      if ((g.smCd || 0) > S.t || g.downT > 0 || g.lunge) return false;
+      g.smCd = S.t + 1.2; act(g, 'gkplay', 1.2, { k: 'rushOut' });
+      if (R.next() > 0.92) return false;
+      const b = S.ball;
+      Object.assign(b, { owner: -1, kind: 'loose', vx: (own.vx || 0) * 0.5, vy: (own.vy || 0) * 0.5, vz: 0, z: 0, lastTeam: own.team, lastPlayer: own.idx, intended: -1 });
+      own.touchCd = Math.max(own.touchCd || 0, 0.8); own.lagT = Math.max(own.lagT || 0, S.t + 0.5);
+      g.lunge = { until: S.t + 0.8, o: -1, v: 9, reach: 0.9, zMax: 1.5, done: (gg) => gkGrab(gg, 'smother') };
+      if (globalThis.__sutLog) globalThis.__sutLog.push(['tackle', +S.t.toFixed(2)]);
+      return true;
+    }
     function skSmother(own, rad) {
       if (own.gk || fx(own.team, own.x) <= L - 30) return false;
       const g = opps(own).find((q) => q.gk && !q.off);
       if (!g || !gkInFront(g, own) || g.type !== 'スイーパーキーパー' || !((g.skRead || 0) > S.t || uOn(g, 'sutemi')) || g.downT > 0 || (g.smCd || 0) > S.t || hyp(g.x - own.x, g.y - own.y) > rad) return false;
       g.smCd = S.t + 3;
-      const gq = (g.vision + g.speed + g.technique) / 3, pS = clamp(0.46 + (gq - own.dribble) * 0.004 + (uOn(g, 'sutemi') ? 0.35 * uP(g) : 0) + ((g.skRead || 0) > S.t ? 0.1 : 0), 0.2, 0.85);
+      const gq = (g.vision + g.speed + g.technique) / 3, pS = clamp(0.46 + (gq - own.dribble) * 0.004 + (uOn(g, 'sutemi') ? 0.35 * uP(g) : 0) + ((g.skRead || 0) > S.t ? 0.1 : 0), 0.2, uOn(g, 'sutemi') && (globalThis.__Ksut2 ?? 1) ? 0.95 : 0.85);
       act(g, 'gkplay', 1.2, { k: 'rushOut' });
       if (R.next() < pS) { g.skRead = 0;   // 版1160：足もとへ飛び込む。ボールは相手の足からこぼれ、GKの体が届いた所で抱える（引き寄せない）
         const b = S.ball, ul = hyp(g.x - b.x, g.y - b.y);
         Object.assign(b, { owner: -1, kind: 'loose', vx: (own.vx || 0) * 0.5, vy: (own.vy || 0) * 0.5, vz: 0, z: 0, lastTeam: own.team, lastPlayer: own.idx, intended: -1 });
         own.touchCd = Math.max(own.touchCd || 0, 0.8); own.lagT = Math.max(own.lagT || 0, S.t + 0.5);
-        g.lunge = { until: S.t + 0.7, o: -1, v: 8, reach: 0.8, zMax: 1.5, done: (gg) => { stats[gg.team].saves++; ev('save', { team: gg.team, player: gg.name, act: 'smother' }); gainBall(gg, 'save'); } };
+        g.lunge = { until: S.t + 0.7, o: -1, v: 8, reach: 0.8, zMax: 1.5, done: (gg) => gkGrab(gg, 'smother') };
         if (globalThis.__sutLog) globalThis.__sutLog.push(['smother', +S.t.toFixed(2), +ul.toFixed(2)]);
         return true; }
       g.skRead = 0; startDive(g, Math.sign(own.y - g.y) || 1, Math.max(0.8, Math.abs(own.y - g.y) + 0.6), 0.3); return false;   // かわされた：足もとへ飛び込んで倒れている間に流し込まれる
@@ -886,7 +904,7 @@
       if (k === 'miyabi') { p.uChase = null; const r = miyabiTarget(p); p.miyabiR = r ? r.idx : -1; act(p, 'myb', p.uOn - S.t, { r: p.miyabiR }); }
       if (k === 'matsuri') p.uOn = Math.min(p.uOn, S.t + 1.8);   // 祭り太鼓の壁：効果は吹き出しが出ている間（1.8秒）だけ
       if (k === 'matsuri') { const o = ownerP(); if (o && o.team !== p.team) { o.mtLock = S.t + 1.2; p.mtCharge = { o: o.idx, at: S.t + 0.3 }; const hx = o.x - p.x, hy = o.y - p.y, hl = hyp(hx, hy) || 1; act(p, 'mtrush', 0.35, { dx: hx / hl, dy: hy / hl }); } }   // 発動したら、相手は詰め寄られて逃げのパスを出す間がない（その間にぶつかる）
-      if (k === 'sutemi') { p.uChase = { until: p.uOn, mode: 'ball' }; p.sutemiBall = S.t + 3; }
+      if (k === 'sutemi') { p.uChase = { until: p.uOn, mode: 'ball' }; p.sutemiBall = S.t + ((globalThis.__Ksut2 ?? 1) ? Math.max(4, (p.uOn || S.t) - S.t + 1) : 3); }   // 版1219：ボールに触るまで（最大で吹き出しが消えて1秒後まで）
     }
     // 競り合い（q がボールを奪いにいく、own が持っている）の有利・不利
     function uDuel(q, own) {
@@ -3276,6 +3294,7 @@
             const mt = tsukiMeet(p); p.uMeet = { x: mt.x, y: mt.y, at: S.t + mt.t };
             const dm = hyp(mt.x - p.x, mt.y - p.y), ext = dm < 1.2 && p.uRunDir && !b.byP ? 1.5 : 0;   // 合う直前は、そのまま走り抜ける向きへ（止まらない）
             targets[p.idx] = [mt.x + (p.uRunDir ? p.uRunDir[0] * ext : 0), mt.y + (p.uRunDir ? p.uRunDir[1] * ext : 0)]; urgent[p.idx] = true; p.tsukiRun = S.t; continue; }
+          if ((globalThis.__Ksut2 ?? 1) && p.gk && (p.sutemiBall || 0) > S.t && own && own.team !== p.team && fx(p.team, own.x) < 38) { targets[p.idx] = [own.x + (own.vx || 0) * 0.3, own.y + (own.vy || 0) * 0.3]; urgent[p.idx] = true; chasing[p.idx] = 1; continue; }   // 版1219：捨て身の守護神：相手が受けても、あきらめずにボールを持った相手へ詰める（足もとへ飛び込む）
           if (ch && !own && p.gk) { if (p._ct != null && p._ct < 99) { targets[p.idx] = [p._cx, p._cy]; urgent[p.idx] = true; chasing[p.idx] = 1; continue; } p.uChase = null; }   // 捨て身の守護神：飛んでいる球そのものではなく、触れる地点（落ちる所）へ。届かないなら追わずにゴールを守る
           if (ch && !own) { const lnd = (b.tsukiP || b.hari || b.byP) && b.landX != null && b.z > 0.4 && b.intended === p.idx; targets[p.idx] = lnd ? [b.landX, b.landY] : [b.x + b.vx * 0.45, b.y + b.vy * 0.45]; urgent[p.idx] = true; chasing[p.idx] = 1; continue; }   // 浮き球は落ちる所へ
           if (ch && own && ch.mode === 'ball') p.uChase = null;   // 相手に先に収められたら、すぐゴールへ戻る
@@ -6954,6 +6973,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       b.hx = b.x; b.hy = b.y; b.hT = S.t; b.rv = aV;
       if (S.restart) { restartBall(); return; }
       const own = ownerP();
+      if (own && !own.gk && (globalThis.__Ksut2 ?? 1)) { const g = opps(own).find((q) => q.gk && !q.off && (q.sutemiBall || 0) > S.t); if (g && hyp(g.x - own.x, g.y - own.y) < 2.8 && sutemiTackle(g, own)) { g.sutemiBall = 0; return; } }   // 版1219：捨て身の守護神は、受けた相手にも飛び込む
       if (own && globalThis.__sdbLog && uOn(own, 'shiden')) { const dd = hyp(b.x - own.x, b.y - own.y); globalThis.__sdbLog.push([dd > 1.4 ? 2 : dd > 0.9 ? 1 : 0, own.settle ? 's' : (own.moveQ && own.moveQ.length ? 'q' : S.dribbleMode || '-'), +(b.z || 0).toFixed(1), +(own.dO || 0).toFixed(2), +hyp(own.vx, own.vy).toFixed(1), S.dribbleDir ? +(((b.x - own.x) * S.dribbleDir[0] + (b.y - own.y) * S.dribbleDir[1])).toFixed(2) : null, +dd.toFixed(2), +hyp(b.vx || 0, b.vy || 0).toFixed(1)]); }
       if (own) {
         const dir = S.dribbleDir || own.bdir || [own.facing, 0];
@@ -8161,7 +8181,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             g.smCd = S.t + 3;
             const gq = (g.vision + g.speed + g.technique) / 3, pS = clamp(0.5 + (gq - (own.dribble + own.technique) / 2) * 0.006 - (uOn(own, 'shiden') ? 0.25 : 0), 0.15, 0.8);
             act(g, 'gkplay', 1.2, { k: 'rushOut' });
-            if (R.next() < pS * (g.notGK ? 0.3 : 1)) { stats[g.team].saves++; ev('save', { team: g.team, player: g.name, act: 'smother' }); gainBall(g, 'save'); return; }
+            if (R.next() < pS * (g.notGK ? 0.3 : 1)) { gkGrab(g, 'smother'); return; }   // 版1219：エリアの外では足で
             const sd = Math.sign(own.y - g.y) || (R.next() < 0.5 ? 1 : -1);
             g.vx = 0; g.vy = 0; startDive(g, sd, Math.max(1.0, Math.abs(own.y - g.y) + 0.8), 0.2, 'feint'); g.downT = Math.max(g.downT || 0, 1.6); g.stun = Math.max(g.stun || 0, 1.8); g.touchCd = Math.max(g.touchCd || 0, 1.5);
             const fwd = Math.sign(fx(own.team, L) - own.x) || 1, dx = fwd * 0.55, dy = -sd * 0.85, dl = hyp(dx, dy);
@@ -8315,13 +8335,10 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       }
       // 捨て身の守護神：飛び出したGKは、届く所まで来たら必ずボールに触る（足・胸・体を投げ出して）
       { const g = P.find((q) => q.gk && !q.off && (q.sutemiBall || 0) > S.t && q.team !== b.lastTeam);
-        if (g && !g.lunge && b.z < (fx(g.team, b.x) < 16.5 && Math.abs(b.y - GOAL_Y) < 20.2 ? 2.8 : 1.9) && hyp(g.x - b.x, g.y - b.y) < 3.0) { if (globalThis.__sutLog) globalThis.__sutLog.push(['sweep', +S.t.toFixed(2), +hyp(g.x - b.x, g.y - b.y).toFixed(2)]); g.sutemiBall = 0; act(g, 'sweep', 0.7);
+        if (g && !g.lunge && b.z < (fx(g.team, b.x) < 16.5 && Math.abs(b.y - GOAL_Y) < 20.2 ? 2.8 : 1.9) && hyp(g.x - b.x, g.y - b.y) < ((globalThis.__Ksut2 ?? 1) ? 3.6 : 3.0)) { if (globalThis.__sutLog) globalThis.__sutLog.push(['sweep', +S.t.toFixed(2), +hyp(g.x - b.x, g.y - b.y).toFixed(2)]); g.sutemiBall = 0; act(g, 'sweep', 0.7);
           // 版1160：ここでボールを引き寄せない。GKが体ごと飛び込んで、届いた所で触る（足・胸・手）
           const inBox = fx(g.team, b.x) < 16.5 && Math.abs(b.y - GOAL_Y) < 20.2;
-          g.lunge = { until: S.t + 0.6, o: -1, v: Math.max(8.5, hyp(b.vx, b.vy) + 3), reach: inBox ? 0.9 : 0.7, zMax: inBox ? 2.6 : 1.6, done: (gg) => {
-            stats[gg.team].saves++; ev('save', { team: gg.team, player: gg.name, act: 'sweep' });
-            if (fx(gg.team, S.ball.x) < 16.5 && Math.abs(S.ball.y - GOAL_Y) < 20.2) { gainBall(gg, 'save'); return; }   // ペナルティエリアの中：そのまま抱える
-            gainBall(gg, 'save'); gg.protect = Math.max(gg.protect || 0, S.t + 0.5); gg.sweepT = S.t; S.decision = 0; } };   // エリアの外：触ったらすぐ判断（つなぐ／大きくクリア）
+          g.lunge = { until: S.t + 0.6, o: -1, v: Math.max(8.5, hyp(b.vx, b.vy) + 3), reach: inBox ? 0.9 : 0.7, zMax: inBox ? 2.6 : 1.6, done: (gg) => gkGrab(gg, 'sweep') };   // 版1219：エリアの外では手で抱えない（足で止める）   // エリアの外：触ったらすぐ判断（つなぐ／大きくクリア）
         } }
       // 針の穴通し：受け手の届く所まで来たスルーパスは、走りながら必ず収める（スルーしない・相手より先に触る）
       if ((b.hari || b.byP || b.aoP) && b.intended >= 0 && (b.kind === 'pass' || b.kind === 'loose')) { const q = P[b.intended];
