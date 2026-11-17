@@ -5504,8 +5504,22 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       } else if (how === 'lowPunt') {
         // 低弾道パントキック：頭くらいの弾道で、ポップアップしながら相手DFラインの裏へ
         const offL = offsideLine(p.team), qf = fx(p.team, q.x), ura = !(globalThis.__Klp ?? 1) || qf > offL - 12, tx = fx(p.team, ura ? Math.min(offL + 7, L - 14) : Math.min(qf + 4, offL - 1)), ty = clamp(q.y + (ura ? R.gauss() * 3 : q.vy * 0.8), 6, W - 6);   // 版1199：味方が相手のラインの近くなら裏へ。離れていれば、その味方の少し前へ
+        if (globalThis.__Klp2 ?? 1) {
+          // 版1203：本物の低弾道パント：手から落としたボールを、低い所（ひざの高さ）で強く叩く。バックスピンで浮き上がるように伸び、
+          //  頭の上（3〜5m）を越えて、FWの胸もと・裏のスペースへ落ちる。遠い味方の足もとへは、低く速く、手前で弾ませて滑らせる（ゴロに近い）
+          const d = Math.max(20, hyp(tx - p.x, ty - p.y)), feet = !ura && d > 42 && R.next() < 0.35;
+          const v = clamp(17 + d * 0.24, 23, 31) * (0.97 + p.kick * 0.0006), bs = feet ? 0.2 : 1.4, zT = feet ? -1 : ura ? 0 : 1.3, endD = feet ? d * 0.72 : d;
+          const fly = (vz0) => { let x = 0, z = 0.6, vh = v, vz = vz0, top = z; for (let k = 0; k < 80; k++) { x += vh * DT; const sp = Math.hypot(vh, vz); vh -= AIR * sp * vh * DT; vz -= (9.8 + AIR * sp * vz - LIFT * bs * vh) * DT; z += vz * DT; if (z > top) top = z; if (x >= endD) return { z, top }; if (z <= 0) return { z: -1 - (endD - x) / endD, top }; } return { z: 9, top }; };
+          let lo = 0.5, hi = 14; for (let k = 0; k < 18; k++) { const m = (lo + hi) / 2, r = fly(m); if ((feet ? r.z > -0.5 ? 1 : 0 : r.z > zT ? 1 : 0)) hi = m; else lo = m; }
+          let vz = feet ? Math.max(1.2, (lo + hi) / 2) : (lo + hi) / 2; if (!feet && fly(vz).top < 2.8) vz = Math.max(vz, 3.2);   // 頭の上は越える
+          if (fly(vz).top > 4.8) { let a0 = 0.5, a1 = vz; for (let k = 0; k < 16; k++) { const m = (a0 + a1) / 2; if (fly(m).top > 4.8) a1 = m; else a0 = m; } vz = a0; }   // 低弾道：いちばん高い所でも5m弱まで。届かない分は、手前で弾んで伸びる
+          const dx = (tx - p.x) / d, dy = (ty - p.y) / d;
+          kick(p, tx, ty, 'pass', 'drive', { landFrac: 0.62 });   // 蹴った時の決まりごと（記録・モーション）はふつうのキックと同じ。球の飛び方だけ上書き
+          Object.assign(b, { x: p.x + dx * 0.6, y: p.y + dy * 0.6, z: 0.6, vx: dx * v, vy: dy * v, vz, spin: 0, bs, knuckle: false, wob: 0, drive: 0, driveUp: 0, driveOn: false, curveAll: false, curlP: false, style: 'drive', lpF: feet ? 1 : 0 });
+        } else {
         kick(p, tx, ty, 'pass', 'drive', { landFrac: 0.62 });
         b.vz = Math.min(b.vz, 5.2); b.bs = -0.2;
+        }
         b.intended = q.idx; b.offside = false; q.run = Math.max(q.run, 3);
         act(p, 'skill', 1.3, { k: 'lowPunt' });
       } else if (how === 'throw') {
