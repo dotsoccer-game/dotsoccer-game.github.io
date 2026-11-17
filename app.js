@@ -1844,7 +1844,7 @@
     if (globalThis.__Kmd3 ?? 1) try { const F = match.frames, dt = match.frameDt || (F[1][0] - F[0][0]), i = Math.min(F.length - 1, Math.max(0, Math.round((simT - F[0][0]) / dt))), f = F[i], gx = f[7 + (mdBallTeam ? 11 : 0) * 3], bx = f[1], xf = gx < 52.5 ? bx : 105 - bx; if (xf >= 70) return; } catch (_) {}   // 版1225：効くのは中盤まで（相手陣の奥3分の1では光らない）
     const R2 = r * (1.7 + 0.3 * k), gr = ctx.createRadialGradient(cx, cy, r * 0.5, cx, cy, R2);
     gr.addColorStop(0, `rgba(70,255,140,${0.3 + 0.08 * k})`); gr.addColorStop(1, 'rgba(70,255,140,0)'); ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(cx, cy, R2, 0, Math.PI * 2); ctx.fill();
-    if (globalThis.__Kmdg3 ?? 1) { ctx.save(); ctx.strokeStyle = TEAM_MAIN[mdBallTeam] || '#fff'; ctx.globalAlpha = 0.9; ctx.lineWidth = Math.max(1.2, r * 0.28); ctx.beginPath(); ctx.arc(cx, cy, r * 1.55, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }   // 版1225：どちらのチームの翠の起点か、光のふちをそのチームのユニフォームの色にする
+    if (globalThis.__Kmdg3 ?? 0) { ctx.save(); ctx.strokeStyle = TEAM_MAIN[mdBallTeam] || '#fff'; ctx.globalAlpha = 0.9; ctx.lineWidth = Math.max(1.2, r * 0.28); ctx.beginPath(); ctx.arc(cx, cy, r * 1.55, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }   // 版1225：どちらのチームの翠の起点か、光のふちをそのチームのユニフォームの色にする
   }
   function ballFace(cx, cy, r) {
     mdGlow(cx, cy, r);
