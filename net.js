@@ -46,7 +46,12 @@
     lastErr = '';   // 版684：前のエラーが残らないように
     return withTimeout((async () => {
       let fid; try { fid = await ensureFid(me.fid); } catch (e) { lastErr = 'fid: ' + (e && e.message || e); throw e; }
-      await db.collection('players').doc(uid).set({ fid, name: me.name, short: me.short, mgr: me.mgr || '', lg: me.lg || '', emb: me.emb || null, kit: me.kit || null, rank: me.rank, rp: me.rp, lvl: Math.round(me.lvl || 0), code: me.code, sv: me.sv || null, prem: !!me.prem, at: Date.now(), seen: Date.now() }, { merge: true });   // 版1119：上書きで最後の時刻（seen）が消えていた → 足し込みにして、今の時刻も書く
+      // 版1216：チームのデータ（重い）は teams/{uid} へ分けて置く。players は軽い情報だけ（ランキング・フレンド一覧・相手さがしで、チームのデータまで読まないように）
+      //  teams へ書けない時（データベースの決まりがまだ古い時）は、今までどおり players にチームのデータも入れる
+      let split = false; try { await db.collection('teams').doc(uid).set({ code: me.code, at: Date.now() }); split = true; } catch (_) {}
+      const doc = { fid, name: me.name, short: me.short, mgr: me.mgr || '', lg: me.lg || '', emb: me.emb || null, kit: me.kit || null, rank: me.rank, rp: me.rp, lvl: Math.round(me.lvl || 0), sv: me.sv || null, prem: !!me.prem, at: Date.now(), seen: Date.now() };
+      if (split) { doc.code = firebase.firestore.FieldValue.delete(); doc.tc = true; } else doc.code = me.code;
+      await db.collection('players').doc(uid).set(doc, { merge: true });   // 版1119：上書きで最後の時刻（seen）が消えていた → 足し込みにして、今の時刻も書く
       return fid;
     })()).catch((e) => { lastErr = lastErr || String(e && e.message || e); throw e; });
   }
@@ -57,7 +62,12 @@
       const p = await db.collection('players').doc(f.data().uid).get(); return p.exists ? { uid: f.data().uid, ...p.data() } : null;
     })());
   }
-  async function byUid(u) { if (!(await ready())) return null; return withTimeout(db.collection('players').doc(u).get().then((p) => (p.exists ? { uid: u, ...p.data() } : null))); }
+  async function codeOf(p) { if (!p || p.code) return p; try { const t = await db.collection('teams').doc(p.uid).get(); if (t.exists && t.data().code) p.code = t.data().code; } catch (_) {} return p; }   // 版1216：チームのデータは teams から（古い人は players に入っている）
+  async function byUid(u) { if (!(await ready())) return null; return withTimeout(db.collection('players').doc(u).get().then((p) => (p.exists ? codeOf({ uid: u, ...p.data() }) : null))); }
+  // 版1216：何人かの公開情報を、まとめて読む（1人ずつ読まない）。uid → 情報
+  async function playersOf(uids) { if (!(await ready())) return {}; const out = {}, list = [...new Set((uids || []).filter(Boolean))], FP = firebase.firestore.FieldPath.documentId();
+    for (let i = 0; i < list.length; i += 10) { try { const q = await withTimeout(db.collection('players').where(FP, 'in', list.slice(i, i + 10)).get()); q.docs.forEach((d) => { out[d.id] = { uid: d.id, ...d.data() }; }); } catch (_) {} }
+    return out; }
   // ランクマッチの相手：同じランクの人（いなければ近いランク）から1人
   async function rankRival(rank, avoid, ranks) {   // 版1213：同じ級（いなければ1つ上・下まで）の、最近（2週間以内）遊んだ監督。直前に当たった相手には続けて当たらない。いなければ null（CPUのクラブになる）
     if (!(await ready())) return null;
@@ -67,7 +77,7 @@
         if (r < 0 || r > 4) continue;
         const q = await db.collection('players').where('rank', '==', r).limit(40).get();
         const list = q.docs.filter((d) => d.id !== uid && d.id !== avoid && (d.data().at || 0) > recent).map((d) => ({ uid: d.id, ...d.data() }));
-        if (list.length) return list[Math.floor(Math.random() * list.length)];
+        if (list.length) return codeOf(list[Math.floor(Math.random() * list.length)]);
       }
       return null;
     })());
@@ -188,6 +198,6 @@
   async function payPortal() { const f = await fns(); const r = await withTimeout(f.httpsCallable('payPortal')({ back: location.href }), 20000); return r.data; }
   // 版1118：オンライン状況。自分の公開データ（players）に、最後にアプリを開いていた時刻（seen）と、していること（st：'home'・'match'）を書く。players がまだない人は書かない
   async function ping(st) { if (!(await ready()) || !uid) return; try { await withTimeout(db.collection('players').doc(uid).update({ seen: Date.now(), st: st || 'home' })); } catch (_) {} }
-  async function seenOf(uids) { if (!(await ready())) return {}; const out = {}; await Promise.all((uids || []).filter(Boolean).map(async (u) => { try { const d = await withTimeout(db.collection('players').doc(u).get()); if (d.exists) out[u] = { seen: Math.max(d.data().seen || 0, 0), at: d.data().at || 0, st: d.data().st || '' }; } catch (_) {} })); return out; }
-  window.DotNet = { PAY_ON, ping, seenOf, payCheckout, payClaim, payPortal, FID_MOVE, cloudInfo, cloudPut, cloudGet, cloudClaim, normCode, get watchState() { return watchState; }, get on() { return !!FIREBASE_CONFIG; }, get uid() { return uid; }, get err() { return lastErr; }, ready, publish, byFid, byUid, rankRival, report, inbox, clearInbox, top, sendMail, mailbox, delMail, news, createRoom, roomUpdate, roomGet, roomWatch, roomInvites, roomStart, watchMail };
+  async function seenOf(uids) { const ps = await playersOf(uids), out = {}; for (const u in ps) out[u] = { seen: Math.max(ps[u].seen || 0, 0), at: ps[u].at || 0, st: ps[u].st || '' }; return out; }   // 版1216：まとめて読む
+  window.DotNet = { PAY_ON, ping, seenOf, payCheckout, payClaim, payPortal, FID_MOVE, cloudInfo, cloudPut, cloudGet, cloudClaim, normCode, get watchState() { return watchState; }, get on() { return !!FIREBASE_CONFIG; }, get uid() { return uid; }, get err() { return lastErr; }, ready, publish, byFid, byUid, playersOf, rankRival, report, inbox, clearInbox, top, sendMail, mailbox, delMail, news, createRoom, roomUpdate, roomGet, roomWatch, roomInvites, roomStart, watchMail };
 })();
