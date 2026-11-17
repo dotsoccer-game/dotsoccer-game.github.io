@@ -5927,7 +5927,7 @@
     if (/lab\.html$/.test(location.pathname)) return null;   // 版1021：確認画面からは登録しない
     if (!(window.DotNet && DotNet.on) || pubBusy) return null; pubBusy = true;
     try { const on = ensureOnline(), d = C.guestCode(save), code = await packCode(d);
-      const fid = await DotNet.publish({ fid: on.fid, name: d.name, short: d.short, mgr: d.mgr, lg: d.lg, emb: d.emb, kit: d.kit, rank: rankIdx(on.rp), rp: on.rp, lvl: C.teamLevel(save), code, sv: save.cloudCode || null, prem: C.premOn(save) });
+      const fid = await DotNet.publish({ fid: on.fid, name: d.name, short: d.short, mgr: d.mgr, lg: d.lg, emb: d.emb, kit: d.kit, rank: rankIdx(on.rp), rp: on.rp, lvl: C.teamLevel(C.firstSquad(save)), code, sv: save.cloudCode || null, prem: C.premOn(save) });
       if (fid && fid !== on.fid) { on.fid = fid; store(); } return fid;
     } catch (_) { return null; } finally { pubBusy = false; }
   }
