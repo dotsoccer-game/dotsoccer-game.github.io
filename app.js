@@ -319,7 +319,7 @@
         if (!sh) { for (const a of actsOf[i] || []) if (a.a === 'skill' && a.k === 'lowPunt' && Math.abs(a.t - t0) < 0.25) { list[k].lp = true; break; } }   // 版1200：低弾道パントキック（GK）は、体を倒して横から叩くボレーの絵で
       }
       const shot = list[k].shot;
-      if (list[k].lp) { if (d >= -0.38 && d <= 0.5) return { pose: d < 0 ? 'bigWindup' : 'follow', dx: list[k].dx, dy: list[k].dy, shot: true, d, sk: (globalThis.__Klpv ?? 0) ? 'volley' : null, t0: list[k].t, lp: true }; continue; }
+      if (list[k].lp) { if (d >= -0.38 && d <= 0.5) return { pose: d < 0 ? 'bigWindup' : 'follow', dx: list[k].dx, dy: list[k].dy, shot: true, d, sk: (globalThis.__Klpv ?? 1) ? 'volley' : null, t0: list[k].t, lp: true }; continue; }
       if (shot && list[k].sk === 'toeKick') { if (d >= -0.08 && d <= 0.18) return { pose: d < 0 ? 'bigWindup' : 'follow', dx: list[k].dx, dy: list[k].dy, shot: true, d, sk: 'toeKick', t0: list[k].t }; if (d > 0.18) continue; return null; }   // トゥーキック：走ったまま、ほとんど構えずにつま先で突く
       if (shot) { if (d >= -0.38) return { pose: d < 0 ? 'bigWindup' : 'follow', dx: list[k].dx, dy: list[k].dy, shot: true, d, sk: list[k].sk, dsh: list[k].dsh, t0: list[k].t }; }
       else if (d >= -0.3 && d <= 0.32) return { pose: d < 0 ? 'windup' : 'kick', dx: list[k].dx, dy: list[k].dy, d, ev: list[k] };
@@ -3109,6 +3109,7 @@
           dmFacing = (h ? h.d16 : ((Math.round(c) % 16) + 16) % 16) * Math.PI / 8;
         }
         if (kp && kp.turnD16 != null) { dmFacing = kp.turnD16 * Math.PI / 8; if (h) h.d16 = kp.turnD16; }
+        if (kp && kp.lp && (globalThis.__Klpv ?? 1)) dmFacing = (globalThis.__Klpf ?? (Math.PI / 2));   // 版1208：低弾道パントは、体を横に倒して叩くボレーの絵を、正面から見た向きで（どの方向へ蹴っても、背中の絵にしない）
         dmRunF = Math.floor(animT * Math.min(18, 8 + p.sp * 1.2) + i * 2.3) % 8;
         // 本家を写した走り：1周（2歩）の位置を、実際に進んだ速さで進める（1歩＝0.6＋0.14×速さ m。秒速6.5mで1秒に約4.3歩＝本家のテンポ）
         {
@@ -3118,6 +3119,7 @@
         }
       }
       if (kp) { const kx = proj(p.x + kp.dx, p.y + kp.dy).x - q.x; if (Math.abs(kx) > 0.5) facing = Math.sign(kx); }
+      if (kp && kp.lp && (globalThis.__Klpv ?? 1)) { const kx = proj(p.x + kp.dx, p.y + kp.dy).x - q.x; kp.foot = kx > 0 ? 'L' : 'R'; }   // 版1208：正面から見たボレーの絵は、伸ばした足が蹴る方へ向くように（体は反対へ倒れる）。正面の絵は、使う足で左右が決まる
       // ゴール後：決めた選手と駆け寄った味方は両手を上げて跳ねる
       let cheer = false, hop = 0;
       if (st.code === 6 && simT - st.codeT < 4.8 && celebInfo && !celebInfo.hurry) {   // 負けている側の得点は喜ばない
@@ -3437,7 +3439,7 @@
           }
           ctx.globalAlpha = 1;
         }
-        if (kp && kp.lp && (globalThis.__Klpl ?? 1)) { const mk = proj(p.x + (kp.dx || 0) * 10, p.y + (kp.dy || 0) * 10), lat = (mk.x - q.x) / (Math.hypot(mk.x - q.x, (mk.y - q.y) / 0.55) || 1), e = kp.d < 0 ? Math.min(1, (kp.d + 0.38) / 0.3) : Math.max(0, 1 - kp.d / 0.5 * 0.7); tilt = -(Math.sign(lat) || 1) * Math.max(0.25, Math.abs(lat)) * 0.55 * e; }   // 版1207：低弾道パント：低い所で叩くために、上体を大きく後ろへ倒す（蹴る向きと反対へ）
+        if (kp && kp.lp && (globalThis.__Klpt ?? 0)) { const mk = proj(p.x + (kp.dx || 0) * 10, p.y + (kp.dy || 0) * 10), lat = (mk.x - q.x) / (Math.hypot(mk.x - q.x, (mk.y - q.y) / 0.55) || 1), e = kp.d < 0 ? Math.min(1, (kp.d + 0.38) / 0.3) : Math.max(0, 1 - kp.d / 0.5 * 0.7); tilt = -(Math.sign(lat) || 1) * Math.max(0.25, Math.abs(lat)) * 0.55 * e; }   // 版1207：低弾道パント：低い所で叩くために、上体を大きく後ろへ倒す（蹴る向きと反対へ）
         const g = lift ? P3(p.x, p.y, lift) : q;
         if (lift) { ctx.fillStyle = 'rgba(0,30,0,0.3)'; ctx.beginPath(); ctx.ellipse(q.x, q.y, 4.5 * 2.5 * q.s, 1.5 * 2.5 * q.s, 0, 0, 7); ctx.fill(); }
         if (ghost) { const gp = (kp && kp.pose) || pokePose; for (let k = 3; k >= 1; k--) { ctx.save(); ctx.globalAlpha = 0.16 * (4 - k); ctx.translate(g.x + dxs - ghost[0] * k * 4.5 * q.s, g.y - hop - ghost[1] * k * 4.5 * q.s); if (tilt) ctx.rotate(tilt); sprite(0, 0, q.s, info, team, facing, f4, false, arms, true, gp, p.sp, view); ctx.restore(); } ctx.globalAlpha = 1; }   // 残像（動いてきた側に薄く3つ）
