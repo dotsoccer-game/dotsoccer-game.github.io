@@ -5462,9 +5462,9 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         if (p.sk.has('lowPunt') && dC > 30) { gkRelease(p, counter, 'lowPunt'); return true; }
         gkRelease(p, counter, dC < (p.sk.has('lowThrow') ? 46 : 32) ? 'throw' : 'punt'); return true;
       }
-      if (held < 3.5) { S.decision = 0.3; return true; }     // 味方が上がるのを待つ
-      if ((globalThis.__Klp ?? 1) && p.sk.has('lowPunt') && R.next() < 0.65) {   // 版1199：低弾道パントを持つGKは、前の空いている味方がいれば、まずそこへ低い弾道で一気に
-        const lt = mts.filter((m) => !m.gk && fwd(m) > 40 && hyp(m.x - p.x, m.y - p.y) > 28 && freeOf(m) > 4).sort((a, c) => (fwd(c) * 0.08 + Math.min(freeOf(c), 10)) - (fwd(a) * 0.08 + Math.min(freeOf(a), 10)))[0];
+      if (held < ((globalThis.__Klp ?? 1) && p.sk.has('lowPunt') ? 2.2 : 3.5)) { S.decision = 0.3; return true; }     // 味方が上がるのを待つ（低弾道パントを持つGKは、早めに蹴り出す）
+      if ((globalThis.__Klp ?? 1) && p.sk.has('lowPunt') && R.next() < 0.85) {   // 版1199：低弾道パントを持つGKは、前の空いている味方がいれば、まずそこへ低い弾道で一気に
+        const lt = mts.filter((m) => !m.gk && fwd(m) > 36 && hyp(m.x - p.x, m.y - p.y) > 25 && freeOf(m) > 3).sort((a, c) => (fwd(c) * 0.08 + Math.min(freeOf(c), 10)) - (fwd(a) * 0.08 + Math.min(freeOf(a), 10)))[0];
         if (lt) { gkRelease(p, lt, 'lowPunt'); return true; } }
       if (!((globalThis.__Klp ?? 1) && p.sk.has('lowPunt') && R.next() < 0.75) && R.next() < (globalThis.__Kgkr2 ?? 0.6) && gkRollKick(p, null)) return true;   // 版1199：低弾道パントを持つGKは、たいてい手から蹴る   // 版961：周りに誰もいなければ、まず足もとに置いて転がす（そこから、空いた味方へつなぐか、大きく蹴る）
       // フリーの味方へスロー（近くに相手がいない、パスコースに相手がいない）

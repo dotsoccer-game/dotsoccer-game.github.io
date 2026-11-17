@@ -316,8 +316,10 @@
         if (sh) { for (const a of actsOf[i] || []) if (a.a === 'dshot' && a.t <= t0 + 0.2 && a.t > t0 - 0.6) dsh = true; else if (a.a === 'skill' && SHOT_SKILL.has(a.k) && a.t <= t0 + 0.2 && a.t > t0 - (a.k === 'powerMid' || a.k === 'nearPost' || a.k === 'superLong' ? 2.5 : 0.3)) { if (a.k === 'dribbleShot') dsh = true; else sk = a.k; }
           if (sh.chip) sk = 'lob'; if (sh.knuckle) sk = 'knuckle'; }
         list[k].sk = sk; list[k].dsh = dsh;
+        if (!sh) { for (const a of actsOf[i] || []) if (a.a === 'skill' && a.k === 'lowPunt' && Math.abs(a.t - t0) < 0.25) { list[k].lp = true; break; } }   // 版1200：低弾道パントキック（GK）は、体を倒して横から叩くボレーの絵で
       }
       const shot = list[k].shot;
+      if (list[k].lp) { if (d >= -0.38 && d <= 0.5) return { pose: d < 0 ? 'bigWindup' : 'follow', dx: list[k].dx, dy: list[k].dy, shot: true, d, sk: 'volley', t0: list[k].t }; continue; }
       if (shot && list[k].sk === 'toeKick') { if (d >= -0.08 && d <= 0.18) return { pose: d < 0 ? 'bigWindup' : 'follow', dx: list[k].dx, dy: list[k].dy, shot: true, d, sk: 'toeKick', t0: list[k].t }; if (d > 0.18) continue; return null; }   // トゥーキック：走ったまま、ほとんど構えずにつま先で突く
       if (shot) { if (d >= -0.38) return { pose: d < 0 ? 'bigWindup' : 'follow', dx: list[k].dx, dy: list[k].dy, shot: true, d, sk: list[k].sk, dsh: list[k].dsh, t0: list[k].t }; }
       else if (d >= -0.3 && d <= 0.32) return { pose: d < 0 ? 'windup' : 'kick', dx: list[k].dx, dy: list[k].dy, d, ev: list[k] };
