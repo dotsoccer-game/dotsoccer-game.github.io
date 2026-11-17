@@ -1973,6 +1973,7 @@
     return { TY0, TY1, HW0, HW1, tx, ty, RV, VR, CU, px, py, field, board };
   }
   function renderLineup3() {
+    if (C.fix2nd(save)) store();   // 版1197
     const ps = save.team.players, tac = C.ensureTactics(save), cells = tac.cells, R = C.GRID_R, COLS = C.GRID_C;
     /* 版1072：置いた所そのまま（マスに合わせない）なので、重なりを直す処理（unpile）はしない */
     const L = $('#clubLayer'); { const bk = $('#cvBack'); if (bk) bk.style.visibility = 'hidden'; }
@@ -2021,7 +2022,7 @@
     L.querySelector('.q3back').onclick = () => { const bk = $('#cvBack'); if (bk) { bk.style.visibility = ''; bk.click(); } };
     L.querySelector('.q3fm').onclick = () => { sq3Menu = !sq3Menu; renderLineup3(); };
     L.querySelectorAll('.q3menu [data-f]').forEach((b) => b.onclick = () => { tac.formation = b.dataset.f; tac.cells = C.cellsFor(b.dataset.f); sq3Menu = false; sq3Pick = -1; redo(); });
-    L.querySelectorAll('.q3sq [data-sq]').forEach((b) => b.onclick = () => { if (!C.switchSquad(save, +b.dataset.sq)) return; sq3Pick = -1; sq3R = -1; sq3Swap = false; store(); renderLineup3(); pmToast(`${b.textContent}に切り替えました`); });   // 版1196：1軍・2軍
+    L.querySelectorAll('.q3sq [data-sq]').forEach((b) => b.onclick = () => { if (!C.switchSquad(save, +b.dataset.sq)) return; if (save.lineupKeep) lineupKeep();   /* 版1197：試合前に1軍・2軍を切り替えた時は、試合のあとも、その組のまま（前は、試合が終わると切り替える前の形に戻っていた） */ sq3Pick = -1; sq3R = -1; sq3Swap = false; store(); renderLineup3(); pmToast(`${b.textContent}に切り替えました`); });   // 版1196：1軍・2軍
     L.querySelector('.q3tac').onclick = () => { try { openTacSet('tac'); } catch (err) { console.error(err); toast('戦術設定を開けませんでした'); } };
     /* 版1074：ベンチ・リザーブの選手をつまんだ時も、ピッチの選手と同じ顔の札を指につけて動かす */
     const mkGhost = (q) => { const d = document.createElement('div'); d.innerHTML = chip(q, -1, 0, 0); const g = d.firstElementChild; g.style.left = g.style.top = ''; g.style.zIndex = '999'; g.classList.add('q3ghost'); g.querySelectorAll('img.fc').forEach((im) => { const f = () => cutFace(im); im.addEventListener('load', f); if (im.complete) f(); }); return g; };

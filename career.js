@@ -1238,8 +1238,26 @@
       save.reserve = pool.filter((p) => !used.has(p)); save.team.players = team;
       save.tactics = JSON.parse(JSON.stringify(snap.tactics)); ensureTactics(save);
     }
+    else if (k === 1) build2nd(save);   // 版1197：はじめての2軍は、1軍のスタメン以外の選手で自動で組む
     sq.cur = k; return true;
   }
+  // 1軍のスタメン（11人）以外から、同じポジションで力のある選手を選んで2軍のスタメンにする。ベンチも1軍のスタメン以外から。1軍のスタメンはベンチ外へ
+  function build2nd(save) {
+    const ps = save.team.players, n = ps.length, first = ps.slice(0, 11), pool = [...ps.slice(11), ...(save.reserve || [])].filter((p) => !(p.injury > 0)).concat([...ps.slice(11), ...(save.reserve || [])].filter((p) => p.injury > 0));
+    const used = new Set(), team = [];
+    const pick = (pos) => { let best = null; for (const p of pool) if (!used.has(p) && (!pos || p.position === pos) && !(p.injury > 0) && (!best || avgParam(p) > avgParam(best))) best = p; if (!best) for (const p of pool) if (!used.has(p) && (!best || avgParam(p) > avgParam(best))) best = p; if (best) used.add(best); return best; };
+    for (let i = 0; i < 11; i++) { const q = pick(first[i] && first[i].position) || null; if (q) team.push(q); }
+    if (team.length < 11) return;   // 控えが11人いない時は、1軍のまま（自分で組む）
+    const rest = pool.filter((p) => !used.has(p)).sort((a, b) => avgParam(b) - avgParam(a));
+    for (const p of rest) if (team.length < n) { team.push(p); used.add(p); }
+    for (const p of first) if (team.length < n) { team.push(p); used.add(p); }
+    const all = [...ps, ...(save.reserve || [])];
+    { const pc = save.plan && save.plan.cards; if (pc) { const nc = {}; for (const [i, v] of Object.entries(pc)) { const j = team.indexOf(ps[+i]); if (j >= 0) nc[j] = v; } save.plan.cards = nc; } }
+    save.team.players = team; save.reserve = all.filter((p) => !used.has(p));
+    const tac = ensureTactics(save); for (const r of Object.keys(tac.roles || {})) if (!team.slice(0, 11).some((p) => p.name === tac.roles[r])) delete tac.roles[r];   // 1軍の選手の役割（PK・キャプテンなど）は外す
+  }
+  // 版1197：版1196で2軍を押して、1軍と同じ顔ぶれのままの人は、2軍を組み直す
+  function fix2nd(save) { const sq = save.squads; if (!sq || sq.cur !== 1 || sq.list[1] || !sq.list[0] || sq.fix1197) return false; sq.fix1197 = 1; if (sq.list[0].order.join('|') !== save.team.players.map((p) => p.name).join('|')) return false; build2nd(save); return true; }
   function ensureTactics(save) {
     if (!save.tactics) save.tactics = defaultTactics();
     const t = save.tactics;
@@ -2180,5 +2198,5 @@
     const picks = []; for (let i = 0; i < n; i++) picks.push(gachaOne(save, bn, r, n >= 10 && i === n - 1 && !picks.some((x) => x.star >= 3) ? 3 : 0));   // 10連は☆3以上を1人確定
     return { banner: bn, results: picks.map((pk) => { const res = gachaApply(save, pk); if (pk.off) res.off = true; return res; }) };
   }
-  root.DotCareer = { goldOf, switchSquad, _t: { gachaWeak, gachaFloor, fix1164, rosterPlayer, gachaQ }, PRIZE_LG, PRIZE_UP, GOLD_LG, totsuGain, pasLv, gachaPick, setGachaPick, gachaReady, GACHA_PU_N, GACHA_PU_RATE, gachaUniqList, cpuSkills, skKind, slotsOf, skillsOf, syncSuspend, PREFS, prefRegion, setHometown, earnCoins, earnedOf, homeTier, myNextLg, PREM, premOn, cardMax, awaken, awakeCost, AWAKE_COST, registerGuest, guestCode, GUESTS, champPeek, CARD_MAX, noSkillLg, gachaBanner, gachaPull, gachaPoolAll, ensureGacha, GACHA_RATE, GACHA_COST, GACHA_PITY, KAKERA_OF, oppKits, BENCH_N, kitsPair, d1Round, pinWatch, faceKeyOf, cpuTeam, ensureStar, starOf, totsuOf, capGrade, capPts, capIdx, GRADES, rosterAt, lvlAt, retiredAt, titleOf, ensureTitles, evalTitles, CUP_LABELS, cupIn, ensureClub, renameClub, kitsFor, KIT_DEFAULT, EMB_DEFAULT, TEAMS, TEAM_BY_ID, ROSTERS, rosterOfTeam, leagueTable, prevOrder, goalRank, recordGoals, CUP_WEEKS_ALL: CUP_WEEKS, leagueWeeksOf: leagueWeeks, POST_WEEKS, CARDS, CAT_NAME, SP, findSpecial, previewCards, trainCards, trainOne, weekTick, GRID_R, GRID_C, zoneOf, cellsFor, formationLabel, FORMATIONS, TACTIC_ITEMS, STYLES, SITU_DEFAULT, SITU_ACTS, SITU_ROWS, SITU_FROM, ensureTactics, slotRoles, applyTactics, skillRate, endWeek, SEASON_WEEKS, INJURIES, TYPE_TUNE, COND_NAME, condOf, trainedThisWeek, trainsDone, trainLimit, trainMult, campState, campAdvance, CAMP, slotInfo, SLOT_MAX, SKILL_RATE, rewardCards, newLeague, newCup, playFixture, peekRound, afterOfficial, playPractice, practiceOpponent, practiceOptions, teamLook, recordStats, teamLevel, findTeam, CUP_WEEKS, CAMPS, LG, rankInfo, PMAX, PRICE, buyCard, buyPack, toEng, toPts, migrate, ensurePts, TEAM_MENUS: TEAM_PTS, MENUS, SPECIAL, LEAGUES, PNAME, newCareer, menusFor, train, learnSkill, slots, skillChance, nextFixture, finishRound, standings, endSeason, opponentTeam, matchTeam, avgParam, decideType, TYPES_BY_POS };
+  root.DotCareer = { goldOf, switchSquad, fix2nd, _t: { gachaWeak, gachaFloor, fix1164, rosterPlayer, gachaQ }, PRIZE_LG, PRIZE_UP, GOLD_LG, totsuGain, pasLv, gachaPick, setGachaPick, gachaReady, GACHA_PU_N, GACHA_PU_RATE, gachaUniqList, cpuSkills, skKind, slotsOf, skillsOf, syncSuspend, PREFS, prefRegion, setHometown, earnCoins, earnedOf, homeTier, myNextLg, PREM, premOn, cardMax, awaken, awakeCost, AWAKE_COST, registerGuest, guestCode, GUESTS, champPeek, CARD_MAX, noSkillLg, gachaBanner, gachaPull, gachaPoolAll, ensureGacha, GACHA_RATE, GACHA_COST, GACHA_PITY, KAKERA_OF, oppKits, BENCH_N, kitsPair, d1Round, pinWatch, faceKeyOf, cpuTeam, ensureStar, starOf, totsuOf, capGrade, capPts, capIdx, GRADES, rosterAt, lvlAt, retiredAt, titleOf, ensureTitles, evalTitles, CUP_LABELS, cupIn, ensureClub, renameClub, kitsFor, KIT_DEFAULT, EMB_DEFAULT, TEAMS, TEAM_BY_ID, ROSTERS, rosterOfTeam, leagueTable, prevOrder, goalRank, recordGoals, CUP_WEEKS_ALL: CUP_WEEKS, leagueWeeksOf: leagueWeeks, POST_WEEKS, CARDS, CAT_NAME, SP, findSpecial, previewCards, trainCards, trainOne, weekTick, GRID_R, GRID_C, zoneOf, cellsFor, formationLabel, FORMATIONS, TACTIC_ITEMS, STYLES, SITU_DEFAULT, SITU_ACTS, SITU_ROWS, SITU_FROM, ensureTactics, slotRoles, applyTactics, skillRate, endWeek, SEASON_WEEKS, INJURIES, TYPE_TUNE, COND_NAME, condOf, trainedThisWeek, trainsDone, trainLimit, trainMult, campState, campAdvance, CAMP, slotInfo, SLOT_MAX, SKILL_RATE, rewardCards, newLeague, newCup, playFixture, peekRound, afterOfficial, playPractice, practiceOpponent, practiceOptions, teamLook, recordStats, teamLevel, findTeam, CUP_WEEKS, CAMPS, LG, rankInfo, PMAX, PRICE, buyCard, buyPack, toEng, toPts, migrate, ensurePts, TEAM_MENUS: TEAM_PTS, MENUS, SPECIAL, LEAGUES, PNAME, newCareer, menusFor, train, learnSkill, slots, skillChance, nextFixture, finishRound, standings, endSeason, opponentTeam, matchTeam, avgParam, decideType, TYPES_BY_POS };
 })(typeof window !== 'undefined' ? window : globalThis);
