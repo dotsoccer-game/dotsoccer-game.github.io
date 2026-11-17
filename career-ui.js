@@ -664,7 +664,7 @@
     const fx = C.nextFixture(save), st = C.standings(save), rank = (t) => st.findIndex((s) => s.name === t.name) + 1;
     const cs = C.campState(save);
     if (cs) { $('#hmNextMatch').innerHTML = `<div class="nm-card"><p class="hd">${k.m}月${k.w}週　<b class="lg camp">⛺ ${esc(cs.name)}</b>　${cs.week}/${cs.weeks}週目</p><p class="vs">${cs.name === '夏合宿' ? 'リーグ中断期間' : 'オフシーズン'}<br><small>${cs.name === '夏合宿' ? '後半戦まで' : '新シーズン開幕まで'} あと${cs.weeks - cs.week + 1}週</small></p></div><p class="cnt">特訓は<b>週${cs.trains}回</b>・効果<b>${cs.mult}倍</b>　終わったら ▶ で次の週へ</p><p class="coin">${COIN}${(save.coins || 0).toLocaleString()} コイン</p>`; $('#hmTicker').textContent = TIPS.join('　　　'); return; }
-    const coin = `<p class="coin">${COIN}${(save.coins || 0).toLocaleString()} コイン</p>`;
+    const coin = `<p class="coin">${COIN}${C.goldOf(save).toLocaleString()} コイン</p>`;
     if (fx) {
       const fk = cal(fx.week);
       const when = fx.weeksLeft <= 0 ? '' : `<p class="cnt wait">次の試合まであと <b class="wk">${fx.weeksLeft}</b> 週</p>`;
@@ -694,7 +694,7 @@
     bar.querySelector('.h2-emb').src = emblemURL(save.team.name, 64);
     bar.querySelector('.h2-team').textContent = save.team.name;
     bar.querySelector('.m').textContent = k.m; bar.querySelector('.w').textContent = k.w;
-    bar.querySelector('.h2-coin b').textContent = (save.coins || 0).toLocaleString();
+    bar.querySelector('.h2-coin b').textContent = C.goldOf(save).toLocaleString();   // 版1195：金のコインだけ
     { const kb = bar.querySelector('.h2-kk b'); if (kb) kb.textContent = (save.kakera || 0).toLocaleString(); }
     postBadge(); syncPost();   // 版618：ポストの未読（1分に1回まで）
     const fx = C.nextFixture(save), st = C.standings(save), rank = (t) => st.findIndex((s) => s.name === t.name) + 1, cs = C.campState(save);
@@ -4850,7 +4850,7 @@
         <div class="gc2-bg"></div>
         ${SCOUT_ART[bn.key] ? `<img class="gc3-art" src="${SCOUT_ART[bn.key]}" alt="">` : `<div class="gc3-fc">${gcFace(bn.tid, q, 'gc3-face')}</div>`}
         <div class="gc3-ttl"><b>スカウト</b></div>
-        <div class="gc3-pills"><span class="gc3-coin">${COIN}<b>${(save.coins || 0).toLocaleString()}</b></span>
+        <div class="gc3-pills"><span class="gc3-coin">${COIN}<b>${C.goldOf(save).toLocaleString()}</b></span>
         <span class="gc3-kk"><img class="kk-ico" src="icons/kakera.png" alt="カケラ" draggable="false">覚醒のカケラ<b>${(save.kakera || 0).toLocaleString()}</b></span></div>
         <button class="std-back gc-back gc3-back" title="もどる"><i class="bk-ico" aria-hidden="true"></i></button>
         <div class="gc3-rib"><span>今月のピックアップ</span><span>${esc(bn.until)}まで</span></div>
@@ -4874,7 +4874,7 @@
         <div class="gc2-bg"></div>
         <img class="gc4-art" src="img/scout_all_43.jpg" alt="国内屈指の18人">${puPanel()}
         <div class="gc3-ttl"><b>スカウト</b></div>
-        <div class="gc3-pills"><span class="gc3-coin">${COIN}<b>${(save.coins || 0).toLocaleString()}</b></span>
+        <div class="gc3-pills"><span class="gc3-coin">${COIN}<b>${C.goldOf(save).toLocaleString()}</b></span>
         <span class="gc3-kk"><img class="kk-ico" src="icons/kakera.png" alt="カケラ" draggable="false">覚醒のカケラ<b>${(save.kakera || 0).toLocaleString()}</b></span></div>
         <button class="std-back gc-back gc3-back" title="もどる"><i class="bk-ico" aria-hidden="true"></i></button>
 
@@ -5186,10 +5186,10 @@
         addPost({ kind: 'buy', coins: g.coins || 0, yen: g.yen || 0, prem: g.premDays || 0, renew: !!g.renew, test: !g.live }); try { postBadge(); } catch (_) {}   // 版705：ポストに記録
         store(); premSync();
         const cs = document.querySelector('#coinScreen:not([hidden]) .lk-box'), sb = document.querySelector('#shopScreen:not([hidden]) .lk-box');
-        if (cs && g.coins) { coinGain(cs, cs.querySelector('.cs-have') || cs, c0, save.coins, null); await new Promise((r) => setTimeout(r, 1900)); }
-        else if (sb && g.coins) { const cn = sb.querySelector('.sh3-cn'), tg = sb.querySelector('.sh3-coin'); if (cn) { coinGain(sb, sb.querySelector('.pm-buy') || tg, c0, save.coins, null, { to: tg, num: cn }); await new Promise((r) => setTimeout(r, 1900)); } }
+        if (cs && g.coins) { coinGain(cs, cs.querySelector('.cs-have') || cs, C.goldOf(save) - (save.coins - c0), C.goldOf(save), null); await new Promise((r) => setTimeout(r, 1900)); }
+        else if (sb && g.coins) { const cn = sb.querySelector('.sh3-cn'), tg = sb.querySelector('.sh3-coin'); if (cn) { coinGain(sb, sb.querySelector('.pm-buy') || tg, C.goldOf(save) - (save.coins - c0), C.goldOf(save), null, { to: tg, num: cn }); await new Promise((r) => setTimeout(r, 1900)); } }
         else { const hc = document.querySelector('.h2-coin'), hb = hc && hc.querySelector('b');   // 版706：ホームの時は、上の帯のコインへ飛ばす
-          if (hc && hb && g.coins) { homeCoinFly(hc, hb, c0, save.coins); await new Promise((r) => setTimeout(r, 1900)); } else { try { DotSound.play('coinBurst'); } catch (_) {} } }
+          if (hc && hb && g.coins) { homeCoinFly(hc, hb, C.goldOf(save) - (save.coins - c0), C.goldOf(save)); await new Promise((r) => setTimeout(r, 1900)); } else { try { DotSound.play('coinBurst'); } catch (_) {} } }
         await coachAsk(g.item === 'prem' ? (g.renew ? `プレミアムパスが<b>自動で更新</b>されました。<br>今月もよろしくお願いします！<b>${g.coins}コイン</b>をどうぞ。` : `ご購入ありがとうございます！<br><b>プレミアムパス（月額）</b>がはじまりました。<br><b>${g.coins}コイン</b>もどうぞ。<br><small>毎月、自動で更新されます。解約は、ショップのプレミアムパスからいつでもできます。</small>`) : `ご購入ありがとうございます！<br><b>${(g.coins || 0).toLocaleString()} コイン</b>が届きました。`, [{ label: 'OK', value: true }], 'sec');
       }
       if (got.some((g) => g.item === 'prem')) premDaily();
@@ -5222,7 +5222,7 @@
     store(); premSync();
     // 版696：コインが左上へ飛んでいく（ショップの画面の時）
     { const sb = document.querySelector('#shopScreen:not([hidden]) .lk-box'), btn = sb && sb.querySelector('.pm-buy'), cn = sb && sb.querySelector('.sh3-cn'), tg = sb && sb.querySelector('.sh3-coin');
-      if (btn && cn) { coinGain(sb, btn, c0, save.coins, null, { to: tg, num: cn }); await new Promise((r) => setTimeout(r, 1900)); } }
+      if (btn && cn) { coinGain(sb, btn, C.goldOf(save) - (save.coins - c0), C.goldOf(save), null, { to: tg, num: cn }); await new Promise((r) => setTimeout(r, 1900)); } }
     await coachAsk(`プレミアムパスを手に入れました！<br><b>${P.bonus}コイン</b>をどうぞ。<br><small>これから${P.days}日間、毎日ホームでプレゼントを受け取れます。</small>`, [{ label: 'OK', value: true }], 'sec');
     if (redraw) redraw();
     premDaily();
@@ -5279,7 +5279,7 @@
     const draw = () => {
       box.innerHTML = `<img class="cs-img" src="img/coin_shop.jpg?v=814" alt="">
         <button class="cs-back cs-hit" style="left:104px;top:8px;width:68px;height:68px" title="もどる"></button>
-        <span class="cs-have">${COIN}<small class="cs-hl">所持</small><em class="${csN(save.coins)}">${(save.coins || 0).toLocaleString()}</em><small>コイン</small></span>
+        <span class="cs-have">${COIN}<small class="cs-hl">所持</small><em class="${csN(C.goldOf(save))}">${C.goldOf(save).toLocaleString()}</em><small>コイン</small></span>
         ${COIN_PACKS.map((p, i) => `<button class="cs-item cs-hit cs-buyb" data-id="${p.id}" style="left:${AREA[i][0]}px;top:${AREA[i][1]}px;width:${AREA[i][2]}px;height:${AREA[i][3]}px" title="${p.coins}コイン ¥${p.yen}"></button>`).join('')}`;
       box.querySelector('.cs-back').onclick = () => { el.hidden = true; if (onClose) onClose(); };
       box.querySelectorAll('.cs-item').forEach((b) => b.onclick = async () => {
@@ -5287,7 +5287,7 @@
         if (payReal()) return payGo(p.id, `${p.coins.toLocaleString()} コイン`, p.yen);   // 版703：本物の支払い
         if (!(await coachAsk(`<b>${p.coins.toLocaleString()} コイン</b>を <b>¥${p.yen.toLocaleString()}</b> で購入しますか？<br><small>（テスト版のため、本当のお金はかかりません）</small>`, [{ label: '購入する', value: true }, { label: 'やめる', value: false }], 'sec'))) return;
         const from = save.coins || 0; save.coins = from + p.coins; (save.buys = save.buys || []).push({ id: p.id, coins: p.coins, yen: p.yen, at: Date.now(), test: true }); store();
-        coinGain(box, b, from, save.coins, draw);
+        coinGain(box, b, C.goldOf(save) - (save.coins - from), C.goldOf(save), draw);
       });
     };
     draw(); el.hidden = false; el._fit(); setTimeout(payCollect, 300);
@@ -5330,7 +5330,7 @@
     const el = fullScreen('shopScreen', 'std-wrap sh3-wrap'), box = el.querySelector('.lk-box');
     if (tab) shopSt.tab = tab;
     const toast = (msg) => { const t = document.createElement('p'); t.className = 'sh3-toast'; t.innerHTML = msg; box.appendChild(t); setTimeout(() => t.classList.add('out'), 1600); setTimeout(() => t.remove(), 2200); };
-    const coins = () => (save.coins || 0).toLocaleString();
+    const coins = () => C.goldOf(save).toLocaleString();
     const hit = (cls, x, y, w, h, attr, title) => `<button class="sh3-hit ${cls}" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px" ${attr || ''} title="${title || ''}"></button>`;
     const price = (c) => (C.CARDS[c].cat === 'sup' ? C.PRICE.sup : C.PRICE.card);
     const effText = (c) => { const cd = C.CARDS[c]; return `${Object.entries(cd.up).map(([k, v]) => `${C.PNAME[k]}+${v}`).join('・')}${cd.fat ? `（疲労${cd.fat > 0 ? '+' : ''}${cd.fat}）` : ''}`; };
@@ -5392,7 +5392,7 @@
       box.querySelectorAll('[data-cat]').forEach((b) => b.onclick = () => { shopSt.cat = b.dataset.cat; shopSt.sel = null; draw(); });
       box.querySelectorAll('.sh3-card').forEach((b) => b.onclick = () => { if (shopSt.sel !== b.dataset.c) shopSt.qty = 1; shopSt.sel = b.dataset.c; const g = box.querySelector('.sh3-grid'), st = g ? g.scrollTop : 0; draw(); const g2 = box.querySelector('.sh3-grid'); if (g2) g2.scrollTop = st; });
       box.querySelectorAll('[data-q]').forEach((b) => b.onclick = () => { shopSt.qty = Math.max(1, Math.min(99, shopSt.qty + +b.dataset.q)); const g = box.querySelector('.sh3-grid'), st = g ? g.scrollTop : 0; draw(); const g2 = box.querySelector('.sh3-grid'); if (g2) g2.scrollTop = st; });
-      { const go = box.querySelector('.sh3-go'); if (go) go.onclick = () => { const c = shopSt.sel, had = (save.cards || {})[c] || 0, coin0 = save.coins || 0; let n = 0; for (let k = 0; k < shopSt.qty; k++) { if (C.buyCard(save, c)) n++; else break; } store(); const g = box.querySelector('.sh3-grid'), st = g ? g.scrollTop : 0; shopSt.qty = 1; draw(); const g2 = box.querySelector('.sh3-grid'); if (g2) g2.scrollTop = st; try { DotSound.play(n ? 'ok' : 'back'); } catch (_) {} toast(n ? `<img class="sh3-tc" src="cards/${c}.jpg" alt=""><span><b>${esc(C.CARDS[c].name)}</b> を ${n}枚 買いました！<br><small>所持 ${had}枚 → <em>${save.cards[c]}枚</em>　／　コイン ${coin0.toLocaleString()} → ${(save.coins || 0).toLocaleString()}</small></span>` : had >= C.CARD_MAX ? 'もう99枚持っているので買えません' : 'コインが足りません'); }; }   // 版562：買えたことが分かるように、枚数とコインの変化を見せる
+      { const go = box.querySelector('.sh3-go'); if (go) go.onclick = () => { const c = shopSt.sel, had = (save.cards || {})[c] || 0, coin0 = C.earnedOf(save); let n = 0; for (let k = 0; k < shopSt.qty; k++) { if (C.buyCard(save, c)) n++; else break; } store(); const g = box.querySelector('.sh3-grid'), st = g ? g.scrollTop : 0; shopSt.qty = 1; draw(); const g2 = box.querySelector('.sh3-grid'); if (g2) g2.scrollTop = st; try { DotSound.play(n ? 'ok' : 'back'); } catch (_) {} toast(n ? `<img class="sh3-tc" src="cards/${c}.jpg" alt=""><span><b>${esc(C.CARDS[c].name)}</b> を ${n}枚 買いました！<br><small>所持 ${had}枚 → <em>${save.cards[c]}枚</em>　／　Dコイン ${coin0.toLocaleString()} → ${C.earnedOf(save).toLocaleString()}</small></span>` : had >= C.CARD_MAX ? 'もう99枚持っているので買えません' : 'Dコインが足りません'); }; }   // 版562：買えたことが分かるように、枚数とコインの変化を見せる
       { const bg = box.querySelector('.sh3-ban-bg'); if (bg && !C.gachaBanner().all) { const bn = C.gachaBanner(); gcBgFor(bn.uniq.chip, (u) => { bg.style.backgroundImage = `url(${u})`; }); } }
     };
     el._redraw = () => draw();   // 版712：月額パスの状態が変わった時に描き直す
