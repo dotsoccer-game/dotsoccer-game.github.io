@@ -44,6 +44,12 @@
     const L = SC[kind] || []; if (!L.length) return;
     idx = (idx + L.length) % L.length; cur = L[idx];
     loadSeed(cur.seed, cur.lab); 
+    // 版1202：低弾道パントは、読みこんだ試合の中から本当に蹴った時を探して合わせる（端末の設定で試合が少し変わっても、ずれないように）
+    if (cur.lab === 'lp') { const base = cur, nth = L.filter((c) => c.seed === base.seed).indexOf(base); let tries = 0;
+      const fix = () => { if (cur !== base && !(cur && cur.base === base)) return; const ts = ((D.match && D.match.actions) || []).filter((a) => a.a === 'skill' && a.k === 'lowPunt').map((a) => a.t);
+        if (ts.length) { cur = { ...base, base, t: ts[Math.min(Math.max(0, nth), ts.length - 1)] }; const [a2] = win(); D.seek(Math.max(0.2, a2)); D.setSpeed(sp); if (!paused) D.play(); info(); return true; }
+        if (++tries < 12) setTimeout(fix, 300); else { const m = document.getElementById('glM'); if (m) m.textContent = 'この試合では低弾道パントが出ませんでした（▶で次へ）'; } return false; };
+      if (fix()) return; }
     const [a] = win(); D.seek(Math.max(0.2, a)); D.setSpeed(sp); if (!paused) D.play(); info();
     const c0 = cur; setTimeout(() => { if (cur === c0) { D.seek(Math.max(0.2, a)); D.setSpeed(sp); } }, 200);
   }
