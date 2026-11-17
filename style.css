@@ -116,7 +116,7 @@
 .dtbl th{color:#cfe3c8;font-size:11px;font-weight:800;padding:2px 3px}
 .dtbl tr[data-i]{background:linear-gradient(90deg,#2d3d33,#24322a);cursor:pointer}.dtbl tr[data-i]:hover{background:#3a5244}
 .dtbl td{padding:4px 3px;text-align:center}.dtbl td.nm{text-align:left;font-weight:800;white-space:nowrap}.dtbl td.nm small{color:#9ab;margin-left:6px;font-size:10px}.dtbl td.no{font:italic 900 16px Arial}
-.pos{display:inline-block;min-width:34px;border-radius:5px;font:900 13px Arial;padding:2px 4px;color:#fff;font-style:normal}
+.pos{display:inline-block;min-width:34px;border-radius:5px;font:900 13px Arial;padding:2px 4px;color:#fff;font-style:normal;text-align:center}
 .pos-gk{background:#8e5bd6}.pos-df{background:#d83a3a}.pos-mf{background:#f08a1c}.pos-fw{background:#2f7fe0}
 b.big{font:italic 900 21px/1 "Arial Black",Arial,sans-serif;-webkit-text-stroke:1px #4a1d00;text-shadow:1px 2px 0 rgba(0,0,0,.4)}
 b.big.gr-S{color:#ff9a1f}b.big.gr-A{color:#ff5a3a}b.big.gr-B{color:#3fb4ff}b.big.gr-C{color:#5bd16a}b.big.gr-D{color:#d9d9d9}b.big.gr-E{color:#9a9a9a}
@@ -4699,6 +4699,7 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 .fs-bench .fs-msg{color:#5a6b86}
 .fs-bn{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:10px;background:#f3f6fb;border:2px solid #dbe4f1;font:800 16px/1 'M PLUS 1p',sans-serif}
 .fs-bn>b{width:24px;text-align:right;color:#5a6b86}.fs-bn>span{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fs-bn .pos{min-width:0;padding:3px 6px;text-align:center;line-height:1.1;font-size:13px}   /* 版1230：ポジションの札に余白を作らない（文字の幅ぴったり） */
 /* 版1133：凸の資料 */
 #tzDoc{position:absolute;inset:0;z-index:300;background:rgba(6,12,30,.72);display:flex;align-items:center;justify-content:center;padding:8px}
 #tzDoc[hidden]{display:none}
