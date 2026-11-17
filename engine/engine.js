@@ -489,6 +489,8 @@
       if (q.sk.has('overlap')) q.overlap = Math.max(q.overlap, 80);   // オーバーラップ：SBが積極的に前線へ
       // 固有スキル・サポートパッシブ
       q.uniq = p.uniq && UNIQ[p.uniq] ? p.uniq : null; q.uniqLv = q.uniq ? clamp(p.uniqLv || 1, 1, 2) : 0; q.uOn = -1; q.uCd = 0;
+      if (globalThis.__labSut && i === 0) { q.uniq = 'sutemi'; q.uniqLv = 1; q.type = 'スイーパーキーパー'; }   // 確認画面だけ：両方のGKに捨て身の守護神
+      if (globalThis.__labMd && i === 6) { q.uniq = 'midori'; q.uniqLv = 1; q.type = 'ビルドアップ型'; }   // 確認画面だけ：両チームの7番目の選手に翠の起点
       q.pasK = p.passive > 0 && PASSIVE[q.type] ? PASSIVE[q.type].k : null; q.passive = q.pasK ? clamp(p.passive, 1, 3) : 0;   // 1 付与、2 強化、3 範囲が味方全員に（もともと全員なら効き目がさらに上がる）
       return q;
     }
