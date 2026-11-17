@@ -5069,3 +5069,6 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 .q3sq{display:inline-flex;border-radius:9px;overflow:hidden;border:2px solid #f2c230;margin-left:6px;flex:none}
 .q3sq button{border:0;background:#13294a;color:#cfd8e8;font-weight:900;font-size:14px;padding:5px 12px;font-family:inherit}
 .q3sq button.on{background:#f2c230;color:#13294a}
+/* 版1198：カードが足りなくてできないメニューは、薄黄色の地も暗めに */
+.spt.k.nog{background:linear-gradient(#b9b29a,#a49d84);border-color:#8a7d4e;color:#3a3a30}
+.spt.k.nog small{color:#4a4a3e}
