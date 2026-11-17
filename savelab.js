@@ -4,7 +4,7 @@
   window.__noShow = true;
   const SC = window.__SAVE_SCENES || {};
   const KINDS = [
-    ['lowPunt', '低弾道パントキック', -3.2, 3.2, '版1204〜：GKはボールを持ったら、ペナルティエリアのぎりぎりまで歩いて出てから蹴る。手から落としたボールを、ひざの高さでボレーの形で強く叩く。バックスピンで浮き上がるように伸び、相手DFの頭の上を越えてから、FWの胸もと・裏のスペースへ落ちる。胸もとへの球は、受け手が競り勝てば胸で収める（確認のため、両方のGKに低弾道パントを持たせた試合です）'],
+    ['lowPunt', '低弾道パントキック', -3.2, 3.2, '版1205〜：GKはボールを手で持ったまま、ペナルティエリアのぎりぎりまで歩いて出てから、蹴る方向を向いて強く叩く。バックスピンで浮き上がるように伸び、相手DFの頭の上を越えてから、FWの胸もと・裏のスペースへ落ちる。飛ぶ距離はフィジカル（いちばん遠くて、相手のペナルティアークの少し手前まで）、狙った所へ落とす正確さはキックで決まる（確認のため、両方のGKに低弾道パントを持たせた試合です）'],
     ['new_punchHigh', 'ハイボールをパンチング', -1.6, 1.6, '版1052〜：ボールの方を向いて跳び、こぶしをあごの横に引いてから、ボールへ斜め上に突き出す'],
     ['new_catchLow', 'キャッチ：低い球（片ひざ）', -1.4, 1.6, '版1050〜：低く来たシュート（0.45m未満）を、片ひざをついて、ひざの前で両手で持つ'],
     ['new_catchChest', 'キャッチ：胸に引きつける', -1.4, 1.6, '版1049〜：正面に来たシュートを、ひじをしめて胸に引きつける'],
@@ -46,7 +46,7 @@
     loadSeed(cur.seed, cur.lab); 
     // 版1202：低弾道パントは、読みこんだ試合の中から本当に蹴った時を探して合わせる（端末の設定で試合が少し変わっても、ずれないように）
     if (cur.lab === 'lp') { const base = cur, nth = L.filter((c) => c.seed === base.seed).indexOf(base); let tries = 0;
-      const fix = () => { if (cur !== base && !(cur && cur.base === base)) return; const ts = ((D.match && D.match.actions) || []).filter((a) => a.a === 'skill' && a.k === 'lowPunt').map((a) => a.t);
+      const fix = () => { if (cur !== base && !(cur && cur.base === base)) return; const ts = ((D.match && D.match.actions) || []).filter((a) => a.a === 'skill' && a.k === 'lowPunt' && (() => { const F = D.match.frames || [], f = F.find((g) => g[0] >= a.t - 0.2); return !f || (f[4] >= 0 && f[4] % 11 === 0); })()).map((a) => a.t);   // 版1204：蹴る直前に、本当にGKがボールを持っている時だけ（試合の記録と画面の試合が食い違っても、関係ない場面を流さない）
         if (ts.length) { cur = { ...base, base, t: ts[Math.min(Math.max(0, nth), ts.length - 1)] }; const [a2] = win(); D.seek(Math.max(0.2, a2)); D.setSpeed(sp); if (!paused) D.play(); info(); return true; }
         if (++tries < 12) setTimeout(fix, 300); else { const m = document.getElementById('glM'); if (m) m.textContent = 'この試合では低弾道パントが出ませんでした（▶で次へ）'; } return false; };
       if (fix()) return; }
