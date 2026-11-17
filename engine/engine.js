@@ -5456,14 +5456,17 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       // カウンター
       const laneFree = (m) => { const dm = hyp(m.x - p.x, m.y - p.y); return !opps(p).some((q) => { if (q.gk || q.off) return false; const sd = segDist(q.x, q.y, p.x, p.y, m.x, m.y); return sd.u > 0.08 && sd.d < 2.2 + dm * 0.05; }); };   // 版973：投げる・蹴る前に、通り道に届く相手がいないか見る（低弾道スローを途中で取られていた）
       const counter = mts.filter((m) => fwd(m) > 45 && freeOf(m) > 7 && opps(p).filter((q) => fx(p.team, q.x) < fwd(m) - 2 && !q.gk).length <= 3 && (!(globalThis.__Kgkl ?? 1) || laneFree(m))).sort((a, c) => fwd(c) - fwd(a))[0];
-      if (held < 1.6 && counter) {
+      if ((held < 1.6 || ((globalThis.__Klp ?? 1) && p.sk.has('lowPunt') && held < 2.6)) && counter) {
         const dC = hyp(counter.x - p.x, counter.y - p.y);
         // 低弾道パント：相手DFラインの裏へ。低弾道スロー：ハーフウェーライン手前まで頭の高さで
         if (p.sk.has('lowPunt') && dC > 30) { gkRelease(p, counter, 'lowPunt'); return true; }
         gkRelease(p, counter, dC < (p.sk.has('lowThrow') ? 46 : 32) ? 'throw' : 'punt'); return true;
       }
       if (held < 3.5) { S.decision = 0.3; return true; }     // 味方が上がるのを待つ
-      if (R.next() < (globalThis.__Kgkr2 ?? 0.6) && gkRollKick(p, null)) return true;   // 版961：周りに誰もいなければ、まず足もとに置いて転がす（そこから、空いた味方へつなぐか、大きく蹴る）
+      if ((globalThis.__Klp ?? 1) && p.sk.has('lowPunt') && R.next() < 0.65) {   // 版1199：低弾道パントを持つGKは、前の空いている味方がいれば、まずそこへ低い弾道で一気に
+        const lt = mts.filter((m) => !m.gk && fwd(m) > 40 && hyp(m.x - p.x, m.y - p.y) > 28 && freeOf(m) > 4).sort((a, c) => (fwd(c) * 0.08 + Math.min(freeOf(c), 10)) - (fwd(a) * 0.08 + Math.min(freeOf(a), 10)))[0];
+        if (lt) { gkRelease(p, lt, 'lowPunt'); return true; } }
+      if (!((globalThis.__Klp ?? 1) && p.sk.has('lowPunt') && R.next() < 0.75) && R.next() < (globalThis.__Kgkr2 ?? 0.6) && gkRollKick(p, null)) return true;   // 版1199：低弾道パントを持つGKは、たいてい手から蹴る   // 版961：周りに誰もいなければ、まず足もとに置いて転がす（そこから、空いた味方へつなぐか、大きく蹴る）
       // フリーの味方へスロー（近くに相手がいない、パスコースに相手がいない）
       const safe = mts.filter((m) => { const d = hyp(m.x - p.x, m.y - p.y); if (d < 8 || d > 34 || freeOf(m) < 8) return false; return !opps(p).some((q) => segDist(q.x, q.y, p.x, p.y, m.x, m.y).d < 2.5); }).sort((a, c) => freeOf(c) - freeOf(a));
       if (safe.length && R.next() < 0.9) { gkRelease(p, safe[0], 'throw'); return true; }   /* 版458：フリーの味方がいれば、まずつなぐ */
@@ -5471,11 +5474,13 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         if (sh2.length && R.next() < 0.75) { gkRelease(p, sh2[0], 'throw'); return true; } }   // 少し寄せられていても、コースが空いていれば近くの味方へ
       { const sc = (m) => { const near = (arr, r) => arr.filter((q) => !q.off && !q.gk && hyp(q.x - m.x, q.y - m.y) < r).length; return Math.min(freeOf(m), 12) + (m.jump * 0.6 + m.physical * 0.4) / 30 + near(mts.filter((x) => x !== m), 9) * 1.2 - near(opps(p), 8) * 1.0; };
         const lk = mts.filter((m) => fwd(m) > 38).sort((a, c) => sc(c) - sc(a))[0];
+        if (lk && (globalThis.__Klp ?? 1) && p.sk.has('lowPunt') && hyp(lk.x - p.x, lk.y - p.y) > 28 && R.next() < 0.8) { gkRelease(p, lk, 'lowPunt'); return true; }   // 版1199：大きく蹴る場面では、低弾道パントで味方へ
         if (lk && gkRollKick(p, lk)) return true;
         if (lk) { gkRelease(p, lk, 'kick'); return true; } }   // 蹴る時は、空いていて味方が近くにいる所へ（競り合いになるFWの頭ではなく）
       // ポストプレーが得意なFW（フィジカルが高い）へキック
       const pw = (m) => m.jump * 0.6 + m.physical * 0.4 + m.goal_wait * 0.2 + (skZ(m, 'postPlay') ? 40 : 0);
       const fw = mts.filter((m) => m.slot.last).sort((a, c) => pw(c) - pw(a))[0] || mts[mts.length - 1];
+      if ((globalThis.__Klp ?? 1) && p.sk.has('lowPunt') && fw && hyp(fw.x - p.x, fw.y - p.y) > 28 && R.next() < 0.8) { gkRelease(p, fw, 'lowPunt'); return true; }
       if (gkRollKick(p, fw)) return true;
       gkRelease(p, fw, 'kick'); return true;
     }
@@ -5498,7 +5503,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         p.touchCd = 0.6; act(p, 'throwgk', 0.5, { dx: (tx - p.x) / d, dy: (ty - p.y) / d, roll: 0 }); act(p, 'skill', 1.3, { k: 'lowThrow' });
       } else if (how === 'lowPunt') {
         // 低弾道パントキック：頭くらいの弾道で、ポップアップしながら相手DFラインの裏へ
-        const offL = offsideLine(p.team), tx = fx(p.team, Math.min(offL + 7, L - 14)), ty = clamp(q.y + R.gauss() * 3, 6, W - 6);
+        const offL = offsideLine(p.team), qf = fx(p.team, q.x), ura = !(globalThis.__Klp ?? 1) || qf > offL - 12, tx = fx(p.team, ura ? Math.min(offL + 7, L - 14) : Math.min(qf + 4, offL - 1)), ty = clamp(q.y + (ura ? R.gauss() * 3 : q.vy * 0.8), 6, W - 6);   // 版1199：味方が相手のラインの近くなら裏へ。離れていれば、その味方の少し前へ
         kick(p, tx, ty, 'pass', 'drive', { landFrac: 0.62 });
         b.vz = Math.min(b.vz, 5.2); b.bs = -0.2;
         b.intended = q.idx; b.offside = false; q.run = Math.max(q.run, 3);
