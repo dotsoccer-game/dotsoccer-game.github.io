@@ -6064,7 +6064,8 @@
     if (el.parentNode !== host) host.appendChild(el);
     if (pcPage === 0) pcPage = 1;   // 疲労・記録のページは、相手の選手にはないので「詳しい能力値」から
     const real = save.team; let html = '';
-    try { save.team = { ...real, name: teamName, players: ps }; pcKit = kit; html = playerCardHTML(i, null, false); } finally { save.team = real; pcKit = null; }
+    const psD = ps.map((p) => p && p.dsp && p.dsp.v ? { ...p, ...p.dsp.v, pts: { ...p.dsp.pts } } : p);   // 版1231：本当の能力値で見せる（試合用の値は元気の分だけ高い）
+    try { save.team = { ...real, name: teamName, players: psD }; pcKit = kit; html = playerCardHTML(i, null, false); } finally { save.team = real; pcKit = null; }
     el.innerHTML = html; el.hidden = false; el.style.zIndex = 60;
     { const im = el.querySelector('.pc-emb'); if (im && embSrc) im.src = embSrc; }
     el.querySelectorAll('.pc-dots [data-pg="0"], .pc-meta:has(.cnd)').forEach((x) => x.remove());   // 疲労度・記録のページは出さない

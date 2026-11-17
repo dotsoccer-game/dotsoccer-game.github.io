@@ -278,7 +278,8 @@
   function guestCode(save0) {   // 自分のチームを、相手に渡すデータにする（能力・スキル・戦術・ユニフォーム・エンブレム）
     const save = firstSquad(save0);
     const t = matchTeam(save, { noSusp: true }).team, cl = ensureClub(save);   // 版1217：ほかの人と対戦するチームに、公式戦の出場停止は関係ない
-    t.players = t.players.map((p) => { const q = { ...p }; try { ensurePts(p); q.bg = Object.fromEntries(KEYS.map((k) => [k, rankInfo(p.pts[k]).g])); } catch (_) {}   // 版629：表示用の素の能力ランク（調子・疲れの影響なし）
+    t.players = t.players.map((p) => { const q = { ...p }; try { ensurePts(p); q.bg = Object.fromEntries(KEYS.map((k) => [k, rankInfo(p.pts[k]).g])); } catch (_) {}
+      try { const raw = save.team.players.find((x) => x.name === p.name) || p; ensurePts(raw); q.dsp = { v: Object.fromEntries(KEYS.map((k) => [k, raw[k]])), pts: Object.fromEntries(KEYS.map((k) => [k, raw.pts[k]])) }; } catch (_) {}   // 版1231：相手の画面に出す能力は、元気・疲れの影響を入れない本当の値（試合に使う値は元気の分だけ少し高い）   // 版629：表示用の素の能力ランク（調子・疲れの影響なし）
       for (const k of ['pts', 'fatigue', 'injury', 'games', 'cond', 'startCur', 'goals', 'assists', 'hist', 'log']) delete q[k]; return q; });
     return { v: 1, name: save.team.name, short: save.team.short, mgr: save.manager || '', lg: save.league.id, emb: cl.emb, kit: cl.kit, kit2: cl.kit2, gk: cl.gk, team: t };
   }
