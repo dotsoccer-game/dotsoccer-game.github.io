@@ -5089,3 +5089,7 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 .lk-std .std-tbl tr.std-h{font-size:14px}
 .lk-std .std-tbl tr.std-h th small{font-size:12px;margin-left:6px}
 .lk-std .std-legend{font-size:13px;padding:6px 8px;gap:14px}
+
+/* 版1232：限界突破ゲージ */
+.limb{display:inline-flex;align-items:center;gap:4px;margin-left:6px;background:rgba(0,0,0,.6);color:#fff;font:800 10px/1 sans-serif;padding:3px 6px;border-radius:10px;vertical-align:middle}.limb em{font-style:normal;color:#ffd75e}.limb i{display:block;width:54px;height:7px;border-radius:4px;background:#2b3442;overflow:hidden}.limb u{display:block;height:100%;background:linear-gradient(90deg,#ffb12b,#ffe46b)}.limb b{font-size:10px;color:#dfe7f3}
+.trr-lim{display:block;margin:4px 0;color:#ffcf3a;font:900 16px/1.3 sans-serif;text-shadow:0 1px 0 #000}

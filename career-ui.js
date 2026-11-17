@@ -1203,6 +1203,8 @@
 
   const starHTML = (n, totsu, cls) => { const t = Math.min(totsu || 0, 3); let h = ''; for (let k = 0; k < n; k++) h += `<i class="tz tz${t}">★</i>`;   /* 版476：無凸＝白、1凸＝銀、2凸＝金、完凸＝虹 */   /* 版467：凸の数で星全部の色が変わる（無凸＝黄、1凸＝青、2凸＝紫、完凸＝虹） */ return `<span class="stars s${n}${t ? ' t' + t : ''} ${cls || ''}" title="☆${n}${t >= 3 ? '・凸MAX' : t ? '・' + t + '凸' : ''}">${h}</span>`; };   // 版456：凸した分だけ、星に色がつく（1凸＝青、2凸＝紫、3凸＝虹）
   const capBadge = (g) => `<span class="capb">上限<b class="rk rk-${g}">${g}</b></span>`;
+  // 版1232：限界突破ゲージ（上限で止まった特訓の分がたまる。満タンで上限が1段上がる）。上限がSの選手には出さない
+  const limBar = (p) => { if (!p || C.capGrade(p) === 'S' || p.__cpu) return ''; const v = Math.max(0, p.lim || 0), pc = Math.min(100, v / C.LIM_NEED * 100); return `<span class="limb" title="限界突破ゲージ"><em>限界突破</em><i><u style="width:${pc.toFixed(1)}%"></u></i><b>${Math.floor(v)}/${C.LIM_NEED}</b></span>`; };
   // 版972：タイプの説明（選手の札のタイプをタップすると出る）。役わり・動き方・なり方（どの練習で近づくか）
   // 版999：タイプの説明を作り込む（試合での本当の動き・動きのくせ・大事な能力・サポート効果・なり方）。動きはエンジンの中身に合わせて書く
   const TYPE_INFO = {
@@ -1400,7 +1402,7 @@
       <div class="pc-head"><i class="pos ${POSC[p.position]}">${p.position}</i><b>${esc(p.name)}</b>${ovrBadge(p)}<span>${esc(save.team.name)}</span></div>
       <div class="pc-main">
         <div class="pc-left">
-          <div class="pc-photo">${facePic(p, '', i >= 11, pcKit || undefined)}<div class="pc-rare"><div class="pc-strow">${starHTML(C.ensureStar(p), p.totsu)}<b class="ty-q pc-tzq" data-tzq="1" title="凸とは？">?</b></div>${capBadge(C.capGrade(p))}</div></div>
+          <div class="pc-photo">${facePic(p, '', i >= 11, pcKit || undefined)}<div class="pc-rare"><div class="pc-strow">${starHTML(C.ensureStar(p), p.totsu)}<b class="ty-q pc-tzq" data-tzq="1" title="凸とは？">?</b></div>${capBadge(C.capGrade(p))}${limBar(p)}</div></div>
           <b class="pc-num">${p.number}</b>
           <div class="pc-meta"><span>タイプ</span>${typeBadge(p.type).replace('<span class="tbadge', `<span data-ty="${esc(p.type || 'バランス')}" data-pos="${esc(p.position)}" title="タップで説明" class="tbadge ty-tap`)}<b class="ty-q">?</b></div>
           <div class="pc-meta"><span>疲労度</span>${condGauge(p)}</div>
@@ -2745,6 +2747,7 @@
     // 版699：タイプが変わったら大きく見せる（音つき）。タイプのメニューで変わらなかった時は「近づいた」
     const tyBan = o.typeTo ? `<div class="trr-type"><b class="trr-tyh">タイプチェンジ！</b><span class="tbadge ${TYPE_CLS[o.typeFrom] || 'ty-bal'}">${esc(o.typeFrom || '')}</span><i class="trr-tyar">▶</i><span class="tbadge big ${TYPE_CLS[o.typeTo] || 'ty-bal'}">${esc(o.typeTo)}</span></div>`
       : spm && spm.type && p.type !== spm.type ? `<p class="trr-tynear">タイプ「${esc(spm.type)}」に近づいた（もう少しで変わるかも）</p>` : '';
+    if (o.capUp) notes.push(`<b class="trr-lim">限界突破！ 上限が ${o.capUp.to} に上がった</b>`);   // 版1232
     if (o.injured) notes.push('<b class="inj">ケガをしてしまった…</b>');
     const ups = Object.entries(o.ups).filter(([, v]) => v >= 1 || v <= -1).sort((x, y) => y[1] - x[1]);
     const rows = ups.map(([k, v]) => { const b0 = o.before[k], a = C.rankInfo(b0), b = C.rankInfo(Math.min(C.PMAX - 1, Math.max(0, b0 + v))), up = b.g !== a.g;
@@ -6064,7 +6067,7 @@
     if (el.parentNode !== host) host.appendChild(el);
     if (pcPage === 0) pcPage = 1;   // 疲労・記録のページは、相手の選手にはないので「詳しい能力値」から
     const real = save.team; let html = '';
-    const psD = ps.map((p) => p && p.dsp && p.dsp.v ? { ...p, ...p.dsp.v, pts: { ...p.dsp.pts } } : p);   // 版1231：本当の能力値で見せる（試合用の値は元気の分だけ高い）
+    const psD = ps.map((p) => p && p.dsp && p.dsp.v ? { ...p, ...p.dsp.v, pts: { ...p.dsp.pts }, __cpu: 1 } : { ...p, __cpu: 1 });   // 版1231：本当の能力値で見せる（試合用の値は元気の分だけ高い）
     try { save.team = { ...real, name: teamName, players: psD }; pcKit = kit; html = playerCardHTML(i, null, false); } finally { save.team = real; pcKit = null; }
     el.innerHTML = html; el.hidden = false; el.style.zIndex = 60;
     { const im = el.querySelector('.pc-emb'); if (im && embSrc) im.src = embSrc; }
