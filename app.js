@@ -4877,7 +4877,7 @@
       const h = o.halfOthers ? o.halfOthers(sc, minute) : null;
       if (h) {
         prog = `<div class="lk-lg"><b>${plvEsc(h.league)}</b>　第${h.round}節</div><div class="lk-games">${h.games.map((g) => `<div class="lk-game"><span>${plvEsc(g.home)}</span><b>${g.s[0]} − ${g.s[1]}</b><span>${plvEsc(g.away)}</span><small>${final ? '試合終了' : minute >= 45 && T0 <= halfT + 0.01 ? '前半終了' : minute + '分'}</small></div>`).join('')}</div>
-          <table class="lk-tbl"><tr><th>暫定順位</th><th></th><th>勝点</th><th>得点</th><th>失点</th><th>得失</th></tr>${h.table.map((t, k) => `<tr class="${t.me ? 'me' : ''}"><td>${k + 1}</td><td>${plvEsc(t.name)}</td><td>${t.Pts}</td><td>${t.GF}</td><td>${t.GA}</td><td>${t.GF - t.GA}</td></tr>`).join('')}</table>`;
+          ${h.html ? `<div class="lk-std">${h.html}</div>` : `<table class="lk-tbl"><tr><th>暫定順位</th><th></th><th>勝点</th><th>得点</th><th>失点</th><th>得失</th></tr>${h.table.map((t, k) => `<tr class="${t.me ? 'me' : ''}"><td>${k + 1}</td><td>${plvEsc(t.name)}</td><td>${t.Pts}</td><td>${t.GF}</td><td>${t.GA}</td><td>${t.GF - t.GA}</td></tr>`).join('')}</table>`}`;   // 版1218：試合のあとと同じ順位表
       }
     } catch (e) { /* 途中経過が出せなくても他は見せる */ }
     const iss = match.events.filter((e) => e.type === 'issue' && e.team === 0 && e.t <= T0);

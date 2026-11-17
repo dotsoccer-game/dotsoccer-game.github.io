@@ -5080,3 +5080,11 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 @keyframes rkSpin{to{transform:rotate(360deg)}}
 .rk-srch2{display:flex;flex-direction:column;align-items:center;gap:14px;margin-top:26px}
 .rk-srch2 .rk-note{margin:0}
+/* 版1218：試合中の「状況」の暫定順位：試合のあとの順位表と同じ形 */
+.lk-std{position:relative;margin-top:8px}
+.lk-std .std-body{position:static;left:auto;right:auto;top:auto;bottom:auto;overflow:visible}
+.lk-std .std-tbl{position:static;width:100%;--rh:30px!important}
+.lk-std .std-tbl tr.std-h th:first-child span{font-size:16px;padding:0 44px 0 12px}
+.lk-std .std-tbl tr.std-h{font-size:14px}
+.lk-std .std-tbl tr.std-h th small{font-size:12px;margin-left:6px}
+.lk-std .std-legend{font-size:13px;padding:6px 8px;gap:14px}
