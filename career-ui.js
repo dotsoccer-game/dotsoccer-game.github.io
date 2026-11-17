@@ -3569,7 +3569,7 @@
       const head = res.champion ? `🏆 ${esc(res.comp)} 優勝！！` : res.win === true ? `${esc(res.comp)} ${esc(res.label)} 勝利${pk}！` : res.win === false ? `${esc(res.comp)} ${esc(res.label)} 敗退${pk}…` : `${esc(res.comp)} ${esc(res.label)}`;
       store(); open();
       await storyCard({ theme: res.win === true || res.champion ? 'win' : res.win === false ? 'lose' : '', tag: esc(res.comp), title: res.champion ? '優勝！！' : res.win === true ? `${esc(res.label)} 勝利${pk}！` : res.win === false ? `${esc(res.label)} 敗退${pk}…` : esc(res.label),
-        body: `${res.prize ? `<div class="gc-prize"><b>賞金</b><em>${DCOIN}+${res.prize} Dコイン</em></div><p class="cp-msg gc-msg">賞金は、シーズンが終わった時にまとめて受け取れます。</p>` : `<p class="cp-msg">${res.win === false ? '次こそ勝ちましょう。' : 'おめでとうございます！'}</p>`}` });   // 版791：カップ戦の結果も、カードの見た目に
+        body: `${res.cupPaid ? `${res.prize ? `<div class="gc-prize"><b>この試合の賞金</b><em>${DCOIN}+${res.prize} Dコイン</em></div>` : ''}<div class="gc-prize"><b>カップ戦の賞金 合計</b><em>${DCOIN}+${res.cupPaid.total} Dコイン</em></div><p class="cp-msg gc-msg">カップ戦の賞金を受け取りました。</p>` : res.prize ? `<div class="gc-prize"><b>賞金</b><em>${DCOIN}+${res.prize} Dコイン</em></div><p class="cp-msg gc-msg">${res.kind === 'cup' ? '賞金は、カップ戦が終わった時（負けた時・優勝した時）にまとめて受け取れます。' : '賞金は、シーズンが終わった時にまとめて受け取れます。'}</p>` : `<p class="cp-msg">${res.win === false ? '次こそ勝ちましょう。' : 'おめでとうございます！'}</p>`}` });   // 版1221：カップの賞金は、カップ戦が終わった時に受け取る   // 版791：カップ戦の結果も、カードの見た目に
     }
     if (got && got.length) {
       store(); open();

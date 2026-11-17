@@ -1033,6 +1033,10 @@
       resolveCupRound(save, { win: w, s: myScore, pk: out.pk });
       if (w) { out.prize = addPrize(save, '国内カップ', 150); if (save.cup.champion === save.team.name) out.prize += addPrize(save, '国内カップ 優勝', 1000); }   // 版1177：カップは1勝ごとに150、優勝でさらに1000
       out.champion = save.cup.champion === save.team.name;
+      if (!w || out.champion) {   // 版1221：カップの賞金は、カップ戦が終わった時（負けた時・優勝した時）にまとめて受け取る（前はシーズンの終わり）
+        const pz = save.prize && save.prize.season === save.season ? save.prize.items.filter((x) => /^国内カップ/.test(x.label)) : [], tot = pz.reduce((a2, x) => a2 + (x.coins || 0), 0);
+        if (tot > 0) { earnCoins(save, tot); save.prize.items = save.prize.items.filter((x) => !/^国内カップ/.test(x.label)); out.cupPaid = { items: pz.map((x) => ({ ...x })), total: tot }; }
+      }
       return out;
     }
     const m = fx.m, s = m.a === save.team.name ? myScore : [myScore[1], myScore[0]];
