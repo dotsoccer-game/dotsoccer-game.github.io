@@ -3,7 +3,9 @@
   const D = window.__demo; if (!D) return;
   window.__noShow = true;
   const SC = window.__SAVE_SCENES || {};
+  if (!SC.bicycle) SC.bicycle = Array.from({ length: 12 }, () => ({ seed: 1, t: 0, lab: 'bic' }));   // 版1210：バイシクルの場面は、開いた端末で試合を計算して探す
   const KINDS = [
+    ['bicycle', 'バイシクル', -1.0, 2.2, '版1209〜：蹴る0.42秒前から、ゴールに背を向けて後ろへ倒れながら跳び、いちばん高い所で頭の上のボールを蹴って、背中から落ちる。跳び始めから蹴った少し後までは、試合の流れが約3分の1の速さ（スロー）になる（確認のため、両チームのGK以外の全員にバイシクルを持たせた試合です）'],
     ['lowPunt', '低弾道パントキック', -3.2, 3.2, '版1205〜：GKはボールを手で持ったまま、ペナルティエリアのぎりぎりまで歩いて出てから、蹴る方向を向いて強く叩く。バックスピンで浮き上がるように伸び、相手DFの頭の上を越えてから、FWの胸もと・裏のスペースへ落ちる。飛ぶ距離はフィジカル（いちばん遠くて、相手のペナルティアークの少し手前まで）、狙った所へ落とす正確さはキックで決まる（確認のため、両方のGKに低弾道パントを持たせた試合です）'],
     ['new_punchHigh', 'ハイボールをパンチング', -1.6, 1.6, '版1052〜：ボールの方を向いて跳び、こぶしをあごの横に引いてから、ボールへ斜め上に突き出す'],
     ['new_catchLow', 'キャッチ：低い球（片ひざ）', -1.4, 1.6, '版1050〜：低く来たシュート（0.45m未満）を、片ひざをついて、ひざの前で両手で持つ'],
@@ -30,11 +32,32 @@
     ['tip', '指先で触ったが入った', -1.4, 1.8, '手は届いたが、止めきれずにゴールへ'],
     ['save', 'そのほかのセーブ', -1.4, 1.6, 'シュートをGKが止めた場面'],
   ].filter(([k]) => (SC[k] || []).length);
-  let kind = KINDS[0] ? KINDS[0][0] : null, idx = 0, sp = 0.5, cur = null, loaded = null, paused = false; let lpFound = [], lpSeed = 1, lpTok = 0;
+  let kind = KINDS[0] ? KINDS[0][0] : null, idx = 0, sp = 0.5, cur = null, loaded = null, paused = false; let lpFound = [], lpSeed = 1, lpTok = 0; const DYN = { lp: { name: '低弾道パント', found: [], seed: 1, ok: (a) => a.a === 'skill' && a.k === 'lowPunt', gk: true }, bic: { name: 'バイシクル', found: [], seed: 1, ok: (a) => a.a === 'bicycle' } };
+  // 版1210：場面探しは、画面とは別の働き手（Web Worker）で試合を計算する（計算の間も画面が止まらない）。見つけた場面はこの端末に覚えておく（2回目からはすぐ見られる）
+  const VER = window.__appVer || '?';
+  for (const [lab, dy] of Object.entries(DYN)) { try { const sv = JSON.parse(localStorage.getItem('slab_' + VER + '_' + lab) || 'null'); if (sv && Array.isArray(sv.found)) { dy.found = sv.found; dy.seed = sv.seed || 1; dy.done = !!sv.done; } } catch (_) {} }
+  const NW = Math.max(2, Math.min(3, (navigator.hardwareConcurrency || 2) - 1));   // 働き手は最大3人（同時に別の試合を計算する）
+  const WS = (() => { try { if (location.protocol === 'file:' || typeof Worker === 'undefined') return []; const v = ((document.querySelector('script[src*="engine.js"]') || {}).src || '').split('v=')[1] || ''; return Array.from({ length: NW }, () => { const w = new Worker('engine/simworker.js?v=' + v); w.src = 'engine.js?v=' + v; return w; }); } catch (_) { return []; } })();
+  const W = WS[0] || null;
+  let wid = 0; const wwait = new Map(); for (const w of WS) { w.onmessage = (e) => { const r = wwait.get(e.data.id); wwait.delete(e.data.id); if (r) r(e.data.m || null); }; w.onerror = () => { for (const r of wwait.values()) r(null); wwait.clear(); }; }
+  const labFlags = (lab) => ({ __Kgkft: 1, __labLP: lab === 'lp', __labBic: lab === 'bic', __labPost: false });
+  const simW = (w, sd, lab) => new Promise((res) => { const f = {}; for (const k of Object.keys(globalThis)) if (k.startsWith('__') && ['boolean', 'number', 'string'].includes(typeof globalThis[k])) f[k] = globalThis[k]; Object.assign(f, labFlags(lab)); const E = window.DotSoccer, id = ++wid; wwait.set(id, res);
+    w.postMessage({ id, src: w.src, flags: f, args: [E.atLevel(E.beginningTeam(), 'S'), E.atLevel(E.presetTeam('バランス型'), 'S'), sd, { oneHalf: false, shootout: false, soForce: undefined, soGkFirst: undefined }] }); });
+  const scanM = (dy, sd, m) => { const out = []; for (const a of (m && m.actions) || []) { if (!dy.ok(a)) continue; if (dy.gk) { const F = m.frames || [], f = F.find((g) => g[0] >= a.t - 0.2); if (!(f && f[4] >= 0 && f[4] % 11 === 0)) continue; } out.push({ seed: sd, t: a.t }); } return out; };
+  const save = (lab, dy) => { try { localStorage.setItem('slab_' + VER + '_' + lab, JSON.stringify({ found: dy.found, seed: dy.seed, done: dy.done })); } catch (_) {} };
+  async function bgSearch(lab, want) { const dy = DYN[lab]; if (dy.busy || dy.done) return; dy.busy = true;
+    if (WS.length) {   // 試合番号の順に結果を並べる（先に終わった後ろの試合は、前の試合の結果を待ってから足す）
+      const res = new Map(); let next = dy.seed, stop = false;
+      const commit = () => { while (res.has(dy.seed)) { dy.found.push(...res.get(dy.seed)); res.delete(dy.seed); dy.seed++; } save(lab, dy); if (dy.found.length >= 12 || dy.seed > 80) stop = true; };
+      await Promise.all(WS.map(async (w) => { while (!stop && next <= 80) { const sd = next++; const m = await simW(w, sd, lab); if (!m) { stop = true; break; } res.set(sd, scanM(dy, sd, m)); commit(); } }));
+    } else {
+      while (dy.found.length < 12 && dy.seed <= 80 && dy.found.length <= want) { const sd = dy.seed; loadSeed(sd, lab); dy.found.push(...scanM(dy, sd, D.match)); dy.seed = sd + 1; save(lab, dy); await new Promise((r) => setTimeout(r, 30)); }   // 働き手が使えない時は、この画面で計算する（その間は止まる）
+    }
+    dy.busy = false; if (dy.found.length >= 12 || dy.seed > 80) dy.done = true; save(lab, dy); }
   const K = (k) => KINDS.find((x) => x[0] === k);
   function loadSeed(seed, lab) {
     const key = seed + (lab ? 'L' + lab : ''); if (loaded === key) return;
-    globalThis.__Kgkft = lab ? 1 : undefined; globalThis.__labLP = lab === 'lp' ? true : undefined; globalThis.__labPost = lab === 'post' ? true : undefined;   // 版1016：ポストに当たって入る場面を作る（確認画面だけ）   // 版946：確認画面だけの新しい止め方（近い距離のシュートを、飛ばずに足・体で止める）
+    globalThis.__Kgkft = lab ? 1 : undefined; globalThis.__labLP = lab === 'lp' ? true : undefined; globalThis.__labBic = lab === 'bic' ? true : undefined; globalThis.__labPost = lab === 'post' ? true : undefined;   // 版1016：ポストに当たって入る場面を作る（確認画面だけ）   // 版946：確認画面だけの新しい止め方（近い距離のシュートを、飛ばずに足・体で止める）
     document.querySelector('#level').value = 's'; const op = document.querySelector('#opponent'); if (op) op.value = 'バランス型';
     document.getElementById('seed').value = String(seed);
     D.start(); D.stop(); loaded = key;
@@ -43,16 +66,17 @@
   function go() {
     const L = SC[kind] || []; if (!L.length) return;
     idx = (idx + L.length) % L.length; cur = L[idx];
-    if (cur.lab !== 'lp') loadSeed(cur.seed, cur.lab);
-    // 版1205：低弾道パントは、この端末で実際に計算した試合の中から、本当にGKが手から蹴った場面を順に探して流す
-    //  （端末の設定（フリー試合のチームなど）で試合が変わると、こちらで決めた「何試合目の何秒」には低弾道パントがないことがある。前はその時、関係ない場面を流していた）
-    if (cur.lab === 'lp') { const want = idx, tok = ++lpTok; cur = null; D.stop(); const c = document.getElementById('glC'); if (c) c.textContent = '低弾道パントの場面を探しています…';
+    const dy = DYN[cur.lab];
+    if (!dy) loadSeed(cur.seed, cur.lab);
+    // 版1205：低弾道パント・バイシクル（版1210）は、この端末で実際に計算した試合の中から、本当にその場面を順に探して流す
+    //  （端末の設定（フリー試合のチームなど）で試合が変わると、こちらで決めた「何試合目の何秒」にはその場面がないことがある）
+    if (dy) { const want = idx, tok = ++lpTok, lab = cur.lab, base = L[idx]; cur = null; D.stop(); const c = document.getElementById('glC');
+      bgSearch(lab, want);
       const step = () => { if (tok !== lpTok) return;
-        if (lpFound.length > want) { const h = lpFound[want]; loadSeed(h.seed, 'lp'); cur = { ...L[idx], seed: h.seed, t: h.t }; const [a2] = win(); D.seek(Math.max(0.2, a2)); D.setSpeed(sp); if (!paused) D.play(); info(); return; }
-        if (lpSeed > 60) { if (c) c.textContent = '低弾道パントの場面が見つかりませんでした'; return; }
-        const sd = lpSeed++; loadSeed(sd, 'lp');
-        for (const a of (D.match && D.match.actions) || []) { if (a.a !== 'skill' || a.k !== 'lowPunt') continue; const F = D.match.frames || [], f = F.find((g) => g[0] >= a.t - 0.2); if (f && f[4] >= 0 && f[4] % 11 === 0) lpFound.push({ seed: sd, t: a.t }); }
-        setTimeout(step, 30); };
+        if (dy.found.length > want) { const h = dy.found[want]; loadSeed(h.seed, lab); cur = { ...base, seed: h.seed, t: h.t }; const [a2] = win(); D.seek(Math.max(0.2, a2)); D.setSpeed(sp); if (!paused) D.play(); info(); return; }
+        if (dy.done) { if (c) c.textContent = dy.found.length ? `${dy.name}の場面は${dy.found.length}つだけでした（◀で戻る）` : dy.name + 'の場面が見つかりませんでした'; return; }
+        if (c) c.textContent = `${dy.name}の場面を探しています…（${dy.seed - 1}試合目まで計算・${dy.found.length}つ見つかった）`;
+        setTimeout(step, 300); };
       step(); return; }
     const [a] = win(); D.seek(Math.max(0.2, a)); D.setSpeed(sp); if (!paused) D.play(); info();
     const c0 = cur; setTimeout(() => { if (cur === c0) { D.seek(Math.max(0.2, a)); D.setSpeed(sp); } }, 200);
@@ -78,7 +102,7 @@
   function info() {
     const L = SC[kind] || [], k = K(kind); if (!L.length) return;
     document.getElementById('glW').textContent = '見るところ：' + k[4];
-    const c = cur && cur.lab === 'lp' ? cur : L[(idx + L.length) % L.length], m = Math.floor(c.t * ((D.match && D.match.clockScale) || 12) / 60);
+    const c = cur && DYN[cur.lab] ? cur : L[(idx + L.length) % L.length], m = Math.floor(c.t * ((D.match && D.match.clockScale) || 12) / 60);
     document.getElementById('glC').textContent = `${(idx % L.length + L.length) % L.length + 1}/${L.length}`;
     document.getElementById('glM').textContent = `${idx + 1} / ${L.length} 場面目：試合番号${c.seed}・${m}分ごろ${c.sp != null ? `（${c.bar ? 'バー' : 'ポスト'}・秒速${c.sp}m・音${Math.round((0.4 + 1.8 * Math.max(0, Math.min(1, (c.sp - 10) / 20))) * 100)}%）` : ''}`;
   }
