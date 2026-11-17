@@ -1167,14 +1167,14 @@
     ticket: '<svg viewBox="0 0 44 28"><rect x="2" y="3" width="40" height="22" rx="4" transform="rotate(-8 22 14)"/><circle cx="22" cy="14" r="6" fill="#fff"/></svg>' };
   // 版1139：選手カードの★の横の「?」→ 凸のしくみ（どの画面のカードでも）
   document.addEventListener('click', (e) => { const q = e.target.closest && e.target.closest('[data-tzq]'); if (!q) return; e.stopPropagation(); e.preventDefault(); totsuDoc(); }, true);
-  const TZD_TABS = [['intro', 'はじめに'], ['rare', 'レア度別'], ['kake', 'カケラの入手']];   // 版1137：サポート効果の一覧は、凸の資料とは別の画面
+  const TZD_TABS = [['intro', 'はじめに'], ['rare', 'レア度別'], ['kake', 'カケラの入手'], ['lim', '限界突破']];   // 版1234：限界突破のタブ   // 版1137：サポート効果の一覧は、凸の資料とは別の画面
   function totsuDoc(tab) {
     let el = document.getElementById('tzDoc'); if (!el) { el = document.createElement('div'); el.id = 'tzDoc'; (document.getElementById('app') || document.body).appendChild(el); }
     tab = tab || 'intro';
     const sec = (t, inner, cls) => `<div class="tz2-pnl ${cls || ''}"><h4><i>»</i>${t}</h4>${inner}</div>`;
     const big = (tz, lab) => `<div class="tz2-st"><span class="stars tz2-big">${starHTML(1, tz)}</span><b>${lab}</b></div>`;
     let body = '';
-    if (tab === 'intro') body = `<div class="tz2-def"><b>凸（とつ）とは？</b><p>選手ひとりひとりの<b>「強くなれる段階」</b>のことです。同じ選手がガチャでもう一度出たり、覚醒のカケラで「選手覚醒」したりすると、1つ上がります。無凸（0）から始まって、最大は<b>3凸（完凸）</b>。<small>（「限界突破」の「突（とつ）」から来たよび方です）</small></p></div>
+    if (tab === 'intro') body = `<div class="tz2-def"><b>凸（とつ）とは？</b><p>選手ひとりひとりの<b>「強くなれる段階」</b>のことです。同じ選手がガチャでもう一度出たり、覚醒のカケラで「選手覚醒」したりすると、1つ上がります。無凸（0）から始まって、最大は<b>3凸（完凸）</b>。<small>（特訓で上限を上げる「限界突破ゲージ」もあります。→「限界突破」のタブ）</small></p></div>
       <h3 class="tz2-ttl"><span>凸を上げると、選手の伸びしろが広がる！</span></h3><p class="tz2-sub">能力値はすぐには上がりません。特訓や試合で育てよう。</p>
       <div class="tz2-row">${big(0, '無凸')}<em>▶</em>${big(1, '1凸')}<em>▶</em>${big(2, '2凸')}<em>▶</em>${big(3, '3凸（完凸）')}</div>
       <div class="tz2-g2">${sec('凸で変わること', `<ul class="tz2-ls"><li>${TZD_SVG.up}<b>育てられる上限が上がる</b></li><li>${TZD_SVG.hand}<b>サポート効果が付く・強くなる</b></li><li>${TZD_SVG.crown}<b>☆5は1凸で固有スキル覚醒</b></li></ul>`)}
@@ -1183,6 +1183,11 @@
         if (uq) return '<td><span class="tz2-hl">固有スキル覚醒</span></td>'; if (pz) { const l = C.pasLv(st, tz); return `<td><span class="tz2-hl">${l === 1 ? 'サポート解放' : l === 2 ? 'サポート強化' : '範囲拡大／さらに強化'}</span></td>`; } return `<td>上限 ${g ? g.g1 : C.GRADES[C.capIdx(st, tz)]}</td>`; };
       body = `<h3 class="tz2-ttl"><span>レア度ごとの変化</span></h3><table class="tz2-tb"><thead><tr><th>レア度</th>${[['無凸', 0], ['1凸', 1], ['2凸', 2], ['3凸（完凸）', 3]].map(([l, t]) => `<th><span class="stars">${starHTML(1, t)}</span>${l}</th>`).join('')}</tr></thead><tbody>${[1, 2, 3, 4, 5].map((st) => `<tr><th>☆${st}</th>${[0, 1, 2, 3].map((t) => cellOf(st, t)).join('')}</tr>`).join('')}</tbody></table>
         <p class="tz2-cap">黄色は、その凸で新しく良くなること。上限はSが最高で、Sになったあとは上限は変わりません。<br>☆4の3凸：近くの味方だけに効く効果は味方全員に広がり、もともと全員に効く効果はさらに強くなります。</p>`; }
+    else if (tab === 'lim') body = `<h3 class="tz2-ttl"><span>限界突破ゲージ：特訓で上限を上げる</span></h3><p class="tz2-sub">凸しなくても、使い続けて特訓すれば、上限はSまで上がります。</p>
+      <div class="tz2-g3">${sec('ゲージがたまる', '<p class="tz2-tx">能力が上限に届いた後、特訓や全体練習で<b>伸びなかった分</b>が、その選手の「限界突破ゲージ」にたまります。ゲージは選手カードの上限の横に出ます。</p>')}
+        ${sec('満タンで限界突破', `<p class="tz2-tx">ゲージが<b>${C.LIM_NEED}</b>たまると「限界突破！」。上限が1段上がります（C → B → A → S）。上限がSになると、ゲージはなくなります。</p>`)}
+        ${sec('凸とのちがい', '<p class="tz2-tx">限界突破で上がるのは<b>上限だけ</b>です。サポート効果と固有スキルの覚醒は、凸でしか良くなりません。上限は、凸の分と限界突破の分を足して決まります（Sまで）。</p>')}</div>
+      <p class="tz2-cap">例：☆1の選手（上限C）を毎週3枚のカードで特訓すると、およそ1年ちょっとでB、2年半でA、4年弱でSまで上限が上がります。</p>`;
     else if (tab === 'kake') body = `<h3 class="tz2-ttl"><span>覚醒のカケラを集める</span></h3><div class="tz2-g3">
       ${sec('完凸の選手がかぶる', '<p class="tz2-tx">3凸（完凸）の選手が、ガチャでまた出た時。凸はもう上がらないので、<b>基本数</b>のカケラになります。</p>')}
       ${sec('選手を放出する', `<div class="tz2-rel"><span class="tz2-tag">自動放出</span><p>ガチャの設定で「自動放出」をオンにすると、<b>はじめて出た選手</b>のうち、決めた☆以下の選手はチームに入らず、すぐカケラになります。→ <b>基本数</b></p></div>
