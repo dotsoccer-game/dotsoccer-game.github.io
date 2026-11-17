@@ -13,7 +13,7 @@
     ['midori4', '翠の起点（4段・最大）', -0.5, 14, '版1223〜：翠の起点が4回出て、積み重ねがいちばん上（4段）になった後の、チームのパス回し。受けてすぐ離し、短いパスをテンポよく回す。ボールを持ってもほとんど取られず、パスもほぼ通る（効くのは中盤まで。相手陣の奥3分の1に入ると効かない）。場面は、4段になった後にそのチームがボールを持った時から14秒（確認のため、ホームチームの7人目の選手に翠の起点を持たせた試合です。相手チームは持っていません）'],
     ['midori', '翠の起点', -1.0, 9.0, '版1220〜：自陣でボールを持ち、相手がプレスに来た時に出る。わざとボールを見せて相手を引きつけ、空いた味方へつなぐ。出るたびに積み重なり、たまるほどチーム全体が受けてすぐ離し、短いパスをテンポよく回すようになる（4段でほとんど取られない。効くのは中盤まで）。場面は発動した時から9秒（確認のため、ホームチームの7人目の選手に翠の起点を持たせた試合です。相手チームは持っていません）'],
     ['bicycle', 'バイシクル', -1.0, 2.2, '版1211〜：蹴る0.42秒前から、ゴールに背を向けて後ろへ倒れながら跳び、いちばん高い所で頭の上のボールを蹴って、背中から落ちる。スローにはしない（確認のため、両チームのGK以外の全員にバイシクルを持たせた試合です）'],
-    ['lowPuntUra', '低弾道パント（裏へ抜け出してシュート）', -3.2, 11.0, '版1227〜：GKがボールを持つと、いちばん速いFWが相手DFラインの上に立って待つ。GKはFWがラインまで上がるのを少し待ってから、ラインの裏のスペースへ低弾道パントを蹴り込む。受けたFWは、前をふさがれなければ止まらずにゴールへ運び、打てる所で打つ。場面はGKが蹴った時からシュートまで'],
+    ['lowPuntUra', '低弾道パント（裏へ抜け出してシュート）', -3.2, 11.0, '版1227〜：GKがボールを持つと、いちばん速いFWが相手DFラインの上に立って待つ。GKはFWがラインまで上がるのを少し待ってから、ラインの裏のスペースへ低弾道パントを蹴り込む（シュートまで行かない場面もあります）。受けたFWは、前をふさがれなければ止まらずにゴールへ運び、打てる所で打つ。裏へ蹴り込めるのは、キック・フィジカルがどちらもA以上のGKだけ（版1228〜）。能力が高いほど遠くまで、正確に飛ぶ。確認のため、両方のGKのキック・フィジカルをいちばん上（S・最大）にした試合です。場面はGKが蹴った時からシュートまで'],
     ['lowPunt', '低弾道パントキック', -3.2, 3.2, '版1205〜：GKはボールを手で持ったまま、ペナルティエリアのぎりぎりまで歩いて出てから、蹴る方向を向いて強く叩く。バックスピンで浮き上がるように伸び、相手DFの頭の上を越えてから、FWの胸もと・裏のスペースへ落ちる。飛ぶ距離はフィジカル（いちばん遠くて、相手のペナルティアークの少し手前まで）、狙った所へ落とす正確さはキックで決まる（確認のため、両方のGKに低弾道パントを持たせた試合です）'],
     ['new_punchHigh', 'ハイボールをパンチング', -1.6, 1.6, '版1052〜：ボールの方を向いて跳び、こぶしをあごの横に引いてから、ボールへ斜め上に突き出す'],
     ['new_catchLow', 'キャッチ：低い球（片ひざ）', -1.4, 1.6, '版1050〜：低く来たシュート（0.45m未満）を、片ひざをついて、ひざの前で両手で持つ'],
@@ -43,7 +43,7 @@
   let kind = KINDS[0] ? KINDS[0][0] : null, idx = 0, sp = 0.5, cur = null, loaded = null, paused = false; let lpFound = [], lpSeed = 1, lpTok = 0; const DYN = { lp: { name: '低弾道パント', found: [], seed: 1, ok: (a) => a.a === 'skill' && a.k === 'lowPunt', gk: true }, bic: { name: 'バイシクル', found: [], seed: 1, ok: (a) => a.a === 'bicycle' }, md: { name: '翠の起点', found: [], seed: 1, ok: (a) => a.a === 'uniq' && a.k === 'midori' }, sut: { name: '捨て身の守護神', found: [], seed: 1, ok: (a) => a.a === 'uniq' && a.k === 'sutemi' },
     lpu: { name: '低弾道パント（裏へ）', found: [], seed: 1, ok: () => false, pick: (m) => {   // 版1227：GKの低弾道パントから、同じチームが12秒以内にシュートまで行った場面
       const out = [], ev = m.events || [];
-      for (const a of m.actions || []) { if (!(a.a === 'skill' && a.k === 'lowPunt' && a.i % 11 === 0)) continue; const tm = a.i < 11 ? 0 : 1; if (ev.some((e) => e.type === 'shot' && e.team === tm && e.t > a.t && e.t < a.t + 12)) out.push(a.t); }
+      for (const a of m.actions || []) { if (!(a.a === 'skill' && a.k === 'lowPunt' && a.i % 11 === 0)) continue; const tm = a.i < 11 ? 0 : 1; if (a.u || ev.some((e) => e.type === 'shot' && e.team === tm && e.t > a.t && e.t < a.t + 12)) out.push(a.t); }   // 版1228：裏へ蹴り込んだ場面（シュートまで行かなくても）
       return out; } },
     md4: { name: '翠の起点（4段）', found: [], seed: 1, ok: () => false, pick: (m) => {   // 版1223：4回目が出た後（4段＝いちばん上）。そのチームがボールを持っている時から
       const out = [], F = m.frames || [];
@@ -57,7 +57,7 @@
   const WS = (() => { try { if (location.protocol === 'file:' || typeof Worker === 'undefined') return []; const v = ((document.querySelector('script[src*="engine.js"]') || {}).src || '').split('v=')[1] || ''; return Array.from({ length: NW }, () => { const w = new Worker('engine/simworker.js?v=' + v); w.src = 'engine.js?v=' + v; return w; }); } catch (_) { return []; } })();
   const W = WS[0] || null;
   let wid = 0; const wwait = new Map(); for (const w of WS) { w.onmessage = (e) => { const r = wwait.get(e.data.id); wwait.delete(e.data.id); if (r) r(e.data.m || null); }; w.onerror = () => { for (const r of wwait.values()) r(null); wwait.clear(); }; }
-  const labFlags = (lab) => ({ __Kgkft: 1, __labLP: lab === 'lp' || lab === 'lpu', __labBic: lab === 'bic', __labMd: lab === 'md' || lab === 'md4', __labSut: lab === 'sut', __labPost: false });
+  const labFlags = (lab) => ({ __Kgkft: 1, __labLP: lab === 'lp' || lab === 'lpu', __labLPmax: lab === 'lpu', __labBic: lab === 'bic', __labMd: lab === 'md' || lab === 'md4', __labSut: lab === 'sut', __labPost: false });
   const simW = (w, sd, lab) => new Promise((res) => { const f = {}; for (const k of Object.keys(globalThis)) if (k.startsWith('__') && ['boolean', 'number', 'string'].includes(typeof globalThis[k])) f[k] = globalThis[k]; Object.assign(f, labFlags(lab)); const E = window.DotSoccer, id = ++wid; wwait.set(id, res);
     w.postMessage({ id, src: w.src, flags: f, args: [E.atLevel(E.beginningTeam(), 'S'), E.atLevel(E.presetTeam('バランス型'), 'S'), sd, { oneHalf: false, shootout: false, soForce: undefined, soGkFirst: undefined }] }); });
   const scanM = (dy, sd, m) => { if (dy.pick) return dy.pick(m).map((t) => ({ seed: sd, t })); const out = []; for (const a of (m && m.actions) || []) { if (!dy.ok(a)) continue; if (dy.gk) { const F = m.frames || [], f = F.find((g) => g[0] >= a.t - 0.2); if (!(f && f[4] >= 0 && f[4] % 11 === 0)) continue; } out.push({ seed: sd, t: a.t }); } return out; };
@@ -74,7 +74,7 @@
   const K = (k) => KINDS.find((x) => x[0] === k);
   function loadSeed(seed, lab) {
     const key = seed + (lab ? 'L' + lab : ''); if (loaded === key) return;
-    globalThis.__Kgkft = lab ? 1 : undefined; globalThis.__labLP = lab === 'lp' || lab === 'lpu' ? true : undefined; globalThis.__labBic = lab === 'bic' ? true : undefined; globalThis.__labMd = lab === 'md' || lab === 'md4' ? true : undefined; globalThis.__labSut = lab === 'sut' ? true : undefined; globalThis.__labPost = lab === 'post' ? true : undefined;   // 版1016：ポストに当たって入る場面を作る（確認画面だけ）   // 版946：確認画面だけの新しい止め方（近い距離のシュートを、飛ばずに足・体で止める）
+    globalThis.__Kgkft = lab ? 1 : undefined; globalThis.__labLP = lab === 'lp' || lab === 'lpu' ? true : undefined; globalThis.__labLPmax = lab === 'lpu' ? true : undefined; globalThis.__labBic = lab === 'bic' ? true : undefined; globalThis.__labMd = lab === 'md' || lab === 'md4' ? true : undefined; globalThis.__labSut = lab === 'sut' ? true : undefined; globalThis.__labPost = lab === 'post' ? true : undefined;   // 版1016：ポストに当たって入る場面を作る（確認画面だけ）   // 版946：確認画面だけの新しい止め方（近い距離のシュートを、飛ばずに足・体で止める）
     document.querySelector('#level').value = 's'; const op = document.querySelector('#opponent'); if (op) op.value = 'バランス型';
     document.getElementById('seed').value = String(seed);
     D.start(); D.stop(); loaded = key;

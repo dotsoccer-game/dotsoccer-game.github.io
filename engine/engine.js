@@ -489,6 +489,7 @@
       if (q.sk.has('overlap')) q.overlap = Math.max(q.overlap, 80);   // オーバーラップ：SBが積極的に前線へ
       // 固有スキル・サポートパッシブ
       q.uniq = p.uniq && UNIQ[p.uniq] ? p.uniq : null; q.uniqLv = q.uniq ? clamp(p.uniqLv || 1, 1, 2) : 0; q.uOn = -1; q.uCd = 0;
+      if (globalThis.__labLPmax && i === 0) { q.kick = 99; q.physical = 99; }   // 確認画面だけ：GKのキック・フィジカルをいちばん上（S・最大）に
       if (globalThis.__labSut && i === 0) { q.uniq = 'sutemi'; q.uniqLv = 1; q.type = 'スイーパーキーパー'; }   // 確認画面だけ：両方のGKに捨て身の守護神
       if (globalThis.__labMd && i === 6 && (ti === 0 || !(globalThis.__Kmdl1 ?? 1))) { q.uniq = 'midori'; q.uniqLv = 1; q.type = 'ビルドアップ型'; }   // 確認画面だけ：ホームチームの7番目の選手に翠の起点（版1225：相手には持たせない。どちらのボールが光っているかわかりやすく）
       q.pasK = p.passive > 0 && PASSIVE[q.type] ? PASSIVE[q.type].k : null; q.passive = q.pasK ? clamp(p.passive, 1, 3) : 0;   // 1 付与、2 強化、3 範囲が味方全員に（もともと全員なら効き目がさらに上がる）
@@ -636,6 +637,7 @@
     const side = [1, -1];
     const sgn = (ti) => side[ti];
     // 版1225：翠の起点の積み重ねが効くのは、ボールを持つ選手（パスを出す選手）が中盤まで（相手陣の奥3分の1に入るまで）にいる時だけ。崩しの場面は港の指揮者の役目
+    const lpUra = (g) => !(globalThis.__Klpq ?? 1) || ((g.kick || 0) >= 74 && (g.physical || 0) >= 74);   // 版1228：裏のスペースへ蹴り込めるのは、キック・フィジカルがどちらもA以上のGKだけ
     function mdK(p) { const k = (p && T[p.team].mdStack) || 0; if (!k || !(globalThis.__Kmd3 ?? 1)) return k; return fx(p.team, p.x) < L * 2 / 3 ? k : 0; }
     // 港の指揮者（おおかわ）：指揮が続いている間の、チーム全体の強さ（0＝なし 1＝無凸 2＝凸）
     const condLv = (ti) => { for (const m of T[ti].players) if (m.uniq === 'minato' && m.uOn > S.t && !m.off) return m.uniqLv >= 2 ? 2 : 1; return 0; };
@@ -1058,7 +1060,7 @@
     const opps = (p) => T[1 - p.team].players;
     function maxSpeed(p) {
       const st = (globalThis.__Kfw ?? 1) ? 0.84 + 0.16 * (curE(p) / 100) : 0.7 + 0.3 * (curE(p) / 100);   // 版985：へとへとでも、走る速さは最大16%減（30%減だと終盤に試合が止まった）
-      return (4.4 + p.speed * 0.047) * st * ((T[p.team].capBuff || 0) > S.t ? 1.04 : 1) * ((p.recUntil || 0) > S.t ? 1.1 : 1) * ((p.ovUntil || 0) > S.t ? 1.06 : 1) * ((p.ctRun || 0) > S.t ? 1.07 : 1) * (p.stun > 0 ? 0.45 : 1) * ((p.mtSlow || 0) > S.t ? 0.8 : 1) * (p.uniq && p.uOn > S.t ? uSpd(p) : 1) * (p.mtCharge && p.uOn > S.t ? 1.15 : 1) * ((p.mtHeld || 0) > S.t ? 0.25 : 1) * ((p.kgPin || 0) > S.t ? 0.08 : 1) * ((p.kgSlow || 0) > S.t ? 0.65 : 1) * ((p.hariT || 0) > S.t ? 1.22 : 1) * ((p.byT || 0) > S.t ? (p.byLv >= 2 ? 1.12 : 1.06) : 1) * ((p.byRunT || 0) > S.t ? (p.byRunLv >= 2 ? 1.2 : 1.15) : 1) * ((p.uzT || 0) > S.t ? 1.15 : 1) * ((p.aoFast || 0) > S.t || (p.aoKeepFast && S.ball.owner === p.idx) ? 1.15 : 1) * ((p.aoShield || 0) > S.t ? 0.3 : 1) * (S.lcStep && S.lcStep.mode === 'up' && S.lcStep.team === p.team && S.lcStep.until > S.t && p.position === 'DF' ? (S.lcStep.trap ? 1.55 : 1.2) : 1);   // オフサイドトラップ：一斉に鋭く押し上げる   // S（90台）は約8.7m/s、E（40台）は約6.4m/s
+      return (4.4 + p.speed * 0.047) * st * ((p.lpTurn || 0) > S.t ? 0.35 : 1) * ((T[p.team].capBuff || 0) > S.t ? 1.04 : 1) * ((p.recUntil || 0) > S.t ? 1.1 : 1) * ((p.ovUntil || 0) > S.t ? 1.06 : 1) * ((p.ctRun || 0) > S.t ? 1.07 : 1) * (p.stun > 0 ? 0.45 : 1) * ((p.mtSlow || 0) > S.t ? 0.8 : 1) * (p.uniq && p.uOn > S.t ? uSpd(p) : 1) * (p.mtCharge && p.uOn > S.t ? 1.15 : 1) * ((p.mtHeld || 0) > S.t ? 0.25 : 1) * ((p.kgPin || 0) > S.t ? 0.08 : 1) * ((p.kgSlow || 0) > S.t ? 0.65 : 1) * ((p.hariT || 0) > S.t ? 1.22 : 1) * ((p.byT || 0) > S.t ? (p.byLv >= 2 ? 1.12 : 1.06) : 1) * ((p.byRunT || 0) > S.t ? (p.byRunLv >= 2 ? 1.2 : 1.15) : 1) * ((p.uzT || 0) > S.t ? 1.15 : 1) * ((p.aoFast || 0) > S.t || (p.aoKeepFast && S.ball.owner === p.idx) ? 1.15 : 1) * ((p.aoShield || 0) > S.t ? 0.3 : 1) * (S.lcStep && S.lcStep.mode === 'up' && S.lcStep.team === p.team && S.lcStep.until > S.t && p.position === 'DF' ? (S.lcStep.trap ? 1.55 : 1.2) : 1);   // オフサイドトラップ：一斉に鋭く押し上げる   // S（90台）は約8.7m/s、E（40台）は約6.4m/s
     }
     // 固有スキルが出ている間の速さ
     // 紫電の遊戯：運ぶ向きは縦が基本（横にも行くが、後ろへは戻らない）。ゴール前20m以内では、シュートコースを開けるための切り返し（後ろ向き）もあり
@@ -1550,7 +1552,7 @@
         if (ln === 0 && wide) ty = GOAL_Y + Math.sign(sy - GOAL_Y) * Math.max(Math.abs(ty - GOAL_Y), 27);   // SBはタッチライン寄り
         targets[p.idx] = [fx(t, minX), clamp(ty, 2, W - 2)]; urgent[p.idx] = minX - fx(t, p.x) > 5; if (urgent[p.idx]) p.bUrg = S.t;   // 離れていれば走って広がる
       }
-      if ((globalThis.__Klp9 ?? 1) && g.sk.has('lowPunt') && g.hold && ol < L - 27) {   // 版1227：低弾道パントを持つGKがボールを持ったら、いちばん速いFWが相手DFラインの上（肩口）に立って、裏へ蹴り込まれるのを待つ
+      if ((globalThis.__Klp9 ?? 1) && g.sk.has('lowPunt') && lpUra(g) && g.hold && ol < L - 27) {   // 版1227：低弾道パントを持つGKがボールを持ったら、いちばん速いFWが相手DFラインの上（肩口）に立って、裏へ蹴り込まれるのを待つ
         const fw = T[t].players.filter((q) => !q.off && !q.gk && q.position === 'FW' && targets[q.idx]).sort((a, c) => (c.speed + (skZ(c, 'behindRun') ? 15 : 0)) - (a.speed + (skZ(a, 'behindRun') ? 15 : 0)))[0];
         if (fw) { const ty = clamp(fw.slot && fw.slot.y != null ? fw.slot.y : fw.y, 14, W - 14); targets[fw.idx] = [fx(t, ol - 0.8), ty]; urgent[fw.idx] = ol - 0.8 - fx(t, fw.x) > 4; }
       }
@@ -5505,12 +5507,12 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         gkRelease(p, counter, dC < (p.sk.has('lowThrow') ? 46 : 32) ? 'throw' : 'punt'); return true;
       }
       if (held < ((globalThis.__Klp ?? 1) && p.sk.has('lowPunt') ? 2.2 : 3.5) || ((globalThis.__Kgkw2 ?? 1) && p.sk.has('lowPunt') && held < 4.5 && fx(p.team, p.x) < 12.5 && !opps(p).some((o) => !o.off && hyp(o.x - p.x, o.y - p.y) < 7))) { S.decision = 0.3; return true; }   // 版1204：エリアのぎりぎりまで歩いてから蹴る     // 味方が上がるのを待つ（低弾道パントを持つGKは、早めに蹴り出す）
-      if ((globalThis.__Klp9 ?? 1) && p.sk.has('lowPunt') && held < 4.2 && !opps(p).some((o) => !o.off && hyp(o.x - p.x, o.y - p.y) < 9)) {   // 版1227：FWがDFラインの上まで上がるのを少し待つ
+      if ((globalThis.__Klp9 ?? 1) && p.sk.has('lowPunt') && lpUra(p) && held < 4.2 && !opps(p).some((o) => !o.off && hyp(o.x - p.x, o.y - p.y) < 9)) {   // 版1227：FWがDFラインの上まで上がるのを少し待つ
         const oLf0 = offsideLine(p.team), fw0 = mts.filter((m) => !m.gk && !m.off && m.position === 'FW').sort((a, c) => fwd(c) - fwd(a))[0];
         if (fw0 && oLf0 < L - 27 && fwd(fw0) < oLf0 - 3 && fwd(fw0) > oLf0 - 25) { S.decision = 0.3; return true; } }
-      if ((globalThis.__Klp9 ?? 1) && p.sk.has('lowPunt') && R.next() < 0.7) {   // 版1227：相手DFラインの上にいる味方（FW）がいて、ラインの裏が空いていれば、裏のスペースへ一気に蹴り込む（受けたらそのままゴールへ）
+      if ((globalThis.__Klp9 ?? 1) && p.sk.has('lowPunt') && lpUra(p) && R.next() < 0.7) {   // 版1227：相手DFラインの上にいる味方（FW）がいて、ラインの裏が空いていれば、裏のスペースへ一気に蹴り込む（受けたらそのままゴールへ）
         const oLf = offsideLine(p.team), md = 40 + (p.physical || 50) * 0.34;
-        const ur = oLf < L - 27 ? mts.filter((m) => !m.gk && !m.off && (m.position === 'FW' || m.position === 'MF') && fwd(m) > oLf - 6 && fwd(m) < oLf + 0.3 && hyp(fx(p.team, Math.max(oLf + 5, fwd(m) + 7)) - p.x, m.y - p.y) < md + 4 && !opps(p).some((o) => !o.off && !o.gk && fx(p.team, o.x) > fwd(m) - 1 && Math.abs(o.y - m.y) < 5 && fx(p.team, o.x) < oLf + 14 && hyp(o.x - m.x, o.y - m.y) < 3.2)).sort((a, c) => (fwd(c) + (c.position === 'FW' ? 3 : 0) + c.speed * 0.05) - (fwd(a) + (a.position === 'FW' ? 3 : 0) + a.speed * 0.05))[0] : null;
+        const ur = oLf < L - 27 ? mts.filter((m) => !m.gk && !m.off && (m.position === 'FW' || m.position === 'MF') && fwd(m) > oLf - 6 && fwd(m) < oLf + 0.3 && hyp(fx(p.team, Math.max(oLf + 5, fwd(m) + 7)) - p.x, m.y - p.y) < md + 4 && !opps(p).some((o) => !o.off && !o.gk && fx(p.team, o.x) > fwd(m) - 1 && Math.abs(o.y - m.y) < 5 && fx(p.team, o.x) < oLf + 14 && hyp(o.x - m.x, o.y - m.y) < 3.2) && (!(globalThis.__Klpm ?? 1) || freeOf(m) > 3.5)).sort((a, c) => (fwd(c) + (c.position === 'FW' ? 3 : 0) + c.speed * 0.05) - (fwd(a) + (a.position === 'FW' ? 3 : 0) + a.speed * 0.05))[0] : null;
         if (ur) { gkRelease(p, ur, 'lowPunt'); return true; } }
       if ((globalThis.__Klp ?? 1) && p.sk.has('lowPunt') && R.next() < 0.85) {   // 版1199：低弾道パントを持つGKは、前の空いている味方がいれば、まずそこへ低い弾道で一気に
         const lt = mts.filter((m) => !m.gk && fwd(m) > 40 && hyp(m.x - p.x, m.y - p.y) > 28 && (!(globalThis.__Klp6 ?? 1) || hyp(m.x - p.x, m.y - p.y) < 40 + (p.physical || 50) * 0.34) && freeOf(m) > 4 && lpOpen(m)).sort((a, c) => (fwd(c) * 0.3 + Math.min(freeOf(c), 8)) - (fwd(a) * 0.3 + Math.min(freeOf(a), 8)))[0];   // 版1204：なるべく遠い味方へ
@@ -5554,6 +5556,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         // 低弾道パントキック：頭くらいの弾道で、ポップアップしながら相手DFラインの裏へ
         const offL = offsideLine(p.team), qf = fx(p.team, q.x);
         let ura = !(globalThis.__Klp ?? 1) || qf > offL - ((globalThis.__Klp5 ?? 1) ? 9 : (globalThis.__Klp3 ?? 1) ? 22 : 12);
+        if (ura && (globalThis.__Klp ?? 1) && !lpUra(p)) ura = false;   // 版1228：A未満のGKは、裏へは蹴らず胸もとへ
         let tx = fx(p.team, ura ? Math.min(offL + ((globalThis.__Klp5 ?? 1) ? 6 : (globalThis.__Klp3 ?? 1) ? 9 : 7), L - 12) : Math.min(qf + ((globalThis.__Klp5 ?? 1) ? 2 : (globalThis.__Klp3 ?? 1) ? 6 : 4), offL - ((globalThis.__Klp5 ?? 1) ? 5 : 1))), ty = clamp(q.y + (ura ? R.gauss() * 3 : q.vy * 0.8), 6, W - 6);   // 版1199：味方が相手のラインの近くなら裏へ。離れていれば、その味方の少し前へ
         if (ura && (globalThis.__Klp5 ?? 1)) {   // 版1204：裏へは、受け手がまっすぐ走り込める所（受け手の前方）へ落とす。相手DFの方が先に着く所なら、裏はやめて胸もとへ
           const lead = (globalThis.__Klp9 ?? 1) && Math.abs(offL - qf) < 6.5 ? 5 * (globalThis.__Klpl ?? 1) : 0;   // 版1227：ラインの上にいる受け手には、もっと先（走り込んで受ける所）へ
@@ -5576,10 +5579,10 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           let vz = feet ? Math.max(1.2, (lo + hi) / 2) : (lo + hi) / 2; if (!feet && fly(vz).top < 2.8) vz = Math.max(vz, 3.2);   // 頭の上は越える
           if (fly(vz).top > 4.8) { let a0 = 0.5, a1 = vz; for (let k = 0; k < 16; k++) { const m = (a0 + a1) / 2; if (fly(m).top > 4.8) a1 = m; else a0 = m; } vz = a0; }   // 低弾道：いちばん高い所でも5m弱まで。届かない分は、手前で弾んで伸びる
           if ((globalThis.__Klp5 ?? 1) && !feet) {   // 版1204：相手DFの頭の上（3.4m以上）を越えてから落ちる弾道を選ぶ。低く速すぎると、ラインの手前でDFに頭で弾かれる
-            const ln = ura ? offL - 1.5 : Math.min(offL, fx(p.team, q.x)) - 4, cD = clamp(d * (ln - fx(p.team, p.x)) / Math.max(1, fx(p.team, tx) - fx(p.team, p.x)), 5, endD - 2);
+            const ln = ura ? offL + ((globalThis.__Klph ?? 1) ? 5 : -1.5) : Math.min(offL, fx(p.team, q.x)) - 4, cD = clamp(d * (ln - fx(p.team, p.x)) / Math.max(1, fx(p.team, tx) - fx(p.team, p.x)), 5, endD - 2);
             const zAt = (vh0, vz0, D0) => { let x = 0, z = 0.6, vh = vh0, w = vz0; for (let k = 0; k < 90; k++) { x += vh * DT; const sp = Math.hypot(vh, w); vh -= AIR * sp * vh * DT; w -= (9.8 + AIR * sp * w - LIFT * bs * vh) * DT; z += w * DT; if (x >= D0) return z; if (z <= 0) return -1; } return 9; };
             const land = (vh0) => { let a0 = 0.5, a1 = 16; for (let k = 0; k < 18; k++) { const m = (a0 + a1) / 2; const zz = zAt(vh0, m, endD); if (zz > zT) a1 = m; else a0 = m; } return (a0 + a1) / 2; };
-            if (zAt(v, vz, cD) < 3.4) for (const f9 of [0.95, 0.9, 0.85, 0.8, 0.75]) { const v2 = v * f9, vz2 = land(v2); const tp = (() => { let x = 0, z = 0.6, vh = v2, w = vz2, top = 0; for (let k = 0; k < 90 && x < endD; k++) { x += vh * DT; const sp = Math.hypot(vh, w); vh -= AIR * sp * vh * DT; w -= (9.8 + AIR * sp * w - LIFT * bs * vh) * DT; z += w * DT; top = Math.max(top, z); } return top; })(); if (tp > 5.6) break; v = v2; vz = vz2; if (zAt(v2, vz2, cD) >= 3.4) break; }   // 低弾道のまま（いちばん高い所で5.6mまで）
+            if (zAt(v, vz, cD) < 3.4) for (const f9 of [0.95, 0.9, 0.85, 0.8, 0.75]) { const v2 = v * f9, vz2 = land(v2); const tp = (() => { let x = 0, z = 0.6, vh = v2, w = vz2, top = 0; for (let k = 0; k < 90 && x < endD; k++) { x += vh * DT; const sp = Math.hypot(vh, w); vh -= AIR * sp * vh * DT; w -= (9.8 + AIR * sp * w - LIFT * bs * vh) * DT; z += w * DT; top = Math.max(top, z); } return top; })(); if (tp > (ura && (globalThis.__Klph ?? 1) ? 6.8 : 5.6)) break; v = v2; vz = vz2; if (zAt(v2, vz2, cD) >= 3.4) break; }   // 低弾道のまま（いちばん高い所で5.6mまで）
           }
           const dx = (tx - p.x) / d, dy = (ty - p.y) / d;
           kick(p, tx, ty, 'pass', 'drive', { landFrac: 0.62 });   // 蹴った時の決まりごと（記録・モーション）はふつうのキックと同じ。球の飛び方だけ上書き
@@ -5589,7 +5592,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         b.vz = Math.min(b.vz, 5.2); b.bs = -0.2;
         }
         b.intended = q.idx; b.offside = false; q.run = Math.max(q.run, 3); b.lpU = ura ? 1 : 0;   // 版1227：裏へ蹴ったか
-        act(p, 'skill', 1.3, { k: 'lowPunt' });
+        if (ura && (globalThis.__Klpt ?? 1)) for (const o of opps(p)) if (!o.off && !o.gk && Math.abs(fx(p.team, o.x) - offL) < 12) o.lpTurn = S.t + clamp((globalThis.__Klpt ?? 1) * (0.9 - (o.defense || 50) * 0.006), 0.15, 0.7);   // 版1228：DFラインの裏（背中側）へ蹴られると、相手DFは体の向きを変えてから走り出す（守備が高いほど早い）
+        act(p, 'skill', 1.3, { k: 'lowPunt', u: ura ? 1 : 0 });
         if (globalThis.__lpDbg) globalThis.__lpDbg.push({ t: S.t, q: q.idx, tx, ty, ura, gx: p.x, offL: fx(p.team, offL) });
       } else if (how === 'throw') {
         const tx = q.x + q.vx * 0.5, ty = q.y + q.vy * 0.5, d = hyp(tx - p.x, ty - p.y) || 1;
