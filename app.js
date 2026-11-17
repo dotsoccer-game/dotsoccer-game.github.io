@@ -231,7 +231,7 @@
     const PASS_SK = new Set(['throughPass', 'loftedThrough', 'noLook', 'oneTouchPass', 'heelPass', 'longFeed', 'earlyCross', 'pinpointCross', 'switchPlay', 'wallPass', 'oneTwo']);
     kfOf = Array.from({ length: 22 }, () => []);   // 蹴った足（右・左）は絵の描き分けだけに使う
     for (const a of match.actions || []) { if (a.a === 'kf') { kfOf[a.i].push(a); continue; } if (!(a.a === 'skill' && PASS_SK.has(a.k))) actsOf[a.i].push(a); }
-    bySlow = (match.actions || []).filter((a) => a.a === 'bycalm').map((a) => [a.t, a.t + a.d]);   // 白夜の視界：時間がゆっくり流れる区間
+    bySlow = (match.actions || []).filter((a) => a.a === 'bycalm').map((a) => [a.t, a.t + a.d]); if (globalThis.__Kbic ?? 1) for (const a of match.actions || []) if (a.a === 'bicycle') bySlow.push([a.t - 0.4, a.t + 0.45]);   // 版1209：バイシクルは、跳んでから蹴るまでをスローで見せる   // 白夜の視界：時間がゆっくり流れる区間
     // 接触の瞬間（足・頭・体がボールや相手に当たった所）に小さな火花を出す：誰が何に触ったかを目で追えるように
     contacts = [];
     for (const a of match.actions || []) {
@@ -274,6 +274,7 @@
     let touchHit = null;
     for (let k = L2.length - 1; k >= 0; k--) {
       const a = L2[k];
+      if (a.a === 'bicycle' && (globalThis.__Kbic ?? 1)) { const H0 = 0.42, t0 = a.t - H0, d0 = a.d + H0; if (simT >= t0 && simT - t0 <= d0) return { ...a, u: (simT - t0) / d0, hitU: H0 / d0 }; if (a.t > simT) continue; }   // 版1209：バイシクルは、蹴る0.42秒前から後ろへ倒れながら跳び始める（前は蹴った瞬間から跳んでいて、一瞬で終わっていた）
       if (a.a === 'head') { const H0 = 0.32, t0 = a.t - H0, d0 = a.d + H0; if (simT >= t0 && simT - t0 <= d0) return { ...a, u: (simT - t0) / d0, hitU: H0 / d0 }; if (a.t > simT) continue; }   // 版456：ヘディングは、当たる少し前に跳び始める
       if (a.t > simT + 0.05) continue;
       if (simT - a.t > 1.6) break;
@@ -3197,12 +3198,13 @@
         // ダイビングヘッド：低く構える → 頭から飛び込む（体が地面と平行）→ 腹ばいで着地
         // バイシクル：ゴールに背を向けて後ろへ倒れながら跳ぶ → 頭の上で蹴る → 背中から着地（手で描いた絵・8方向）
         const px = Math.max(1.4, 2.5 * q.s), u = ac.u, bi = ac.a === 'bicycle';
-        const h = bi ? Math.sin(Math.PI * Math.min(1, u * 1.6)) * 0.55 : (u > 0.12 && u < 0.6 ? Math.sin(Math.PI * (u - 0.12) / 0.48) * 0.35 : 0);
+        const hu = bi && ac.hitU != null ? ac.hitU : null;
+        const h = hu != null ? (u < hu ? Math.sin(Math.PI / 2 * u / hu) * 0.7 : Math.max(0, Math.cos(Math.PI / 2 * Math.min(1, (u - hu) / 0.3))) * 0.7) : bi ? Math.sin(Math.PI * Math.min(1, u * 1.6)) * 0.55 : (u > 0.12 && u < 0.6 ? Math.sin(Math.PI * (u - 0.12) / 0.48) * 0.35 : 0);
         const g = P3(p.x, p.y, h);
         ctx.fillStyle = 'rgba(0,30,0,0.3)'; ctx.beginPath(); ctx.ellipse(q.x, q.y, 8 * px, 2.2 * px, 0, 0, 7); ctx.fill();
         if (bi) dmFacing = Math.atan2(p.y - 34, p.x - attackX);   // ゴールに背を向ける
         else dmFacing = ac.dx != null ? Math.atan2(ac.dy, ac.dx) : Math.atan2(34 - p.y, attackX - p.x);
-        const fr = bi ? (u < 0.3 ? 0 : u < 0.6 ? 1 : 2) : (u < 0.12 ? 0 : u < 0.6 ? 1 : 2);
+        const fr = hu != null ? (u < hu - 0.06 ? 0 : u < hu + 0.22 ? 1 : 2) : bi ? (u < 0.3 ? 0 : u < 0.6 ? 1 : 2) : (u < 0.12 ? 0 : u < 0.6 ? 1 : 2);
         sprite(g.x, g.y, q.s, info, team, facing, 0, false, false, true, (bi ? 'bicycle' : 'dhead') + fr, 0, view);
         dmFacing = null;
         if (!bi && u > 0.55 && u < 0.8) { ctx.fillStyle = 'rgba(210,235,170,0.7)'; for (let k = 0; k < 5; k++) ctx.fillRect(Math.round(q.x + (k - 2) * 3 * px), Math.round(q.y - (k % 2) * 2 * px - (u - 0.55) * 30 * px), px * 1.2, px * 1.2); }   // 着地で芝が舞う
