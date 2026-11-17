@@ -30,7 +30,7 @@
     ['tip', '指先で触ったが入った', -1.4, 1.8, '手は届いたが、止めきれずにゴールへ'],
     ['save', 'そのほかのセーブ', -1.4, 1.6, 'シュートをGKが止めた場面'],
   ].filter(([k]) => (SC[k] || []).length);
-  let kind = KINDS[0] ? KINDS[0][0] : null, idx = 0, sp = 0.5, cur = null, loaded = null, paused = false;
+  let kind = KINDS[0] ? KINDS[0][0] : null, idx = 0, sp = 0.5, cur = null, loaded = null, paused = false; let lpFound = [], lpSeed = 1, lpTok = 0;
   const K = (k) => KINDS.find((x) => x[0] === k);
   function loadSeed(seed, lab) {
     const key = seed + (lab ? 'L' + lab : ''); if (loaded === key) return;
@@ -43,13 +43,17 @@
   function go() {
     const L = SC[kind] || []; if (!L.length) return;
     idx = (idx + L.length) % L.length; cur = L[idx];
-    loadSeed(cur.seed, cur.lab); 
-    // 版1202：低弾道パントは、読みこんだ試合の中から本当に蹴った時を探して合わせる（端末の設定で試合が少し変わっても、ずれないように）
-    if (cur.lab === 'lp') { const base = cur, nth = L.filter((c) => c.seed === base.seed).indexOf(base); let tries = 0;
-      const fix = () => { if (cur !== base && !(cur && cur.base === base)) return; const ts = ((D.match && D.match.actions) || []).filter((a) => a.a === 'skill' && a.k === 'lowPunt' && (() => { const F = D.match.frames || [], f = F.find((g) => g[0] >= a.t - 0.2); return !f || (f[4] >= 0 && f[4] % 11 === 0); })()).map((a) => a.t);   // 版1204：蹴る直前に、本当にGKがボールを持っている時だけ（試合の記録と画面の試合が食い違っても、関係ない場面を流さない）
-        if (ts.length) { cur = { ...base, base, t: ts[Math.min(Math.max(0, nth), ts.length - 1)] }; const [a2] = win(); D.seek(Math.max(0.2, a2)); D.setSpeed(sp); if (!paused) D.play(); info(); return true; }
-        if (++tries < 12) setTimeout(fix, 300); else { const m = document.getElementById('glM'); if (m) m.textContent = 'この試合では低弾道パントが出ませんでした（▶で次へ）'; } return false; };
-      if (fix()) return; }
+    if (cur.lab !== 'lp') loadSeed(cur.seed, cur.lab);
+    // 版1205：低弾道パントは、この端末で実際に計算した試合の中から、本当にGKが手から蹴った場面を順に探して流す
+    //  （端末の設定（フリー試合のチームなど）で試合が変わると、こちらで決めた「何試合目の何秒」には低弾道パントがないことがある。前はその時、関係ない場面を流していた）
+    if (cur.lab === 'lp') { const want = idx, tok = ++lpTok; cur = null; D.stop(); const c = document.getElementById('glC'); if (c) c.textContent = '低弾道パントの場面を探しています…';
+      const step = () => { if (tok !== lpTok) return;
+        if (lpFound.length > want) { const h = lpFound[want]; loadSeed(h.seed, 'lp'); cur = { ...L[idx], seed: h.seed, t: h.t }; const [a2] = win(); D.seek(Math.max(0.2, a2)); D.setSpeed(sp); if (!paused) D.play(); info(); return; }
+        if (lpSeed > 60) { if (c) c.textContent = '低弾道パントの場面が見つかりませんでした'; return; }
+        const sd = lpSeed++; loadSeed(sd, 'lp');
+        for (const a of (D.match && D.match.actions) || []) { if (a.a !== 'skill' || a.k !== 'lowPunt') continue; const F = D.match.frames || [], f = F.find((g) => g[0] >= a.t - 0.2); if (f && f[4] >= 0 && f[4] % 11 === 0) lpFound.push({ seed: sd, t: a.t }); }
+        setTimeout(step, 30); };
+      step(); return; }
     const [a] = win(); D.seek(Math.max(0.2, a)); D.setSpeed(sp); if (!paused) D.play(); info();
     const c0 = cur; setTimeout(() => { if (cur === c0) { D.seek(Math.max(0.2, a)); D.setSpeed(sp); } }, 200);
   }
@@ -74,7 +78,7 @@
   function info() {
     const L = SC[kind] || [], k = K(kind); if (!L.length) return;
     document.getElementById('glW').textContent = '見るところ：' + k[4];
-    const c = L[(idx + L.length) % L.length], m = Math.floor(c.t * ((D.match && D.match.clockScale) || 12) / 60);
+    const c = cur && cur.lab === 'lp' ? cur : L[(idx + L.length) % L.length], m = Math.floor(c.t * ((D.match && D.match.clockScale) || 12) / 60);
     document.getElementById('glC').textContent = `${(idx % L.length + L.length) % L.length + 1}/${L.length}`;
     document.getElementById('glM').textContent = `${idx + 1} / ${L.length} 場面目：試合番号${c.seed}・${m}分ごろ${c.sp != null ? `（${c.bar ? 'バー' : 'ポスト'}・秒速${c.sp}m・音${Math.round((0.4 + 1.8 * Math.max(0, Math.min(1, (c.sp - 10) / 20))) * 100)}%）` : ''}`;
   }
