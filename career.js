@@ -1222,6 +1222,24 @@
   // 今の並びを「4-4-2」のような呼び名にする（ゾーンごとの人数）
   function formationLabel(cells) { const n = { DF: 0, MF: 0, FW: 0 }; for (let i = 1; i < 11; i++) if (cells[i]) n[zoneOf(cells[i].r)]++; return `${n.DF}-${n.MF}-${n.FW}`; }
   function defaultTactics() { const st = STYLES[0]; return { style: st.id, formation: '4-4-2', cells: cellsFor('4-4-2'), roles: {}, ...st.t }; }
+  // 版1196：1軍・2軍（スタメン・ベンチの顔ぶれ＋フォーメーション・作戦を2組持って、ボタンで切り替える）
+  function squadSnap(save) { return { order: save.team.players.map((p) => p.name), tactics: JSON.parse(JSON.stringify(ensureTactics(save))) }; }
+  function switchSquad(save, k) {
+    const sq = save.squads = save.squads || { cur: 0, list: [null, null] };
+    if (k === sq.cur) return false;
+    sq.list[sq.cur] = squadSnap(save);
+    const snap = sq.list[k];
+    if (snap) {
+      const n = save.team.players.length, pool = [...save.team.players, ...(save.reserve || [])], used = new Set(), team = [];
+      for (const nm of snap.order) { const p = pool.find((q) => q.name === nm && !used.has(q)); if (p && team.length < n) { team.push(p); used.add(p); } }
+      for (const p of save.team.players) if (team.length < n && !used.has(p)) { team.push(p); used.add(p); }   // 2軍にいない選手（新しく来た選手など）は、今の並びのまま後ろへ
+      for (const p of save.reserve || []) if (team.length < n && !used.has(p)) { team.push(p); used.add(p); }
+      { const pc = save.plan && save.plan.cards; if (pc) { const old = save.team.players, nc = {}; for (const [i, v] of Object.entries(pc)) { const j = team.indexOf(old[+i]); if (j >= 0) nc[j] = v; } save.plan.cards = nc; } }   // 特訓のカードは、選手についていく
+      save.reserve = pool.filter((p) => !used.has(p)); save.team.players = team;
+      save.tactics = JSON.parse(JSON.stringify(snap.tactics)); ensureTactics(save);
+    }
+    sq.cur = k; return true;
+  }
   function ensureTactics(save) {
     if (!save.tactics) save.tactics = defaultTactics();
     const t = save.tactics;
@@ -2162,5 +2180,5 @@
     const picks = []; for (let i = 0; i < n; i++) picks.push(gachaOne(save, bn, r, n >= 10 && i === n - 1 && !picks.some((x) => x.star >= 3) ? 3 : 0));   // 10連は☆3以上を1人確定
     return { banner: bn, results: picks.map((pk) => { const res = gachaApply(save, pk); if (pk.off) res.off = true; return res; }) };
   }
-  root.DotCareer = { goldOf, _t: { gachaWeak, gachaFloor, fix1164, rosterPlayer, gachaQ }, PRIZE_LG, PRIZE_UP, GOLD_LG, totsuGain, pasLv, gachaPick, setGachaPick, gachaReady, GACHA_PU_N, GACHA_PU_RATE, gachaUniqList, cpuSkills, skKind, slotsOf, skillsOf, syncSuspend, PREFS, prefRegion, setHometown, earnCoins, earnedOf, homeTier, myNextLg, PREM, premOn, cardMax, awaken, awakeCost, AWAKE_COST, registerGuest, guestCode, GUESTS, champPeek, CARD_MAX, noSkillLg, gachaBanner, gachaPull, gachaPoolAll, ensureGacha, GACHA_RATE, GACHA_COST, GACHA_PITY, KAKERA_OF, oppKits, BENCH_N, kitsPair, d1Round, pinWatch, faceKeyOf, cpuTeam, ensureStar, starOf, totsuOf, capGrade, capPts, capIdx, GRADES, rosterAt, lvlAt, retiredAt, titleOf, ensureTitles, evalTitles, CUP_LABELS, cupIn, ensureClub, renameClub, kitsFor, KIT_DEFAULT, EMB_DEFAULT, TEAMS, TEAM_BY_ID, ROSTERS, rosterOfTeam, leagueTable, prevOrder, goalRank, recordGoals, CUP_WEEKS_ALL: CUP_WEEKS, leagueWeeksOf: leagueWeeks, POST_WEEKS, CARDS, CAT_NAME, SP, findSpecial, previewCards, trainCards, trainOne, weekTick, GRID_R, GRID_C, zoneOf, cellsFor, formationLabel, FORMATIONS, TACTIC_ITEMS, STYLES, SITU_DEFAULT, SITU_ACTS, SITU_ROWS, SITU_FROM, ensureTactics, slotRoles, applyTactics, skillRate, endWeek, SEASON_WEEKS, INJURIES, TYPE_TUNE, COND_NAME, condOf, trainedThisWeek, trainsDone, trainLimit, trainMult, campState, campAdvance, CAMP, slotInfo, SLOT_MAX, SKILL_RATE, rewardCards, newLeague, newCup, playFixture, peekRound, afterOfficial, playPractice, practiceOpponent, practiceOptions, teamLook, recordStats, teamLevel, findTeam, CUP_WEEKS, CAMPS, LG, rankInfo, PMAX, PRICE, buyCard, buyPack, toEng, toPts, migrate, ensurePts, TEAM_MENUS: TEAM_PTS, MENUS, SPECIAL, LEAGUES, PNAME, newCareer, menusFor, train, learnSkill, slots, skillChance, nextFixture, finishRound, standings, endSeason, opponentTeam, matchTeam, avgParam, decideType, TYPES_BY_POS };
+  root.DotCareer = { goldOf, switchSquad, _t: { gachaWeak, gachaFloor, fix1164, rosterPlayer, gachaQ }, PRIZE_LG, PRIZE_UP, GOLD_LG, totsuGain, pasLv, gachaPick, setGachaPick, gachaReady, GACHA_PU_N, GACHA_PU_RATE, gachaUniqList, cpuSkills, skKind, slotsOf, skillsOf, syncSuspend, PREFS, prefRegion, setHometown, earnCoins, earnedOf, homeTier, myNextLg, PREM, premOn, cardMax, awaken, awakeCost, AWAKE_COST, registerGuest, guestCode, GUESTS, champPeek, CARD_MAX, noSkillLg, gachaBanner, gachaPull, gachaPoolAll, ensureGacha, GACHA_RATE, GACHA_COST, GACHA_PITY, KAKERA_OF, oppKits, BENCH_N, kitsPair, d1Round, pinWatch, faceKeyOf, cpuTeam, ensureStar, starOf, totsuOf, capGrade, capPts, capIdx, GRADES, rosterAt, lvlAt, retiredAt, titleOf, ensureTitles, evalTitles, CUP_LABELS, cupIn, ensureClub, renameClub, kitsFor, KIT_DEFAULT, EMB_DEFAULT, TEAMS, TEAM_BY_ID, ROSTERS, rosterOfTeam, leagueTable, prevOrder, goalRank, recordGoals, CUP_WEEKS_ALL: CUP_WEEKS, leagueWeeksOf: leagueWeeks, POST_WEEKS, CARDS, CAT_NAME, SP, findSpecial, previewCards, trainCards, trainOne, weekTick, GRID_R, GRID_C, zoneOf, cellsFor, formationLabel, FORMATIONS, TACTIC_ITEMS, STYLES, SITU_DEFAULT, SITU_ACTS, SITU_ROWS, SITU_FROM, ensureTactics, slotRoles, applyTactics, skillRate, endWeek, SEASON_WEEKS, INJURIES, TYPE_TUNE, COND_NAME, condOf, trainedThisWeek, trainsDone, trainLimit, trainMult, campState, campAdvance, CAMP, slotInfo, SLOT_MAX, SKILL_RATE, rewardCards, newLeague, newCup, playFixture, peekRound, afterOfficial, playPractice, practiceOpponent, practiceOptions, teamLook, recordStats, teamLevel, findTeam, CUP_WEEKS, CAMPS, LG, rankInfo, PMAX, PRICE, buyCard, buyPack, toEng, toPts, migrate, ensurePts, TEAM_MENUS: TEAM_PTS, MENUS, SPECIAL, LEAGUES, PNAME, newCareer, menusFor, train, learnSkill, slots, skillChance, nextFixture, finishRound, standings, endSeason, opponentTeam, matchTeam, avgParam, decideType, TYPES_BY_POS };
 })(typeof window !== 'undefined' ? window : globalThis);

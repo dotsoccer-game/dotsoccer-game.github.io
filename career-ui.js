@@ -2010,7 +2010,7 @@
     L.innerHTML = `<div class="sq3"><div class="q3in">
       <div class="q3top"><h2><svg viewBox="0 0 64 64" class="q3ball"><circle cx="32" cy="32" r="28" fill="#fff" stroke="#222" stroke-width="3"/><polygon points="32,21 42,28 38,40 26,40 22,28" fill="#222"/><path d="M32 4v17M60 26l-18 2M49 56l-11-16M15 56l11-16M4 26l18 2" stroke="#222" stroke-width="3"/></svg>スタメン・配置</h2><i class="q3sep"></i><img class="q3emb" src="${emblemURL(save.team.name, 48)}" alt=""><b class="q3tm">${esc(save.team.name)}</b>
         <button class="q3back" aria-label="戻る"><svg viewBox="0 0 24 24"><path d="M20 12H6M11 6l-6 6 6 6" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
-      <div class="q3bar"><span class="q3fl">フォーメーション</span><button class="q3fm">${esc(fm)}<i>▼</i></button><button class="q3tac">戦術設定</button><button class="q3role${sq3Role ? ' on' : ''}">役割設定</button>${nRes ? `<button class="q3res"><span>リザーブ</span><b>${nRes}</b></button>` : ''}</div>
+      <div class="q3bar"><span class="q3fl">フォーメーション</span><button class="q3fm">${esc(fm)}<i>▼</i></button><button class="q3tac">戦術設定</button><button class="q3role${sq3Role ? ' on' : ''}">役割設定</button><span class="q3sq">${['1軍', '2軍'].map((t, k) => `<button data-sq="${k}" class="${((save.squads || {}).cur || 0) === k ? 'on' : ''}">${t}</button>`).join('')}</span>${nRes ? `<button class="q3res"><span>リザーブ</span><b>${nRes}</b></button>` : ''}</div>
       <div class="q3main"><div class="q3pitch">${field}${dots}</div>
         ${side || (sq3Res && rsv.length ? resPanel() : `<div class="q3side"><div class="q3col"><b class="q3h">ベンチ入り</b>${b1.map((q, k) => row(q, 11 + k)).join('')}</div><i class="q3vl"></i><div class="q3col"><b class="q3h">ベンチ外</b>${b2.map((q, k) => row(q, 11 + C.BENCH_N + k)).join('')}</div></div>`)}</div>${pop}
       <p class="q3hint"><span>選手をドラッグして配置・入れ替え</span></p><button class="q3show" title="表示の切りかえ"><img src="icons/ui_change.png" alt=""><span>${sq3Type ? 'タイプ' : '名前'}</span></button>
@@ -2021,6 +2021,7 @@
     L.querySelector('.q3back').onclick = () => { const bk = $('#cvBack'); if (bk) { bk.style.visibility = ''; bk.click(); } };
     L.querySelector('.q3fm').onclick = () => { sq3Menu = !sq3Menu; renderLineup3(); };
     L.querySelectorAll('.q3menu [data-f]').forEach((b) => b.onclick = () => { tac.formation = b.dataset.f; tac.cells = C.cellsFor(b.dataset.f); sq3Menu = false; sq3Pick = -1; redo(); });
+    L.querySelectorAll('.q3sq [data-sq]').forEach((b) => b.onclick = () => { if (!C.switchSquad(save, +b.dataset.sq)) return; sq3Pick = -1; sq3R = -1; sq3Swap = false; store(); renderLineup3(); pmToast(`${b.textContent}に切り替えました`); });   // 版1196：1軍・2軍
     L.querySelector('.q3tac').onclick = () => { try { openTacSet('tac'); } catch (err) { console.error(err); toast('戦術設定を開けませんでした'); } };
     /* 版1074：ベンチ・リザーブの選手をつまんだ時も、ピッチの選手と同じ顔の札を指につけて動かす */
     const mkGhost = (q) => { const d = document.createElement('div'); d.innerHTML = chip(q, -1, 0, 0); const g = d.firstElementChild; g.style.left = g.style.top = ''; g.style.zIndex = '999'; g.classList.add('q3ghost'); g.querySelectorAll('img.fc').forEach((im) => { const f = () => cutFace(im); im.addEventListener('load', f); if (im.complete) f(); }); return g; };
