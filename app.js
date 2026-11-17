@@ -146,7 +146,7 @@
     warmUp();
     // 育成モードは入場・対戦カードの画面を先に見せているので、すぐキックオフへ
     show = mctx.opts.noIntro ? { phase: 'kickoff', hold: true, koT: 0, start: 0, goal: null, rt: 0, walk: true } : { phase: 'preCrowd', hold: true, koT: 0, start: 0, goal: null, rt: 0 };
-    simT = 0; speed = 1; selected = -1; trail = []; evIndex = 0; halfShown = false; halfT = match.halfTime || 225; banner = null; cornerT = -99; zoom = 1; lastBall = null; ballTrail.length = 0; cam.init = false; offsideT = -99; offsideX = -1; nextBanner = null; camMaxY = 62;
+    simT = 0; mdBallTeam = -1; speed = 1; selected = -1; trail = []; evIndex = 0; halfShown = false; halfT = match.halfTime || 225; banner = null; cornerT = -99; zoom = 1; lastBall = null; ballTrail.length = 0; cam.init = false; offsideT = -99; offsideX = -1; nextBanner = null; camMaxY = 62;
     $('#homeName').textContent = match.homeShort;
     $('#awayName').textContent = match.awayShort;
     $$('.speeds button').forEach((b) => b.classList.toggle('active', b.dataset.speed === '1'));
@@ -1831,7 +1831,17 @@
     ballM = out;
   }
   // 版1044：ボールの見た目だけを、画面の好きな所に描く（キャッチの絵で、GKが抱えるボール）。試合のボールと同じ描き方
+  // 版1224：翠の起点が効いているチームのボールは、薄い翠の光をまとう（たまるほど少し濃く・大きく）。持っている時も、パスで飛んでいる時も
+  function mdGlow(cx, cy, r) {
+    if (!(globalThis.__Kmdg ?? 1) || !match) return;
+    try { const F = match.frames || [], dt = match.frameDt || (F[1] ? F[1][0] - F[0][0] : 0.1); let i = Math.min(F.length - 1, Math.max(0, Math.round((simT - (F[0] ? F[0][0] : 0)) / dt)));
+      mdBallTeam = -1; for (let n = 0; i >= 0 && n < 200; i--, n++) { const o = F[i][4]; if (o >= 0) { mdBallTeam = o < 11 ? 0 : 1; break; } } } catch (_) {}   // 今持っている、または最後に持ったチーム（パスで飛んでいる間も）
+    if (mdBallTeam < 0) return; const k = Math.min(4, mdStackAt(mdBallTeam)); if (!k) return;
+    const R2 = r * (1.7 + 0.3 * k), gr = ctx.createRadialGradient(cx, cy, r * 0.5, cx, cy, R2);
+    gr.addColorStop(0, `rgba(70,255,140,${0.3 + 0.08 * k})`); gr.addColorStop(1, 'rgba(70,255,140,0)'); ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(cx, cy, R2, 0, Math.PI * 2); ctx.fill();
+  }
   function ballFace(cx, cy, r) {
+    mdGlow(cx, cy, r);
     ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#222'; ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, r - 0.5, 0, Math.PI * 2); ctx.clip(); ctx.fillStyle = '#222';
@@ -1924,6 +1934,7 @@
     ctx.beginPath(); ctx.ellipse(g.x, g.y, r * 1.05, r * 0.42, 0, 0, Math.PI * 2); ctx.fill();
     // 球
     let cx = p.x + kjx, cy = p.y - r * 0.6 + kjy;
+    mdGlow(cx, cy, r);
     if (pfW > 0) { const tx = punchFist.x + punchFist.sx * (r * 0.75 + punchFist.dot), ty = punchFist.y - (r * 0.75 + punchFist.dot); cx += (tx - cx) * pfW; cy += (ty - cy) * pfW; }   // 版1058：なめらかに寄せる
     ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#222'; ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
@@ -2343,6 +2354,8 @@
     ctx.globalAlpha = 1;
   }
   // ---------- スキル演出 ----------
+  let mdBallTeam = -1, mdFiresM = null, mdFires = [[], []];   // 版1224：翠の起点：ボールを持っている（最後に持った）チームと、そのチームの発動の時刻
+  function mdStackAt(team) { if (!match) return 0; if (mdFiresM !== match) { mdFiresM = match; mdFires = [[], []]; for (const a of match.actions || []) if (a.a === 'uniq' && a.k === 'midori') mdFires[a.i < 11 ? 0 : 1].push(a.t); } const L0 = mdFires[team] || []; let n = 0; for (const t of L0) if (t <= simT) n++; return n; }
   let ballOwned = false;   // だれかがボールを持っている（シュートのエフェクトは止める）
   const SHOT_FX = { powerMid: 1, nearPost: 1 };   // ドリブルシュートは標準の打ち方になったので、エフェクトなし   // 無回転はエフェクトなし（ボールそのものがブレる）   // コントロールショットはエフェクトなし（弧は出さない）
   // いま飛んでいるシュート（2秒以内・ボールがまだ誰のものでもない）と、その技
@@ -3027,7 +3040,7 @@
         }
         if (!(goalDefer && (goalDefer.before.length || goalDefer.after.length)) && (bb.z || 0) > 1.6) { hiBall = [bb, st.spin, st.bs, st.owner >= 0, st.held]; continue; }   // 版670：高い浮き球（ヒールリフトなど）は、名前・スキルの吹き出しに隠れないよう、いちばん最後に描く
         if (goalDefer && goalDefer.before.length) goalDraw(goalDefer.gx, goalDefer.before);   // ボールの奥にある柱・手前のネット
-        ballOwned = st.owner >= 0; if (!(st.gk && (st.gk[0] === 15 || st.gk[1] === 15 || st.gk[0] === 16 || st.gk[1] === 16))) ballDraw(bb, st.spin, st.bs, st.held);   // 版1041：キャッチの絵（15）はボールも絵の中に描いてある
+        ballOwned = st.owner >= 0; if (st.owner >= 0) mdBallTeam = st.owner < 11 ? 0 : 1; if (!(st.gk && (st.gk[0] === 15 || st.gk[1] === 15 || st.gk[0] === 16 || st.gk[1] === 16))) ballDraw(bb, st.spin, st.bs, st.held);   // 版1041：キャッチの絵（15）はボールも絵の中に描いてある
         if (goalDefer && goalDefer.after.length) goalDraw(goalDefer.gx, goalDefer.after);   // ボールの手前にある奥のネット（ゴールの裏・天井の上など）
         continue;
       }
