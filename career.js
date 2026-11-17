@@ -69,7 +69,8 @@
   };
   const skillParams = (k) => SKILL_PARAMS[k] || GROUP_PARAMS[(D.SKILLS[k] || {}).group] || ['technique'];
   // 前提スキル（これを覚えていないと特訓できない）
-  const SKILL_REQ = { elastico: 'scissors', roulette: 'doubleTouch', bicycle: 'volley', loftedThrough: 'throughPass', pinpointCross: 'earlyCross', oneTwo: 'wallPass' };
+  // 版1194：前提スキルはなくした（浮き球スルーパス・バイシクル・エラシコ・ルーレット・ピンポイントクロス・ワンツーも、それぞれ単独で覚えられる）
+  const SKILL_REQ = {};
   const SKILL_LIST = Object.keys(D.SKILLS).filter((k) => k !== 'feint');
   const isGKSkill = (k) => (D.SKILLS[k] || {}).group === 'gk';
 

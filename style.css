@@ -5056,3 +5056,12 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 .sp2-pv .pvme .pos{min-width:0;font-size:12px;padding:1px 4px}
 .sp2-pv .pvme em{font-style:normal;font-size:15px;color:#556}
 .sp2-pv .pvme b{font-size:20px;margin-right:2px}
+/* 版1194：覚えるスキル・タイプをタップで説明 */
+.sp2-sk[data-skd],.sp2-sk[data-tyd]{cursor:pointer;position:relative}
+.sp2-sk .sp2-q{position:absolute;right:8px;top:6px;width:20px;height:20px;border-radius:50%;background:#2a64c8;color:#fff;font-style:normal;font-weight:900;font-size:13px;line-height:20px;text-align:center}
+.sp2-hlp{text-align:left;max-width:440px}
+.sp2-hlp b{display:block;font-size:20px;margin-bottom:6px}
+.sp2-hlp p{margin:0 0 6px;font-size:15px;line-height:1.5}
+.sp2-hlp ul{margin:4px 0 0;padding-left:1.2em;font-size:14px;line-height:1.5}
+.sp2-hw{position:absolute;inset:0;z-index:80;background:rgba(6,14,30,.62);display:flex;align-items:center;justify-content:center;padding:12px}
+.sp2-hw .pm2{max-width:560px;width:auto}

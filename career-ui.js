@@ -1857,8 +1857,8 @@
       <div class="sp2-grid">${tiles}</div>
       <div class="sp2-d"><div class="sp2-dc">${m.cards.map((c) => cardImg(c, known || (HN && HN.id === m.id && HN.c === c), 'big')).join('<i class="sp2-plus">＋</i>')}</div>${!known && HN && HN.id === m.id ? '<p class="sp2-hint">プレミアムパスのヒント：このメニューのカードが1枚わかりました</p>' : ''}
         <h3>${known ? esc(m.name) : '？？？'}</h3>
-        ${known && m.skill ? `<div class="sp2-sk"><span>覚えるスキル</span><b>${esc(D.SKILLS[m.skill].name)}</b><div class="sp2-rate"><i style="width:${rate}%"></i><em>${esc(p.name)}の成功率 ${rate}%</em></div></div>` : ''}
-        ${known && m.type ? `<div class="sp2-sk ty"><span>近づくタイプ</span><b>${esc(m.type)}</b></div>` : ''}
+        ${known && m.skill ? `<div class="sp2-sk" data-skd="${m.skill}"><span>覚えるスキル</span><b>${esc(D.SKILLS[m.skill].name)}</b><i class="sp2-q">?</i><div class="sp2-rate"><i style="width:${rate}%"></i><em>${esc(p.name)}の成功率 ${rate}%</em></div></div>` : ''}
+        ${known && m.type ? `<div class="sp2-sk ty" data-tyd="${esc(m.type)}"><span>近づくタイプ</span><b>${esc(m.type)}</b><i class="sp2-q">?</i></div>` : ''}
         <div class="sp2-ups">${ups}</div>
 
         ${pvHTML}
@@ -1870,6 +1870,10 @@
     box.querySelectorAll('[data-pi]').forEach((b) => b.onclick = () => spList(+b.dataset.pi));
     if (keep && keep.g != null) { const g = box.querySelector('.sp2-grid'), w = box.querySelector('.sp2-ws'), d = box.querySelector('.sp2-d'); if (g) g.scrollTop = keep.g; if (w && keep.w != null) w.scrollLeft = keep.w; if (d && keep.d != null) d.scrollTop = keep.d; }
     else { const gr = box.querySelector('.sp2-grid'), g = box.querySelector('.sp2-grid .sel'); if (gr && g) gr.scrollTop = Math.max(0, g.offsetTop - gr.offsetTop - 8); const ws = box.querySelector('.sp2-ws'), w = box.querySelector('.spw.on'); if (ws && w) ws.scrollLeft = Math.max(0, w.offsetLeft - ws.offsetLeft - ws.clientWidth / 2 + w.offsetWidth / 2); }
+    // 版1194：覚えるスキル・近づくタイプをタップすると、中身の説明
+    const spHelp = (head, html) => { const w = document.createElement('div'); w.className = 'sp2-hw'; w.innerHTML = `<div class="pm2"><div class="pm2-hd"><b>${head}</b></div><div class="pm2-bd">${html}</div><div class="pm2-btns"><button class="pm2-sec">とじる</button></div></div>`; el.appendChild(w); w.onclick = (e) => { if (e.target === w || e.target.tagName === 'BUTTON') w.remove(); }; };   // SPの画面の上に出す（ふつうのお知らせは、この画面の下に隠れる）
+    box.querySelectorAll('[data-skd]').forEach((b) => b.onclick = () => { const k = b.dataset.skd; spHelp('スキルの説明', `<div class="sp2-hlp"><b>${esc((D.SKILLS[k] || {}).name || k)}</b><p>${esc(SKILL_DESC[k] || '試合の中で、この技を使えるようになる')}</p></div>`); });
+    box.querySelectorAll('[data-tyd]').forEach((b) => b.onclick = () => { const t = b.dataset.tyd, inf = TYPE_INFO[t] || { role: '', mv: [] }; spHelp('タイプの説明', `<div class="sp2-hlp"><b>${esc(t)}</b><p>${esc(inf.role || '')}</p>${(inf.mv || []).length ? `<ul>${inf.mv.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}</div>`); });
     const go = box.querySelector('.sp2-go:not([disabled])');
     if (go) go.onclick = () => { el.hidden = true; selIdx = pi; save.plan.cards = save.plan.cards || {}; save.plan.cards[pi] = m.cards.slice(); store(); doTrain(pi); };
   }
