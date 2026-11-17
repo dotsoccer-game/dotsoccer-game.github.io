@@ -3117,12 +3117,14 @@
       if (globalThis.__gpDbg && gpG) { const ex = gpG.k === 'dc' ? (gpG.ph === 1 && p.idx === gpG.b ? [gpG.c] : gpG.ph === 2 && p.idx === gpG.c ? [gpG.a] : null) : gpG.k === 'sh' && p.idx === gpG.a ? [gpG.c] : gpG.k === 'br' && gpG.ph === 2 && p.idx === gpG.a ? gpG.r : null;
         if (ex) { const o = opts.filter((o) => o.kind === 'pass' && o.q && ex.includes(o.q.idx)); const srt = opts.slice().sort((x, y) => y.v - x.v), bv = srt[0].v; globalThis.__gpDbg.push([gpG.k + (gpG.ph || ''), o.length ? +Math.max(...o.map((x) => x.v)).toFixed(1) : null, +bv.toFixed(1), o.length ? +Math.min(...o.map((x) => x.danger ?? 9)).toFixed(2) : null, srt.slice(0, 3).map((x) => x.kind + (x.mode || '') + ':' + x.v.toFixed(1)).join(' ')]); } }   // 版924：デカラ：背負ったまま無理に前を向かない（預けられる味方がいる時）
       { const mk = (globalThis.__Kmd2 ?? 1) && !p.gk && !S.setPiece ? Math.min(4, T[t].mdStack || 0) : 0;   // 版1219：翠の起点：たまるほど、短いパスでテンポよく回す
-        if (mk && xf < L - 18) for (const o of opts) { const dd = o.d ?? (o.q ? hyp(o.q.x - p.x, o.q.y - p.y) : 30); if (o.kind === 'pass' && !o.cross && dd < 20 && (o.danger ?? 1) < 0.7) o.v += 0.3 * mk; else if (o.kind === 'dribble') o.v -= 0.25 * mk; else if (o.kind === 'pass' && dd > 28 && !o.through) o.v -= 0.15 * mk; } }
+        if (mk && xf < L - 18) for (const o of opts) { const dd = o.d ?? (o.q ? hyp(o.q.x - p.x, o.q.y - p.y) : 30); if (o.kind === 'pass' && !o.cross && dd < 20 && (o.danger ?? 1) < 0.7) o.v += 0.5 * mk; else if (o.kind === 'dribble') o.v -= mk >= 4 && opts.some((o2) => o2.kind === 'pass' && (o2.danger ?? 1) < 0.9) ? 4 : 0.45 * mk; else if (o.kind === 'pass' && dd > 28 && !o.through) o.v -= 0.15 * mk; } }
       // 選ぶ：判断（視野）の高い選手ほど、一番良い選択にはっきり寄る
       const sharp = 0.9 + (p.vision || 50) / 45;
       let sum = 0; for (const o of opts) { o.w = Math.exp(clamp(o.v, -6, 8) * sharp); sum += o.w; }
       let r0 = R.next() * sum, pick = opts[opts.length - 1]; for (const o of opts) { r0 -= o.w; if (r0 <= 0) { pick = o; break; } }
       if (globalThis.__ppDbg) { const G = globalThis.__ppDbg; if (backMk) { G.back++; G['b_' + pick.kind + (pick.kind === 'pass' && fx(t, pick.q.x) < xf + 2 ? 'Back' : '')] = (G['b_' + pick.kind + (pick.kind === 'pass' && fx(t, pick.q.x) < xf + 2 ? 'Back' : '')] || 0) + 1; } if (brushQ) { G.br++; if (pick.kind === 'pass' && pick.q === brushQ) G.brRet++; else G['r_' + pick.kind] = (G['r_' + pick.kind] || 0) + 1; } }
+      if (globalThis.__mdDbg3 && (T[t].mdStack || 0) >= 4 && !p.gk && p._gT != null) globalThis.__mdDbg3.push(+(S.t - p._gT).toFixed(2));
+      if (globalThis.__mdDbg && (T[t].mdStack || 0) >= 4 && !p.gk) { const G = globalThis.__mdDbg; const k = 'B_' + pick.kind + (pick.kind === 'pass' ? ((pick.d ?? 99) < 20 ? 'S' : 'L') : ''); G[k] = (G[k] || 0) + 1; }
       if (globalThis.__zDec && dGoal < 24) globalThis.__zDec.push(['B', pick.kind, dGoal < 16 ? 'near' : 'mid', opts.some((o) => o.kind === 'shot') ? 'shotOpt' : 'noShot']);
       if (globalThis.__bDec) globalThis.__bDec.push({ minus: pick.minus ? 1 : 0, minusOpt: opts.filter((o) => o.minus).length, minusV: Math.max(-9, ...opts.filter((o) => o.minus).map((o) => o.v)), dG: dGoal, sv: (opts.find((o) => o.kind === 'shot') || {}).v, pv: pick.v, pd: pick.danger, pdist: pick.d, cross: pick.cross || '', chip: pick.chip ? 1 : 0, t: S.t, tm: t, i: p.idx, beat: pick.beat ? 1 : 0, prot: pick.protect != null ? 1 : 0, dm: oneDef && pick.beat ? (oneDef.nmDef || '') + ((S.t - (oneDef.jockeyT ?? -9) < 0.5) ? '|j' : '') : '', ph, pr, pick: pick.kind + (pick.mode ? ':' + pick.mode : '') + (pick.through ? ':thr' : '') + (pick.space ? ':spc' : ''), xf, v: pick.v, adv: pick.q ? fx(t, pick.space ? fx(t, pick.space[0]) === 0 ? 0 : pick.space[0] : pick.q.x) - xf : 0, n: opts.length, best: Math.max(...opts.map((o) => o.v)), fws: opts.filter((o) => o.kind === 'pass' && o.q && fx(t, o.q.x) - xf > 5 && (o.danger ?? 1) < 0.4).length, fwAll: opts.filter((o) => o.kind === 'pass' && o.q && fx(t, o.q.x) - xf > 5).length, ahead: mates(p).filter((m) => !m.off && !m.gk && fx(t, m.x) > xf + 5).length, near: near.d });
       // 実行
@@ -4669,6 +4671,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
 
     function kick(p, tx, ty, kind, loft, opt) {
       opt = opt || {};
+      if (globalThis.__mdDbg2 && kind === 'pass' && (T[p.team].mdStack || 0) >= 4 && !p.gk && p._gT != null) globalThis.__mdDbg2.push(+(S.t - p._gT).toFixed(2));
       if (globalThis.__crsLog && kind === 'pass' && loft && loft !== 'clear' && !p.gk && S.ball.owner === p.idx && fx(p.team, p.x) > L - 36 && Math.abs(p.y - GOAL_Y) > 11 && fx(p.team, tx) > L - 20 && Math.abs(ty - GOAL_Y) < 20) globalThis.__crsLog.push({ t: S.t, i: p.idx, tx, ty, sp: !!S.setPiece, loft });   // 確認用：サイドからゴール前への浮き球
       S.ball.kT = S.t; S.ball.kX = S.ball.x; S.ball.kY = S.ball.y;   // 版908：蹴った時刻と場所（近くから強く蹴られた球は止められない：設計一覧14章）
       if (loft === 'clear' || (p.gk && kind === 'pass' && fx(p.team, p.x) < 20 && hyp(tx - p.x, ty - p.y) > 30)) { const tmc = T[p.team], ds = tmc.players.filter((m) => !m.gk && !m.off && m.slot && m.slot.line === 0).map((m) => fx(p.team, m.x)).sort((a0, c0) => a0 - c0); tmc.clearT = S.t; tmc.clearTo = (ds[1] ?? ds[0] ?? 15) + 7; { const d1 = tmc.players.filter((m) => !m.gk && !m.off && m.slot && m.slot.line === 0).sort((a0, c0) => Math.abs(a0.y - GOAL_Y) - Math.abs(c0.y - GOAL_Y))[0]; if (globalThis.__tacLog) globalThis.__tacLog.push(['stepup', +S.t.toFixed(1), p.team, d1 ? d1.idx : p.idx]); } }   // 版878：クリア・大きく蹴り出した：ラインを上げる合図（クリアした時のラインから7m上げる）
@@ -6137,7 +6140,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       { const mk = (globalThis.__Kmd2 ?? 1) && !p.gk && !S.setPiece ? Math.min(4, T[p.team].mdStack || 0) : 0;
         if (mk && dGoal > 18 && opts.some((o) => o.kind === 'pass' && (o.d ?? 99) < 20 && (o.danger ?? 1) < 0.7)) for (const o of opts) {
           const dd = o.d ?? (o.q ? hyp(o.q.x - p.x, o.q.y - p.y) : 30);
-          if (o.kind === 'pass' && dd < 20 && (o.danger ?? 1) < 0.7) o.w *= 1 + 0.6 * mk; else if (o.kind === 'pass' && dd > 28 && !o.through) o.w *= Math.max(0.4, 1 - 0.15 * mk); else if (o.kind === 'dribble') o.w *= Math.max(0.3, 1 - 0.18 * mk); } }
+          if (o.kind === 'pass' && dd < 20 && (o.danger ?? 1) < 0.7) o.w *= 1 + 1.2 * mk; else if (o.kind === 'pass' && dd > 28 && !o.through) o.w *= Math.max(0.4, 1 - 0.15 * mk); else if (o.kind === 'dribble') o.w *= mk >= 4 ? 0.02 : Math.max(0.1, 1 - 0.22 * mk); } }
       // 版847：ゴール前（約35m）で相手に囲まれたら（5m以内に2人以上）、1人で抜きにいかず、近くの味方と速くつなぐ（ワンツー・落とし）。ドリブルの名手・固有スキルの間は別
       if (!p.gk && !S.setPiece && xf > L - 35 && !(p.uniq && p.uOn > S.t)) {
         const nOpp = opps(p).filter((q) => !q.off && !q.gk && hyp(q.x - p.x, q.y - p.y) < 5).length;
@@ -6468,6 +6471,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       if (pick.kind !== 'shot') S.fkDirect = false;
       if (globalThis.__kmP && mates(p).some((m) => m !== p && uOn(m, 'kage'))) globalThis.__kmP.push([+S.t.toFixed(1), pick.kind + (pick.mode ? ':' + pick.mode : '') + (pick.kmCut ? ':KM' : ''), +dGoal.toFixed(0), p.kmWaitT ? +(S.t - p.kmWaitT).toFixed(1) : '-']);
       if (uOn(p, 'aonoouza')) p.aoLastPick = pick.kind + (pick.mode ? ':' + pick.mode : '') + (pick.q ? ':' + (pick.aoSafe || pick.aoLong ? 'safe' : 'norm') : '');
+      if (globalThis.__mdDbg && (T[p.team].mdStack || 0) >= 4 && !p.gk) { const G = globalThis.__mdDbg; const k = 'L_' + pick.kind + (pick.kind === 'pass' ? ((pick.d ?? 99) < 20 ? 'S' : 'L') : ''); G[k] = (G[k] || 0) + 1; }
       if (globalThis.__zDec) { const dG0 = hyp(fx(p.team, L) - fx(p.team, p.x), GOAL_Y - p.y); if (dG0 < 34) globalThis.__zDec.push(['L', pick.kind, dG0 < 16 ? 'near' : dG0 < 24 ? 'mid' : 'far', opts.some((o) => o.kind === 'shot') ? 'shotOpt' : 'noShot']); }
       if (globalThis.__pkDec && fx(p.team, p.x) > L - 16 && Math.abs(p.y - GOAL_Y) > 6 && Math.abs(p.y - GOAL_Y) < 20) globalThis.__pkDec.push(pick.kind + (pick.kind === 'pass' ? (pick.q && fx(p.team, pick.q.x) < fx(p.team, p.x) - 2 ? ':back' : ':fwd') + ((pick.q && pick.q.fRunK === 'm' && (pick.q.fRunT || 0) > S.t) ? ':M' : '') : '') + (opts.some((o) => o.q && o.q.fRunK === 'm' && (o.q.fRunT || 0) > S.t) ? '/有' : '/無'));
       if (globalThis.__strk && p.type === 'ストライカー' && p.position === 'FW' && dGoal < 18) globalThis.__strk.push(pick.kind === 'pass' ? 'pass' + (pick.through ? ':through' : '') + (pick.needle ? ':needle' : '') + (pick.kmPass ? ':km' : '') + (pick.mdPass ? ':md' : '') + (pick.skill ? ':' + pick.skill : '') + ':d' + Math.round(pick.danger || 0) + ':dq' + (pick.q ? Math.round(Math.hypot(L - fx(p.team, pick.q.x), GOAL_Y - pick.q.y)) : 0) + ':me' + Math.round(dGoal) + ':shw' + (opts.find((o) => o.kind === 'shot') ? (opts.find((o) => o.kind === 'shot').ww).toPrecision(2) : 'none') + ':pw' + (+pick.ww).toPrecision(2) + ':jw' + (S.t - (p.wonT ?? -9) < 0.7 ? 1 : 0) + ':sp' + (S.setPiece ? 1 : 0) : pick.kind);
@@ -7213,6 +7217,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
     function bpFoot(p, b) { const k = b.kicker; if (k >= 0 && k !== p.idx && k === b.lastPlayer && b.ftBy === k && b.kickKind !== 'head' && P[k] && P[k].team === p.team) return true;
       const f = b.footBy; return !!(globalThis.__Kbp2 ?? 1) && f != null && f >= 0 && f !== p.idx && f === b.lastPlayer && b.kind !== 'shot' && P[f] && P[f].team === p.team && !P[f].gk; }   // 版929：味方が足で運んで（ドリブルで）離した球も、手で取れない
     function gainBall(p, how) {
+      p._gT = S.t;
       if (globalThis.__gbFar) { const dd = hyp(S.ball.x - p.x, S.ball.y - p.y); if (dd > 3.5) globalThis.__gbFar.push({ t: +S.t.toFixed(1), p: p.idx, how, dd: +dd.toFixed(1), kind: S.ball.kind, owner: S.ball.owner, st: new Error().stack.split('\n').slice(2, 6).map((x) => x.trim().replace(/^at /, '').replace(/\(.*engine.js:/, '(')).join(' < ') }); }
       if (globalThis.__mdG && p.uniq === 'midori') globalThis.__mdG.push([+fx(p.team, p.x).toFixed(0), how, S.restart ? 1 : 0, S.setPiece ? 1 : 0]);
       for (const q of P) q.aoKeepFast = false;   // 蒼の王座の「抜け出す足」は、打つか離すまで
@@ -7402,7 +7407,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           }
         }
       }
-      S.decision = p.gk ? (p.hold ? R.range(1.0, 1.8) : p.gkOutT === S.t ? 0.08 : 0.3) : S.mustClear && S.mustClear.i === p.idx ? 0.08 : clamp(R.range(0.25, 0.7) - p.vision * 0.004, 0.1, 0.7) * ((globalThis.__Kphy ?? 1) && S.nm && S.t - (p.scanT ?? -9) < 1.2 && hyp(p.vx, p.vy) > 3 ? 0.5 : 1) * ((globalThis.__Kmd2 ?? 1) && !p.gk && T[p.team].mdStack ? Math.max(0.4, 1 - 0.15 * T[p.team].mdStack) : 1);   // 版1219：翠の起点がたまるほど、受けてすぐ離す（テンポよく回す）   // 版908b：首を振ってから走りながら受けた選手は、考える時間が半分   // うまい選手ほど判断が早い（プレーが速い）
+      S.decision = p.gk ? (p.hold ? R.range(1.0, 1.8) : p.gkOutT === S.t ? 0.08 : 0.3) : S.mustClear && S.mustClear.i === p.idx ? 0.08 : clamp(R.range(0.25, 0.7) - p.vision * 0.004, 0.1, 0.7) * ((globalThis.__Kphy ?? 1) && S.nm && S.t - (p.scanT ?? -9) < 1.2 && hyp(p.vx, p.vy) > 3 ? 0.5 : 1) * ((globalThis.__Kmd2 ?? 1) && !p.gk && T[p.team].mdStack ? Math.max(0.3, 1 - 0.175 * T[p.team].mdStack) : 1);   // 版1219：翠の起点がたまるほど、受けてすぐ離す（テンポよく回す）   // 版908b：首を振ってから走りながら受けた選手は、考える時間が半分   // うまい選手ほど判断が早い（プレーが速い）
       if (!p.gk && how !== 'tackle' && condLv(p.team)) S.decision = Math.min(S.decision, 0.28);
       if (uOn(p, 'kinshachi')) S.decision = Math.min(S.decision, p.uniqLv >= 2 ? 0.1 : 0.12);
       if (uOn(p, 'aonoouza')) { S.decision = Math.min(S.decision, 0.08); p.protect = Math.max(p.protect || 0, S.t + 1.0); }   // 蒼の王座：受けたら、食いついてきたCBをいなして、すぐに穴へ   // 金鯱の心臓：受けたらすぐ次へ（判断が速い）   // 港の指揮者：受けたらすぐ次へ（テンポよく回す）
