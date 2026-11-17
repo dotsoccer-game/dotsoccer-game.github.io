@@ -5891,6 +5891,7 @@
       const before = on.rp, i0 = rankIdx(before);
       on.rp = res === 'W' ? before + RP_WIN : res === 'D' ? Math.max(0, before + RP_DRAW) : Math.max(0, before - RP_LOSE);   // 版617：下がる（降格あり）
       on[res.toLowerCase()]++;
+      { const st0 = on.rkStr || 0; on.rkStr = res === 'W' ? (st0 > 0 ? st0 + 1 : 1) : res === 'L' ? (st0 < 0 ? st0 - 1 : -1) : 0; }   // 版1214：連勝・連敗（3つ続くと、1つ上・下の級の相手）
       const i1 = rankIdx(on.rp);
       rewards = rankReward(i0, i1);
       on.best = Math.max(on.best || 0, on.rp);
@@ -5915,15 +5916,16 @@
       store(); try { renderHome(); } catch (_) {}
     })();
   }
-  function rankOpponent() {   // 版1213：CPUのクラブ（級に合わせた強さ。同じ級でもRPが上がるほど少し強い。S級は国内屈指の選手の選抜チーム）
+  function rankOpponent(tgt) {   // 版1213：CPUのクラブ（級に合わせた強さ。同じ級でもRPが上がるほど少し強い。S級は国内屈指の選手の選抜チーム）。版1214：人間のクラブと同じ見た目
     const on = ensureOnline(), i = rankIdx(on.rp), last = i === RANKS.length - 1, lo = RANK_AT[i], hi = last ? lo + 300 : RANK_AT[i + 1];
-    return C.rankCpu(save, i, (on.rp - lo) / Math.max(1, hi - lo));
+    const t = tgt == null ? i : tgt, pg = t > i ? 0.2 : t < i ? 0.8 : (on.rp - lo) / Math.max(1, hi - lo);
+    return C.rankCpu(save, t, pg);
   }
   // 版1213：ランクマッチは、相手が決まったら取り消せない。試合の途中でアプリを閉じた・通信が切れて戻れなかった時は、次に開いた時に負け
   function rkForfeit() {
     const on = save.online; if (!on || !on.rkPend) return;
     const pd = on.rkPend; delete on.rkPend;
-    const before = on.rp || 0; on.rp = Math.max(0, before - RP_LOSE); on.l = (on.l || 0) + 1; store();
+    const before = on.rp || 0; on.rp = Math.max(0, before - RP_LOSE); on.l = (on.l || 0) + 1; { const st0 = on.rkStr || 0; on.rkStr = st0 < 0 ? st0 - 1 : -1; } store();
     setTimeout(() => { try { modal(`<h2>ランクマッチ：負け</h2><p class="pm2-st">${esc(pd.name || '相手')}とのランクマッチの途中で終わったので、負けになりました（${before} → ${on.rp} RP）。</p>`, [{ label: 'OK', primary: true }]); } catch (_) {} }, 800);
   }
   // 版613：自分のクラブをオンラインに公開（ロビーを開いた時・対戦のあと）
@@ -5940,18 +5942,32 @@
   function embFromLook(lk, size) { if (!lk) return 'icons/home_lineup.png'; const k = JSON.stringify(lk) + size; if (!embLookCache.has(k)) { const cv = document.createElement('canvas'); cv.width = size; cv.height = size; try { drawEmblem(cv.getContext('2d'), size / 2, size / 2, size * 0.92, lk); } catch (_) {} embLookCache.set(k, cv.toDataURL()); } return embLookCache.get(k); }
   const fmtFid = (s) => (s ? String(s).replace(/(\d{4})(\d{4})/, '$1 $2') : '');
   async function startRank() {
-    { const ok0 = await modal(`<h2>ランクマッチを始めますか？</h2><p class="pm2-st">相手が決まったら、やめられません。<br>試合の途中でアプリを閉じたり、通信が切れて戻れなかったりすると、負け（−${RP_LOSE}RP）になります。</p>`, [{ label: 'やめる', value: false }, { label: '始める', value: true, primary: true }]); if (!ok0) return airport(); }
     const on = ensureOnline(), ri = rankIdx(on.rp), R = RANKS[ri];
     let op = null, who = '', live = null;
-    if (window.DotNet && DotNet.on) {   // 版613：オンライン：同じくらいのランクの、ほかの監督のクラブ
-      try { const rv = await DotNet.rankRival(ri, on.rkLast); if (rv && rv.code) { const d = await unpackCode(rv.code); const g = C.registerGuest(save, d); op = { name: g.name, short: g.short, ruid: rv.uid }; who = `${rv.mgr ? esc(rv.mgr) + '監督の' : ''}クラブ　${rankBadge(Math.max(0, Math.min(4, rv.rank || 0)))}`; live = rv; } } catch (_) {}
+    const wait0 = rankSearching(), minT = new Promise((r) => setTimeout(r, 2000 + Math.random() * 2000));   // 版1214：2〜4秒「対戦相手を探しています…」
+    // 版1214：相手は、人間の監督とCPUのクラブが半分ずつ。級は同じ級。3連勝中は1つ上、3連敗中は1つ下の級の相手
+    const str = on.rkStr || 0, tgt = Math.max(0, Math.min(RANKS.length - 1, ri + (str >= 3 ? 1 : str <= -3 ? -1 : 0)));
+    if (window.DotNet && DotNet.on && Math.random() < 0.5) {   // 版613：オンライン：同じくらいのランクの、ほかの監督のクラブ
+      try { const rv = await DotNet.rankRival(tgt, on.rkLast, [tgt]); if (rv && rv.code) { const d = await unpackCode(rv.code); const g = C.registerGuest(save, d); op = { name: g.name, short: g.short, ruid: rv.uid }; who = `${rv.mgr ? esc(rv.mgr) + '監督の' : ''}クラブ　${rankBadge(Math.max(0, Math.min(4, rv.rank || 0)))}`; live = rv; } } catch (_) {}
     }
-    if (!op) { op = rankOpponent(); who = 'CPUのクラブ'; }
+    if (!op) { op = rankOpponent(tgt); who = ''; if (op) live = { mgr: op.mgr, rank: tgt }; }
     if (!op) return;
+    await minT; wait0.stop();
     if (live && live.uid) on.rkLast = live.uid;
     on.rkPend = { name: op.name, at: Date.now() }; store();   // 版1213：ここから先は取り消せない（アプリを閉じたら負け）
     await rankConfirm(ri, op, live);   // 版634：専用の画面（ホーム／アウェーのカードとVS）。版1213：やめるボタンはなし。3秒で試合へ
     runMatch('ランクマッチ', '', op, (score) => onlineDone('rank', op, score), { comp: 'ランクマッチ', label: R.n, home: true, online: 'rank' });
+  }
+  // 版1214：対戦相手を探している画面（2〜4秒）
+  function rankSearching() {
+    const el = fullScreen('rkScreen', 'ap-wrap rk-wrap'), box = el.querySelector('.lk-box');
+    box.innerHTML = `${apBg()}<div class="ap2 rkm"><div class="rk-box"><div class="rk-ttl">${AP_SVG.gtrophy}<b>ランクマッチ</b></div>
+        <div class="rk-stage rk-srch" style="background-image:url('${AP_VS_BG}')"><div class="rk-found">対戦相手を探しています<span class="rk-dots"></span></div>
+          <div class="rk-spin">${AP_SVG.ball}</div></div>
+        <div class="rk-srch2">${rankBadge(rankIdx(ensureOnline().rp), true)}<p class="rk-note">同じくらいの強さの監督を探しています。</p></div></div></div>`;
+    el.hidden = false; el._fit && el._fit();
+    let n = 0; const d = box.querySelector('.rk-dots'), iv = setInterval(() => { n = (n + 1) % 4; if (d) d.textContent = '・'.repeat(n); }, 350);
+    return { stop: () => clearInterval(iv) };
   }
   // 版634：ランクマッチの相手が見つかった画面
   function rankConfirm(ri, op, live) {
@@ -5966,7 +5982,7 @@
           <div class="rk-vs">${card('home', emblemURL(save.team.name, 128), save.team.name, save.manager || '', ri)}<i class="ap-vs-t">VS</i>${card('away', emblemURL(op.name, 128), op.name, live && live.mgr, ori)}</div>
         </div>
         <div class="rk-rps"><span class="w"><b>勝利</b><em>+${RP_WIN}<small>RP</small></em></span><span class="d"><b>引き分け</b><em>${RP_DRAW}<small>RP</small></em></span><span class="l"><b>敗北</b><em>−${RP_LOSE}<small>RP</small></em></span></div>
-        <p class="rk-note">RPが今の級の下限を割ると、ライセンスが1つ下がります。<br>選手の疲れ・ケガ・週は進みません。</p>
+        <p class="rk-note">RPが今の級の下限を割ると、ライセンスが1つ下がります。<br>試合の途中でアプリを閉じると負けになります。選手の疲れ・ケガ・週は進みません。</p>
         <div class="rk-btns"><button class="rk-go">${AP_SVG.ball}<span class="rk-cd">3</span>秒後に試合開始</button></div>
       </div></div>`;
     { const bk = box.querySelector('.std-back'); if (bk) bk.remove(); }   // 版1213：相手を見てから戻れないように

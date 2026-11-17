@@ -5072,3 +5072,11 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 /* 版1198：カードが足りなくてできないメニューは、薄黄色の地も暗めに */
 .spt.k.nog{background:linear-gradient(#b9b29a,#a49d84);border-color:#8a7d4e;color:#3a3a30}
 .spt.k.nog small{color:#4a4a3e}
+/* 版1214：対戦相手を探している画面 */
+.rk-srch .rk-found{padding:6px 26px;min-width:420px;justify-content:center}
+.rk-dots{display:inline-block;width:3em;text-align:left}
+.rk-spin{position:absolute;left:50%;top:52%;width:120px;height:120px;margin:-60px 0 0 -60px;animation:rkSpin 1.1s linear infinite;filter:drop-shadow(0 4px 6px rgba(0,0,0,.35))}
+.rk-spin svg{width:100%;height:100%}
+@keyframes rkSpin{to{transform:rotate(360deg)}}
+.rk-srch2{display:flex;flex-direction:column;align-items:center;gap:14px;margin-top:26px}
+.rk-srch2 .rk-note{margin:0}

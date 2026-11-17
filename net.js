@@ -59,11 +59,11 @@
   }
   async function byUid(u) { if (!(await ready())) return null; return withTimeout(db.collection('players').doc(u).get().then((p) => (p.exists ? { uid: u, ...p.data() } : null))); }
   // ランクマッチの相手：同じランクの人（いなければ近いランク）から1人
-  async function rankRival(rank, avoid) {   // 版1213：同じ級（いなければ1つ上・下まで）の、最近（2週間以内）遊んだ監督。直前に当たった相手には続けて当たらない。いなければ null（CPUのクラブになる）
+  async function rankRival(rank, avoid, ranks) {   // 版1213：同じ級（いなければ1つ上・下まで）の、最近（2週間以内）遊んだ監督。直前に当たった相手には続けて当たらない。いなければ null（CPUのクラブになる）
     if (!(await ready())) return null;
     return withTimeout((async () => {
       const recent = Date.now() - 14 * 24 * 3600 * 1000;
-      for (const r of [rank, rank - 1, rank + 1]) {
+      for (const r of ranks || [rank, rank - 1, rank + 1]) {
         if (r < 0 || r > 4) continue;
         const q = await db.collection('players').where('rank', '==', r).limit(40).get();
         const list = q.docs.filter((d) => d.id !== uid && d.id !== avoid && (d.data().at || 0) > recent).map((d) => ({ uid: d.id, ...d.data() }));

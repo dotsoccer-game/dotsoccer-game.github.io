@@ -496,9 +496,25 @@
   //  級ごとの相手：D級＝地域リーグ、C級＝D3、B級＝D1の下半分、A級＝D1の上半分（スキルは1人2〜3個）、S級＝国内屈指の選手を集めた選抜チーム（毎回メンバーが変わる）
   //  同じ級の中でも、RPが上がるほど少し強くなる（prog：0〜1）
   const RK_SK = [0, 2, 3, 3, 3];
+  // 版1214：CPUのクラブは、人間の監督のクラブと見分けがつかないように（地名＋FC・SCなどの名前、ユニフォーム、監督の名前）
+  const RK_PLACE = ['小松', '飯塚', '鳴門', '伊万里', '大館', '富良野', '館山', '佐久', '多治見', '彦根', '舞鶴', '津山', '宇部', '今治', '延岡', '鹿屋', '名護', '石巻', '酒田', '会津', '桐生', '秩父', '銚子', '小田原', '富士', '焼津', '豊川', '桑名', '敦賀', '加賀', '高岡', '上田', '伊那', '甲府', '三島', '伊勢', '宇治', '姫路', '明石', '倉敷', '尾道', '三次', '萩', '岩国', '丸亀', '新居浜', '四万十', '唐津', '佐世保', '天草', '別府', '日南', '奄美', '北見', '釧路', '八戸', '一関', '横手', '鶴岡', 'つくば', '水戸', '前橋', '所沢', '柏', '八王子', '藤沢', '長岡', '魚津', '輪島', '大垣', '浜松', '岡崎', '四日市', '大津', '奈良', '和歌山', '米子', '出雲', '福山', '徳山', '阿南', '宇和島', '久留米', '諫早', '八代', '都城', '霧島', '宮古'];
+  const RK_FORM = [(p) => p + 'FC', (p) => 'FC' + p, (p) => 'SC' + p, (p) => p + 'SC', (p) => p + 'ユナイテッド', (p) => 'FC' + p + 'ユナイテッド', (p) => p + 'シティ', (p) => 'AC' + p, (p) => p + 'フットボールクラブ'];
+  const RK_MGR = ['たなか', 'やまもと', 'すずき', 'さとう', 'こばやし', 'いとう', 'わたなべ', 'なかむら', 'かとう', 'よしだ', 'やまだ', 'まつもと', 'いのうえ', 'きむら', 'はやし', 'しみず', 'やまぐち', 'もり', 'いけだ', 'はしもと', 'あべ', 'いしかわ', 'おがわ', 'ごとう', 'おかだ', 'はせがわ', 'ふじた', 'こんどう', 'むらかみ', 'えんどう', 'あおき', 'さかもと', 'にしむら', 'ふくだ', 'おおた', 'みうら', 'ふじい', 'おかもと', 'まつだ', 'なかがわ', 'たけうち', 'かねこ', 'わだ', 'なかの', 'はらだ', 'しばた', 'さかい', 'くどう', 'よこやま', 'みやざき'];
+  const RK_KIT = ['#c8102e', '#1f5fd0', '#14204a', '#1d8a4a', '#f2c230', '#f07c1a', '#7a2fb5', '#111111', '#f4f4f0', '#5ec4e8', '#8b1e3f', '#2b9e9e'];
+  function rankDisguise(save, team, lg, R) {
+    const taken = (n) => n === save.team.name || Object.values(save.world.leagues).some((l) => l.some((x) => x.name === n));
+    let name = ''; for (let k = 0; k < 20 && (!name || taken(name)); k++) { const pl = RK_PLACE[Math.floor(R() * RK_PLACE.length)]; name = RK_FORM[Math.floor(R() * RK_FORM.length)](pl); }
+    const short = name.replace(/^(FC|SC|AC)/, '').replace(/(FC|SC|ユナイテッド|シティ|フットボールクラブ)$/, '').slice(0, 5) || name.slice(0, 5);
+    const c = () => RK_KIT[Math.floor(R() * RK_KIT.length)]; let a = c(), b = c(); while (b === a) b = c();
+    const pats = ['solid', 'vstripe', 'hstripe', 'band', 'sash', 'half'], kit = { pat: pats[Math.floor(R() * pats.length)], shirt: a, sub: b, shorts: R() < 0.5 ? a : b, socks: a };
+    const mgr = RK_MGR[Math.floor(R() * RK_MGR.length)];
+    team.players.forEach((p) => { delete p.top; });
+    const g = registerGuest(save, { name, short, mgr, lg, kit, team });
+    return { name: g.name, short: g.short, mgr };
+  }
   function rankCpu(save, tier, prog, rnd) {
     const R = rnd || Math.random, pick = (a) => a[Math.floor(R() * a.length)];
-    const lgT = (ids) => { const out = []; for (const id of ids) for (const t of (save.world.leagues[id] || [])) if (t.name !== save.team.name) out.push(t); return out; };
+    const lgT = (ids) => { const out = []; for (const id of ids) for (const t of (save.world.leagues[id] || [])) if (t.name !== save.team.name) out.push({ ...t, lg: id }); return out; };
     if (tier >= 4) return rankAllStar(save, prog, R);
     let list;
     if (tier === 0) list = lgT(['regW2', 'regE2']);
@@ -506,7 +522,8 @@
     else { const d1 = lgT(['d1']).sort((a, b) => (a.lvl || 0) - (b.lvl || 0)), h = Math.ceil(d1.length / 2); list = tier === 2 ? d1.slice(0, h) : d1.slice(Math.floor(d1.length / 2)); }
     if (!list.length) list = lgT(Object.keys(save.world.leagues));
     const t = pick(list); if (!t) return null;
-    return { name: t.name, short: t.short, rk: { tier, prog: Math.max(0, Math.min(1, prog || 0)), sd: Math.floor(R() * 1e9) } };
+    const team = opponentTeam(save, { name: t.name, short: t.short, rk: { tier, prog: Math.max(0, Math.min(1, prog || 0)), sd: Math.floor(R() * 1e9) } });
+    return rankDisguise(save, team, t.lg, R);
   }
   function rankAdjust(t, rk) {   // 級に合わせて、スキルの数をそろえ、RPに応じて少し強くする
     let s = (rk.sd >>> 0) || 1; const r = () => { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; };
@@ -540,9 +557,7 @@
     applyTactics(team, { ...st.t, formation });
     team.players = fitLines(ps.slice(0, 11), formation).concat(ps.slice(11));
     team.style = st.name;
-    const kits = [{ pat: 'solid', shirt: '#14204a', sub: '#f2c230', shorts: '#14204a', socks: '#f2c230' }, { pat: 'band', shirt: '#f4f4f0', sub: '#c8102e', shorts: '#14204a', socks: '#f4f4f0' }];
-    const g = registerGuest(save, { name: 'ドリーム選抜', short: '選抜', mgr: '', lg: 'd1', kit: kits[Math.floor(R() * kits.length)], team });
-    return { name: g.name, short: g.short, allStar: true };
+    return rankDisguise(save, team, 'd1', R);
   }
   function opponentTeam(save, op) {
     const t0 = opponentTeam0(save, op), t = op && op.rk ? rankAdjust(t0, op.rk) : t0;
