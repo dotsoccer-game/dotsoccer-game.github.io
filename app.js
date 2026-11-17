@@ -231,7 +231,7 @@
     const PASS_SK = new Set(['throughPass', 'loftedThrough', 'noLook', 'oneTouchPass', 'heelPass', 'longFeed', 'earlyCross', 'pinpointCross', 'switchPlay', 'wallPass', 'oneTwo']);
     kfOf = Array.from({ length: 22 }, () => []);   // 蹴った足（右・左）は絵の描き分けだけに使う
     for (const a of match.actions || []) { if (a.a === 'kf') { kfOf[a.i].push(a); continue; } if (!(a.a === 'skill' && PASS_SK.has(a.k))) actsOf[a.i].push(a); }
-    bySlow = (match.actions || []).filter((a) => a.a === 'bycalm').map((a) => [a.t, a.t + a.d]); if (globalThis.__Kbic ?? 1) for (const a of match.actions || []) if (a.a === 'bicycle') bySlow.push([a.t - 0.4, a.t + 0.45]);   // 版1209：バイシクルは、跳んでから蹴るまでをスローで見せる   // 白夜の視界：時間がゆっくり流れる区間
+    bySlow = (match.actions || []).filter((a) => a.a === 'bycalm').map((a) => [a.t, a.t + a.d]); if (globalThis.__Kbics ?? 0) for (const a of match.actions || []) if (a.a === 'bicycle') bySlow.push([a.t - 0.4, a.t + 0.45]);   // 版1209で入れたバイシクルのスローは、版1211でやめた（スローにはしない）   // 白夜の視界：時間がゆっくり流れる区間
     // 接触の瞬間（足・頭・体がボールや相手に当たった所）に小さな火花を出す：誰が何に触ったかを目で追えるように
     contacts = [];
     for (const a of match.actions || []) {

@@ -3001,6 +3001,7 @@
           } }
         let hrN = false;   // 版995：針の穴通し（きのした）：相手陣で前を向いたら、ゴール前へ抜ける味方への決定的な1本をいつも狙う（ボールを持ったら怖い存在に）
         if ((globalThis.__Khr2 ?? 1) && p.uniq === 'harinoana' && !(p.uCd > S.t) && !p.off && !S.setPiece && xf > L / 2 - ((globalThis.__Khr4 ?? 1) ? (globalThis.__Khx ?? 14) : 8) && !q.gk && fx(t, q.x) > (L - ((globalThis.__Khr4 ?? 1) ? (globalThis.__Khz ?? 50) : 42)) && fx(t, q.x) < offL - 0.3 && pxf > (L - ((globalThis.__Khr4 ?? 1) ? (globalThis.__Khz ?? 50) : 42)) + 2 && pxf > xf + 2 && danger < 2.4) { hrN = true;   /* 版1192：針の穴通し：少し下がった所（センターライン手前14m）からでも、少し手前（ゴールから50m）の味方へでも狙う */ v += (globalThis.__Khr2v ?? 2.6) + (pxf > L - 30 ? 1.0 : 0) + (through ? 0.5 : 0); }
+        if ((globalThis.__Kwg ?? 1) && xf > L - 55 && Math.abs(py - GOAL_Y) > 16 && pxf > L - 40 && pxf > xf - 2 && danger < 0.8 && recvOpp > 4) v += globalThis.__Kwgv ?? 0.6;   // 版1211：相手陣では、サイドの空いている味方へ（そこからクロス）
         if (danger < 0.4) bestSafe = Math.max(bestSafe, v);
         if (globalThis.__gpV && gpG && ((gpG.k === 'sh' && p.idx === gpG.a && q.idx === gpG.c) || (gpG.k === 'dc' && gpG.ph === 1 && p.idx === gpG.b && q.idx === gpG.c))) globalThis.__gpV.push([gpG.k, +v0dbg.toFixed(1), +v.toFixed(1), +danger.toFixed(2), ph, +adv.toFixed(0), +d.toFixed(0), through ? 1 : 0, +xf.toFixed(0)]);
         opts.push({ kind: 'pass', q, through, v, danger, d, space: thrSpot, minus: isMinus, needle: hrN });
@@ -3011,7 +3012,7 @@
       // クロス・折り返し：サイドの深い所から、ゴール前の空いている所（ニア・ファー・PKマーク・マイナス）へ。味方が相手より先に着ける所だけ
       // 版907：クロスは、エリアの中で合わせる味方が2人以上いる（走り込んでいる）時に上げる（設計一覧13章：エリア1・2に2人以上）
       const boxMates = (globalThis.__Kfb ?? 1) ? mates(p).filter((m) => !m.off && !m.gk && m !== p && ((fx(t, m.x) > L - (globalThis.__Kbx ?? 24) && Math.abs(m.y - GOAL_Y) < 18) || (m.bRun && m.bRun.until > S.t && fx(t, m.bRun.x) > L - 18 && fx(t, m.x) > L - (globalThis.__Kbr ?? 30)))).length : 9;
-      if (xf > L - 34 && Math.abs(p.y - GOAL_Y) > 11 && (boxMates >= 2 || held > (globalThis.__Kcrh ?? 3.5))) {
+      if (xf > L - 34 && Math.abs(p.y - GOAL_Y) > 11 && (boxMates >= ((globalThis.__Kwg ?? 1) ? 1 : 2) || held > (globalThis.__Kcrh ?? ((globalThis.__Kwg ?? 1) ? 2.0 : 3.5)))) {   // 版1211：中に1人いれば上げる
         const sd = Math.sign(p.y - GOAL_Y), spots = [[L - 6, GOAL_Y + sd * 4, 'near'], [L - 11, GOAL_Y, 'pk'], [L - 6, GOAL_Y - sd * 5, 'far'], [L - 15, GOAL_Y + sd * 2, 'cut']];
         for (const [sx0, sy, k] of spots) {
           const sx = fx(t, sx0), dS = hyp(sx - p.x, sy - p.y); if (dS < 6 || dS > 38) continue;
@@ -4644,6 +4645,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
 
     function kick(p, tx, ty, kind, loft, opt) {
       opt = opt || {};
+      if (globalThis.__crsLog && loft === 'cross' && kind === 'pass' && S.ball.owner === p.idx) globalThis.__crsLog.push({ t: S.t, i: p.idx, tx, ty, sp: !!S.setPiece });
       S.ball.kT = S.t; S.ball.kX = S.ball.x; S.ball.kY = S.ball.y;   // 版908：蹴った時刻と場所（近くから強く蹴られた球は止められない：設計一覧14章）
       if (loft === 'clear' || (p.gk && kind === 'pass' && fx(p.team, p.x) < 20 && hyp(tx - p.x, ty - p.y) > 30)) { const tmc = T[p.team], ds = tmc.players.filter((m) => !m.gk && !m.off && m.slot && m.slot.line === 0).map((m) => fx(p.team, m.x)).sort((a0, c0) => a0 - c0); tmc.clearT = S.t; tmc.clearTo = (ds[1] ?? ds[0] ?? 15) + 7; { const d1 = tmc.players.filter((m) => !m.gk && !m.off && m.slot && m.slot.line === 0).sort((a0, c0) => Math.abs(a0.y - GOAL_Y) - Math.abs(c0.y - GOAL_Y))[0]; if (globalThis.__tacLog) globalThis.__tacLog.push(['stepup', +S.t.toFixed(1), p.team, d1 ? d1.idx : p.idx]); } }   // 版878：クリア・大きく蹴り出した：ラインを上げる合図（クリアした時のラインから7m上げる）
       const b = S.ball;
@@ -5894,6 +5896,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         if (S.nm && (globalThis.__Kdraw ?? 1) && (S.t - (p.recvT ?? -9)) > 0.8 && hyp(p.vx, p.vy) > 1.5 && nearestOpp(p, p.x, p.y).d < 5 && recvOpp > 5 && danger < 0.6) v += 0.7;   // 版901：ドライブで相手を引きつけたら、空いた味方へ離す
         if (S.dribbleMode === 'carry' && p.carryFW === q.idx && danger < 0.5) v += 0.45;   // 運びながら意識していた前のFWへ、コースが空いた瞬間に縦パス
         if (tm.tac.side) v += Math.abs(py - GOAL_Y) > 14 ? tm.tac.side * (tm.tac.side > 0 ? 0.9 : 1.3) : -tm.tac.side * (tm.tac.side > 0 ? 0.5 : 1.0);   /* 版1088：攻める場所を強く（サイド＝外の味方へ、中央＝中の味方へ） */
+        if ((globalThis.__Kwg ?? 1) && xf > L - 55 && Math.abs(py - GOAL_Y) > 16 && pxf > L - 40 && pxf > xf - 2 && danger < 0.8 && recvOpp > 4) v += globalThis.__Kwgv ?? 0.6;   // 版1211：相手陣では、サイドの空いている味方へ（そこからクロス）
         // サイドの深い位置からはゴール前へクロス
         if (xf > L - 36 && Math.abs(p.y - GOAL_Y) > 12 && pxf > L - 18 && Math.abs(py - GOAL_Y) < 12) v += 1.9 + (tm.tac.side || 0) * 0.6 + (skZ(q, 'nearRun') || skZ(q, 'farWait') ? 0.7 : 0) + (q.type === 'ストライカー' && q.position === 'FW' ? 0.6 : 0) + ((globalThis.__Kcrs ?? 1) ? clamp(((q.jump || 50) * 0.6 + (q.kick || 50) * 0.4 - 60) / 25, -0.5, 1.2) : 0);   // 版973：ジャンプ力とキック力（ヘディングシュート）が高い味方へは、相手がいてもクロス
         if (skZ(p, 'postPlay') && pressure >= 1 && d < 16 && danger < 0.3 && fx(p.team, q.x) > xf - 8) v += 0.8;   // ポストプレー：背負って、上がってきた味方へ落とす
