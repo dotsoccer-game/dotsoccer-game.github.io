@@ -4,6 +4,7 @@
   window.__noShow = true;
   const SC = window.__SAVE_SCENES || {};
   const KINDS = [
+    ['lowPunt', '低弾道パントキック', -1.4, 2.6, '版1200〜：手で持ったボールを、体を倒して横から叩くボレーの形で、低い弾道のまま前線の空いた味方へ（確認のため、両方のGKに低弾道パントを持たせた試合です）'],
     ['new_punchHigh', 'ハイボールをパンチング', -1.6, 1.6, '版1052〜：ボールの方を向いて跳び、こぶしをあごの横に引いてから、ボールへ斜め上に突き出す'],
     ['new_catchLow', 'キャッチ：低い球（片ひざ）', -1.4, 1.6, '版1050〜：低く来たシュート（0.45m未満）を、片ひざをついて、ひざの前で両手で持つ'],
     ['new_catchChest', 'キャッチ：胸に引きつける', -1.4, 1.6, '版1049〜：正面に来たシュートを、ひじをしめて胸に引きつける'],
@@ -32,8 +33,8 @@
   let kind = KINDS[0] ? KINDS[0][0] : null, idx = 0, sp = 0.5, cur = null, loaded = null, paused = false;
   const K = (k) => KINDS.find((x) => x[0] === k);
   function loadSeed(seed, lab) {
-    const key = seed + (lab ? 'L' : ''); if (loaded === key) return;
-    globalThis.__Kgkft = lab ? 1 : undefined; globalThis.__labPost = lab === 'post' ? true : undefined;   // 版1016：ポストに当たって入る場面を作る（確認画面だけ）   // 版946：確認画面だけの新しい止め方（近い距離のシュートを、飛ばずに足・体で止める）
+    const key = seed + (lab ? 'L' + lab : ''); if (loaded === key) return;
+    globalThis.__Kgkft = lab ? 1 : undefined; globalThis.__labLP = lab === 'lp' ? true : undefined; globalThis.__labPost = lab === 'post' ? true : undefined;   // 版1016：ポストに当たって入る場面を作る（確認画面だけ）   // 版946：確認画面だけの新しい止め方（近い距離のシュートを、飛ばずに足・体で止める）
     document.querySelector('#level').value = 's'; const op = document.querySelector('#opponent'); if (op) op.value = 'バランス型';
     document.getElementById('seed').value = String(seed);
     D.start(); D.stop(); loaded = key;
