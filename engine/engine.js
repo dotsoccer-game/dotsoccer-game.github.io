@@ -490,7 +490,7 @@
       // 固有スキル・サポートパッシブ
       q.uniq = p.uniq && UNIQ[p.uniq] ? p.uniq : null; q.uniqLv = q.uniq ? clamp(p.uniqLv || 1, 1, 2) : 0; q.uOn = -1; q.uCd = 0;
       if (globalThis.__labSut && i === 0) { q.uniq = 'sutemi'; q.uniqLv = 1; q.type = 'スイーパーキーパー'; }   // 確認画面だけ：両方のGKに捨て身の守護神
-      if (globalThis.__labMd && i === 6) { q.uniq = 'midori'; q.uniqLv = 1; q.type = 'ビルドアップ型'; }   // 確認画面だけ：両チームの7番目の選手に翠の起点
+      if (globalThis.__labMd && i === 6 && (ti === 0 || !(globalThis.__Kmdl1 ?? 1))) { q.uniq = 'midori'; q.uniqLv = 1; q.type = 'ビルドアップ型'; }   // 確認画面だけ：ホームチームの7番目の選手に翠の起点（版1225：相手には持たせない。どちらのボールが光っているかわかりやすく）
       q.pasK = p.passive > 0 && PASSIVE[q.type] ? PASSIVE[q.type].k : null; q.passive = q.pasK ? clamp(p.passive, 1, 3) : 0;   // 1 付与、2 強化、3 範囲が味方全員に（もともと全員なら効き目がさらに上がる）
       return q;
     }
@@ -4533,13 +4533,15 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           const thr = clamp(p.run_space + T[p.team].mods.through + T[p.team].tac.through + T[p.team].urg * 35 + (T[p.team].attitude === 'defensive' ? 12 : 0), 0, 100);
           // 渦潮の囮：味方が前を向いて持ったら、裏へ全力で走る／月影の抜け出し：ボールを持った味方が近くにいたら、裏へ抜け出してスルーパスを呼び込む
           if (globalThis.__uzOpp && p.uniq === 'uzushio' && !own.gk) { const c = globalThis.__uzOpp; c.all++; if (own.position !== 'DF') c.nd++; if (own.position !== 'DF' && fx(p.team, own.x) > 62 && fx(p.team, own.x) < 90) { c.zone++; if (xf > 62) c.tz++; if (Math.abs(own.y - GOAL_Y) < 28) c.cen++; if (fx(p.team, own.x) < xf - 2) c.beh++; if (p.uCd > S.t) c.cd++; } }
-          if (p.uniq === 'tsukikage' && xf > 30 && !own.gk && hyp(own.x - p.x, own.y - p.y) < (p.uniqLv >= 2 ? 48 : 44) && fx(p.team, own.x) > 28 && fx(p.team, own.x) < xf + 3 && offsideLine(p.team) < L - 7 && xf < offsideLine(p.team) - 0.4 && !(p.uCd > S.t)) {   // 走り出す時は、オフサイドラインの手前から
+          if (globalThis.__tkDbg && p.uniq === 'tsukikage' && !own.gk) { const G = globalThis.__tkDbg, oL = offsideLine(p.team); G.all = (G.all || 0) + 1; if (p.uCd > S.t) G.cd = (G.cd || 0) + 1; else if (xf <= 30) G.xf = (G.xf || 0) + 1; else if (hyp(own.x - p.x, own.y - p.y) >= (p.uniqLv >= 2 ? 48 : 44)) G.far = (G.far || 0) + 1; else if (!(fx(p.team, own.x) > 28)) G.ownBack = (G.ownBack || 0) + 1; else if (!(fx(p.team, own.x) < xf + 3)) G.ownAhead = (G.ownAhead || 0) + 1; else if (!(oL < L - 7)) G.lineDeep = (G.lineDeep || 0) + 1; else if (!(xf < oL - 0.4)) G.offs = (G.offs || 0) + 1; else G.pass = (G.pass || 0) + 1; }
+          if (p.uniq === 'tsukikage' && xf > 30 && !own.gk && hyp(own.x - p.x, own.y - p.y) < (p.uniqLv >= 2 ? 48 : 44) && fx(p.team, own.x) > 28 && fx(p.team, own.x) < xf + ((globalThis.__Ktk2 ?? 1) ? 8 : 3) && offsideLine(p.team) < L - 7 && xf < offsideLine(p.team) - 0.4 && !(p.uCd > S.t)) {   // 走り出す時は、オフサイドラインの手前から
             // 裏のスペースに、相手より先に着けそうな時だけ（読まれていたら走らない）
             const offL0 = offsideLine(p.team), sx = fx(p.team, Math.min(Math.max(xf + 7, offL0 + 3), L - 8)), sy = p.y + (GOAL_Y - p.y) * 0.15;
-            const tN = hyp(sx - p.x, sy - p.y) / (maxSpeed(p) * 1.1);
-            let tD = 99; for (const o of opps(p)) { if (o.off) continue; tD = Math.min(tD, hyp(sx - o.x, sy - o.y) / maxSpeed(o) + (o.gk ? 0.3 : 0.4)); }   // DFは前を向いているので、振り返る分だけ遅れる
+            const K2 = (globalThis.__Ktk2 ?? 1), tN = hyp(sx - p.x, sy - p.y) / (maxSpeed(p) * (K2 ? 1.4 : 1.1));   // 版1225：一瞬で抜け出す（出やすく）
+            let tD = 99; for (const o of opps(p)) { if (o.off) continue; tD = Math.min(tD, hyp(sx - o.x, sy - o.y) / maxSpeed(o) + (o.gk ? 0.3 : K2 ? 1.0 : 0.4)); }   // DFは前を向いているので、振り返る分だけ遅れる
             // パスのコースに相手の足がかからないこと（出してもカットされるなら走らない）
-            const lane = opps(p).some((o) => !o.gk && !o.off && (() => { const sd = segDist(o.x, o.y, own.x, own.y, sx, sy); return sd.u > 0.12 && sd.u < 0.92 && sd.d < 1.3; })());
+            const lane = opps(p).some((o) => !o.gk && !o.off && (() => { const sd = segDist(o.x, o.y, own.x, own.y, sx, sy); return sd.u > 0.12 && sd.u < 0.92 && sd.d < ((globalThis.__Ktk2 ?? 1) ? 0.8 : 1.3); })());
+            if (globalThis.__tkDbg) { const G = globalThis.__tkDbg; if (lane) G.lane = (G.lane || 0) + 1; else if (!(tN < tD + (p.uniqLv >= 2 ? 0.35 : 0.0) - ctrPen(1 - p.team))) G.race = (G.race || 0) + 1; else G.ok = (G.ok || 0) + 1; }
             if (tN < tD + (p.uniqLv >= 2 ? 0.35 : 0.0) - ctrPen(1 - p.team) && !lane) uFire(p, 'tsukikage');   // 対策役がいる相手には、抜け出すスペースそのものが少ない   // 凸：抜け出せる場面が少し増える
           }
           // 版789：裏への抜け出し：2列目の味方が前を向いて持った瞬間に、裏へ走り出す（持ち主が変わるたびに1回）

@@ -1832,10 +1832,14 @@
   }
   // 版1044：ボールの見た目だけを、画面の好きな所に描く（キャッチの絵で、GKが抱えるボール）。試合のボールと同じ描き方
   // 版1224：翠の起点が効いているチームのボールは、薄い翠の光をまとう（たまるほど少し濃く・大きく）。持っている時も、パスで飛んでいる時も
+  const MD_TOUCH = new Set(['touch', 'poke', 'kf', 'chest', 'icpt', 'slide', 'head', 'block', 'gkplay', 'throwgk', 'tackle', 'save', 'catch']);
+  function n0(F, i) { return i >= 0 && F[Math.min(F.length - 1, i)] && F[Math.min(F.length - 1, i)][4] >= 0; }
   function mdGlow(cx, cy, r) {
     if (!(globalThis.__Kmdg ?? 1) || !match) return;
     try { const F = match.frames || [], dt = match.frameDt || (F[1] ? F[1][0] - F[0][0] : 0.1); let i = Math.min(F.length - 1, Math.max(0, Math.round((simT - (F[0] ? F[0][0] : 0)) / dt)));
-      mdBallTeam = -1; for (let n = 0; i >= 0 && n < 200; i--, n++) { const o = F[i][4]; if (o >= 0) { mdBallTeam = o < 11 ? 0 : 1; break; } } } catch (_) {}   // 今持っている、または最後に持ったチーム（パスで飛んでいる間も）
+      mdBallTeam = -1; for (let n = 0; i >= 0 && n < 200; i--, n++) { const o = F[i][4]; if (o >= 0) { mdBallTeam = o < 11 ? 0 : 1; break; } }   // 今持っている、または最後に持ったチーム（パスで飛んでいる間も）
+      if (mdBallTeam >= 0 && n0(F, i) && (globalThis.__Kmdg2 ?? 1)) { const tO = F[i][0], A = match.actions || []; let lo = 0, hi = A.length; while (lo < hi) { const md = (lo + hi) >> 1; if (A[md].t <= tO) lo = md + 1; else hi = md; }   // 版1225：最後に持った後で、相手がボールに触った（弾いた・クリア・カット・ヘディングなど）なら、もう光らせない
+        for (let j = lo; j < A.length && A[j].t <= simT; j++) { const a = A[j]; if (MD_TOUCH.has(a.a) && a.i != null && (a.i < 11 ? 0 : 1) !== mdBallTeam) { mdBallTeam = -1; break; } } } } catch (_) {}
     if (mdBallTeam < 0) return; const k = Math.min(4, mdStackAt(mdBallTeam)); if (!k) return;
     const R2 = r * (1.7 + 0.3 * k), gr = ctx.createRadialGradient(cx, cy, r * 0.5, cx, cy, R2);
     gr.addColorStop(0, `rgba(70,255,140,${0.3 + 0.08 * k})`); gr.addColorStop(1, 'rgba(70,255,140,0)'); ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(cx, cy, R2, 0, Math.PI * 2); ctx.fill();
