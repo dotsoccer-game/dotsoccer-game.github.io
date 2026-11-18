@@ -7971,9 +7971,9 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         side: xf > 35 && wide && near <= 1,
         goal: xf > L - 24 && Math.abs(own.y - GOAL_Y) < 17,
       };
-      const set = new Set();
+      const set = new Set();   // 版1246：カットインは、相手陣の奥（ゴールまで35m以内）のサイドだけ。中へ入ると利き足になる選手（右サイドの左利きなど）ほど選びやすい
       const dq = hyp(q.x - own.x, q.y - own.y);
-      for (const z in DRIB_ZONES) for (const k of DRIB_ZONES[z]) if (skZ(own, k) && k !== 'speedDribble' && !(k === 'cutIn' && dq < 2.4) && !(k === 'heelLift' && !hlSpace(own, q))) set.add(k);   // どこで使うかは「スキルのエリア設定」の表で決める（場面は重みだけ）   // カットインは相手に近すぎると仕掛けない（少し離れた所から）
+      for (const z in DRIB_ZONES) for (const k of DRIB_ZONES[z]) if (skZ(own, k) && k !== 'speedDribble' && !(k === 'cutIn' && (dq < 2.4 || ((globalThis.__Kci2 ?? 1) && !(xf >= L - 35 && Math.abs(own.y - GOAL_Y) > 9)))) && !(k === 'heelLift' && !hlSpace(own, q))) set.add(k);   // どこで使うかは「スキルのエリア設定」の表で決める（場面は重みだけ）   // カットインは相手に近すぎると仕掛けない（少し離れた所から）
       return { ctx, list: [...set] };
     }
     // ボディフェイント・シザース：逆へ行くと見せて（踏み出す／ボールをまたぐ）体重を乗せる → 反対の足でボールを転がし、踏み出した足の反発でグン！と逆へ
@@ -8017,7 +8017,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       if (globalThis.__forceSkill && !list.length) list.push(globalThis.__forceSkill);   // 確認用：技を持っていない選手も、選んだ技を使う
       if (!list.length) return false;
       // 場面に合う技を優先（狭い所はダブルタッチ等、サイドはヒールリフト等、ゴール前はキックフェイント等）
-      const wts = list.map((k) => zw(own, k) * (k === 'cutIn' && ctx.side ? 4 : 1) * (ctx.narrow && DRIB_ZONES.narrow.includes(k) ? 3 : 1) * (ctx.side && DRIB_ZONES.side.includes(k) ? 2 : 1) * (ctx.goal && DRIB_ZONES.goal.includes(k) ? 3 : 1));
+      const wts = list.map((k) => zw(own, k) * (k === 'cutIn' && ctx.side ? 4 : 1) * (k === 'cutIn' && (globalThis.__Kci2 ?? 1) ? (sgn(own.team) * (own.y - GOAL_Y) * (own.foot === 'L' ? -1 : 1) < 0 ? 2 : 0.6) : 1) * (ctx.narrow && DRIB_ZONES.narrow.includes(k) ? 3 : 1) * (ctx.side && DRIB_ZONES.side.includes(k) ? 2 : 1) * (ctx.goal && DRIB_ZONES.goal.includes(k) ? 3 : 1));
       let r = R.next() * wts.reduce((a, c) => a + c, 0), k = list[0];
       for (let i = 0; i < list.length; i++) { r -= wts[i]; if (r <= 0) { k = list[i]; break; } }
       if (globalThis.__forceSkill) { k = globalThis.__forceSkill; if (k === 'heelLift' && !hlSpace(own, q)) return false; }   // 確認用（ヒールリフトは、使える場面でだけ）
@@ -8130,7 +8130,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           q.lateLose = { t: S.t + 0.5, o: own.idx, dx: ox2, dy: oy2, fall: R.next() < 0.15 };
           own.protect = S.t + 1.1;
           // 中に入ったら狙う（コントロールショットがあれば巻いてファーへ）
-          if (fx(own.team, own.x) > L - 30) { own.cutInShot = S.t + 0.75; }
+          if (fx(own.team, own.x) > L - ((globalThis.__Kci2 ?? 1) ? 35 : 30)) { own.cutInShot = S.t + 0.75; }   // 版1246：ゴールまで35m以内なら、切れ込んでそのまま打つ
           break;
         }
         case 'kickFeint': {
