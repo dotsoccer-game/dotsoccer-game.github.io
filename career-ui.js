@@ -5574,7 +5574,9 @@
     const kind = code[0], u = unb64u(code.slice(1));
     let txt;
     if (kind === 'Z') { const ds = new Blob([u]).stream().pipeThrough(new DecompressionStream('deflate-raw')); txt = await new Response(ds).text(); } else txt = new TextDecoder().decode(u);
-    const d = JSON.parse(txt); if (!d || !d.team || !Array.isArray(d.team.players) || d.team.players.length < 11) throw new Error('bad'); return d;
+    const d = JSON.parse(txt); if (!d || !d.team || !Array.isArray(d.team.players) || d.team.players.length < 11) throw new Error('bad');
+    for (const q of d.team.players) while ((q.capUp || 0) > 0 && (q.totsu || 0) < 3) { q.capUp--; q.totsu = (q.totsu || 0) + 1; }   // 版1272：相手の端末が古い版のままでも、限界突破は凸として見せる
+    return d;
   }
   const shareURL = (code) => `${location.origin}${location.pathname.replace(/[^/]*$/, '')}#vs=${code}`;
   async function shareMyTeam() {

@@ -5730,12 +5730,23 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           const w = Math.abs(p.y - GOAL_Y), inY = Math.sign(GOAL_Y - p.y) || 1, sx = fx(p.team, 1) - fx(p.team, 0);
           const zR = xq >= L - 20 && xq <= L - 4 && w >= 12 && w <= 32, zB = xq >= L - 36 && xq < L - 20 && w >= 14 && w <= 32, vOpen = ciLane(p, 7);
           const inClear = (ex) => !opps(p).some((o) => { if (o.off || o.gk || o === ex) return false; const iy = (o.y - p.y) * inY, rx = fx(p.team, o.x) - xq; return iy > 0.6 && iy < (globalThis.__Kcic2 ?? 5) && rx > -1.2 && rx < 4.5; });
-          if (xq >= L - 9 && w >= 7 && w <= 30 && !((p.cbT || 0) > S.t)) {   // えぐった：マイナス方向（後ろ）へのグラウンダーのクロス
+          if (!(S.t - (p.dvTt ?? -99) < 8)) { p.dvT = R.range(5.5, 8.5); p.dvTt = S.t; }   // 版1272：縦に運ぶのは、ペナルティエリアの半分〜ゴールラインから3分の1あたりまで（毎回少しちがう）
+          const dvT = (globalThis.__Kci13 ?? 1) ? p.dvT : 9;
+          if ((globalThis.__Kci13 ?? 1) && xq >= L - dvT && xq <= L - 3 && w >= 9 && w <= 26 && !((p.cbT || 0) > S.t) && !((p.dvDecT || 0) > S.t)) {   // そこまで来たら：中へ切れ込んで打つか、クロスか
+            p.dvDecT = S.t + 2.5;
+            const shP = clamp(0.4 + ((p.kick || 50) - (p.pass || 50)) * 0.01 + (skZ(p, 'controlShot') ? 0.12 : 0), 0.15, 0.75);
+            if (inClear(null) && !opps(p).some((o) => !o.off && !o.gk && hyp(o.x - p.x, o.y - p.y) < 1.4) && R.next() < shP) {
+              const f = 0.15, vl = hyp(f, 1), dir = [sx * f / vl, inY / vl];
+              p.ciDir = dir; p.cutInT = S.t; p.ciSelfT = S.t + 6; S.dribbleDir = dir; S.dribbleMode = 'break'; p.pace = { ph: 'burst', until: S.t + 0.8 }; p.settle = false;
+              act(p, 'skill', 1.3, { k: 'cutIn' }); act(p, 'dmove', 1.0, { k: 'cutIn', dx: dir[0], dy: dir[1], self: 1 });
+              p.ciPlan = { k: 'cut7', t0: S.t, at: S.t + 0.3, until: S.t + 3 }; S.decision = 0.2; return; }
+          }
+          if (xq >= L - ((globalThis.__Kci13 ?? 1) ? dvT : 9) && w >= 7 && w <= 30 && !((p.cbT || 0) > S.t)) {   // えぐった：マイナス方向（後ろ）へのグラウンダーのクロス
             const ms = P.filter((m) => m.team === p.team && m !== p && !m.off && !m.gk && fx(p.team, m.x) >= xq - 14 && fx(p.team, m.x) <= xq - 1.5 && Math.abs(m.y - GOAL_Y) < 11 && nearestOpp(m, m.x, m.y).d > 1.6 && !opps(p).some((o) => !o.off && segDist(o.x, o.y, p.x, p.y, m.x, m.y).d < 1.1)).sort((x1, x2) => nearestOpp(x2, x2.x, x2.y).d - nearestOpp(x1, x1.x, x1.y).d);
             p.cbT = S.t + 0.6;
             if (ms[0]) { const inF = sgn(p.team) * (p.y - GOAL_Y) > 0 ? 'R' : 'L'; p.forceFoot = { f: inF, until: S.t + 1 }; ms[0].wantShot = S.t + 2.5; act(p, 'ciplan', 0.1, { k: 'cutback' }); startPass(p, ms[0], false, false, null); return; }
           }
-          if (w >= 11 && xq >= L - 45 && xq < L - 9 && vOpen && R.next() < (globalThis.__Kcia ?? 0.9)) {   // 縦が空いている：縦へ運ぶ
+          if (w >= 11 && xq >= L - 45 && xq < L - dvT && vOpen && R.next() < (globalThis.__Kcia ?? 0.9)) {   // 縦が空いている：縦へ運ぶ
             const ty = GOAL_Y + Math.sign(p.y - GOAL_Y) * clamp(w, 13, 27), dy = clamp((ty - p.y) * 0.15, -0.3, 0.3), dl = hyp(1, dy);
             S.dribbleDir = [sx / dl, dy / dl]; S.dribbleMode = 'break'; p.pace = { ph: 'burst', until: S.t + 0.6 }; p.settle = false; S.decision = 0.3; return; }
           if (zR || zB) {
@@ -5775,6 +5786,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             const el = S.t - pl.t0, w = Math.abs(p.y - GOAL_Y), sx = fx(p.team, 1) - fx(p.team, 0), vy = Math.sign(GOAL_Y - p.y) || 1;
             const ms = P.filter((m) => m.team === p.team && m !== p && !m.off && !m.gk && fx(p.team, m.x) <= Math.max(offsideLine(p.team), xq) + 0.2 && fx(p.team, m.x) > L - 20 && Math.abs(m.y - GOAL_Y) < 12)
               .map((m) => ({ m, v: nearestOpp(m, m.x, m.y).d + (Math.sign(m.y - GOAL_Y) !== Math.sign(p.y - GOAL_Y) ? 2.5 : 0) })).sort((x1, x2) => x2.v - x1.v);   // ファー側の空いている味方
+            if ((globalThis.__Kci13 ?? 1) && el >= 0.75 && pl.sh == null) { const cs = skZ(p, 'controlShot'); pl.sh = dG <= (cs ? 31 : Math.min(26, 20 + (p.kick || 50) * 0.08)) && R.next() < (cs ? 0.55 : clamp(0.2 + ((p.kick || 50) - (p.pass || 50)) * 0.01, 0.08, 0.45)); }
+            if (pl.sh) { p.forceFoot = { f: inF, until: S.t + 1 }; shootNow(skZ(p, 'controlShot') ? 'controlShot' : null); return; }   // 版1272：ペナ外で切れ込んだ：そのまま打つ（コントロールショットなら、ファーの上へ巻くスーパーゴールのコース）
             if (el >= 0.75 && ms[0]) { p.ciPlan = null; p.forceFoot = { f: inF, until: S.t + 1 }; ms[0].m.wantShot = S.t + 3.5; act(p, 'ciplan', 0.1, { k: 'cross' }); startPass(p, ms[0].m, false, false, skZ(p, 'pinpointCross') ? 'pinpointCross' : skZ(p, 'earlyCross') ? 'earlyCross' : null); return; }
             if (el > 1.6) { pl.k = 'cut7'; k2 = 'cut7'; pl.t0 = S.t - 0.6; }   // 中に味方がいない：そのまま運んで打つ
             else { const f = 0.45, vl = hyp(f, 1); S.dribbleDir = [sx * f / vl, vy / vl]; S.dribbleMode = 'break'; p.settle = false; p.pace = { ph: 'burst', until: S.t + 0.3 }; pl.at = S.t + 0.15; S.decision = 0.15; return; }
