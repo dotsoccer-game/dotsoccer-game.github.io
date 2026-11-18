@@ -1367,6 +1367,14 @@
         if (Math.abs(p.y - wy) > 6) urgent[p.idx] = true; p.wgHold = S.t;
       }
     }
+    // 版1260：月影の抜け出しは、縦へまっすぐ走る（ほかの動きの決まりで横・後ろへ引っぱられない）。パスが出たら、ボールを追う動きに任せる
+    function tkPost() {
+      if (!(globalThis.__Ktk6 ?? 1)) return; const b = S.ball;
+      for (const p of P) { const r = p.tkRun; if (!r) continue;
+        if (S.t > r.until || p.off || !uOn(p, 'tsukikage') || p.tsukiRecv > (p.uFireT || 0) || b.owner === p.idx || S.restart || (b.kind === 'pass' && b.intended === p.idx) || S.poss !== p.team) { p.tkRun = null; continue; }
+        const xf = fx(p.team, p.x), tx = Math.min(Math.max(fx(p.team, r.x), xf + 6), L - 8);
+        targets[p.idx] = [fx(p.team, tx), r.y]; urgent[p.idx] = true; }
+    }
     function lanePost() {
       if (!(globalThis.__Klane ?? 1) || S.restart || S.celebrate > 0 || S.setPiece || S.pk) return;
       const own = ownerP(); if (!own || own.gk) return;
@@ -4590,7 +4598,9 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             // パスのコースに相手の足がかからないこと（出してもカットされるなら走らない）
             const lane = opps(p).some((o) => !o.gk && !o.off && (() => { const sd = segDist(o.x, o.y, own.x, own.y, sx, sy); return sd.u > 0.12 && sd.u < 0.92 && sd.d < ((globalThis.__Ktk2 ?? 1) ? 0.8 : 1.3); })());
             if (globalThis.__tkDbg) { const G = globalThis.__tkDbg; if (lane) G.lane = (G.lane || 0) + 1; else if (!(tN < tD + (p.uniqLv >= 2 ? 0.35 : 0.0) - ctrPen(1 - p.team))) G.race = (G.race || 0) + 1; else G.ok = (G.ok || 0) + 1; }
-            if (tN < tD + (p.uniqLv >= 2 ? 0.35 : 0.0) - ctrPen(1 - p.team) && !lane) uFire(p, 'tsukikage');   // 対策役がいる相手には、抜け出すスペースそのものが少ない   // 凸：抜け出せる場面が少し増える
+            const fwdOK = !(globalThis.__Ktk6 ?? 1) || ((p.vx || 0) * sgn(p.team) > -0.4 && Math.abs(p.vy || 0) < Math.max(1.6, (p.vx || 0) * sgn(p.team) * 1.2 + 0.8));   // 版1260：後ろへ下がっている・横へ広がっている最中は発動しない（縦へ走り出せる時だけ）
+            if (tN < tD + (p.uniqLv >= 2 ? 0.35 : 0.0) - ctrPen(1 - p.team) && !lane && fwdOK) { uFire(p, 'tsukikage');
+              if ((globalThis.__Ktk6 ?? 1) && p.uFireT === S.t) { p.tkRun = { x: sx, y: sy, until: S.t + 3.4 }; const sp0 = Math.max(hyp(p.vx || 0, p.vy || 0), 3), dl0 = hyp(sx - p.x, sy - p.y) || 1; p.vx = (sx - p.x) / dl0 * sp0; p.vy = (sy - p.y) / dl0 * sp0; } }   // 抜け出す先は、まっすぐ縦（少しだけ中へ）   // 対策役がいる相手には、抜け出すスペースそのものが少ない   // 凸：抜け出せる場面が少し増える
           }
           // 版789：裏への抜け出し：2列目の味方が前を向いて持った瞬間に、裏へ走り出す（持ち主が変わるたびに1回）
           if (own.idx !== p.brOwn || S.t - (p.brT || -9) > 2.6) {   // 同じ味方が持ち続けている時も、少し間をあけて走り直す
@@ -9200,6 +9210,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       lanePost();
       if ((globalThis.__Kbyr ?? 1) && brainOn()) { const o0 = ownerP(); for (const p of P) if ((p.byRunT || 0) > S.t && p.byRunTo && !p.off && o0 && o0.team === p.team && o0 !== p) { const olR = offsideLine(p.team); targets[p.idx] = [fx(p.team, Math.min(fx(p.team, p.byRunTo[0]), olR - 1.5)), p.byRunTo[1]]; urgent[p.idx] = true; } }   // 版957：白夜の視界の走り出しを、新しい動きの位置取りで上書きしない
       wgPost();
+      tkPost();
       if (globalThis.__Kkg2 ?? 1) for (const p of P) if (p.kgTgtT === S.t && !p.off) { targets[p.idx] = p.kgTgt; urgent[p.idx] = true; }   // 版936：影縫い：張りつく位置を、ほかの守備の決まり（ゾーン・ライン）で上書きしない
       smoothPost();
       if (globalThis.__tgHook) globalThis.__tgHook(S, P, targets, urgent, fx, offsideLine, ownerP);
