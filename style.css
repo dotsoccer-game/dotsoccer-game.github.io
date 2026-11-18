@@ -5139,3 +5139,4 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 .pm2-pk i{flex:none;width:30px;height:30px;border-radius:50%;background:linear-gradient(#ffe36a,#f0a514);color:#0c2058;display:grid;place-items:center}.pm2-pk i svg{width:18px;height:18px}
 .pm2-pk div{min-width:0;display:flex;flex-direction:column;line-height:1.15}.sh3-prem .pm2-pk b{grid-column:auto;margin:0;color:#ffd23a;font-size:15px;font-weight:900}.pm2-pk small{font-size:12.5px;font-weight:700;color:#e3ecfb}
 .sq3 .q3r .q3bt{font-size:1.5cqh;padding:.25cqh .6cqh;white-space:normal;word-break:keep-all;line-height:1.1;text-overflow:clip;text-align:center;display:inline-block}   /* 版1243：リザーブのタイプ表示（長いタイプ名は2行に） */
+.sq3 .q3r .q3bf{touch-action:none}   /* 版1244：リザーブの顔をつまむと、ななめ・縦にも引っぱってピッチへ持っていける */

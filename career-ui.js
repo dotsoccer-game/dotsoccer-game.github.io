@@ -2013,7 +2013,7 @@
     if (sq3Res && rsv.length > 1) rsv.sort((a, b) => ((b.gNew ? 1 : 0) - (a.gNew ? 1 : 0)) || (C.ensureStar(b) - C.ensureStar(a)) || statOvr(b) - statOvr(a));
     const bm = (q, i) => `<div class="q3b q3bm${i === sq3Pick ? ' sel' : ''}${q.injury > 0 ? ' inj' : ''}" data-i="${i}">${facePic(q, 'q3bf', true)}<span>${esc(q.name)}</span></div>`;   /* 版1162：リザーブを開いている時もベンチ入りを見せて、リザーブの選手をここへ入れられるように */
     const resPanel = () => `<div class="q3side q3rs"><div class="q3rh"><b class="q3h">リザーブ ${rsv.length}人</b><button class="q3rx">とじる</button></div><div class="q3rbn"><b>ベンチ入り</b><div>${ps.slice(11, 11 + C.BENCH_N).map((q, k) => bm(q, 11 + k)).join('')}</div></div><div class="q3rl">${rsv.map(resRow).join('')}</div>
-      <div class="q3rf q3rft">${sq3Multi ? `${[1, 2, 3].map((st) => { const n = rsv.filter((q) => C.ensureStar(q) === st).length; return n ? `<button class="q3ms" data-st="${st}">☆${st}全員</button>` : ''; }).join('')}<button class="q3mgo"${sq3Multi.size ? '' : ' disabled'}>${sq3Multi.size}人を放出</button><button class="q3mx">やめる</button>` : '<span>タップ→ピッチかベンチ入りの選手をタップ／横に引っぱって置く</span><button class="q3mon">まとめて放出</button>'}</div></div>`;
+      <div class="q3rf q3rft">${sq3Multi ? `${[1, 2, 3].map((st) => { const n = rsv.filter((q) => C.ensureStar(q) === st).length; return n ? `<button class="q3ms" data-st="${st}">☆${st}全員</button>` : ''; }).join('')}<button class="q3mgo"${sq3Multi.size ? '' : ' disabled'}>${sq3Multi.size}人を放出</button><button class="q3mx">やめる</button>` : '<span>タップ→ピッチかベンチ入りの選手をタップ／顔をつまんで引っぱって置く</span><button class="q3mon">まとめて放出</button>'}</div></div>`;
     const bench = ps.slice(11), b1 = bench.slice(0, C.BENCH_N), b2 = bench.slice(C.BENCH_N);
     const fm = tac.formation && tac.formation !== 'custom' ? tac.formation : C.formationLabel(cells);
     const nRes = (save.reserve || []).length;
@@ -2068,8 +2068,9 @@
     /* リザーブの札：タップで選ぶ（まとめて放出の時は印）、横に引っぱるとドラッグ（縦はスクロール） */
     L.querySelectorAll('.q3r').forEach((el) => {
       el.addEventListener('pointerdown', (e0) => { const k = +el.dataset.r, br = box.getBoundingClientRect(), z = box.offsetWidth / br.width; let gh = null, moved = false, dead = false;
+        const grip = !!(e0.target.closest && e0.target.closest('.q3bf'));   // 版1244：顔をつまむと、どの向きにも動かせる（顔以外は、縦はスクロール・横はドラッグ）
         const mv = (e) => { if (dead) return; const dx = e.clientX - e0.clientX, dy = e.clientY - e0.clientY;
-          if (!moved) { if (Math.hypot(dx, dy) < 8) return; if (Math.abs(dy) > Math.abs(dx) || sq3Multi) { dead = true; return; } moved = true; }
+          if (!moved) { if (Math.hypot(dx, dy) < 8) return; if (sq3Multi || (!grip && Math.abs(dy) > Math.abs(dx) * 1.2)) { dead = true; return; } moved = true; }
           if (!gh) { gh = mkGhost(rsv[k]); box.appendChild(gh); el.classList.add('q3src'); }
           gh.style.transform = `translate3d(${(e.clientX - br.left) * z}px,${(e.clientY - br.top) * z}px,0) translate(-50%,-50%)`; };
         const up = (e) => { window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up);
