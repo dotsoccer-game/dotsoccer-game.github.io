@@ -4488,6 +4488,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           vmax *= (uOn(p, 'shiden') ? 1.0 : Math.min(0.9, 0.69 + p.dribble * 0.0023)) - ((globalThis.__Kab ?? 1) ? Math.max(0, 85 - p.dribble) * (globalThis.__Kab9 ?? 0.004) : 0);   // 版935：ドリブルが85より低いと、ボールを持つと遅くなる（60で約8割・40で約7割）   // ドリブルが上手いほど速く運べる（S 約0.94、E 約0.86。全力疾走より少し遅い）
           if (S.dribbleMode === 'carry') {
             vmax *= 0.58 + p.technique * 0.0015;   // 運ぶドリブル：足元に置いたまま、ゆっくり
+            if ((globalThis.__Kci11 ?? 1) && p.ciPlan && p.ciPlan.k === 'cut7') vmax = Math.max(vmax, maxSpeed(p) * 0.62);   // 版1266：カットインで運ぶ時は、足元に置いたままでも速め
             { const v0 = hyp(p.vx, p.vy); if ((globalThis.__Kphy ?? 1) && v0 > 3 && S.t - (p.recvT ?? -9) < 0.8 && !opps(p).some((o) => !o.gk && hyp(o.x - p.x, o.y - p.y) < 3)) vmax = Math.max(vmax, Math.min(v0 * 0.92, maxSpeed(p) * 0.8)); }   // 版908：走りながら受けた直後は、勢いを残したまま（いきなり歩く速さにしない）
             // ぶつかる前に向きを変える：向かう先に相手が近づいてきたら（4m以内）、その場で選び直す（取られない向き・縦→横→後ろ・FWの方）
             const th = opps(p).filter((q) => !q.gk).map((q) => ({ q, d: hyp(q.x - p.x, q.y - p.y) })).filter((o) => o.d < 4).sort((x, y) => x.d - y.d)[0];
@@ -5755,7 +5756,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       if ((globalThis.__Kci3 ?? 1) && p.ciPlan && S.ball.owner === p.idx && !p.gk && !S.setPiece && !S.restart) {
         const pl = p.ciPlan;
         if (S.t > pl.until) p.ciPlan = null;
-        else if ((globalThis.__Kci9 ?? 1) && pl.k === 'cut7' && (S.t < pl.at || (p.moveQ && p.moveQ.length))) { if (p.ciDir) S.dribbleDir = p.ciDir; S.dribbleMode = 'carry'; S.decision = Math.max(0.05, pl.at - S.t); return; }   // 版1263：切れ込んでいる途中は、ほかのプレー（クロスなど）を選ばない
+        else if ((globalThis.__Kci9 ?? 1) && pl.k === 'cut7' && (S.t < pl.at || (p.moveQ && p.moveQ.length))) { if (p.ciDir) S.dribbleDir = p.ciDir; S.dribbleMode = (globalThis.__Kci11 ?? 1) ? 'break' : 'carry'; S.decision = Math.max(0.05, pl.at - S.t); return; }   // 版1263：切れ込んでいる途中は、ほかのプレー（クロスなど）を選ばない
         else if (S.t >= pl.at && !(p.moveQ && p.moveQ.length)) {
           const xq = fx(p.team, p.x), dG = hyp(L - xq, GOAL_Y - p.y), sS = Math.sign(p.y - GOAL_Y) || 1;
           const shootNow = (how) => { p.ciPlan = null; p.wantShot = S.t + 1.2; act(p, 'ciplan', 0.1, { k: 'shootPlan' }); shoot(p, GOAL_Y - sS * (POST - 0.5), how); };   // 逆サイドのサイドネットへ
@@ -5780,7 +5781,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
               p.ciPlan = null; k2 = null;
             } else {   // 切れ込んだ向きのまま運ぶ（エリアの線に近づいたら、横寄りに）
               const f = K9 ? (xq < L - 22 ? 0.5 : xq < L - 19 ? 0.18 : 0) : xq < L - 17 ? 0.5 : 0.15, sx = fx(p.team, 1) - fx(p.team, 0), vy = Math.sign(GOAL_Y - p.y) || 1, vl = hyp(f, 1);
-              S.dribbleDir = [sx * f / vl, vy / vl]; S.dribbleMode = 'carry'; p.settle = false; if (K9) p.pace = { ph: 'burst', until: S.t + 0.3 }; pl.at = S.t + 0.15; S.decision = 0.15; return;
+              S.dribbleDir = [sx * f / vl, vy / vl]; const gy1 = (globalThis.__Kci11 ?? 1) && el < 1.4; S.dribbleMode = gy1 ? 'break' : 'carry'; p.settle = false; if (K9) p.pace = { ph: 'burst', until: S.t + 0.3 };   // 切れ込んでから約1.4秒は、スピードに乗ったまま運ぶ pl.at = S.t + 0.15; S.decision = 0.15; return;
             }
           }
           if (k2 === 'side') {
@@ -8322,8 +8323,9 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           const inY = Math.sign(GOAL_Y - own.y) || 1;
           if ((globalThis.__Kci7 ?? 1)) {   // 版1256：縦へ行くと見せて（外へ半歩）→ 止まって → はっきり中へ切れ込む。相手は半歩遅れて、横についてくる
             const [ox3, oy3] = sd(fdx, -inY * 0.35), [ix3, iy3] = sd(fdx * 0.45, inY);
-            own.moveQ = [{ until: S.t + 0.16, dx: ox3, dy: oy3, v: 2.8, snap: 0.6 }, { until: S.t + 0.26, dx: ox3, dy: oy3, v: 0.6, snap: 0.85 }];
-            own.moveEnd = { dx: ix3, dy: iy3, v: 3.0 }; S.dribbleMode = 'carry'; own.pace = { ph: 'burst', until: S.t + 0.9 };
+            const GY = (globalThis.__Kci11 ?? 1);   // 版1266：緩急：ゆっくり外へ見せて → ほぼ止まる → ギュン！と一気に加速して中へ
+            own.moveQ = GY ? [{ until: S.t + 0.2, dx: ox3, dy: oy3, v: 2.0, snap: 0.6 }, { until: S.t + 0.32, dx: ox3, dy: oy3, v: 0.3, snap: 0.9 }] : [{ until: S.t + 0.16, dx: ox3, dy: oy3, v: 2.8, snap: 0.6 }, { until: S.t + 0.26, dx: ox3, dy: oy3, v: 0.6, snap: 0.85 }];
+            own.moveEnd = { dx: ix3, dy: iy3, v: GY ? 6.8 : 3.0 }; S.dribbleMode = GY ? 'break' : 'carry'; own.pace = { ph: 'burst', until: S.t + (GY ? 1.3 : 0.9) };
             act(own, 'dmove', 1.0, { k, dx: ix3, dy: iy3, fx: fdx, fy: fdy, ox: ox3, oy: oy3 });
             own.ciDir = [ix3, iy3];
             q.stun = Math.max(q.stun, 0.35); q.vx = ox3 * 2.6; q.vy = oy3 * 2.6; q.tackleCd = Math.max(q.tackleCd, 1.2); q.lagT = Math.max(q.lagT || 0, S.t + 0.5);
