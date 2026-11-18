@@ -646,7 +646,7 @@
       if (deep) k = R.next() < 0.55 ? 'square' : 'carry';
       else if (tate) k = R.next() < 0.8 ? 'cross' : 'shoot';
       else { const sh = (own.kick || 50) >= (own.pass || 50); k = sh ? (R.next() < 0.8 ? 'shoot' : 'cross') : (R.next() < 0.7 ? 'cross' : 'shoot'); }
-      own.ciPlan = { k, at: S.t + (tate ? 1.0 : deep ? 0.6 : 0.75), until: S.t + 3.2 }; if (globalThis.__ciSet) globalThis.__ciSet.push(k);
+      own.ciPlan = { k, at: S.t + ((globalThis.__Kci4 ?? 1) ? (tate ? 0.85 : k === 'shoot' ? 0.55 : 0.6) : (tate ? 1.0 : deep ? 0.6 : 0.75)), until: S.t + 3.2 };   // 版1253：切れ込んだら、すぐ打つ・上げる（カバーの相手が来る前に） if (globalThis.__ciSet) globalThis.__ciSet.push(k);
     }
     function mdK(p) { const k = (p && T[p.team].mdStack) || 0; if (!k || !(globalThis.__Kmd3 ?? 1)) return k; return fx(p.team, p.x) < L * 2 / 3 ? k : 0; }
     // 港の指揮者（おおかわ）：指揮が続いている間の、チーム全体の強さ（0＝なし 1＝無凸 2＝凸）
@@ -5680,9 +5680,9 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       if ((globalThis.__Kci3 ?? 1) && skZ(p, 'cutIn') && !p.gk && !S.setPiece && !S.restart && S.ball.owner === p.idx && !p.ciPlan && !((p.skillCd || 0) > S.t) && !(p.moveQ && p.moveQ.length)) {
         const xq = fx(p.team, p.x);
         if (xq >= L - 35 && Math.abs(p.y - GOAL_Y) > 9) {
-          let q = null, qd = 99; for (const o of opps(p)) { if (o.off || o.gk) continue; const d = hyp(o.x - p.x, o.y - p.y); if (d < qd && d > 2.4 && d < (globalThis.__Kcid ?? 6.5) && fx(p.team, o.x) > xq - 0.5) { q = o; qd = d; } }
+          let q = null, qd = 99; for (const o of opps(p)) { if (o.off || o.gk) continue; const d = hyp(o.x - p.x, o.y - p.y); if (d < qd && d > 2.4 && d < (globalThis.__Kcid ?? 10) && fx(p.team, o.x) > xq - 0.5) { q = o; qd = d; } }
           const crowd = q ? opps(p).filter((o) => !o.off && !o.gk && o !== q && hyp(o.x - p.x, o.y - p.y) < 6).length : 9;
-          if (q && crowd <= (globalThis.__Kcic ?? 1) && R.next() < (globalThis.__Kcip ?? 0.4)) { p.ciForce = true; const ok = skillMove(p, q); p.ciForce = false; if (ok) return; }
+          if (q && crowd <= (globalThis.__Kcic ?? 1) && R.next() < (globalThis.__Kcip ?? 0.9)) { p.ciForce = true; const ok = skillMove(p, q); p.ciForce = false; if (ok) return; }
         }
       }
       // 版1247：カットインの後の狙い（ciPlanSet で決めたもの）を、技の足さばきが終わったら実行する
@@ -5695,7 +5695,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           const onside = (m) => fx(p.team, m.x) <= Math.max(offsideLine(p.team), xq) + 0.2;
           const laneOK = (m) => !opps(p).some((o) => !o.off && !o.gk && segDist(o.x, o.y, p.x, p.y, m.x, m.y).d < 1.6);
           let k2 = pl.k;
-          const press = opps(p).some((o) => !o.off && !o.gk && hyp(o.x - p.x, o.y - p.y) < 2.6 && fx(p.team, o.x) > xq - 0.5);   // 目の前に相手が来た：決めていた狙いはやめて、ふつうの判断へ
+          const press = opps(p).some((o) => !o.off && !o.gk && !((globalThis.__Kci4 ?? 1) && (o.stun > 0 || (o.lagT || 0) > S.t)) && hyp(o.x - p.x, o.y - p.y) < ((globalThis.__Kci4 ?? 1) ? 1.4 : 2.6) && fx(p.team, o.x) > xq + ((globalThis.__Kci4 ?? 1) ? 0.3 : -0.5));   // 版1253：抜いた相手（つられて崩れている）は数えない   // 目の前をふさがれた：決めていた狙いはやめて、ふつうの判断へ（版1253：寄せられていても、ふさがれていなければ打つ・上げる）
           if (press && k2 !== 'shoot') { p.ciPlan = null; k2 = null; }
           if (press && k2 === 'shoot' && dG > 24) { p.ciPlan = null; k2 = null; }
           if (k2 === 'cross' || k2 === 'square') {
@@ -5712,7 +5712,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             if (!k2) p.ciPlan = null;
           }
           if (k2 === 'shoot') {
-            if (dG <= (skZ(p, 'controlShot') || (p.kick || 50) >= 80 ? 27 : 24)) { shootNow(skZ(p, 'controlShot') ? 'controlShot' : null); return; }   // 打つのは、決められる距離に入ってから
+            const rng = (globalThis.__Kci4 ?? 1) ? 22 + (p.kick || 50) * 0.11 + (skZ(p, 'controlShot') ? 2 : 0) : (skZ(p, 'controlShot') || (p.kick || 50) >= 80 ? 27 : 24);   // 版1253：シュートの届く距離は、キックが高いほど遠い（キック90で約32m）
+            if (dG <= rng) { shootNow(skZ(p, 'controlShot') ? 'controlShot' : null); return; }   // 打つのは、決められる距離に入ってから
             if (S.t < pl.until - 0.3) { const tx = fx(p.team, L - 11), ty = GOAL_Y + Math.sign(p.y - GOAL_Y) * 6, dx = tx - p.x, dy = ty - p.y, dl = hyp(dx, dy) || 1; S.dribbleDir = [dx / dl, dy / dl]; S.dribbleMode = 'break'; p.settle = false; pl.at = S.t + 0.25; S.decision = 0.25; return; }   // まだ遠い：打てる所まで運ぶ
             p.ciPlan = null; }
           else if (k2 === 'carry') {   // 角度のある所まで運んで打つ
