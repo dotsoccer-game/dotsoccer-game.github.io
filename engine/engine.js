@@ -477,7 +477,7 @@
         ...fillParams({ ...p }, 0), team: ti, idx, slot,
         x: 0, y: 0, vx: 0, vy: 0, cur: clamp(p.startCur ?? 100, 30, 100), facing: ti ? -1 : 1,
         touchCd: 0, tackleCd: 0, stun: 0, run: 0, runCd: R.range(2, 6), mark: -1,
-        gk: i === 0, notGK: i === 0 && p.position !== 'GK', sk: new Set((p.skills || []).concat(i === 0 && globalThis.__labLP ? ['lowPunt'] : []).concat(i > 0 && globalThis.__labBic ? ['bicycle'] : []).map((k) => (k === 'feint' ? 'bodyFeint' : k === 'dribbleShot' ? 'driveShot' : k))),   // 旧ドリブルシュートはドライブシュートに
+        gk: i === 0, notGK: i === 0 && p.position !== 'GK', sk: new Set((p.skills || []).concat(i === 0 && globalThis.__labLP ? ['lowPunt'] : []).concat(i > 0 && globalThis.__labBic ? ['bicycle'] : []).concat(i > 0 && globalThis.__labCi && (p.position === 'FW' || p.position === 'MF') ? ['cutIn'] : []).map((k) => (k === 'feint' ? 'bodyFeint' : k === 'dribbleShot' ? 'driveShot' : k))),   // 旧ドリブルシュートはドライブシュートに
       };
       // 攻撃的GK（飛び出しを持つ）：高い位置で裏へのボールをケア。守備的GK：ゴール前でどっしり、セービングが高め
       if (!q.gk) slotPos(q);   // 版920：置いた場所で動きを決める
