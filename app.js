@@ -1775,7 +1775,7 @@
   }
   const embImgs = {};
   function drawCardBanner() {
-    if (show) return;
+    if (show || !(globalThis.__Kcbn ?? 0)) return;   // 版1260：画面の左下のカードの札は出さない（真ん中に出る選手のパネルで伝える）
     let c = null;
     for (const x of cardList) { if (x.t > simT || x.t < simT - 12) continue; const a = simT - cardUpT(x); if (a > 0.9 && a < 4.4) c = x; }
     if (!c) return;
@@ -4024,7 +4024,7 @@
         ctx.stroke(); ctx.globalAlpha = (1 - u) * 0.5; ctx.fillStyle = '#fff8c0'; ctx.beginPath(); ctx.arc(bq.x, bq.y, R0 * 0.38, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }
     }
     if (radarOn) minimap(st);
-    if ((globalThis.__Kcpn ?? 0) && cardPanel && simT >= cardPanel.t && simT - cardPanel.t < 3.8) {   // 版1259：ファウル（カード）の時に左下に出していた選手の名前の札は出さない（カードは名前の札の右と、画面の文字で伝える）
+    if (cardPanel && simT >= cardPanel.t && simT - cardPanel.t < 3.8) {
       const a = Math.min(1, (simT - cardPanel.t) * 4, (3.8 - (simT - cardPanel.t)) * 3);
       const c = cardPanel;
       const label = c.color === 'red' ? (c.second ? 'イエロー2枚目で退場' : 'レッドカード　退場') : 'イエローカード（警告）';
