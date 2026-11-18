@@ -5096,3 +5096,30 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 
 /* 版1235：ログインボーナス */
 .lb-grid{grid-template-columns:repeat(7,1fr)}.lb-c span{align-items:center;gap:3px;min-height:30px}.lb-c span b{font-size:15px}.lb-c .lb-cd{width:20px;height:27px;object-fit:cover;border-radius:3px;border:1px solid #fff}.lb-c.lb-big{background:#fff6d6;border-color:#ffd23a}.lb-c.lb-big span b{font-size:20px;color:#d04a00}.lb-note{margin:8px 0 0;font-size:13px;color:#cfe0ff;font-weight:700}
+
+/* 版1236：ログインボーナスの新しいデザイン */
+.lb2{position:relative;width:min(94%,1000px);background:radial-gradient(120% 90% at 50% 0%,#1d3c86,#0f2560 70%);border:6px solid #f2c234;border-radius:26px;box-shadow:0 0 0 3px #a87410,0 10px 0 rgba(0,0,0,.35),inset 0 0 0 3px #0a1a46,inset 0 0 0 5px rgba(242,194,52,.55);padding:16px 22px 12px;color:#fff;font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans",sans-serif}
+.lb2-rv{position:absolute;width:12px;height:12px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff3b0,#e0a412 60%,#8a5a00);box-shadow:0 1px 0 rgba(0,0,0,.4)}.lb2-rv.a{left:10px;top:10px}.lb2-rv.b{right:10px;top:10px}.lb2-rv.c{left:10px;bottom:10px}.lb2-rv.d{right:10px;bottom:10px}
+.lb2-h{position:relative;display:flex;align-items:center;gap:14px;padding:4px 16px 10px;margin:0 6px 14px;border-bottom:2px solid rgba(120,160,230,.45)}
+.lb2-pitch{position:absolute;left:30%;top:-6px;width:46%;height:70px;color:rgba(150,180,240,.18);pointer-events:none}
+.lb2-h b{position:relative;font-size:36px;font-weight:900;color:#ffd23a;letter-spacing:1px;text-shadow:0 3px 0 #7a4c00;padding-right:16px;border-right:4px solid #ffd23a;line-height:1}
+.lb2-rd{position:relative;background:#dfe4ec;color:#0c2058;border-radius:10px;padding:4px 14px;font-size:18px;font-weight:900}
+.lb2-h em{position:relative;margin-left:auto;font-style:normal;background:#fff;color:#0c2058;border-radius:999px;padding:6px 20px;font-size:18px;font-weight:900}
+.lb2-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;padding:12px 4px 4px}
+.lb2-c{position:relative;background:linear-gradient(#fffdf6,#f1ece0);color:#0c2058;border:3px solid #d9d2c2;border-radius:14px;padding:10px 4px 12px;text-align:center;box-shadow:0 3px 0 rgba(0,0,0,.25)}
+.lb2-c small{display:block;font-size:17px;font-weight:900;margin-bottom:6px}
+.lb2-c span{display:flex;align-items:center;justify-content:center;gap:4px;min-height:40px}.lb2-c span b{font-size:24px;font-weight:900}.lb2-c .coin-ico,.lb2-c span>img{width:34px;height:34px}.lb2-c .lb-cd{width:28px;height:38px;object-fit:cover;border-radius:3px;border:1px solid #fff;box-shadow:0 1px 2px rgba(0,0,0,.4)}
+.lb2-c.today{background:linear-gradient(#fff6d2,#ffe9a6);border-color:#f2b616;box-shadow:0 0 0 3px #ffd23a,0 4px 0 rgba(0,0,0,.3)}
+.lb2-c.big{background:linear-gradient(#fff3c4,#ffe39a);border-color:#f2c234}.lb2-c.big span b{color:#d04a00}
+.lb2-tag{position:absolute;left:50%;top:-16px;transform:translateX(-50%);background:linear-gradient(#ffe36a,#f2b616);color:#3a2600;border:2px solid #fff3b0;border-radius:999px;padding:2px 14px;font-style:normal;font-size:15px;font-weight:900;box-shadow:0 2px 0 #8a5a00;white-space:nowrap}
+.lb2-rib{position:absolute;right:10px;top:-3px;width:20px;height:28px;background:linear-gradient(#ffe36a,#f2b616);clip-path:polygon(0 0,100% 0,100% 100%,50% 75%,0 100%)}
+.lb2-c.got{background:#cfd5e1;border-color:#b9c1d1;opacity:.9;box-shadow:none}.lb2-c.got .lb2-tag{display:none}
+.lb2-ok{position:absolute;inset:0;display:grid;place-items:center;color:#d02a2a;font-size:20px;font-weight:900;transform:rotate(-12deg);text-shadow:0 0 3px #fff,0 0 3px #fff}
+.lb2-f{display:flex;align-items:center;gap:16px;margin:16px 4px 0;padding:12px 16px 12px 18px;border:2px solid rgba(120,160,230,.55);border-radius:16px;background:rgba(5,18,55,.35)}
+.lb2-today{flex:1;display:flex;align-items:center;gap:14px;min-width:0}
+.lb2-bar{width:6px;height:38px;border-radius:3px;background:#ffd23a;flex:none}
+.lb2-lab{font-size:26px;font-weight:900;white-space:nowrap;margin-right:10px}
+.lb2-rw,.lb2-got{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.lb2-rw b{color:#ffd23a;font-size:28px;font-weight:900}.lb2-rw .coin-ico,.lb2-rw>img,.lb2-got .coin-ico,.lb2-got .kk-ico{width:40px;height:40px}.lb2-rw .lb-cd{width:30px;height:40px;object-fit:cover;border-radius:3px;border:1px solid #fff}
+.lb2-got b{color:#ffd23a;font-size:28px;font-weight:900}.lb2-got .pd-card{width:34px;height:46px;object-fit:cover;border-radius:4px;border:2px solid #fff}
+.lb2-go{flex:none;min-width:280px;height:66px;border-radius:999px;border:3px solid #fff3b0;background:linear-gradient(#ffe36a,#f0a514);color:#4a2e00;font:900 30px/1 "Hiragino Kaku Gothic ProN",sans-serif;letter-spacing:2px;box-shadow:0 5px 0 #8a5a00;cursor:pointer}
+.lb2-note{margin:10px 0 2px;text-align:center;font-size:15px;color:#d6e2f8;font-weight:700}

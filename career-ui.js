@@ -5262,6 +5262,7 @@
   const LB = [{ c: 10 }, { cards: 3 }, { c: 10 }, { kak: 5 }, { c: 20 }, { cards: 3 }, { c: 50 }];
   const lbKey = () => { const d = new Date(Date.now() - 5 * 3600e3); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; };
   const lbIco = (r) => r.c ? `${COIN}<b>${r.c}</b>` : r.cards ? `<img class="lb-cd" src="cards/dribble.jpg" alt=""><b>×${r.cards}</b>` : `<img src="icons/kakera.png" alt=""><b>×${r.kak}</b>`;
+  const lbIco1 = (r) => r.c ? `${COIN}<b>コイン ×${r.c}</b>` : r.cards ? `<img class="lb-cd" src="cards/dribble.jpg" alt=""><b>特訓カード ×${r.cards}</b>` : `<img src="icons/kakera.png" alt=""><b>覚醒のカケラ ×${r.kak}</b>`;
   const lbTxt = (r) => r.c ? `${r.c}コイン` : r.cards ? `特訓カード ${r.cards}枚` : `覚醒のカケラ ${r.kak}個`;
   let lbBusy = false;
   function lbPending() { return !!(save && save.clubSet && (!save.login || save.login.last !== lbKey())); }   // クラブを作り終えてから
@@ -5273,23 +5274,26 @@
       for (let k = 0; k < 80 && (document.getElementById('ttTitle') || !$('#crModal').hidden || view !== 'home' || document.querySelector('.std.cl')); k++) await new Promise((r) => setTimeout(r, 250));
       if (view !== 'home' || !lbPending() || document.querySelector('.std.cl')) return;
       const L = save.login = save.login || { n: 0, last: null }, idx = L.n % 7, rw = LB[idx], round = Math.floor(L.n / 7) + 1;
-      const cells = LB.map((r, i) => `<div class="pd-c lb-c${i < idx ? ' got' : ''}${i === idx ? ' today' : ''}${i === 6 ? ' lb-big' : ''}"><small>${i + 1}日目</small><span>${lbIco(r)}</span>${i < idx ? '<b class="pd-ok">受取済</b>' : ''}</div>`).join('');
+      const cells = LB.map((r, i) => `<div class="lb2-c${i < idx ? ' got' : ''}${i === idx ? ' today' : ''}${i === 6 ? ' big' : ''}">${i === idx ? '<i class="lb2-tag">今日</i>' : ''}${i === 6 ? '<i class="lb2-rib"></i>' : ''}<small>${i + 1}日目</small><span>${lbIco(r)}</span>${i < idx ? '<b class="lb2-ok">受取済</b>' : ''}</div>`).join('');
       const el = document.createElement('div'); el.className = 'pd-wrap lb-wrap';
-      el.innerHTML = `<div class="pd-box"><div class="pd-h"><b>ログインボーナス</b><span>${round}周目</span><em>7日で1周</em></div>
-        <div class="pd-grid lb-grid">${cells}</div>
-        <div class="pd-f"><p>今日のプレゼント：${lbIco(rw)}<small>（${lbTxt(rw)}）</small></p><button class="pd-go">受け取る</button></div>
-        <p class="lb-note">毎日 朝5時に次の日になります。休んだ日があっても、続きからもらえます。</p></div>`;
+      const pitch = '<svg class="lb2-pitch" viewBox="0 0 600 120" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="3"><path d="M40 118 L90 2 M560 118 L510 2 M90 2 H510"/><path d="M60 118 L95 40 H190 L160 118 M540 118 L505 40 H410 L440 118"/><path d="M300 2 V118"/><ellipse cx="300" cy="62" rx="48" ry="30"/></g></svg>';
+      el.innerHTML = `<div class="lb2"><i class="lb2-rv a"></i><i class="lb2-rv b"></i><i class="lb2-rv c"></i><i class="lb2-rv d"></i>
+        <div class="lb2-h">${pitch}<b>ログインボーナス</b><span class="lb2-rd">${round}周目</span><em>7日で1周</em></div>
+        <div class="lb2-grid">${cells}</div>
+        <div class="lb2-f"><div class="lb2-today"><i class="lb2-bar"></i><b class="lb2-lab">今日の報酬</b><span class="lb2-rw">${lbIco1(rw)}</span></div><button class="lb2-go" type="button">受け取る</button></div>
+        <p class="lb2-note">毎朝5時に更新。休んだ日があっても続きから受け取れます。</p></div>`;
       (document.getElementById('app') || document.body).appendChild(el);
-      await new Promise((ok) => { el.querySelector('.pd-go').onclick = ok; });
+      await new Promise((ok) => { el.querySelector('.lb2-go').onclick = ok; });
       const got = [];
       if (rw.c) { C.earnCoins(save, rw.c); got.push(`${COIN}<b>+${rw.c}</b>`); }
       if (rw.kak) { save.kakera = (save.kakera || 0) + rw.kak; got.push(`<img class="kk-ico" src="icons/kakera.png" alt=""><b>+${rw.kak}</b>`); }
       if (rw.cards) { const cards = Object.keys(C.CARDS); for (let k = 0; k < rw.cards; k++) { let cd = null; for (let j = 0; j < 40; j++) { const c = cards[Math.floor(Math.random() * cards.length)]; if ((save.cards[c] || 0) < C.cardMax(save)) { cd = c; break; } } if (cd) { save.cards[cd] = (save.cards[cd] || 0) + 1; got.push(`<img class="pd-card" src="cards/${cd}.jpg" alt=""><b>${esc(C.CARDS[cd].name)}</b>`); } } }
       L.n++; L.last = lbKey(); store();
       try { window.DotSound && DotSound.play('coinBurst'); } catch (_) {}
-      const t = el.querySelector('.pd-c.today'); if (t) { t.classList.add('got'); t.insertAdjacentHTML('beforeend', '<b class="pd-ok">受取済</b>'); }
-      el.querySelector('.pd-f').innerHTML = `<div class="pd-got">${got.join('') || '<span>カードがいっぱいで受け取れませんでした</span>'}</div><button class="pd-go">OK</button>`;
-      await new Promise((ok) => { el.querySelector('.pd-go').onclick = ok; });
+      const t = el.querySelector('.lb2-c.today'); if (t) { t.classList.add('got'); t.insertAdjacentHTML('beforeend', '<b class="lb2-ok">受取済</b>'); }
+      el.querySelector('.lb2-today').innerHTML = `<i class="lb2-bar"></i><b class="lb2-lab">受け取りました</b><span class="lb2-got">${got.join('') || '<span>カードがいっぱいで受け取れませんでした</span>'}</span>`;
+      el.querySelector('.lb2-go').textContent = 'OK';
+      await new Promise((ok) => { el.querySelector('.lb2-go').onclick = ok; });
       el.remove();
       try { renderHome(); } catch (_) {}
     } finally { lbBusy = false; }
