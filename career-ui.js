@@ -1183,10 +1183,10 @@
         if (uq) return '<td><span class="tz2-hl">固有スキル覚醒</span></td>'; if (pz) { const l = C.pasLv(st, tz); return `<td><span class="tz2-hl">${l === 1 ? 'サポート解放' : l === 2 ? 'サポート強化' : '範囲拡大／さらに強化'}</span></td>`; } return `<td>上限 ${g ? g.g1 : C.GRADES[C.capIdx(st, tz)]}</td>`; };
       body = `<h3 class="tz2-ttl"><span>レア度ごとの変化</span></h3><table class="tz2-tb"><thead><tr><th>レア度</th>${[['無凸', 0], ['1凸', 1], ['2凸', 2], ['3凸（完凸）', 3]].map(([l, t]) => `<th><span class="stars">${starHTML(1, t)}</span>${l}</th>`).join('')}</tr></thead><tbody>${[1, 2, 3, 4, 5].map((st) => `<tr><th>☆${st}</th>${[0, 1, 2, 3].map((t) => cellOf(st, t)).join('')}</tr>`).join('')}</tbody></table>
         <p class="tz2-cap">黄色は、その凸で新しく良くなること。上限はSが最高で、Sになったあとは上限は変わりません。<br>☆4の3凸：近くの味方だけに効く効果は味方全員に広がり、もともと全員に効く効果はさらに強くなります。</p>`; }
-    else if (tab === 'lim') body = `<h3 class="tz2-ttl"><span>限界突破ゲージ：特訓で上限を上げる</span></h3><p class="tz2-sub">凸しなくても、使い続けて特訓すれば、上限はSまで上がります。</p>
+    else if (tab === 'lim') body = `<h3 class="tz2-ttl"><span>限界突破ゲージ：特訓で上限を上げる</span></h3><p class="tz2-sub">ガチャやカケラで凸しなくても、使い続けて特訓すれば、凸が上がります（上限もSまで上がります）。</p>
       <div class="tz2-g3">${sec('ゲージがたまる', '<p class="tz2-tx">能力が上限に届いた後、特訓や全体練習で<b>伸びなかった分</b>が、その選手の「限界突破ゲージ」にたまります。ゲージは選手カードの上限の横に出ます。</p>')}
-        ${sec('満タンで限界突破', `<p class="tz2-tx">ゲージが<b>${C.LIM_NEED}</b>たまると「限界突破！」。上限が1段上がります（C → B → A → S）。上限がSになると、ゲージはなくなります。</p>`)}
-        ${sec('凸とのちがい', '<p class="tz2-tx">限界突破で上がるのは<b>上限だけ</b>です。サポート効果と固有スキルの覚醒は、凸でしか良くなりません。上限は、凸の分と限界突破の分を足して決まります（Sまで）。</p>')}</div>
+        ${sec('満タンで限界突破', `<p class="tz2-tx">ゲージが<b>${C.LIM_NEED}</b>たまると「限界突破！」。<b>1凸</b>したのと同じになり、上限が1段上がります（C → B → A → S）。上限がSになると、ゲージはなくなります。</p>`)}
+        ${sec('凸と同じ', '<p class="tz2-tx">限界突破は<b>1凸と同じ</b>です。凸の数が1つ上がり、凸で付くサポート効果なども、そのまま付きます（3凸＝完凸まで）。</p>')}</div>
       <p class="tz2-cap">例：☆1の選手（上限C）を毎週3枚のカードで特訓すると、およそ1年ちょっとでB、2年半でA、4年弱でSまで上限が上がります。</p>`;
     else if (tab === 'kake') body = `<h3 class="tz2-ttl"><span>覚醒のカケラを集める</span></h3><div class="tz2-g3">
       ${sec('完凸の選手がかぶる', '<p class="tz2-tx">3凸（完凸）の選手が、ガチャでまた出た時。凸はもう上がらないので、<b>基本数</b>のカケラになります。</p>')}
@@ -2762,7 +2762,7 @@
     // 版699：タイプが変わったら大きく見せる（音つき）。タイプのメニューで変わらなかった時は「近づいた」
     const tyBan = o.typeTo ? `<div class="trr-type"><b class="trr-tyh">タイプチェンジ！</b><span class="tbadge ${TYPE_CLS[o.typeFrom] || 'ty-bal'}">${esc(o.typeFrom || '')}</span><i class="trr-tyar">▶</i><span class="tbadge big ${TYPE_CLS[o.typeTo] || 'ty-bal'}">${esc(o.typeTo)}</span></div>`
       : spm && spm.type && p.type !== spm.type ? `<p class="trr-tynear">タイプ「${esc(spm.type)}」に近づいた（もう少しで変わるかも）</p>` : '';
-    if (o.capUp) notes.push(`<b class="trr-lim">限界突破！ 上限が ${o.capUp.to} に上がった</b>`);   // 版1232
+    if (o.capUp) notes.push(`<b class="trr-lim">限界突破！ ${o.capUp.n > 1 ? o.capUp.n + '凸' : '1凸'}アップ・上限が ${o.capUp.to} に上がった</b>`);   // 版1232
     if (o.injured) notes.push('<b class="inj">ケガをしてしまった…</b>');
     const ups = Object.entries(o.ups).filter(([, v]) => v >= 1 || v <= -1).sort((x, y) => y[1] - x[1]);
     const rows = ups.map(([k, v]) => { const b0 = o.before[k], a = C.rankInfo(b0), b = C.rankInfo(Math.min(C.PMAX - 1, Math.max(0, b0 + v))), up = b.g !== a.g;

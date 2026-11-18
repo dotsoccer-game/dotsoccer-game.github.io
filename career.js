@@ -1490,7 +1490,7 @@
   function limAdd(p, over) {
     if (!(over > 0) || capIdx(ensureStar(p), capTz(p)) >= 5) return;
     p.lim = (p.lim || 0) + over;
-    while (p.lim >= LIM_NEED && capIdx(ensureStar(p), capTz(p)) < 5) { p.lim -= LIM_NEED; p.capUp = (p.capUp || 0) + 1; p.capNew = (p.capNew || 0) + 1; }
+    while (p.lim >= LIM_NEED && capIdx(ensureStar(p), capTz(p)) < 5) { p.lim -= LIM_NEED; if ((p.totsu || 0) < 3) p.totsu = (p.totsu || 0) + 1; else p.capUp = (p.capUp || 0) + 1; p.capNew = (p.capNew || 0) + 1; }   // 版1271：限界突破＝1凸と同じ（凸が1つ上がる）
     if (capIdx(ensureStar(p), capTz(p)) >= 5) p.lim = 0;
     p.lim = Math.round(p.lim * 10) / 10;
   }
@@ -2145,6 +2145,7 @@
   }
   function migrate(save) {
     try { gachaFixOld(save); } catch (_) {}
+    try { for (const p of [...((save.team && save.team.players) || []), ...(save.reserve || [])]) while ((p.capUp || 0) > 0 && (p.totsu || 0) < 3) { p.capUp--; p.totsu = (p.totsu || 0) + 1; } } catch (_) {}   // 版1271：今までの限界突破を、凸に数え直す
     try { fix980(save); } catch (_) {}
     try { fix1164(save); } catch (e) { console.error(e); }
     try { for (const p of [...((save.team && save.team.players) || []), ...(save.reserve || [])]) if ((D.LEFTY_UNIQ || []).includes(p.uniq)) p.foot = 'L'; } catch (_) {}   // 版984：左利きの国内屈指
