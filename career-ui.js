@@ -5429,7 +5429,12 @@
             return `<div class="pm-perks pm2"><div class="pm2-h"><b>30日で もらえる合計</b><em>ガチャ${Math.floor(tc / 100)}回分のコイン！</em></div>
             <div class="pm2-tot"><span>${COIN}<b>${tc.toLocaleString()}</b><small>コイン</small></span><span><img class="pm2-cd" src="cards/dribble.jpg" alt=""><b>${Dd.cards * P.days}</b><small>枚</small></span><span><img src="icons/kakera.png" alt=""><b>${Dd.kak * P.days}</b><small>個</small></span></div>
             <p class="pm2-sub">毎日 ${COIN}${Dd.coins}コイン・特訓カード${Dd.cards}枚・カケラ${Dd.kak}個 ＋ ${payReal() ? '毎月' : '買った時に'} ${P.bonus}コイン</p>
-            <p class="pm2-etc">ほかにも：試合の早送り（2倍・4倍）／SPメニューのヒント（毎週1枚）／特訓カードを199枚まで持てる／名前の横に金のマーク</p></div>`; })()}
+            <div class="pm2-etc">${[
+              ['<svg viewBox="0 0 24 24"><path d="M3 5l9 7-9 7zM12 5l9 7-9 7z" fill="currentColor"/></svg>', '試合の早送り', '2倍・4倍で試合をサクッと'],
+              ['<svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-4 12.7V18h8v-3.3A7 7 0 0 0 12 2zM9 20h6v2H9z" fill="currentColor"/></svg>', 'SPメニューのヒント', '毎週1つ、未発見のメニューがわかる'],
+              ['<svg viewBox="0 0 24 24"><rect x="7" y="3" width="12" height="16" rx="2" fill="currentColor"/><rect x="4" y="6" width="12" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/></svg>', '特訓カード199枚まで', `ふつうは${C.CARD_MAX}枚まで`],
+              ['<svg viewBox="0 0 24 24"><path d="M3 8l4 4 5-7 5 7 4-4-2 11H5z" fill="currentColor"/></svg>', '金のマーク', 'フレンドや対戦相手にも見える'],
+            ].map(([ic, t, d]) => `<div class="pm2-pk"><i>${ic}</i><div><b>${t}</b><small>${d}</small></div></div>`).join('')}</div></div>`; })()}
           <button class="pm-buy${on ? ' on' : ''}" data-prem="1">${payReal()
             ? (subLive() ? (save.premSub.cancelAtEnd ? `<small>残り ${premLeft()}日</small>解約ずみ・管理` : `<small>自動更新中</small>お支払いの管理`) : on ? `<small>残り ${premLeft()}日</small>月額で続ける ¥${C.PREM.yen.toLocaleString()}` : `はじめる <b>月額¥${C.PREM.yen.toLocaleString()}</b>`)
             : (on ? `<small>残り ${premLeft()}日</small>延長する ¥${C.PREM.yen.toLocaleString()}` : `購入する <b>¥${C.PREM.yen.toLocaleString()}</b><small>30日</small>`)}</button>${on ? '<button class="pm-cal" data-pcal="1">毎日のプレゼント</button>' : ''}</div>`;

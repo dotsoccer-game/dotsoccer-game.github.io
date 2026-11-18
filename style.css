@@ -5131,3 +5131,10 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 .sh3-prem .pm2-tot b{grid-column:auto;margin:0;font-size:30px;font-weight:900;line-height:1;color:#d04a00}.pm2-tot small{font-size:16px;font-weight:900}.pm2-tot .coin-ico,.pm2-tot span>img{width:32px;height:32px}.pm2-tot .pm2-cd{width:24px;height:33px;object-fit:cover;border-radius:3px;border:1px solid #fff;box-shadow:0 1px 2px rgba(0,0,0,.4)}
 .pm2-sub{margin:2px 0 0;font-size:15px;font-weight:800;display:flex;align-items:center;gap:2px;flex-wrap:wrap}.pm2-sub .coin-ico{width:18px;height:18px}
 .pm2-etc{margin:3px 0 0;font-size:13px;font-weight:700;color:#cfe0ff;line-height:1.35}
+
+/* 版1239：パスのほかの特典を4つの札で */
+.sh3-prem .pm-perks.pm2{top:396px;height:222px;background:#0c2052}
+.pm2-etc{display:grid;grid-template-columns:1fr 1fr;gap:5px 8px;margin-top:6px}
+.pm2-pk{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.1);border:1px solid rgba(255,210,58,.45);border-radius:10px;padding:3px 8px;min-width:0}.pm2-pk small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pm2-pk i{flex:none;width:30px;height:30px;border-radius:50%;background:linear-gradient(#ffe36a,#f0a514);color:#0c2058;display:grid;place-items:center}.pm2-pk i svg{width:18px;height:18px}
+.pm2-pk div{min-width:0;display:flex;flex-direction:column;line-height:1.15}.sh3-prem .pm2-pk b{grid-column:auto;margin:0;color:#ffd23a;font-size:15px;font-weight:900}.pm2-pk small{font-size:12.5px;font-weight:700;color:#e3ecfb}
