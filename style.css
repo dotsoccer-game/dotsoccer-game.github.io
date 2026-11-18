@@ -5129,7 +5129,7 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 .pm2-h{display:flex;align-items:center;gap:12px}.sh3-prem .pm2-h b{margin:0;color:#ffd23a;font-size:20px;font-weight:900}.pm2-h em{margin-left:auto;font-style:normal;background:linear-gradient(#ff6a3d,#e0301a);color:#fff;border-radius:999px;padding:3px 14px;font-size:16px;font-weight:900;box-shadow:0 2px 0 #7a1200}
 .pm2-tot{display:flex;gap:10px;margin:6px 0 4px}.pm2-tot span{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;background:#fff;color:#0c2058;border-radius:12px;padding:4px 6px;box-shadow:inset 0 0 0 2px #ffd23a}
 .sh3-prem .pm2-tot b{grid-column:auto;margin:0;font-size:30px;font-weight:900;line-height:1;color:#d04a00}.pm2-tot small{font-size:16px;font-weight:900}.pm2-tot .coin-ico,.pm2-tot span>img{width:32px;height:32px}.pm2-tot .pm2-cd{width:24px;height:33px;object-fit:cover;border-radius:3px;border:1px solid #fff;box-shadow:0 1px 2px rgba(0,0,0,.4)}
-.pm2-sub{margin:2px 0 0;font-size:15px;font-weight:800;display:flex;align-items:center;gap:2px;flex-wrap:wrap}.pm2-sub .coin-ico{width:18px;height:18px}
+.pm2-sub{margin:2px 0 0;font-size:15px;font-weight:800;white-space:nowrap}.pm2-sub .coin-ico{width:18px;height:18px}
 .pm2-etc{margin:3px 0 0;font-size:13px;font-weight:700;color:#cfe0ff;line-height:1.35}
 
 /* 版1239：パスのほかの特典を4つの札で */

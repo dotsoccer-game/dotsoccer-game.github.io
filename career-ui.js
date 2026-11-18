@@ -5428,7 +5428,7 @@
           ${(() => { const P = C.PREM, Dd = P.daily, tc = Dd.coins * P.days + P.bonus;   // 版1237：30日でもらえる合計を、数字で大きく見せる
             return `<div class="pm-perks pm2"><div class="pm2-h"><b>30日で もらえる合計</b><em>ガチャ${Math.floor(tc / 100)}回分のコイン！</em></div>
             <div class="pm2-tot"><span>${COIN}<b>${tc.toLocaleString()}</b><small>コイン</small></span><span><img class="pm2-cd" src="cards/dribble.jpg" alt=""><b>${Dd.cards * P.days}</b><small>枚</small></span><span><img src="icons/kakera.png" alt=""><b>${Dd.kak * P.days}</b><small>個</small></span></div>
-            <p class="pm2-sub">毎日 ${COIN}${Dd.coins}コイン・特訓カード${Dd.cards}枚・カケラ${Dd.kak}個 ＋ ${payReal() ? '毎月' : '買った時に'} ${P.bonus}コイン</p>
+            <p class="pm2-sub">毎日 ${Dd.coins}コイン・カード${Dd.cards}枚・カケラ${Dd.kak}個 ＋ ${payReal() ? '毎月の支払い日に' : '買った時に'} ${P.bonus}コイン</p>
             <div class="pm2-etc">${[
               ['<svg viewBox="0 0 24 24"><path d="M3 5l9 7-9 7zM12 5l9 7-9 7z" fill="currentColor"/></svg>', '試合の早送り', '2倍・4倍で試合をサクッと'],
               ['<svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-4 12.7V18h8v-3.3A7 7 0 0 0 12 2zM9 20h6v2H9z" fill="currentColor"/></svg>', 'SPメニューのヒント', '毎週1つ、未発見のメニューがわかる'],
