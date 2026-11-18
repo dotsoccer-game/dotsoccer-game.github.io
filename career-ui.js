@@ -6523,6 +6523,14 @@
     else if (m === 'free') $('#newGame').click();
     else if (m === 'champdemo') { sheet.hidden = true; if (!window.__career.save) window.__career.open(); setTimeout(() => { window.__career.champDemo(); }, 300); return; }   // 版581：（テスト用）
     else if (m === 'testkk') { const sv = window.__career.save; sv.kakera = (sv.kakera || 0) + 1000; window.__career.store(); sheet.hidden = true; try { window.__career.renderHome(); } catch (_) {} return; }
+    else if (m === 'fidlook') {   // 版1249：（開発用）フレンドIDから引き継ぎコードを調べる（消えたアカウントの復元の手伝い）
+      sheet.hidden = true;
+      const id = (prompt('調べるアカウントID（8けた）') || '').replace(/\D/g, ''); if (id.length !== 8) return;
+      try { const r = await DotNet.fidLookup(id); const fmtD = (t) => t ? new Date(t).toLocaleString('ja-JP') : '―';
+        const html = !r.found ? `ID ${id} は見つかりませんでした。` : r.code ? `<b>${esc(r.name || '')}</b>（ID ${id}）<br>引き継ぎコード：<b style="font-size:20px;letter-spacing:1px">${esc(String(r.code).replace(/(.{4})(.{4})(.{4})/, '$1-$2-$3'))}</b><br><small>クラウドに保存した日時：${fmtD(r.save && r.save.at)}${r.save && r.save.info ? `（${esc(String(r.save.info.season || ''))}年目 ${esc(String(r.save.info.m || ''))}月${esc(String(r.save.info.w || ''))}週）` : ''}<br>新しい端末で、メニューの「データ引き継ぎ」にこのコードを入れると戻せます。</small>` : `<b>${esc(r.name || '')}</b>（ID ${id}）<br>このアカウントは、クラウドに保存したことがありません（引き継ぎコードがありません）。<br><small>最後にアプリを開いた日時：${fmtD(r.seen)}</small>`;
+        await window.__career.modal('アカウントの調査', html);
+      } catch (e) { alert('調べられませんでした：' + (e && e.message || e)); }
+      return; }
     else if (m === 'testcoin') { const sv = window.__career.save; sv.coins = (sv.coins || 0) + 10000; window.__career.store(); sheet.hidden = true; try { window.__career.renderHome(); } catch (_) {} return; }   // 版552：演出のテスト用
     else if (m === 'tut') { if (window.__tut) { const of = $('#officeScreen'); if (of) { of.hidden = true; try { window.__career.go('home'); } catch (_) {} } if ($('#career').hidden) window.__career.open(); setTimeout(() => window.__tut.replay(), 300); } }
     else if (m === 'nm' && false) { globalThis.__newMove = !globalThis.__newMove; try { localStorage.setItem('dotNewMove', globalThis.__newMove ? '1' : '0'); } catch (_) {} nmLabel(); sheet.hidden = false; return; }

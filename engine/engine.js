@@ -1056,6 +1056,9 @@
       if (b.mdP && (p.lagT || 0) > S.t && !p.gk) return false;   /* 版448 翠の起点：食いついて置き去りにされた相手の足は届かない */
       if (b.aoP && S.t - (b.passT ?? -9) < 0.25 && !p.gk) { const vl = hyp(b.vx, b.vy) || 1, rx = p.x - b.x, ry = p.y - b.y; if ((rx * b.vx + ry * b.vy) / vl < 0.3) return false; }   // 蒼の王座の1本：蹴った瞬間、背中・横で押さえていた相手の足は届かない（出す方向の前にいる相手は触れる）
       if ((b.tsukiP || b.tact) && b.z < 0.6 && hyp(b.vx, b.vy) < 7.5) return true;   // 勢いが落ちて足もとに転がってきた球は、相手もふつうに触れる（目の前の球を見送ることはない）
+      if (b.tsukiP && (globalThis.__Ktk5 ?? 1) && !p.gk && b.z < 0.6 && hyp(p.x - b.x, p.y - b.y) < 1.3) {   // 版1249：足もとを通るボールは、相手も触りにいく（棒立ちで見送らない）。触れるかは、出し手のパスが低いほど高い
+        b.tkRoll = b.tkRoll || {}; if (b.tkRoll[p.idx] == null) { const kp = (P[b.kicker] && P[b.kicker].pass) || 50; b.tkRoll[p.idx] = R.next() < clamp(0.85 - (kp - 40) * 0.011, 0.2, 0.75); }
+        if (b.tkRoll[p.idx]) return true; }
       if (b.tsukiP) return p.idx === b.tsukiDef || (p.gk && p.gkAtk);
       if (b.tact) return p.idx === b.tactDef || (p.gk && p.gkAtk);   // 港の指揮者の1本も、決まった相手しか触れない
       if (byLock(b)) return p.gk && fx(p.team, b.x) < 5.5;   // 白夜の視界：裏への1本は、受け手が触るまで相手は触れない（GKもゴールエリアの外では触れない）   // 落ちた球も、受け手が先に着けば相手は触れない   // 白夜の視界：空中の球には、相手の頭は届かない（落ちてきた所は、ふつうに競る）
@@ -4920,7 +4923,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       if (kind === 'shot') { S.lastShot = S.lastShot || [null, null]; S.lastShot[p.team] = { by: p.idx, t: S.t }; }   // 版1158：こぼれ球のゴールの説明用
       if (kind === 'shot') { const lp9 = S.lastPass[p.team]; if (lp9 && lp9.rcv == null && lp9.from !== p.idx) lp9.rcv = p.idx; }   // 版1158：パスを受けた選手（ダイレクトのシュートも）。アシストは、この選手が決めた時だけ
       Object.assign(b, {
-        owner: -1, kind, selfPass: false, gkPen: 0, uSafe: 0, uDelay: 0, guren: 0, tsukiP: false, trapP: false, tact: false, hari: false, hariS: 0, byP: false, aoP: false, brk: false, csPlace, csType, csGkNear, shotSkill: '', ot: 0, conv: false, pkStop: false, shotT: S.t, sx0: p.x, sy0: p.y, vx: Math.cos(ang) * speed, vy: Math.sin(ang) * speed,
+        owner: -1, kind, selfPass: false, gkPen: 0, uSafe: 0, uDelay: 0, guren: 0, tsukiP: false, tkRoll: null, trapP: false, tact: false, hari: false, hariS: 0, byP: false, aoP: false, brk: false, csPlace, csType, csGkNear, shotSkill: '', ot: 0, conv: false, pkStop: false, shotT: S.t, sx0: p.x, sy0: p.y, vx: Math.cos(ang) * speed, vy: Math.sin(ang) * speed,
         z: Math.max(b.z, 0.1), vz, spin, bs, knuckle, wob: 0, wobW: null, curveAll, curlP: kind === 'pass' && !loft && !!spin && opt.spinSign != null, aimY: ty, drive: driveG, driveUp, driveOn,
         lastTeam: p.team, lastPlayer: p.idx, kicker: p.idx, kickKind: kind, ftBy: p.idx, footBy: p.gk ? -1 : p.idx, fkD: false, style: kind === 'shot' ? 'shot' : loft ? (typeof loft === 'string' ? loft : 'drive') : 'ground',
       });
@@ -5097,7 +5100,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         q.run = Math.max(q.run, 2.5);
       }
       // 月影の抜け出し：走り込んでくる味方の、少し先（DFラインのすぐ裏）へ。走るコースの上に、ぴたりと届く強さで
-      const tsukiPass = uOn(q, 'tsukikage') && (through || skill === 'throughPass' || skill === 'loftedThrough');   // 港の指揮者の裏への1本も、走り込む先へぴたりと合わせる
+      const tsukiPass = uOn(q, 'tsukikage') && (through || skill === 'throughPass' || skill === 'loftedThrough') && (!(globalThis.__Ktk5 ?? 1) || fx(p.team, q.x) > fx(p.team, p.x) + 2);   // 版1249：横・後ろへのパスは、月影の特別な1本にしない   // 港の指揮者の裏への1本も、走り込む先へぴたりと合わせる
       if (tsukiPass) {
         const offLp = offsideLine(p.team), vR = maxSpeed(q) * 0.97, qxf = fx(p.team, q.x);
         // 走る向き：いま前へ走っていればその向き、そうでなければゴールの方へ（少し中へ）
@@ -5677,7 +5680,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       if ((globalThis.__Kci3 ?? 1) && skZ(p, 'cutIn') && !p.gk && !S.setPiece && !S.restart && S.ball.owner === p.idx && !p.ciPlan && !((p.skillCd || 0) > S.t) && !(p.moveQ && p.moveQ.length)) {
         const xq = fx(p.team, p.x);
         if (xq >= L - 35 && Math.abs(p.y - GOAL_Y) > 9) {
-          let q = null, qd = 99; for (const o of opps(p)) { if (o.off || o.gk) continue; const d = hyp(o.x - p.x, o.y - p.y); if (d < qd && d > 2.4 && d < 6.5 && fx(p.team, o.x) > xq - 0.5) { q = o; qd = d; } }
+          let q = null, qd = 99; for (const o of opps(p)) { if (o.off || o.gk) continue; const d = hyp(o.x - p.x, o.y - p.y); if (d < qd && d > 2.4 && d < (globalThis.__Kcid ?? 6.5) && fx(p.team, o.x) > xq - 0.5) { q = o; qd = d; } }
           const crowd = q ? opps(p).filter((o) => !o.off && !o.gk && o !== q && hyp(o.x - p.x, o.y - p.y) < 6).length : 9;
           if (q && crowd <= (globalThis.__Kcic ?? 1) && R.next() < (globalThis.__Kcip ?? 0.4)) { p.ciForce = true; const ok = skillMove(p, q); p.ciForce = false; if (ok) return; }
         }
@@ -5692,6 +5695,9 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           const onside = (m) => fx(p.team, m.x) <= Math.max(offsideLine(p.team), xq) + 0.2;
           const laneOK = (m) => !opps(p).some((o) => !o.off && !o.gk && segDist(o.x, o.y, p.x, p.y, m.x, m.y).d < 1.6);
           let k2 = pl.k;
+          const press = opps(p).some((o) => !o.off && !o.gk && hyp(o.x - p.x, o.y - p.y) < 2.6 && fx(p.team, o.x) > xq - 0.5);   // 目の前に相手が来た：決めていた狙いはやめて、ふつうの判断へ
+          if (press && k2 !== 'shoot') { p.ciPlan = null; k2 = null; }
+          if (press && k2 === 'shoot' && dG > 24) { p.ciPlan = null; k2 = null; }
           if (k2 === 'cross' || k2 === 'square') {
             const sq = k2 === 'square';
             const ms = P.filter((m) => m.team === p.team && m !== p && !m.off && !m.gk && onside(m) && fx(p.team, m.x) > L - (sq ? 14 : 18) && Math.abs(m.y - GOAL_Y) < (sq ? 9 : 12) && (!sq || laneOK(m)))
@@ -5706,7 +5712,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             if (!k2) p.ciPlan = null;
           }
           if (k2 === 'shoot') {
-            if (dG <= 30) { shootNow(skZ(p, 'controlShot') ? 'controlShot' : null); return; }
+            if (dG <= (skZ(p, 'controlShot') || (p.kick || 50) >= 80 ? 27 : 24)) { shootNow(skZ(p, 'controlShot') ? 'controlShot' : null); return; }   // 打つのは、決められる距離に入ってから
             if (S.t < pl.until - 0.3) { const tx = fx(p.team, L - 11), ty = GOAL_Y + Math.sign(p.y - GOAL_Y) * 6, dx = tx - p.x, dy = ty - p.y, dl = hyp(dx, dy) || 1; S.dribbleDir = [dx / dl, dy / dl]; S.dribbleMode = 'break'; p.settle = false; pl.at = S.t + 0.25; S.decision = 0.25; return; }   // まだ遠い：打てる所まで運ぶ
             p.ciPlan = null; }
           else if (k2 === 'carry') {   // 角度のある所まで運んで打つ
@@ -8111,7 +8117,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       let tate = false;
       if (k === 'cutIn' && (globalThis.__Kci3 ?? 1)) {
         const tb = (T[q.team].ciRead = T[q.team].ciRead || {}), rd = tb[own.idx] || 0;
-        if (own.ciForce) pS = clamp(pS + (globalThis.__Kcis ?? 0.12), 0.1, 0.95);   // 間合いがある所から自分で仕掛ける時は、スピードに乗って抜きやすい
+        if (own.ciForce) pS = clamp(pS + (globalThis.__Kcis ?? 0.18), 0.1, 0.95);   // 間合いがある所から自分で仕掛ける時は、スピードに乗って抜きやすい
         if (rd >= 1 && R.next() < Math.min(0.6, 0.2 * rd + ((own.vision || 50) - 50) * 0.004)) { tate = true; pS = clamp(pS + 0.07 * rd, 0.1, 0.95); }
         else pS = clamp(pS - Math.min(0.3, 0.07 * rd), 0.08, 0.97);
         tb[own.idx] = tate ? Math.max(0, rd - 1.5) : rd + 1;
