@@ -6548,6 +6548,9 @@
       sheet.hidden = true;
       try { const sv = window.__career.save, fl = (sv && sv.online && sv.online.flist) || []; const fmtD = (t) => t ? new Date(t).toLocaleString('ja-JP') : '―', tl = (u) => u ? String(u).slice(-5) : '―'; let rows = '', fixed = 0, txt = '';
         for (const f of fl) { const fd = f.fid ? await DotNet.fidDoc(f.fid) : null, old = f.uid ? await DotNet.byUid(f.uid) : null, cur = fd && fd.uid ? await DotNet.byUid(fd.uid) : null;
+          // 版1270：同じクラブ名で、もっと最近ログインしている公開データがあれば（フレンドIDが変わってしまった人）、そちらへつなぎ直す
+          let alt = null; try { const same = (f.name ? await DotNet.byName(f.name) : []).filter((x) => x && !x.err && x.uid !== f.uid && (x.mgr || '') === (f.mgr || x.mgr || '')); alt = same.sort((x1, x2) => (x2.seen || 0) - (x1.seen || 0))[0] || null; } catch (_) {}
+          if (alt && (alt.seen || 0) > ((cur && cur.seen) || (old && old.seen) || 0) + 60000) { txt += `${f.name}｜別のフレンドID ${alt.fid || '―'}（端末 ${tl(alt.uid)}・最後 ${fmtD(alt.seen)}）が見つかった → そちらへつなぎ直した\n`; rows += `<div style="text-align:left;border-top:1px solid #ccc;padding:4px 0;font-size:12px;color:#b00">${esc1(f.name)}：別のフレンドID ${esc1(alt.fid || '―')}（最後 ${esc1(fmtD(alt.seen))}）が見つかった → つなぎ直した</div>`; f.uid = alt.uid; if (alt.fid) f.fid = String(alt.fid); fixed++; continue; }
           let note = ''; if (!f.fid) note = 'フレンドIDの記録なし'; else if (!fd) note = 'このIDは見つからない'; else if (fd.err) note = '読めない：' + fd.err; else if (fd.uid !== f.uid) { if (cur) { f.uid = fd.uid; fixed++; note = '別の端末につながっていた → つなぎ直した'; } else note = '今の端末の公開データがまだない（相手がアプリを開くと直る）'; } else note = 'OK';
           const line = `${f.name || '?'}｜ID ${f.fid || '―'}｜記録の端末 ${tl(f.uid)}（最後 ${fmtD(old && old.seen)}・公開ID ${(old && old.fid) || '―'}）｜今の端末 ${tl(fd && fd.uid)}（最後 ${fmtD(cur && cur.seen)}・公開ID ${(cur && cur.fid) || '―'}）｜${note}`;
           txt += line + '\n'; rows += `<div style="text-align:left;border-top:1px solid #ccc;padding:4px 0;font-size:12px">${esc1(line)}</div>`; }
