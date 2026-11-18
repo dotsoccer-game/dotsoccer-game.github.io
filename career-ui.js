@@ -6544,6 +6544,17 @@
         await devShow('作り直しました', `<b>${esc1(d.name)}</b>（ID ${id}）<br>引き継ぎコード：<b style="font-size:20px;letter-spacing:1px">${esc1(String(code).replace(/(.{4})(.{4})(.{4})/, '$1-$2-$3'))}</b><br><small>このコードを相手に伝えて、新しく入れたゲームのメニュー「データ引き継ぎ」に入れてもらうと、チームとフレンドID（${id}）が戻ります。<br>戻るもの：チーム名・ユニフォーム・エンブレム・1軍の選手（能力・スキル・☆・凸）・フォーメーション・リーグ・ランクポイント。<br>戻らないもの：コイン・リザーブ・2軍・カード・カケラ・シーズンの進み具合・フレンド一覧。</small>`, String(code));
       } catch (e) { alert('作り直せませんでした：' + (e && e.message || e)); }
       return; }
+    else if (m === 'fdiag') {   // 版1268：（開発用）フレンドのログイン時刻が止まって見える時の調査と直し：フレンドIDが今つながっている端末を調べ、ちがっていたらつなぎ直す
+      sheet.hidden = true;
+      try { const sv = window.__career.save, fl = (sv && sv.online && sv.online.flist) || []; const fmtD = (t) => t ? new Date(t).toLocaleString('ja-JP') : '―', tl = (u) => u ? String(u).slice(-5) : '―'; let rows = '', fixed = 0, txt = '';
+        for (const f of fl) { const fd = f.fid ? await DotNet.fidDoc(f.fid) : null, old = f.uid ? await DotNet.byUid(f.uid) : null, cur = fd && fd.uid ? await DotNet.byUid(fd.uid) : null;
+          let note = ''; if (!f.fid) note = 'フレンドIDの記録なし'; else if (!fd) note = 'このIDは見つからない'; else if (fd.err) note = '読めない：' + fd.err; else if (fd.uid !== f.uid) { if (cur) { f.uid = fd.uid; fixed++; note = '別の端末につながっていた → つなぎ直した'; } else note = '今の端末の公開データがまだない（相手がアプリを開くと直る）'; } else note = 'OK';
+          const line = `${f.name || '?'}｜ID ${f.fid || '―'}｜記録の端末 ${tl(f.uid)}（最後 ${fmtD(old && old.seen)}・公開ID ${(old && old.fid) || '―'}）｜今の端末 ${tl(fd && fd.uid)}（最後 ${fmtD(cur && cur.seen)}・公開ID ${(cur && cur.fid) || '―'}）｜${note}`;
+          txt += line + '\n'; rows += `<div style="text-align:left;border-top:1px solid #ccc;padding:4px 0;font-size:12px">${esc1(line)}</div>`; }
+        if (fixed) window.__career.store();
+        await devShow('フレンドの状態', (fl.length ? rows : 'フレンドがいません') + (fixed ? `<p>${fixed}人をつなぎ直しました。フレンド一覧を開き直してください。</p>` : ''), txt);
+      } catch (e) { alert('調べられませんでした：' + (e && e.message || e)); }
+      return; }
     else if (m === 'fidlook') {   // 版1249：（開発用）フレンドIDから引き継ぎコードを調べる（消えたアカウントの復元の手伝い）
       sheet.hidden = true;
       const id = (prompt('調べるアカウントID（8けた）') || '').replace(/\D/g, ''); if (id.length !== 8) return;
