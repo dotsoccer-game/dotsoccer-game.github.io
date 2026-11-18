@@ -177,6 +177,17 @@
     const c = normCode(code); if (c.length !== 12) return null;
     return withTimeout((async () => { const d = await db.collection('saves').doc(c).get(); if (!d.exists) return null; const v = d.data(); return { code: c, info: v.info || null, at: v.at || 0, fid: v.fid || null, save: await unpackSave(v.d, v.z) }; })(), 20000);
   }
+  // 版1250：（開発用）作り直したセーブを、そのフレンドIDの引き継ぎコードとして保存する（フレンドIDの持ち主はまだ変えない。相手が復元した時に、相手へ移る）
+  async function cloudPutFor(saveObj, info, fid) {
+    if (!(await ready())) throw new Error('offline');
+    return withTimeout((async () => {
+      let c = ''; for (let k = 0; k < 6; k++) { const t = newCode(); const d = await db.collection('saves').doc(t).get(); if (!d.exists) { c = t; break; } }
+      if (!c) throw new Error('code');
+      const pk = await packSave(saveObj); if (pk.d.length > 880000) throw new Error('too big');
+      await db.collection('saves').doc(c).set({ d: pk.d, z: pk.z, info: info || null, at: Date.now(), cur: uid, fid: fid ? String(fid) : null, v: 1 });
+      return c;
+    })(), 20000);
+  }
   // 版1249：（開発用）フレンドIDから、そのアカウントの引き継ぎコード（クラウド保存）を調べる。端末から消えたアカウントの復元の手伝い
   async function fidLookup(fid) {
     if (!(await ready())) throw new Error('offline');
@@ -210,5 +221,5 @@
   // 版1118：オンライン状況。自分の公開データ（players）に、最後にアプリを開いていた時刻（seen）と、していること（st：'home'・'match'）を書く。players がまだない人は書かない
   async function ping(st) { if (!(await ready()) || !uid) return; try { await withTimeout(db.collection('players').doc(uid).update({ seen: Date.now(), st: st || 'home' })); } catch (_) {} }
   async function seenOf(uids) { const ps = await playersOf(uids), out = {}; for (const u in ps) out[u] = { seen: Math.max(ps[u].seen || 0, 0), at: ps[u].at || 0, st: ps[u].st || '' }; return out; }   // 版1216：まとめて読む
-  window.DotNet = { fidLookup, PAY_ON, ping, seenOf, payCheckout, payClaim, payPortal, FID_MOVE, cloudInfo, cloudPut, cloudGet, cloudClaim, normCode, get watchState() { return watchState; }, get on() { return !!FIREBASE_CONFIG; }, get uid() { return uid; }, get err() { return lastErr; }, ready, publish, byFid, byUid, playersOf, rankRival, report, inbox, clearInbox, top, sendMail, mailbox, delMail, news, createRoom, roomUpdate, roomGet, roomWatch, roomInvites, roomStart, watchMail };
+  window.DotNet = { cloudPutFor, fidLookup, PAY_ON, ping, seenOf, payCheckout, payClaim, payPortal, FID_MOVE, cloudInfo, cloudPut, cloudGet, cloudClaim, normCode, get watchState() { return watchState; }, get on() { return !!FIREBASE_CONFIG; }, get uid() { return uid; }, get err() { return lastErr; }, ready, publish, byFid, byUid, playersOf, rankRival, report, inbox, clearInbox, top, sendMail, mailbox, delMail, news, createRoom, roomUpdate, roomGet, roomWatch, roomInvites, roomStart, watchMail };
 })();

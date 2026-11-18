@@ -6421,7 +6421,7 @@
   window.__career_rw = (i) => { const main = Object.keys(C.CARDS).filter((c) => C.CARDS[c].cat !== 'sup' && !C.CARDS[c].sp); const RW = RANK_REWARD[i]; resCard(rewardCard({ rank: i, coins: RW.coins, kak: RW.kak, cards: Array.from({ length: RW.cards }, () => main[Math.floor(Math.random() * main.length)]) })); };
   window.__career = { faceURL: (p, b, k) => faceURL(p, b, k), modal: (h, b, o) => modal(h, b, o), pmToast: (m) => pmToast(m), airport: () => airport(), startRank: () => startRank(), rkForfeit: () => rkForfeit(), halfOthers: (m, mi) => halfOthers(m, mi), rankConfirm: (...a) => rankConfirm(...a), resTest: (n) => { save.reserve = save.team.players.slice(11, 11 + (n || 6)).map((q, k) => ({ ...JSON.parse(JSON.stringify(q)), name: q.name + "R" + k })); }, spTest: (pi, idx, all) => { if (all) save.spFound = C.SP.map((x) => x.id); spSel = idx; spList(pi); }, abilDoc: (k) => abilDoc(k), abilOne: (k) => abilOne(k), totsuDoc: (t) => totsuDoc(t), friendSquad: (k) => friendSquad(k), friendCard: (...a) => friendCard(...a), roomScreen: (id, r) => roomScreen(id, r), friendMenu: (b) => friendMenu(b), roomPrep: (r, me) => roomPrep(r, me), playRoom: (r, me) => playRoom(r, me), packCode: (o) => packCode(o), openKitEditor: (o) => openKitEditor(o), drawEmblem: (c, x, y, s, lk) => drawEmblem(c, x, y, s, lk), openClub: (o) => openClub(o), playerDetail: (i, o) => playerDetail(i, o), resCard: (o) => resCard(o), seasonEndCard: (o) => seasonEndCard(o), coachNews: (l) => coachNews(l), rewardCard: (r) => rewardCard(r), gachaDemo: (st, pr, fx) => gachaDemo(st, pr, fx), storyCard: (o) => storyCard(o), gotCardsHTML: (got) => `<div class="gc-cards${got.length > 8 ? ' lots' : got.length > 4 ? ' many' : ''}">${got.map((c) => artCard(c, { ups: true })).join('')}</div><p class="cp-msg gc-msg">クラブハウスの「特訓」で、選手に最大3枚セットできます。</p>`, trainResult: (o) => trainResult(o), airport, openPost, syncPost, onlineDone, setVenue: (k) => { venueNow = k; }, champDemo, champAfter, coinShop, faceFill: () => faceFill(), openGacha, venueTalk: (se) => venueTalk(se), matchFace, openOffice, cpuCard, openClub, openAssoc, open, go, stadium, advance, subSheet, labMatch, townRect, tutPractice, shop, store: () => store(), renderHome: () => renderHome(), clubhouseBg: () => clubhouseBg(), isMatchWeek: () => isMatchWeek(), get view() { return view; }, staffFace: (k) => staffFace(k), get save() { return save; }, get drill() { return clubDrill; }, faceURL, starFace, setDrill(d) { clubDrill = d; drillT0 = -1; drillSnap = true; } };
   window.__career.openCloud = openCloud; window.__career.cpuCard = (t, i) => cpuCard(t, i, $("#career"));
-  window.__career.shop = (t) => shop(t); window.__career.premDaily = () => premDaily(); window.__career.loginDaily = () => loginDaily(); window.__career.go = (v) => go(v);
+  window.__career.shop = (t) => shop(t); window.__career.premDaily = () => premDaily(); window.__career.loginDaily = () => loginDaily(); window.__career.unpack = (c) => unpackCode(c); window.__career.cloudInfo = (sv) => cloudInfoOf(sv); window.__career.go = (v) => go(v);
   window.__career.embURL = () => { try { return save ? embFromLook(C.ensureClub(save).emb, 96) : ''; } catch (_) { return ''; } };   // 版680：設定のアカウントIDの横に出す、自分のクラブのエンブレム
   window.__career.myFid = async () => { if (!save) return null; const on = ensureOnline(); if (on.fid && !(window.DotNet && DotNet.FID_MOVE && DotNet.FID_MOVE[on.fid])) return on.fid; return (await publishMe()) || on.fid; };   // 版678：アカウントID（なければ作る）
 })();
@@ -6523,11 +6523,25 @@
     else if (m === 'free') $('#newGame').click();
     else if (m === 'champdemo') { sheet.hidden = true; if (!window.__career.save) window.__career.open(); setTimeout(() => { window.__career.champDemo(); }, 300); return; }   // 版581：（テスト用）
     else if (m === 'testkk') { const sv = window.__career.save; sv.kakera = (sv.kakera || 0) + 1000; window.__career.store(); sheet.hidden = true; try { window.__career.renderHome(); } catch (_) {} return; }
+    const esc1 = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    if (m === 'fidrebuild') {   // 版1250：（開発用）端末から消えたアカウントを、オンラインに公開していたチームのデータから作り直して、引き継ぎコードにする
+      sheet.hidden = true;
+      const id = (prompt('作り直すアカウントID（8けた）') || '').replace(/\D/g, ''); if (id.length !== 8) return;
+      try {
+        const p0 = await DotNet.byFid(id); if (!p0) { alert('このIDの公開データが見つかりません'); return; }
+        const p = (await DotNet.byUid(p0.uid)) || p0; if (!p.code) { alert('チームのデータが見つかりません'); return; }
+        const d = await window.__career.unpack(p.code);
+        const ok = confirm(`「${d.name}」（${d.team.players.length}人・ランクポイント${p.rp || 0}）を作り直して、引き継ぎコードを作ります。よろしいですか？`); if (!ok) return;
+        const sv = window.DotCareer.rebuildSave(d, { fid: id, rp: p.rp || 0 });
+        const code = await DotNet.cloudPutFor(sv, window.__career.cloudInfo(sv), id);
+        await window.__career.modal('作り直しました', `<b>${esc1(d.name)}</b>（ID ${id}）<br>引き継ぎコード：<b style="font-size:20px;letter-spacing:1px">${esc1(String(code).replace(/(.{4})(.{4})(.{4})/, '$1-$2-$3'))}</b><br><small>このコードを相手に伝えて、新しく入れたゲームのメニュー「データ引き継ぎ」に入れてもらうと、チームとフレンドID（${id}）が戻ります。<br>戻るもの：チーム名・ユニフォーム・エンブレム・1軍の選手（能力・スキル・☆・凸）・フォーメーション・リーグ・ランクポイント。<br>戻らないもの：コイン・リザーブ・2軍・カード・カケラ・シーズンの進み具合・フレンド一覧。</small>`);
+      } catch (e) { alert('作り直せませんでした：' + (e && e.message || e)); }
+      return; }
     else if (m === 'fidlook') {   // 版1249：（開発用）フレンドIDから引き継ぎコードを調べる（消えたアカウントの復元の手伝い）
       sheet.hidden = true;
       const id = (prompt('調べるアカウントID（8けた）') || '').replace(/\D/g, ''); if (id.length !== 8) return;
       try { const r = await DotNet.fidLookup(id); const fmtD = (t) => t ? new Date(t).toLocaleString('ja-JP') : '―';
-        const html = !r.found ? `ID ${id} は見つかりませんでした。` : r.code ? `<b>${esc(r.name || '')}</b>（ID ${id}）<br>引き継ぎコード：<b style="font-size:20px;letter-spacing:1px">${esc(String(r.code).replace(/(.{4})(.{4})(.{4})/, '$1-$2-$3'))}</b><br><small>クラウドに保存した日時：${fmtD(r.save && r.save.at)}${r.save && r.save.info ? `（${esc(String(r.save.info.season || ''))}年目 ${esc(String(r.save.info.m || ''))}月${esc(String(r.save.info.w || ''))}週）` : ''}<br>新しい端末で、メニューの「データ引き継ぎ」にこのコードを入れると戻せます。</small>` : `<b>${esc(r.name || '')}</b>（ID ${id}）<br>このアカウントは、クラウドに保存したことがありません（引き継ぎコードがありません）。<br><small>最後にアプリを開いた日時：${fmtD(r.seen)}</small>`;
+        const html = !r.found ? `ID ${id} は見つかりませんでした。` : r.code ? `<b>${esc1(r.name || '')}</b>（ID ${id}）<br>引き継ぎコード：<b style="font-size:20px;letter-spacing:1px">${esc1(String(r.code).replace(/(.{4})(.{4})(.{4})/, '$1-$2-$3'))}</b><br><small>クラウドに保存した日時：${fmtD(r.save && r.save.at)}${r.save && r.save.info ? `（${esc1(String(r.save.info.season || ''))}年目 ${esc1(String(r.save.info.m || ''))}月${esc1(String(r.save.info.w || ''))}週）` : ''}<br>新しい端末で、メニューの「データ引き継ぎ」にこのコードを入れると戻せます。</small>` : `<b>${esc1(r.name || '')}</b>（ID ${id}）<br>このアカウントは、クラウドに保存したことがありません（引き継ぎコードがありません）。<br><small>最後にアプリを開いた日時：${fmtD(r.seen)}</small>`;
         await window.__career.modal('アカウントの調査', html);
       } catch (e) { alert('調べられませんでした：' + (e && e.message || e)); }
       return; }
