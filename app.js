@@ -2937,7 +2937,9 @@
     const isReplay = show && (show.phase === 'replay' || show.phase === 'fade') && rg;   // ダイジェストは試合と同じカメラ
     const gxR = isReplay ? (stateAt(rg.t).ball.x > 52.5 ? 105 : 0) : 0;
     const jr = show && (show.phase === 'jreplay' || show.phase === 'jfade');
-    replayYaw = isReplay ? (gxR ? 0.85 : -0.85) : jr && !show.off ? (show.cx > 52.5 ? 0.5 : -0.5) : null;
+    // 版1262：リプレイがGKのキックなど、ゴールから遠い所から始まる時は、ふだんの試合と同じ向きで映し、ゴールに近づくにつれてリプレイの角度へ振っていく（遠い所でゴールの方へ振ると、観客席の後ろから見るような絵になる）
+    const rpW = isReplay && (globalThis.__Krpc ?? 1) ? Math.max(0, Math.min(1, (62 - Math.abs(st.ball.x - gxR)) / 22)) : 1, kB = Math.max(-1, Math.min(1, ((st.ball ? st.ball.x : 52.5) - 52.5) / 38)), yN = Math.sign(kB) * Math.pow(Math.abs(kB), 1.4) * 0.46;
+    replayYaw = isReplay ? (gxR ? 0.85 : -0.85) * rpW + yN * (1 - rpW) : jr && !show.off ? (show.cx > 52.5 ? 0.5 : -0.5) : null;
     const soOn = match.shootout && simT >= match.regEnd + 3.4 && !(show && show.phase === 'digest'), soCam = soOn && !!window.__soBehind;   // 版1033：PK戦も、ふだんの試合の目線で（ゴール裏の画角は __soBehind で試せる）   // 版1031：PK戦は、ゴールの裏の高い所から、フィールドの方を見る（本家の画角）
     soCamOn = soCam;
     soCheer = null; if (soOn) { const evs = match.events; for (let k = evs.length - 1; k >= 0; k--) { const e = evs[k]; if (e.t > simT) continue; if (e.type === 'shootout') { soCheer = { team: e.win, idx: -1 }; break; } if (e.type === 'sokick') { if (e.res === 'goal' && simT - e.t < 3.2) soCheer = { idx: e.idx, team: -1 }; break; } } }
