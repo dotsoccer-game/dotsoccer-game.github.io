@@ -219,7 +219,7 @@
   async function payClaim() { const f = await fns(); const r = await withTimeout(f.httpsCallable('payClaim')({}), 20000); const a = (r.data && r.data.items) || []; a.sub = (r.data && r.data.sub) || null; return a; }   // 版712：a.sub＝月額パスの今の状態
   async function payPortal() { const f = await fns(); const r = await withTimeout(f.httpsCallable('payPortal')({ back: location.href }), 20000); return r.data; }
   // 版1118：オンライン状況。自分の公開データ（players）に、最後にアプリを開いていた時刻（seen）と、していること（st：'home'・'match'）を書く。players がまだない人は書かない
-  async function ping(st) { if (!(await ready()) || !uid) return; try { await withTimeout(db.collection('players').doc(uid).update({ seen: Date.now(), st: st || 'home' })); } catch (_) {} }
+  async function ping(st) { if (!(await ready()) || !uid) return null; try { await withTimeout(db.collection('players').doc(uid).update({ seen: Date.now(), st: st || 'home' })); return true; } catch (_) { return false; } }   // 版1265：書けなかった（この端末の公開データがまだない＝引き継いだばかりなど）ことを返す
   async function seenOf(uids) { const ps = await playersOf(uids), out = {}; for (const u in ps) out[u] = { seen: Math.max(ps[u].seen || 0, 0), at: ps[u].at || 0, st: ps[u].st || '' }; return out; }   // 版1216：まとめて読む
   window.DotNet = { cloudPutFor, fidLookup, PAY_ON, ping, seenOf, payCheckout, payClaim, payPortal, FID_MOVE, cloudInfo, cloudPut, cloudGet, cloudClaim, normCode, get watchState() { return watchState; }, get on() { return !!FIREBASE_CONFIG; }, get uid() { return uid; }, get err() { return lastErr; }, ready, publish, byFid, byUid, playersOf, rankRival, report, inbox, clearInbox, top, sendMail, mailbox, delMail, news, createRoom, roomUpdate, roomGet, roomWatch, roomInvites, roomStart, watchMail };
 })();

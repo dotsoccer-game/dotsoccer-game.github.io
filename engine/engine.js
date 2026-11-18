@@ -5727,7 +5727,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             let q = null, qd = 99; for (const o of opps(p)) { if (o.off || o.gk) continue; const d = hyp(o.x - p.x, o.y - p.y); if (d < qd && d > 1.3 && d < 6 && fx(p.team, o.x) > xq - 0.5) { q = o; qd = d; } }
             if (q && R.next() < (globalThis.__Kcip ?? 0.9)) { p.ciForce = true; const ok = skillMove(p, q); p.ciForce = false; if (ok) return; }
             // 版1259：前に相手がいなくても、カットインを持つ選手は、外から中へ切れ込んで運ぶ（縦へ行くだけにしない）。相手は外さないので技の判定はなし
-            if (!q && (globalThis.__Kci8 ?? 1) && xq < L - 7 && !((p.ciSelfT || 0) > S.t) && !opps(p).some((o) => !o.off && !o.gk && hyp(o.x - p.x, o.y - p.y) < 2.5) && R.next() < (globalThis.__Kcii ?? 0.8)) {
+            if (!q && (globalThis.__Kci8 ?? 1) && xq < L - 7 && !((p.ciSelfT || 0) > S.t) && !opps(p).some((o) => !o.off && !o.gk && hyp(o.x - p.x, o.y - p.y) < 2.5) && !((globalThis.__Kci10 ?? 1) && opps(p).some((o) => { if (o.off || o.gk) return false; const iy = (o.y - p.y) * (Math.sign(GOAL_Y - p.y) || 1), rx = fx(p.team, o.x) - xq; return iy > 0 && iy < 8 && rx > -1.5 && rx < 5; })) && R.next() < (globalThis.__Kcii ?? 0.8)) {
               const inY = Math.sign(GOAL_Y - p.y) || 1, sx = fx(p.team, 1) - fx(p.team, 0), f = xq < L - 14 ? 0.55 : 0.3, vl = hyp(f, 1), dir = [sx * f / vl, inY / vl];
               p.ciDir = dir; p.cutInT = S.t; p.ciSelfT = S.t + 6; S.dribbleDir = dir; S.dribbleMode = 'carry'; p.pace = { ph: 'burst', until: S.t + 0.8 }; p.settle = false;
               act(p, 'skill', 1.3, { k: 'cutIn' }); act(p, 'dmove', 1.0, { k: 'cutIn', dx: dir[0], dy: dir[1], self: 1 });
@@ -8240,7 +8240,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       if (k === 'cutIn' && (globalThis.__Kci3 ?? 1)) {
         const tb = (T[q.team].ciRead = T[q.team].ciRead || {}), rd = tb[own.idx] || 0;
         if (own.ciForce) pS = clamp(pS + (globalThis.__Kcis ?? 0.18), 0.1, 0.95);   // 間合いがある所から自分で仕掛ける時は、スピードに乗って抜きやすい
-        if (own.ciTate || (rd >= 1 && R.next() < Math.min(0.6, 0.2 * rd + ((own.vision || 50) - 50) * 0.004))) { tate = true; pS = clamp(pS + 0.07 * rd, 0.1, 0.95); }
+        const qInS = (q.y - own.y) * (Math.sign(GOAL_Y - own.y) || 1);   // 版1265：相手が中側（切れ込む先）に立っている → 中へは行かず、縦へ抜く
+        if (own.ciTate || ((globalThis.__Kci10 ?? 1) && qInS > 0.5) || (rd >= 1 && R.next() < Math.min(0.6, 0.2 * rd + ((own.vision || 50) - 50) * 0.004))) { tate = true; pS = clamp(pS + 0.07 * rd, 0.1, 0.95); }
         else pS = clamp(pS - Math.min(0.3, 0.07 * rd), 0.08, 0.97);
         tb[own.idx] = tate ? Math.max(0, rd - 1.5) : rd + 1;
       }
