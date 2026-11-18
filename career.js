@@ -1311,12 +1311,11 @@
     sq.list[sq.cur] = squadSnap(save);
     const snap = sq.list[k];
     if (snap) {
-      const n = save.team.players.length, pool = [...save.team.players, ...(save.reserve || [])], used = new Set(), team = [];
+      const n = save.team.players.length, pool = [...save.team.players], used = new Set(), team = [];   // 版1245：1軍・2軍は、チームの選手（ベンチ入り＋ベンチ外）だけで組む。リザーブとは入れ替えない
       for (const nm of snap.order) { const p = pool.find((q) => q.name === nm && !used.has(q)); if (p && team.length < n) { team.push(p); used.add(p); } }
       for (const p of save.team.players) if (team.length < n && !used.has(p)) { team.push(p); used.add(p); }   // 2軍にいない選手（新しく来た選手など）は、今の並びのまま後ろへ
-      for (const p of save.reserve || []) if (team.length < n && !used.has(p)) { team.push(p); used.add(p); }
       { const pc = save.plan && save.plan.cards; if (pc) { const old = save.team.players, nc = {}; for (const [i, v] of Object.entries(pc)) { const j = team.indexOf(old[+i]); if (j >= 0) nc[j] = v; } save.plan.cards = nc; } }   // 特訓のカードは、選手についていく
-      save.reserve = pool.filter((p) => !used.has(p)); save.team.players = team;
+      save.team.players = team;
       save.tactics = JSON.parse(JSON.stringify(snap.tactics)); ensureTactics(save);
     }
     else if (k === 1) build2nd(save);   // 版1197：はじめての2軍は、1軍のスタメン以外の選手で自動で組む
@@ -1324,7 +1323,7 @@
   }
   // 1軍のスタメン（11人）以外から、同じポジションで力のある選手を選んで2軍のスタメンにする。ベンチも1軍のスタメン以外から。1軍のスタメンはベンチ外へ
   function build2nd(save) {
-    const ps = save.team.players, n = ps.length, first = ps.slice(0, 11), pool = [...ps.slice(11), ...(save.reserve || [])].filter((p) => !(p.injury > 0)).concat([...ps.slice(11), ...(save.reserve || [])].filter((p) => p.injury > 0));
+    const ps = save.team.players, n = ps.length, first = ps.slice(0, 11), pool = ps.slice(11).filter((p) => !(p.injury > 0)).concat(ps.slice(11).filter((p) => p.injury > 0));   // 版1245：リザーブは使わない
     const used = new Set(), team = [];
     const pick = (pos) => { let best = null; for (const p of pool) if (!used.has(p) && (!pos || p.position === pos) && !(p.injury > 0) && (!best || avgParam(p) > avgParam(best))) best = p; if (!best) for (const p of pool) if (!used.has(p) && (!best || avgParam(p) > avgParam(best))) best = p; if (best) used.add(best); return best; };
     for (let i = 0; i < 11; i++) { const q = pick(first[i] && first[i].position) || null; if (q) team.push(q); }
@@ -1332,9 +1331,8 @@
     const rest = pool.filter((p) => !used.has(p)).sort((a, b) => avgParam(b) - avgParam(a));
     for (const p of rest) if (team.length < n) { team.push(p); used.add(p); }
     for (const p of first) if (team.length < n) { team.push(p); used.add(p); }
-    const all = [...ps, ...(save.reserve || [])];
     { const pc = save.plan && save.plan.cards; if (pc) { const nc = {}; for (const [i, v] of Object.entries(pc)) { const j = team.indexOf(ps[+i]); if (j >= 0) nc[j] = v; } save.plan.cards = nc; } }
-    save.team.players = team; save.reserve = all.filter((p) => !used.has(p));
+    save.team.players = team;
     const tac = ensureTactics(save); for (const r of Object.keys(tac.roles || {})) if (!team.slice(0, 11).some((p) => p.name === tac.roles[r])) delete tac.roles[r];   // 1軍の選手の役割（PK・キャプテンなど）は外す
   }
   // 版1197：版1196で2軍を押して、1軍と同じ顔ぶれのままの人は、2軍を組み直す
