@@ -1070,9 +1070,11 @@
       if (b.tsukiP) return p.idx === b.tsukiDef || (p.gk && p.gkAtk);
       if (b.tact) return p.idx === b.tactDef || (p.gk && p.gkAtk);   // 港の指揮者の1本も、決まった相手しか触れない
       if (byLock(b)) return p.gk && fx(p.team, b.x) < 5.5;   // 白夜の視界：裏への1本は、受け手が触るまで相手は触れない（GKもゴールエリアの外では触れない）   // 落ちた球も、受け手が先に着けば相手は触れない   // 白夜の視界：空中の球には、相手の頭は届かない（落ちてきた所は、ふつうに競る）
-      if (b.hari && !(b.z < 0.6 && hyp(b.vx, b.vy) < 1.2)) return p.gk && fx(p.team, b.x) < 5.5;   // GKもゴールエリアの中に来るまでは触れない   // 針の穴通し：すき間を抜ける1本には、相手の足が届かない（勢いが落ちるまで）
+      if (b.hari && !(b.z < 0.6 && hyp(b.vx, b.vy) < 1.2)) return p.gk && (fx(p.team, b.x) < 5.5 || ((globalThis.__Khrk ?? 1) && hrGkOK(p, b)));   // GKもゴールエリアの中に来るまでは触れない   // 針の穴通し：すき間を抜ける1本には、相手の足が届かない（勢いが落ちるまで）
       return true;
     }
+    // 版1259：針の穴通しの1本が、受け手が間に合わずにGKのいる所まで届いた時は、GKが取る（見送らない）。ペナルティエリアの中で、受け手がボールから2.5m以上離れている時
+    function hrGkOK(p, b) { if (!p.gk || fx(p.team, b.x) > 16.5 || Math.abs(b.y - GOAL_Y) > 20.2) return false; const q = b.intended >= 0 ? P[b.intended] : null; return !q || q.off || hyp(q.x - b.x, q.y - b.y) > 2.5; }
     function teamPas(tm) { tm.pas = new Set(tm.players.filter((m) => m.pasK && !m.off).map((m) => m.pasK)); }
 
     // ---------- 補助 ----------
@@ -3487,7 +3489,7 @@
               const tt = (k + 1) * 0.1;
               if (path[k][2] > (p.gk ? (fx(tm.ti, path[k][0]) < 16.5 && Math.abs(path[k][1] - GOAL_Y) < 20.2 ? gkReachZ(p) : 1.9) : 2.6)) continue;   // ペナルティエリアの外では手が使えない：頭を越える浮き球には飛び出さない   // 頭より高いうちは触れない（GKはジャンプして手が届く高さまで）
               if (p.gk && oppBall && !oppToG && !(fx(tm.ti, path[k][0]) < gkX && Math.abs(path[k][1] - GOAL_Y) < gkY)) continue;
-              if (p.gk && oppBall && b.hari && (globalThis.__Khrg ?? 1) && fx(tm.ti, path[k][0]) >= 5.5) continue;   // 版919：針の穴通しの1本は、GKもゴールエリアの外では触れない。触れない所へは飛び出さない（設計一覧22章）
+              if (p.gk && oppBall && b.hari && (globalThis.__Khrg ?? 1) && fx(tm.ti, path[k][0]) >= 5.5 && !((globalThis.__Khrk ?? 1) && fx(tm.ti, path[k][0]) < 16.5 && Math.abs(path[k][1] - GOAL_Y) < 20.2 && (() => { const q = b.intended >= 0 ? P[b.intended] : null; return !q || hyp(q.x - path[k][0], q.y - path[k][1]) > 2.5; })())) continue;   // 版919：針の穴通しの1本は、GKもゴールエリアの外では触れない。触れない所へは飛び出さない（設計一覧22章）
               if (p.gk && oppBall && !thruB && !oppToG && !(fx(tm.ti, path[k][0]) < 16.5 && Math.abs(path[k][1] - GOAL_Y) < 20.2) && p.vision >= 50) continue;   // 版862：裏へのボール以外（こぼれ球・はね返り）は、ペナルティエリアの外まで取りに出ない（判断力の低いGKだけ、つい出てしまう）
               if (hyp(path[k][0] - p.x, path[k][1] - p.y) <= v * Math.max(0, tt - react) + (gc ? 1.6 : p.gk ? 0.9 : (globalThis.__Kphy ?? 1) ? 0.2 : 0.5)) { p._ct = tt; p._cx = path[k][0]; p._cy = path[k][1]; break; }   // 版908：足が届く範囲が狭くなった分、ボールの通り道の上まで入る
             }
@@ -5460,6 +5462,10 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       // 版905：シュートの意図「強さ」：コースより強さで決めに行く。冷静さ（メンタル）が低い選手・寄せられている選手ほど強さに頼る（隅は狙いきれない）
       let power = null;
       if (brainOn() && !S.pk && !S.fkDirect && !skill && !chip && !emptyNet && !oneOnOne && !aimY) { const prs = nearestOpp(p, p.x, p.y).d < 2.5 ? 1 : 0; power = R.next() < clamp(0.15 + (60 - (p.mental || 50)) * 0.008 + prs * 0.15, 0.08, 0.6); if (power) aim = GOAL_Y + (aim - GOAL_Y) * 0.6; }
+      // 版1259：角度がほとんどない所（ゴールラインの近くの、ポストより外）からのシュートは、基本は入らない：見えるゴールの角度が狭いほど、枠を外れる（ファーの外・ニアのサイドネット）。巻いても同じ
+      if ((globalThis.__Kang2 ?? 1) && !S.pk && !S.fkDirect && !emptyNet && !chip) { const ex = Math.abs(L - fx(p.team, p.x)), ey = Math.abs(p.y - GOAL_Y);
+        if (ey > POST + 0.5) { const vis = Math.atan2(ey + POST, ex) - Math.atan2(Math.max(0, ey - POST), ex), pm = clamp((0.28 - vis) / 0.18, 0, 1) * 0.92;
+          if (R.next() < pm) { const nr = Math.sign(p.y - GOAL_Y) || 1; aim = R.next() < 0.55 ? GOAL_Y - nr * (POST + R.range(0.5, 1.8)) : GOAL_Y + nr * (POST + R.range(0.15, 0.6)); } } }
       kick(p, gx, chip && !emptyNet ? GOAL_Y + R.gauss() * 1.2 : aim, 'shot', false, { pk: S.pk, fk: S.fkDirect, chip: chip && !emptyNet, calm: oneOnOne || emptyNet, skill, dShot, empty: emptyNet, power });
       if (globalThis.__labPost && !S.pk && !S.fkDirect) { const b9 = S.ball, gl9 = fx(p.team, L), sd9 = b9.y < GOAL_Y ? -1 : 1, tY = GOAL_Y + sd9 * (POST - 0.145), t9 = (gl9 - b9.x) / (b9.vx || 1e-6); if (t9 > 0.05) { b9.vy = (tY - b9.y) / t9; { const hZ = R.range(0.3, 1.5); b9.vz = (hZ - (b9.z || 0) + 4.9 * t9 * t9) / t9; } b9.spin = 0; b9.curveAll = false; b9.curlP = 0; b9.knuckle = false; b9.aimY = tY; } }   // 確認画面だけ：シュートをポストの内側へ（ポストに当たって入る場面を見るため）
       if (power != null && globalThis.__shIntent) globalThis.__shIntent.push({ t: S.t, k: power ? 'power' : 'place' });
@@ -5487,7 +5493,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       if (b.shotOnTarget) s.shots_on_target++; else s.off_target++; b.sotCnt = !!b.shotOnTarget;   // 版1019：枠外と数えたシュートが入ったら、枠内に数え直す
       
       if (globalThis.__gkLog) { const g = T[1 - p.team].players[0], gxl = fx(1 - p.team, 0), sx = fx(1 - p.team, p.x), ga = Math.atan2(p.y - GOAL_Y, sx), gy = GOAL_Y + Math.tan(ga) * fx(1 - p.team, g.x); globalThis.__gkLog.push({ k: 'shot', t: S.t, gkX: +fx(1 - p.team, g.x).toFixed(1), gkY: +(g.y - GOAL_Y).toFixed(1), idealY: +(gy - GOAL_Y).toFixed(1), sd: +b.shotFrom.toFixed(1), sy: +(p.y - GOAL_Y).toFixed(1), on: b.shotOnTarget, down: (g.downT > 0 || g.diveT > 0) ? 1 : 0 }); }
-      if (globalThis.__angLog) { const ex = Math.abs(L - fx(p.team, p.x)), ey = Math.abs(p.y - GOAL_Y); globalThis.__angLog.push({ t: S.t, team: p.team, ex: +ex.toFixed(1), ey: +ey.toFixed(1), vis: +(Math.atan2(ey + POST, ex) - Math.atan2(Math.max(0, ey - POST), ex)).toFixed(3), sk: S.ball.shotSkill || '', fk: !!S.fkDirect }); }
+      if (globalThis.__angLog) { const ex = Math.abs(L - fx(p.team, p.x)), ey = Math.abs(p.y - GOAL_Y); globalThis.__angLog.push({ t: S.t, team: p.team, ex: +ex.toFixed(1), ey: +ey.toFixed(1), vis: +(Math.atan2(ey + POST, ex) - Math.atan2(Math.max(0, ey - POST), ex)).toFixed(3), sk: S.ball.shotSkill || '', fk: !!S.fkDirect, ot: !!S.ball.shotOnTarget }); }
       ev('shot', { team: p.team, player: p.name, number: p.number, d: +b.shotFrom.toFixed(1), on: b.shotOnTarget, knuckle: !!b.knuckle, chip: !!chip, one: !!S.ball.oneOnOne, power: Math.round(hyp(b.vx, b.vy) * 3.6), sk: S.ball.shotSkill || '' });
     }
 
@@ -5710,6 +5716,13 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           if (zn) {   // 仕掛ける場所で、前（中寄りも含む）に相手が向かってきていたら、果敢にカットイン
             let q = null, qd = 99; for (const o of opps(p)) { if (o.off || o.gk) continue; const d = hyp(o.x - p.x, o.y - p.y); if (d < qd && d > 1.3 && d < 6 && fx(p.team, o.x) > xq - 0.5) { q = o; qd = d; } }
             if (q && R.next() < (globalThis.__Kcip ?? 0.9)) { p.ciForce = true; const ok = skillMove(p, q); p.ciForce = false; if (ok) return; }
+            // 版1259：前に相手がいなくても、カットインを持つ選手は、外から中へ切れ込んで運ぶ（縦へ行くだけにしない）。相手は外さないので技の判定はなし
+            if (!q && (globalThis.__Kci8 ?? 1) && xq < L - 7 && !((p.ciSelfT || 0) > S.t) && !opps(p).some((o) => !o.off && !o.gk && hyp(o.x - p.x, o.y - p.y) < 2.5) && R.next() < (globalThis.__Kcii ?? 0.8)) {
+              const inY = Math.sign(GOAL_Y - p.y) || 1, sx = fx(p.team, 1) - fx(p.team, 0), f = xq < L - 14 ? 0.55 : 0.3, vl = hyp(f, 1), dir = [sx * f / vl, inY / vl];
+              p.ciDir = dir; p.cutInT = S.t; p.ciSelfT = S.t + 6; S.dribbleDir = dir; S.dribbleMode = 'carry'; p.pace = { ph: 'burst', until: S.t + 0.8 }; p.settle = false;
+              act(p, 'skill', 1.3, { k: 'cutIn' }); act(p, 'dmove', 1.0, { k: 'cutIn', dx: dir[0], dy: dir[1], self: 1 });
+              ciPlanSet(p, false); if (p.ciPlan) p.ciPlan.at = S.t + 0.35; S.decision = 0.2; return;
+            }
           }
           else if (w >= 11 && xq >= L - 32 && xq < L - 20 && !ciLane(p, 6) && R.next() < (globalThis.__Kcit ?? 0.5)) {   // 手前で前をふさがれた：中と見せて縦へ抜く（エリアの横まで入っていくため）
             let q = null, qd = 99; for (const o of opps(p)) { if (o.off || o.gk) continue; const d = hyp(o.x - p.x, o.y - p.y); if (d < qd && d > 1.3 && d < 5 && fx(p.team, o.x) > xq - 0.5) { q = o; qd = d; } }
@@ -8658,7 +8671,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       }
       // 浮き球の競り合い：頭の高さなら跳んでヘディング（GKが手で取れる時はGK優先）
       if (b.kind !== 'shot' && b.z > 1.0 && b.z < 3.3 && b.vz < 1.5) {
-        const gkNear = !(postBlock(b)) && P.some((p) => p.gk && !p.off && !(p.downT > 0) && !(b.hari && b.lastTeam !== p.team && fx(p.team, b.x) >= 5.5) && fx(p.team, b.x) < 16.5 && Math.abs(b.y - GOAL_Y) < 20.2 && !(b.lastTeam === p.team && b.kind === 'pass') && b.z <= gkReachZ(p) && hyp(p.x - b.x, p.y - b.y) < 1.2 + p.jump * 0.007);
+        const gkNear = !(postBlock(b)) && P.some((p) => p.gk && !p.off && !(p.downT > 0) && !(b.hari && b.lastTeam !== p.team && fx(p.team, b.x) >= 5.5 && !((globalThis.__Khrk ?? 1) && hrGkOK(p, b))) && fx(p.team, b.x) < 16.5 && Math.abs(b.y - GOAL_Y) < 20.2 && !(b.lastTeam === p.team && b.kind === 'pass') && b.z <= gkReachZ(p) && hyp(p.x - b.x, p.y - b.y) < 1.2 + p.jump * 0.007);
         if (!gkNear) {
           const hc = P.filter((p) => !p.gk && !p.off && p.touchCd <= 0 && !(p.downT > 0) && !(p.slideT > 0) && passOk(p, b) && !(b.byP && p.idx === b.intended && p.team === b.lastTeam) && hyp(p.x - b.x, p.y - b.y) <= ((globalThis.__Kphy ?? 1) ? ((globalThis.__Kair ?? 1) && b.z > 1.2 ? 0.7 + p.jump * 0.003 : 0.45 + p.jump * 0.002) + (skZ(p, 'aerial') ? 0.15 : 0) : 1.05 + p.jump * 0.007 + (skZ(p, 'aerial') ? 0.35 : 0)) && b.z <= headZ(p));   /* 版908：頭が届くのは0.6m前後まで（設計一覧14章） */   /* v738：頭が届く高さはジャンプで決まる（E 約2.3m〜S 約2.7m） */
           const lpB = (globalThis.__Klp4 ?? 1) && b.lpT != null && S.t - b.lpT < 5 && b.kind === 'pass' && b.lastPlayer === b.kicker && P[b.kicker] && P[b.kicker].gk && b.intended >= 0;   // 版1204：GKの低弾道パント（受け手へ向かってバックスピンで落ちてくる球）。受け手は球に正対して胸で待てる。背走するDFは不利

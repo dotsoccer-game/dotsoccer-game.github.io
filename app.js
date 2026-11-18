@@ -805,11 +805,11 @@
     if (show.phase === 'score' && simT >= g.t + (g.hurry ? 2.2 : 3.6) + (show.sadDelay || 0)) {
       if (show.quick) { jumpToKickoff(); return; }
       // 3点差より開いたら・負けている側の得点（喜ばずに急いで戻る）は、観客席は映さずにそのままリプレイへ
-      if (Math.abs(g.score[0] - g.score[1]) > 3 || g.hurry) { show = { ...show, phase: 'replay', hold: true, rt: 0, saveT: simT }; simT = Math.max(0.2, g.t - 6.5); cam.init = false; lastBall = null; ballTrail.length = 0; return; }
-      if (venue <= 0) { show = { ...show, phase: 'replay', hold: true, rt: 0, saveT: simT }; simT = Math.max(0.2, g.t - 6.5); cam.init = false; lastBall = null; ballTrail.length = 0; return; }   // 市民グラウンドは観客席の場面なし
+      if (Math.abs(g.score[0] - g.score[1]) > 3 || g.hurry) { show = { ...show, phase: 'replay', hold: true, rt: 0, saveT: simT }; simT = repFrom(g); cam.init = false; lastBall = null; ballTrail.length = 0; return; }
+      if (venue <= 0) { show = { ...show, phase: 'replay', hold: true, rt: 0, saveT: simT }; simT = repFrom(g); cam.init = false; lastBall = null; ballTrail.length = 0; return; }   // 市民グラウンドは観客席の場面なし
       show = { ...show, phase: 'crowd', hold: true, rt: 0, saveT: simT };
     } else if (show.phase === 'crowd' && show.rt > 3.0) {
-      show.phase = 'replay'; show.rt = 0; simT = Math.max(0.2, g.t - 6.5); cam.init = false; lastBall = null; ballTrail.length = 0;
+      show.phase = 'replay'; show.rt = 0; simT = repFrom(g); cam.init = false; lastBall = null; ballTrail.length = 0;
     } else if (show.phase === 'replay') {
       simT += dt * RATE * 0.8 * Math.min(sp, 2);
       if (simT >= g.t + 1.3) { show.phase = 'fade'; show.rt = 0; }
@@ -1846,6 +1846,8 @@
     gr.addColorStop(0, `rgba(70,255,140,${0.3 + 0.08 * k})`); gr.addColorStop(1, 'rgba(70,255,140,0)'); ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(cx, cy, R2, 0, Math.PI * 2); ctx.fill();
     if (globalThis.__Kmdg3 ?? 0) { ctx.save(); ctx.strokeStyle = TEAM_MAIN[mdBallTeam] || '#fff'; ctx.globalAlpha = 0.9; ctx.lineWidth = Math.max(1.2, r * 0.28); ctx.beginPath(); ctx.arc(cx, cy, r * 1.55, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }   // 版1225：どちらのチームの翠の起点か、光のふちをそのチームのユニフォームの色にする
   }
+  // 版1259：GKがボールを手の中に持っているか（キャッチの絵の中にボールを描いてよいか）
+  function gkHasBall(st, g) { if (!(globalThis.__Kgkb ?? 1)) return true; const p = st.players && st.players[g * 11], b = st.ball; if (!p || !b) return true; return st.owner === g * 11 || (Math.hypot(b.x - p.x, b.y - p.y) < 1.3 && (b.z || 0) < 2.6); }
   function ballFace(cx, cy, r) {
     mdGlow(cx, cy, r);
     ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#222'; ctx.lineWidth = 1.5;
@@ -2192,13 +2194,14 @@
     }
     if (code === 15 || code === 16) {   // 15：胸に引きつけるキャッチ、16：低いボールのキャッチ   // 版1047：キャッチ（監督が選んだ形：あごの前で、ボールを両手で包む。8方向）。版1044：体の絵 → 試合と同じボール → ボールの上の手、の順に重ねる。向きは、GKが向いているピッチの方
       const fp = proj(p.x + (p.x > 52.5 ? -6 : 6), p.y), ang = Math.atan2((fp.y - q.y) / 0.45, fp.x - q.x), sec = ((Math.round(ang / (Math.PI / 4)) % 8) + 8) % 8;
-      const key = ['side', 'fdiag', 'front', 'fdiag', 'side', 'bdiag', 'back', 'bdiag'][sec], LOW = code === 16, PRE = LOW ? 'gkCatchL' : 'gkCatch', M = (LOW ? CATCH_ART_L : CATCH_ART)[key], flip = Math.cos(ang) < -0.01;
+      const key = ['side', 'fdiag', 'front', 'fdiag', 'side', 'bdiag', (globalThis.__Kgkb ?? 1) ? 'bdiag' : 'back', 'bdiag'][sec], LOW = code === 16, PRE = LOW ? 'gkCatchL' : 'gkCatch', M = (LOW ? CATCH_ART_L : CATCH_ART)[key], flip = Math.cos(ang) < -0.01;
       dmFacing = ang;
       const drawBall = (dot) => ballFace(q.x + ((flip ? 11 - M[0] : M[0] - 11) + 0.5) * dot, q.y + (M[1] + 0.5 - M[2]) * dot, Math.max(5.5, 9 * q.s));   // 絵の中のボールの位置（ドット）→ 画面
       const dot0 = Math.max(1.4, 2.6 * q.s) * DotMan.fitScale({ art: true }, ang, PRE + '_' + key);   // 版1048：立ち絵と同じ縮尺
-      if (M[3]) drawBall(dot0);
+      const hasB = !(globalThis.__Kgkb ?? 1) || (kpBall && Math.hypot(kpBall.x - p.x, kpBall.y - p.y) < 1.3 && (kpBall.z || 0) < 2.6), behindB = M[3] && !(globalThis.__Kgkb ?? 1);   // 版1259：背中側を向いた時も、ボールは体の横に見えるように（腕の下に描く）。持っていない時は描かない
+      if (behindB && hasB) drawBall(dot0);
       const r15 = sprite(q.x, q.y, q.s, info, team, facing, 0, false, false, false, PRE + '_' + key, 0, 'front');
-      if (!M[3]) drawBall((r15 && r15.dot) || dot0);
+      if (!behindB && hasB) drawBall((r15 && r15.dot) || dot0);
       sprite(q.x, q.y, q.s, info, team, facing, 0, false, false, true, PRE + 'F_' + key, 0, 'front');
       dmFacing = null; return r15;
     }
@@ -2361,6 +2364,15 @@
   }
   // ---------- スキル演出 ----------
   let mdBallTeam = -1, mdFiresM = null, mdFires = [[], []];   // 版1224：翠の起点：ボールを持っている（最後に持った）チームと、そのチームの発動の時刻
+  // 版1259：ゴールのリプレイは、ふつうはゴールの6.5秒前から。GKのキック（パントキック）からそのまま点になった時（16秒以内・その間に相手が一度も持っていない）は、GKが蹴る所から映す
+  function repFrom(g) {
+    const def = Math.max(0.2, g.t - 6.5); if (!(globalThis.__Krep ?? 1) || !match || !match.frames || g.team == null) return def;
+    const F = match.frames, gk = g.team * 11; let i = F.length - 1; while (i > 0 && F[i][0] > g.t) i--;
+    for (; i > 0 && F[i][0] >= g.t - 16; i--) { const o = F[i][4]; if (o < 0) continue; if ((o < 11 ? 0 : 1) !== g.team) return def; if (o === gk) { if (F[i][0] >= def) return def; const kickT = F[i][0], ks = (match.actions || []).some((a) => a.i === gk && Math.abs(a.t - kickT) < 1.2 && (a.a === 'kick' || a.a === 'punt' || (a.a === 'skill' && a.k === 'lowPunt')));
+        const far = (() => { for (let j = i + 1; j < F.length && F[j][0] < kickT + 4; j++) if (F[j][4] >= 0) return Math.abs(F[j][1] - F[i][1]) > 30; return false; })();
+        return (ks || far) ? Math.max(0.2, kickT - 1.5) : def; } }
+    return def;
+  }
   function mdStackAt(team) { if (!match) return 0; if (mdFiresM !== match) { mdFiresM = match; mdFires = [[], []]; for (const a of match.actions || []) if (a.a === 'uniq' && a.k === 'midori') mdFires[a.i < 11 ? 0 : 1].push(a.t); } const L0 = mdFires[team] || []; let n = 0; for (const t of L0) if (t <= simT) n++; return n; }
   let ballOwned = false;   // だれかがボールを持っている（シュートのエフェクトは止める）
   const SHOT_FX = { powerMid: 1, nearPost: 1 };   // ドリブルシュートは標準の打ち方になったので、エフェクトなし   // 無回転はエフェクトなし（ボールそのものがブレる）   // コントロールショットはエフェクトなし（弧は出さない）
@@ -3046,7 +3058,7 @@
         }
         if (!(goalDefer && (goalDefer.before.length || goalDefer.after.length)) && (bb.z || 0) > 1.6) { hiBall = [bb, st.spin, st.bs, st.owner >= 0, st.held]; continue; }   // 版670：高い浮き球（ヒールリフトなど）は、名前・スキルの吹き出しに隠れないよう、いちばん最後に描く
         if (goalDefer && goalDefer.before.length) goalDraw(goalDefer.gx, goalDefer.before);   // ボールの奥にある柱・手前のネット
-        ballOwned = st.owner >= 0; if (st.owner >= 0) mdBallTeam = st.owner < 11 ? 0 : 1; if (!(st.gk && (st.gk[0] === 15 || st.gk[1] === 15 || st.gk[0] === 16 || st.gk[1] === 16))) ballDraw(bb, st.spin, st.bs, st.held);   // 版1041：キャッチの絵（15）はボールも絵の中に描いてある
+        ballOwned = st.owner >= 0; if (st.owner >= 0) mdBallTeam = st.owner < 11 ? 0 : 1; if (!(st.gk && [0, 1].some((g) => (st.gk[g] === 15 || st.gk[g] === 16) && gkHasBall(st, g)))) ballDraw(bb, st.spin, st.bs, st.held);   // 版1259：キャッチの絵のGKがボールを持っている時だけ、ふつうのボールを消す（もう一方のGK・離した後に、ボールが消えないように）   // 版1041：キャッチの絵（15）はボールも絵の中に描いてある
         if (goalDefer && goalDefer.after.length) goalDraw(goalDefer.gx, goalDefer.after);   // ボールの手前にある奥のネット（ゴールの裏・天井の上など）
         continue;
       }
@@ -4012,7 +4024,7 @@
         ctx.stroke(); ctx.globalAlpha = (1 - u) * 0.5; ctx.fillStyle = '#fff8c0'; ctx.beginPath(); ctx.arc(bq.x, bq.y, R0 * 0.38, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }
     }
     if (radarOn) minimap(st);
-    if (cardPanel && simT >= cardPanel.t && simT - cardPanel.t < 3.8) {
+    if ((globalThis.__Kcpn ?? 0) && cardPanel && simT >= cardPanel.t && simT - cardPanel.t < 3.8) {   // 版1259：ファウル（カード）の時に左下に出していた選手の名前の札は出さない（カードは名前の札の右と、画面の文字で伝える）
       const a = Math.min(1, (simT - cardPanel.t) * 4, (3.8 - (simT - cardPanel.t)) * 3);
       const c = cardPanel;
       const label = c.color === 'red' ? (c.second ? 'イエロー2枚目で退場' : 'レッドカード　退場') : 'イエローカード（警告）';
