@@ -8194,6 +8194,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
     function skillMove(own, q, force) {
       const b = S.ball;
       if (!q || own.gk || (own.skillCd || 0) > S.t || (own.skLock || 0) > S.t || (S.charge && S.charge.p === own.idx)) return false;
+      if ((globalThis.__Kci9 ?? 1) && own.ciPlan && own.ciPlan.k === 'cut7' && S.t - own.ciPlan.t0 < 3.4 && !own.ciForce) return false;   // 版1263：カットインで中へ運んでいる途中は、ほかの技（ルーレットなど）を出さない
       const { ctx, list: list0 } = dribbleCtx(own, q), list = q.gk ? list0.filter((k) => k !== 'heelLift') : list0;   // 版1095：GKには、ヒールリフト（浮かせる技）は使わない（手で取られる）
       if (globalThis.__forceSkill && !list.length) list.push(globalThis.__forceSkill);   // 確認用：技を持っていない選手も、選んだ技を使う
       if (!list.length) return false;
