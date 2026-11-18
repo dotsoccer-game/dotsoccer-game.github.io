@@ -5425,7 +5425,11 @@
       } else if (S.tab === 'prem') {
         const on = C.premOn(save);
         h = `<div class="sh3 sh3-prem"><img class="sh3-bgimg" src="img/shop_prem.jpg" alt="">${head}
-          <div class="pm-perks"><b>パスを持っている間</b><span>・毎日 コイン・カード・カケラ</span><span>・試合の早送り（2倍・4倍）</span><span>・SPメニューのヒント（毎週1枚）</span><span>・特訓カードを199枚まで持てる</span><span>・名前の横に金のマーク</span><span>・${payReal() ? '毎月' : '買った時に'} ${C.PREM.bonus}コイン</span></div>
+          ${(() => { const P = C.PREM, Dd = P.daily, tc = Dd.coins * P.days + P.bonus;   // 版1237：30日でもらえる合計を、数字で大きく見せる
+            return `<div class="pm-perks pm2"><div class="pm2-h"><b>30日で もらえる合計</b><em>ガチャ${Math.floor(tc / 100)}回分のコイン！</em></div>
+            <div class="pm2-tot"><span>${COIN}<b>${tc.toLocaleString()}</b><small>コイン</small></span><span><img class="pm2-cd" src="cards/dribble.jpg" alt=""><b>${Dd.cards * P.days}</b><small>枚</small></span><span><img src="icons/kakera.png" alt=""><b>${Dd.kak * P.days}</b><small>個</small></span></div>
+            <p class="pm2-sub">毎日 ${COIN}${Dd.coins}コイン・特訓カード${Dd.cards}枚・カケラ${Dd.kak}個 ＋ ${payReal() ? '毎月' : '買った時に'} ${P.bonus}コイン</p>
+            <p class="pm2-etc">ほかにも：試合の早送り（2倍・4倍）／SPメニューのヒント（毎週1枚）／特訓カードを199枚まで持てる／名前の横に金のマーク</p></div>`; })()}
           <button class="pm-buy${on ? ' on' : ''}" data-prem="1">${payReal()
             ? (subLive() ? (save.premSub.cancelAtEnd ? `<small>残り ${premLeft()}日</small>解約ずみ・管理` : `<small>自動更新中</small>お支払いの管理`) : on ? `<small>残り ${premLeft()}日</small>月額で続ける ¥${C.PREM.yen.toLocaleString()}` : `はじめる <b>月額¥${C.PREM.yen.toLocaleString()}</b>`)
             : (on ? `<small>残り ${premLeft()}日</small>延長する ¥${C.PREM.yen.toLocaleString()}` : `購入する <b>¥${C.PREM.yen.toLocaleString()}</b><small>30日</small>`)}</button>${on ? '<button class="pm-cal" data-pcal="1">毎日のプレゼント</button>' : ''}</div>`;
