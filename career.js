@@ -2084,7 +2084,7 @@
   }
   const CARD_MAX = 99;
   // 版695：プレミアムパス（30日）。持っている間は、特訓カードを199枚まで持てる
-  const PREM = { yen: 720, days: 30, bonus: 300, daily: { coins: 30, cards: 1, kak: 2 } };
+  const PREM = { yen: 720, days: 30, bonus: 300, daily: { coins: 30, cards: 2, kak: 3 } };
   const premOn = (save) => !!(save && save.prem && save.prem.until > Date.now());
   const cardMax = (save) => (premOn(save) ? 199 : CARD_MAX);
   const TEST_MAX_CARDS = false;   // テスト中：全カードを最大枚数で持つ（版563で外した）

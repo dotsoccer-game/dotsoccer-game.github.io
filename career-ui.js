@@ -5156,7 +5156,7 @@
   const COIN_BASE = 870 / 650;
   const csN = (v) => { const n = (v || 0).toLocaleString().length; return n >= 7 ? 'n7' : n >= 6 ? 'n6' : ''; };   // いちばん小さいパックの「1円あたりのコイン」を基準に、お得さを出す
   // ================= 版695：プレミアムパス（720円・30日） =================
-  //  買った時：300コイン。毎日（ホームを開いた時に1日1回）：30コイン・特訓カード1枚・覚醒のカケラ2
+  //  買った時：300コイン。毎日（ホームを開いた時に1日1回）：30コイン・特訓カード2枚・覚醒のカケラ3（版1238）
   //  持っている間：試合の早送り（2倍・4倍）、SPメニューのヒント（毎週1枚）、特訓カードを199枚まで、名前の横に金のマーク
   const DAY = 86400000;
   const midnight = (t) => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
@@ -5321,12 +5321,12 @@
     await new Promise((ok) => { el.querySelector('.pd-go').onclick = ok; });
     if (done) { el.remove(); premBusy = false; return; }
     // 受け取り
-    const cards = Object.keys(C.CARDS); let cd = null;
-    for (let k = 0; k < D0.cards; k++) { for (let j = 0; j < 40; j++) { const c = cards[Math.floor(Math.random() * cards.length)]; if ((save.cards[c] || 0) < C.cardMax(save)) { cd = c; break; } } if (cd) save.cards[cd] = (save.cards[cd] || 0) + 1; }
+    const cards = Object.keys(C.CARDS), cds = [];   // 版1238：何枚でも、もらったカードを全部見せる
+    for (let k = 0; k < D0.cards; k++) { let cd = null; for (let j = 0; j < 40; j++) { const c = cards[Math.floor(Math.random() * cards.length)]; if ((save.cards[c] || 0) < C.cardMax(save)) { cd = c; break; } } if (cd) { save.cards[cd] = (save.cards[cd] || 0) + 1; cds.push(cd); } }
     save.coins = (save.coins || 0) + D0.coins; save.kakera = (save.kakera || 0) + D0.kak; P.got.push(n); store();
     try { window.DotSound && DotSound.play('coinBurst'); } catch (_) {}
     el.querySelector('.pd-c.today').classList.add('got'); el.querySelector('.pd-c.today').insertAdjacentHTML('beforeend', '<b class="pd-ok">受取済</b>');
-    el.querySelector('.pd-f').innerHTML = `<div class="pd-got">${COIN}<b>+${D0.coins}</b>${cd ? `<img class="pd-card" src="cards/${cd}.jpg" alt=""><b>${esc(C.CARDS[cd].name)}</b>` : ''}<img class="kk-ico" src="icons/kakera.png" alt=""><b>+${D0.kak}</b></div><button class="pd-go">OK</button>`;
+    el.querySelector('.pd-f').innerHTML = `<div class="pd-got">${COIN}<b>+${D0.coins}</b>${cds.map((cd) => `<img class="pd-card" src="cards/${cd}.jpg" alt=""><b>${esc(C.CARDS[cd].name)}</b>`).join('')}<img class="kk-ico" src="icons/kakera.png" alt=""><b>+${D0.kak}</b></div><button class="pd-go">OK</button>`;
     await new Promise((ok) => { el.querySelector('.pd-go').onclick = ok; });
     el.remove(); premBusy = false;
     try { renderHome(); } catch (_) {}
