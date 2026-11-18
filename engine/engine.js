@@ -5779,7 +5779,11 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         else if ((globalThis.__Kci9 ?? 1) && (pl.k === 'cut7' || pl.k === 'ecross') && (S.t < pl.at || (p.moveQ && p.moveQ.length))) { if (p.ciDir) S.dribbleDir = p.ciDir; S.dribbleMode = (globalThis.__Kci11 ?? 1) ? 'break' : 'carry'; S.decision = Math.max(0.05, pl.at - S.t); return; }   // 版1263：切れ込んでいる途中は、ほかのプレー（クロスなど）を選ばない
         else if (S.t >= pl.at && !(p.moveQ && p.moveQ.length)) {
           const xq = fx(p.team, p.x), dG = hyp(L - xq, GOAL_Y - p.y), sS = Math.sign(p.y - GOAL_Y) || 1;
-          const shootNow = (how) => { p.ciPlan = null; p.wantShot = S.t + 1.2; if (how && (globalThis.__Kci13 ?? 1)) p.skLock = 0;   /* 版1272：カットインの技の直後でも、コントロールショットを打てるように */ act(p, 'ciplan', 0.1, { k: 'shootPlan' }); shoot(p, (globalThis.__Kci14 ?? 1) && (p.ciAimT || 0) > S.t && p.ciAimS ? GOAL_Y + p.ciAimS * (POST - 0.5) : GOAL_Y - sS * (POST - 0.5), how); };   // 逆サイドのサイドネットへ
+          const shootNow = (how) => { p.ciPlan = null; p.wantShot = S.t + 1.2; if (how && (globalThis.__Kci13 ?? 1)) p.skLock = 0;   /* 版1272：カットインの技の直後でも、コントロールショットを打てるように */ act(p, 'ciplan', 0.1, { k: 'shootPlan' });
+            const farS = (globalThis.__Kci14 ?? 1) && (p.ciAimT || 0) > S.t && p.ciAimS ? p.ciAimS : -sS, g = opps(p).find((o) => o.gk && !o.off);
+            const gIdeal = g ? GOAL_Y + (p.y - GOAL_Y) * clamp(Math.abs(g.x - fx(p.team, L)) / Math.max(1, Math.abs(fx(p.team, L) - p.x)), 0, 1) : GOAL_Y;   // 打つ所とゴールの真ん中を結ぶ線の上が、GKのいるべき所
+            if ((globalThis.__Kci15 ?? 1) && g && (g.y - gIdeal) * farS > (globalThis.__Kcin ?? 0.5)) { p.ciAimS = farS; p.ciAimT = S.t + 1; p.skLock = 0; act(p, 'ciplan', 0.1, { k: 'nearShot' }); shoot(p, GOAL_Y - farS * (POST - 0.45), skZ(p, 'nearPost') ? 'nearPost' : skZ(p, 'powerMid') ? 'powerMid' : null); return; }   // 版1275：GKがファーに寄っていたら、ニアへズドン
+            shoot(p, GOAL_Y + farS * (POST - 0.5), how); };   // 逆サイドのサイドネットへ
           const onside = (m) => fx(p.team, m.x) <= Math.max(offsideLine(p.team), xq) + 0.2;
           const laneOK = (m) => !opps(p).some((o) => !o.off && !o.gk && segDist(o.x, o.y, p.x, p.y, m.x, m.y).d < 1.6);
           let k2 = pl.k;
