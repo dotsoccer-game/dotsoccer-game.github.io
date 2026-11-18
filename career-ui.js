@@ -6407,6 +6407,7 @@
         <div class="cs-warn">${icoWarn}<span>この端末のデータは上書きされ、元に戻せません。</span></div>`, [NO, { label: '復元する', cls: 'b', ico: icoArrow(false), value: true }]))) return;
       try {
         const sv = got.save; sv.cloudCode = c; sv.savedAt = Date.now();
+        if (got.fid && !(sv.online && sv.online.fid)) sv.online = { ...(sv.online || {}), fid: String(got.fid) };   // 版1267：作り直したデータなど、フレンドIDを持っていない時は、引き継ぎのIDを受け取る（新しいIDが作られて、フレンドから見えなくなっていた）
         localStorage.setItem(KEY, JSON.stringify(sv));
         try { await DotNet.cloudClaim(c, (sv.online && sv.online.fid) || got.fid || null); } catch (_) {}
         await dlg(`<div class="cs-dt"><span style="color:#f2b51d;font-size:22px">✦</span>${icoCheck}<span>復元しました</span></div>${card(gi)}<p class="cs-txt">復元したデータでゲームを再開します。</p>`, [{ label: 'ゲームへ戻る', cls: 'b', value: true }]);

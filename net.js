@@ -30,6 +30,11 @@
   // 版682：開発用アカウントのIDを、決めた番号に付けかえる（持ち主の端末でだけ動く）
   const FID_MOVE = { '84539075': '11111111' };
   async function ensureFid(want) {
+    // 版1267：引き継いだ時にフレンドIDを受け取れず、新しいIDが作られていた人を、元のID（引き継ぎで受け取ったID＝sv付き）へ戻す
+    try { const q = await db.collection('fids').where('uid', '==', uid).limit(5).get(); const mine = q.docs.map((d) => ({ id: d.id, sv: d.data().sv || null }));
+      const cur = mine.find((m) => m.id === want), withSv = mine.find((m) => m.sv && m.id !== want && !FID_MOVE[m.id]);
+      if (withSv && (!want || !cur || !cur.sv) && !Object.values(FID_MOVE).includes(want)) return withSv.id;
+      if (!want && mine.length) return mine[0].id; } catch (_) {}
     if (want) { const d = await db.collection('fids').doc(want).get(); if (d.exists && d.data().uid === uid) {
       const to = FID_MOVE[want];
       if (to) { try { const sv = d.data().sv || null; await db.runTransaction(async (tx) => { const ref = db.collection('fids').doc(to); const e = await tx.get(ref); if (e.exists && e.data().uid !== uid) throw new Error('used'); tx.set(ref, sv ? { uid, sv } : { uid }); }); return to; } catch (_) {} }
