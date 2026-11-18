@@ -69,7 +69,7 @@
     if (v === 'club') pickDrill();
     if (v === 'club') { const l = document.getElementById('rbLineup'), tt = document.getElementById('rbTac'); if (l) l.innerHTML = rbLineupSVG(); if (tt) tt.innerHTML = RB_TAC_SVG; rbLast = -1; }
     if (v === 'home') { renderHome(); try { drawHome(performance.now()); } catch (_) {} }
-    if (v === 'home') { premSync(); setTimeout(premDaily, 600); setTimeout(payCollect, 900); }   // 版695：プレミアムパスの毎日のプレゼント   // 版624：すぐ今のホームを描く（前に描いた古い絵が一瞬見えないように）
+    if (v === 'home') { premSync(); setTimeout(loginDaily, 450); setTimeout(premDaily, 600); setTimeout(payCollect, 900); }   // 版695：プレミアムパスの毎日のプレゼント   // 版624：すぐ今のホームを描く（前に描いた古い絵が一瞬見えないように）
     if (v === 'data') renderData();
     if (v === 'train') renderTrain();
     if (v === 'lineup') renderLineup();
@@ -5258,6 +5258,42 @@
     if (redraw) redraw();
     premDaily();
   }
+  // 版1235：ログインボーナス（だれでも。7日で1周の累計。日付は朝5時に変わる。ホームを開いた時に1日1回）
+  const LB = [{ c: 10 }, { cards: 3 }, { c: 10 }, { kak: 5 }, { c: 20 }, { cards: 3 }, { c: 50 }];
+  const lbKey = () => { const d = new Date(Date.now() - 5 * 3600e3); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; };
+  const lbIco = (r) => r.c ? `${COIN}<b>${r.c}</b>` : r.cards ? `<img class="lb-cd" src="cards/dribble.jpg" alt=""><b>×${r.cards}</b>` : `<img src="icons/kakera.png" alt=""><b>×${r.kak}</b>`;
+  const lbTxt = (r) => r.c ? `${r.c}コイン` : r.cards ? `特訓カード ${r.cards}枚` : `覚醒のカケラ ${r.kak}個`;
+  let lbBusy = false;
+  function lbPending() { return !!(save && save.clubSet && (!save.login || save.login.last !== lbKey())); }   // クラブを作り終えてから
+  async function loginDaily() {
+    if (lbBusy || !save || /lab\.html$/.test(location.pathname)) return;
+    if (!lbPending()) return;
+    lbBusy = true;
+    try {
+      for (let k = 0; k < 80 && (document.getElementById('ttTitle') || !$('#crModal').hidden || view !== 'home' || document.querySelector('.std.cl')); k++) await new Promise((r) => setTimeout(r, 250));
+      if (view !== 'home' || !lbPending() || document.querySelector('.std.cl')) return;
+      const L = save.login = save.login || { n: 0, last: null }, idx = L.n % 7, rw = LB[idx], round = Math.floor(L.n / 7) + 1;
+      const cells = LB.map((r, i) => `<div class="pd-c lb-c${i < idx ? ' got' : ''}${i === idx ? ' today' : ''}${i === 6 ? ' lb-big' : ''}"><small>${i + 1}日目</small><span>${lbIco(r)}</span>${i < idx ? '<b class="pd-ok">受取済</b>' : ''}</div>`).join('');
+      const el = document.createElement('div'); el.className = 'pd-wrap lb-wrap';
+      el.innerHTML = `<div class="pd-box"><div class="pd-h"><b>ログインボーナス</b><span>${round}周目</span><em>7日で1周</em></div>
+        <div class="pd-grid lb-grid">${cells}</div>
+        <div class="pd-f"><p>今日のプレゼント：${lbIco(rw)}<small>（${lbTxt(rw)}）</small></p><button class="pd-go">受け取る</button></div>
+        <p class="lb-note">毎日 朝5時に次の日になります。休んだ日があっても、続きからもらえます。</p></div>`;
+      (document.getElementById('app') || document.body).appendChild(el);
+      await new Promise((ok) => { el.querySelector('.pd-go').onclick = ok; });
+      const got = [];
+      if (rw.c) { C.earnCoins(save, rw.c); got.push(`${COIN}<b>+${rw.c}</b>`); }
+      if (rw.kak) { save.kakera = (save.kakera || 0) + rw.kak; got.push(`<img class="kk-ico" src="icons/kakera.png" alt=""><b>+${rw.kak}</b>`); }
+      if (rw.cards) { const cards = Object.keys(C.CARDS); for (let k = 0; k < rw.cards; k++) { let cd = null; for (let j = 0; j < 40; j++) { const c = cards[Math.floor(Math.random() * cards.length)]; if ((save.cards[c] || 0) < C.cardMax(save)) { cd = c; break; } } if (cd) { save.cards[cd] = (save.cards[cd] || 0) + 1; got.push(`<img class="pd-card" src="cards/${cd}.jpg" alt=""><b>${esc(C.CARDS[cd].name)}</b>`); } } }
+      L.n++; L.last = lbKey(); store();
+      try { window.DotSound && DotSound.play('coinBurst'); } catch (_) {}
+      const t = el.querySelector('.pd-c.today'); if (t) { t.classList.add('got'); t.insertAdjacentHTML('beforeend', '<b class="pd-ok">受取済</b>'); }
+      el.querySelector('.pd-f').innerHTML = `<div class="pd-got">${got.join('') || '<span>カードがいっぱいで受け取れませんでした</span>'}</div><button class="pd-go">OK</button>`;
+      await new Promise((ok) => { el.querySelector('.pd-go').onclick = ok; });
+      el.remove();
+      try { renderHome(); } catch (_) {}
+    } finally { lbBusy = false; }
+  }
   // 毎日の受け取り（1〜30日のマス）
   let premBusy = false;
   async function premDaily(look) {   // look：版709 ショップから「毎日のプレゼント」を見る時
@@ -5266,7 +5302,7 @@
     if (n < 1 || (!look && P.got.includes(n))) return;
     premBusy = true;
     if (!look) {
-      for (let k = 0; k < 80 && (document.getElementById('ttTitle') || !$('#crModal').hidden || view !== 'home'); k++) await new Promise((r) => setTimeout(r, 250));   // タイトル・ほかの画面が閉じるまで待つ
+      for (let k = 0; k < 120 && (document.getElementById('ttTitle') || !$('#crModal').hidden || view !== 'home' || lbBusy || document.querySelector('.lb-wrap')); k++) await new Promise((r) => setTimeout(r, 250));   // タイトル・ほかの画面・ログインボーナスが閉じるまで待つ
       if (view !== 'home' || P.got.includes(n)) { premBusy = false; return; }
     }
     const done = P.got.includes(n);
@@ -6362,7 +6398,7 @@
   window.__career_rw = (i) => { const main = Object.keys(C.CARDS).filter((c) => C.CARDS[c].cat !== 'sup' && !C.CARDS[c].sp); const RW = RANK_REWARD[i]; resCard(rewardCard({ rank: i, coins: RW.coins, kak: RW.kak, cards: Array.from({ length: RW.cards }, () => main[Math.floor(Math.random() * main.length)]) })); };
   window.__career = { faceURL: (p, b, k) => faceURL(p, b, k), modal: (h, b, o) => modal(h, b, o), pmToast: (m) => pmToast(m), airport: () => airport(), startRank: () => startRank(), rkForfeit: () => rkForfeit(), halfOthers: (m, mi) => halfOthers(m, mi), rankConfirm: (...a) => rankConfirm(...a), resTest: (n) => { save.reserve = save.team.players.slice(11, 11 + (n || 6)).map((q, k) => ({ ...JSON.parse(JSON.stringify(q)), name: q.name + "R" + k })); }, spTest: (pi, idx, all) => { if (all) save.spFound = C.SP.map((x) => x.id); spSel = idx; spList(pi); }, abilDoc: (k) => abilDoc(k), abilOne: (k) => abilOne(k), totsuDoc: (t) => totsuDoc(t), friendSquad: (k) => friendSquad(k), friendCard: (...a) => friendCard(...a), roomScreen: (id, r) => roomScreen(id, r), friendMenu: (b) => friendMenu(b), roomPrep: (r, me) => roomPrep(r, me), playRoom: (r, me) => playRoom(r, me), packCode: (o) => packCode(o), openKitEditor: (o) => openKitEditor(o), drawEmblem: (c, x, y, s, lk) => drawEmblem(c, x, y, s, lk), openClub: (o) => openClub(o), playerDetail: (i, o) => playerDetail(i, o), resCard: (o) => resCard(o), seasonEndCard: (o) => seasonEndCard(o), coachNews: (l) => coachNews(l), rewardCard: (r) => rewardCard(r), gachaDemo: (st, pr, fx) => gachaDemo(st, pr, fx), storyCard: (o) => storyCard(o), gotCardsHTML: (got) => `<div class="gc-cards${got.length > 8 ? ' lots' : got.length > 4 ? ' many' : ''}">${got.map((c) => artCard(c, { ups: true })).join('')}</div><p class="cp-msg gc-msg">クラブハウスの「特訓」で、選手に最大3枚セットできます。</p>`, trainResult: (o) => trainResult(o), airport, openPost, syncPost, onlineDone, setVenue: (k) => { venueNow = k; }, champDemo, champAfter, coinShop, faceFill: () => faceFill(), openGacha, venueTalk: (se) => venueTalk(se), matchFace, openOffice, cpuCard, openClub, openAssoc, open, go, stadium, advance, subSheet, labMatch, townRect, tutPractice, shop, store: () => store(), renderHome: () => renderHome(), clubhouseBg: () => clubhouseBg(), isMatchWeek: () => isMatchWeek(), get view() { return view; }, staffFace: (k) => staffFace(k), get save() { return save; }, get drill() { return clubDrill; }, faceURL, starFace, setDrill(d) { clubDrill = d; drillT0 = -1; drillSnap = true; } };
   window.__career.openCloud = openCloud; window.__career.cpuCard = (t, i) => cpuCard(t, i, $("#career"));
-  window.__career.shop = (t) => shop(t); window.__career.premDaily = () => premDaily();
+  window.__career.shop = (t) => shop(t); window.__career.premDaily = () => premDaily(); window.__career.loginDaily = () => loginDaily();
   window.__career.embURL = () => { try { return save ? embFromLook(C.ensureClub(save).emb, 96) : ''; } catch (_) { return ''; } };   // 版680：設定のアカウントIDの横に出す、自分のクラブのエンブレム
   window.__career.myFid = async () => { if (!save) return null; const on = ensureOnline(); if (on.fid && !(window.DotNet && DotNet.FID_MOVE && DotNet.FID_MOVE[on.fid])) return on.fid; return (await publishMe()) || on.fid; };   // 版678：アカウントID（なければ作る）
 })();
