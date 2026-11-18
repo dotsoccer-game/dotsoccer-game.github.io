@@ -478,7 +478,7 @@
         ...fillParams({ ...p }, 0), team: ti, idx, slot,
         x: 0, y: 0, vx: 0, vy: 0, cur: clamp(p.startCur ?? 100, 30, 100), facing: ti ? -1 : 1,
         touchCd: 0, tackleCd: 0, stun: 0, run: 0, runCd: R.range(2, 6), mark: -1,
-        gk: i === 0, notGK: i === 0 && p.position !== 'GK', sk: new Set((p.skills || []).concat(i === 0 && globalThis.__labLP ? ['lowPunt'] : []).concat(i > 0 && globalThis.__labBic ? ['bicycle'] : []).concat(i > 0 && globalThis.__labCi && (p.position === 'FW' || p.position === 'MF') ? ['cutIn'] : []).map((k) => (k === 'feint' ? 'bodyFeint' : k === 'dribbleShot' ? 'driveShot' : k))),   // 旧ドリブルシュートはドライブシュートに
+        gk: i === 0, notGK: i === 0 && p.position !== 'GK', sk: new Set((p.skills || []).concat(i === 0 && globalThis.__labLP ? ['lowPunt'] : []).concat(i > 0 && globalThis.__labBic ? ['bicycle'] : []).concat(i > 0 && globalThis.__labCi && (p.position === 'FW' || p.position === 'MF') ? ['cutIn', 'controlShot'] : []).map((k) => (k === 'feint' ? 'bodyFeint' : k === 'dribbleShot' ? 'driveShot' : k))),   // 旧ドリブルシュートはドライブシュートに
       };
       // 攻撃的GK（飛び出しを持つ）：高い位置で裏へのボールをケア。守備的GK：ゴール前でどっしり、セービングが高め
       if (!q.gk) slotPos(q);   // 版920：置いた場所で動きを決める
@@ -5405,7 +5405,6 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         // GKの立ち位置：ニアに寄っている（＝ファーが空いている）か、ニアが空いているか
         const nS0 = p.y < GOAL_Y ? -1 : 1, gOff = (gk0.y - GOAL_Y) * nS0 + (gk0.vy || 0) * nS0 * 0.3, angled = Math.abs(p.y - GOAL_Y) > 3;
         const farOpen = angled && gOff > 1.5, nearOpen = angled && gOff < 0.8;   // 中央付近にいればニアの上が空く
-        if (globalThis.__shDbg) globalThis.__shDbg.push(+gOff.toFixed(2));
         if (can.has('lob') && gkOut0) opts2.push(['lob', 2]);
         // トゥーキック：構えずにそのまま突く。囲まれて踏み込めない時・寄せられた時・走りながらタイミングを外したい時
         { const crowd = opps(p).filter((q) => !q.gk && hyp(q.x - p.x, q.y - p.y) < 3.5).length, runK = hyp(p.vx, p.vy) > 3;
@@ -5777,7 +5776,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         else if ((globalThis.__Kci9 ?? 1) && (pl.k === 'cut7' || pl.k === 'ecross') && (S.t < pl.at || (p.moveQ && p.moveQ.length))) { if (p.ciDir) S.dribbleDir = p.ciDir; S.dribbleMode = (globalThis.__Kci11 ?? 1) ? 'break' : 'carry'; S.decision = Math.max(0.05, pl.at - S.t); return; }   // 版1263：切れ込んでいる途中は、ほかのプレー（クロスなど）を選ばない
         else if (S.t >= pl.at && !(p.moveQ && p.moveQ.length)) {
           const xq = fx(p.team, p.x), dG = hyp(L - xq, GOAL_Y - p.y), sS = Math.sign(p.y - GOAL_Y) || 1;
-          const shootNow = (how) => { p.ciPlan = null; p.wantShot = S.t + 1.2; act(p, 'ciplan', 0.1, { k: 'shootPlan' }); shoot(p, GOAL_Y - sS * (POST - 0.5), how); };   // 逆サイドのサイドネットへ
+          const shootNow = (how) => { p.ciPlan = null; p.wantShot = S.t + 1.2; if (how && (globalThis.__Kci13 ?? 1)) p.skLock = 0;   /* 版1272：カットインの技の直後でも、コントロールショットを打てるように */ act(p, 'ciplan', 0.1, { k: 'shootPlan' }); shoot(p, GOAL_Y - sS * (POST - 0.5), how); };   // 逆サイドのサイドネットへ
           const onside = (m) => fx(p.team, m.x) <= Math.max(offsideLine(p.team), xq) + 0.2;
           const laneOK = (m) => !opps(p).some((o) => !o.off && !o.gk && segDist(o.x, o.y, p.x, p.y, m.x, m.y).d < 1.6);
           let k2 = pl.k;
@@ -5797,14 +5796,15 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             const gx = fx(p.team, L), tyS = GOAL_Y - sS * (POST - 0.5), dGl = L - xq;
             const blocked = opps(p).some((o) => !o.off && !o.gk && !((o.lagT || 0) > S.t) && hyp(o.x - p.x, o.y - p.y) < 10 && segDist(o.x, o.y, p.x, p.y, gx, tyS).d < 0.9);
             const fire = () => { p.forceFoot = { f: inF, until: S.t + 1 }; shootNow(skZ(p, 'controlShot') && dGl > 10 ? 'controlShot' : null); };
-            if (dG <= rngS && ((!blocked && (w <= 11 || dGl <= 14 || el >= 0.8)) || el >= 1.5)) { fire(); return; }   // とっとと打つ（コースが見えたらすぐ。見えなくても1.5秒まで）
-            if (el > 3 || w < 4) { if (dG <= rngS) { fire(); return; } p.ciPlan = null; k2 = null; }
+            const vis = Math.atan2(w + POST, dGl) - Math.atan2(Math.max(0, w - POST), dGl), angOK = w <= POST + 1 || vis >= (globalThis.__Kciv ?? 0.33);   // 版1272：角度のない所からは打たない（中へ運んで角度を作ってから）
+            if (dG <= rngS && angOK && ((!blocked && (w <= 11 || dGl <= 14 || el >= 0.8)) || el >= 1.5)) { fire(); return; }   // とっとと打つ（コースが見えたらすぐ。見えなくても1.5秒まで）
+            if (el > 3 || w < 4) { if (dG <= rngS && angOK) { fire(); return; } p.ciPlan = null; k2 = null; }
             else {   // 空いている方へ運ぶ：横・斜め前・前寄り（エリアの中の空いた所）から、相手から一番離れられる向き
               let best = null, bv = -1e9;
-              for (const f of [0, 0.6, 1.2]) { const vl = hyp(f, 1), dx = sx * f / vl, dy = vy / vl, px = p.x + dx * 3.5, py = p.y + dy * 3.5; if (fx(p.team, px) > L - 6) continue;
+              for (const f of (dGl < 9 ? [-0.5, 0, 0.3] : [0, 0.6, 1.2])) { const vl = hyp(f, 1), dx = sx * f / vl, dy = vy / vl, px = p.x + dx * 3.5, py = p.y + dy * 3.5; if (fx(p.team, px) > L - 6) continue;
                 let cl = 9; for (const o of opps(p)) { if (o.off || o.gk) continue; cl = Math.min(cl, hyp(o.x - px, o.y - py)); } const v = cl + f * 0.6; if (v > bv) { bv = v; best = [dx, dy]; } }
               if (best) { S.dribbleDir = best; S.dribbleMode = el < 1.4 ? 'break' : 'carry'; p.settle = false; p.pace = { ph: 'burst', until: S.t + 0.3 }; pl.at = S.t + 0.12; S.decision = 0.12; return; }
-              if (dG <= rngS) { fire(); return; } p.ciPlan = null; k2 = null;
+              if (dG <= rngS && angOK) { fire(); return; } p.ciPlan = null; k2 = null;
             }
           }
           if (k2 === 'cut7') {
