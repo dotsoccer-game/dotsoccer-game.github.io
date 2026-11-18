@@ -6,10 +6,12 @@
   if (!SC.bicycle) SC.bicycle = Array.from({ length: 12 }, () => ({ seed: 1, t: 0, lab: 'bic' }));
   if (!SC.midori) SC.midori = Array.from({ length: 12 }, () => ({ seed: 1, t: 0, lab: 'md' }));   // 版1222
   if (!SC.midori4) SC.midori4 = Array.from({ length: 12 }, () => ({ seed: 1, t: 0, lab: 'md4' }));
+  if (!SC.wing) SC.wing = Array.from({ length: 12 }, () => ({ seed: 1, t: 0, lab: 'wg' }));   // 版1256
   if (!SC.cutIn) SC.cutIn = Array.from({ length: 12 }, () => ({ seed: 1, t: 0, lab: 'ci' }));   // 版1247
   if (!SC.lowPuntUra) SC.lowPuntUra = Array.from({ length: 12 }, () => ({ seed: 1, t: 0, lab: 'lpu' }));   // 版1227
   if (!SC.sutemi) SC.sutemi = Array.from({ length: 12 }, () => ({ seed: 1, t: 0, lab: 'sut' }));   // 版1210：バイシクルの場面は、開いた端末で試合を計算して探す
   const KINDS = [
+    ['wing', 'ウイングの幅（攻撃の時）', -0.5, 10, '版1256〜：前の列のサイドに置いた選手（ウイング）は、攻撃の時、ボールが相手ゴール前（ゴールまで25m）に来るまで、タッチライン際（真ん中から27m）に張っておく。裏へ走る時・パスを受けに行く時・逆サイドの深い所にボールがある時（ゴール前へ入る）はのぞく（確認のため、こちらのチームを4-3-3にして、両ウイングにカットインを持たせた試合です。青のチームが中盤でボールを持った場面から流します）'],
     ['cutIn', 'カットイン', -1.2, 3.8, '版1256〜：ペナルティエリアの横（ゴールラインから約4〜20m、真ん中から12m以上外）で、前に相手がいる時に仕掛ける。縦へ見せて止まり、はっきり中へ切れ込んで、その向きのまま運ぶ。エリアの線の近くでコースが見えたら中側の足でファーへ。打てなければクロス。手前では縦が空いていれば縦へ運ぶ'],
     ['sutemi', '捨て身の守護神', -1.5, 4.5, '版1219〜：相手のスルーパス・裏へのボールが出た時に飛び出して、必ずボールに触る。相手が先に受けても、そのまま詰めて足もとへ飛び込む（2.8m以内）。ペナルティエリアの外では手を使わず、足で止める（確認のため、両方のGKに捨て身の守護神を持たせた試合です）'],
     ['midori4', '翠の起点（4段・最大）', -0.5, 14, '版1223〜：翠の起点が4回出て、積み重ねがいちばん上（4段）になった後の、チームのパス回し。受けてすぐ離し、短いパスをテンポよく回す。ボールを持ってもほとんど取られず、パスもほぼ通る（効くのは中盤まで。相手陣の奥3分の1に入ると効かない）。場面は、4段になった後にそのチームがボールを持った時から14秒（確認のため、ホームチームの7人目の選手に翠の起点を持たせた試合です。相手チームは持っていません）'],
@@ -44,6 +46,10 @@
   ].filter(([k]) => (SC[k] || []).length);
   let kind = (() => { try { const k = new URLSearchParams(location.search).get('k'); if (k && KINDS.some((x) => x[0] === k)) return k; } catch (_) {} return KINDS[0] ? KINDS[0][0] : null; })(),   // 版1247：?k=cutIn のように、URLで場面の種類を選べる
       idx = 0, sp = 0.5, cur = null, loaded = null, paused = false; let lpFound = [], lpSeed = 1, lpTok = 0; const DYN = { lp: { name: '低弾道パント', found: [], seed: 1, ok: (a) => a.a === 'skill' && a.k === 'lowPunt', gk: true }, bic: { name: 'バイシクル', found: [], seed: 1, ok: (a) => a.a === 'bicycle' }, md: { name: '翠の起点', found: [], seed: 1, ok: (a) => a.a === 'uniq' && a.k === 'midori' }, sut: { name: '捨て身の守護神', found: [], seed: 1, ok: (a) => a.a === 'uniq' && a.k === 'sutemi' },
+    wg: { name: 'ウイングの幅', found: [], seed: 1, ok: () => false, pick: (m) => {   // 版1256：こちら（青）が中盤でボールを持った場面（25秒おき）
+      const F = m.frames || [], out = []; if (!F.length) return out; const g0 = F[0][7] < 52.5 ? 1 : -1, half = (m.duration || F[F.length - 1][0]) / 2; let last = -99;
+      for (const f of F) { if (f[0] - last < 25) continue; const o = f[4]; if (!(o >= 1 && o < 11)) continue; const sg = f[0] < half ? g0 : -g0, bx = sg > 0 ? f[1] : 105 - f[1]; if (bx > 35 && bx < 70) { out.push(f[0]); last = f[0]; } }
+      return out; } },
     ci: { name: 'カットイン', found: [], seed: 1, ok: (a) => a.a === 'dmove' && a.k === 'cutIn' && !a.fail && !a.tate },   // 版1247：カットインが成功した場面
     lpu: { name: '低弾道パント（裏へ）', found: [], seed: 1, ok: () => false, pick: (m) => {   // 版1227：GKの低弾道パントから、同じチームが12秒以内にシュートまで行った場面
       const out = [], ev = m.events || [];
@@ -61,7 +67,7 @@
   const WS = (() => { try { if (location.protocol === 'file:' || typeof Worker === 'undefined') return []; const v = ((document.querySelector('script[src*="engine.js"]') || {}).src || '').split('v=')[1] || ''; return Array.from({ length: NW }, () => { const w = new Worker('engine/simworker.js?v=' + v); w.src = 'engine.js?v=' + v; return w; }); } catch (_) { return []; } })();
   const W = WS[0] || null;
   let wid = 0; const wwait = new Map(); for (const w of WS) { w.onmessage = (e) => { const r = wwait.get(e.data.id); wwait.delete(e.data.id); if (r) r(e.data.m || null); }; w.onerror = () => { for (const r of wwait.values()) r(null); wwait.clear(); }; }
-  const labFlags = (lab) => ({ __Kgkft: 1, __labLP: lab === 'lp' || lab === 'lpu', __labLPmax: lab === 'lpu', __labCi: lab === 'ci', __labBic: lab === 'bic', __labMd: lab === 'md' || lab === 'md4', __labSut: lab === 'sut', __labPost: false });
+  const labFlags = (lab) => ({ __Kgkft: 1, __labLP: lab === 'lp' || lab === 'lpu', __labLPmax: lab === 'lpu', __labCi: lab === 'ci' || lab === 'wg', __labWg: lab === 'wg', __labBic: lab === 'bic', __labMd: lab === 'md' || lab === 'md4', __labSut: lab === 'sut', __labPost: false });
   const simW = (w, sd, lab) => new Promise((res) => { const f = {}; for (const k of Object.keys(globalThis)) if (k.startsWith('__') && ['boolean', 'number', 'string'].includes(typeof globalThis[k])) f[k] = globalThis[k]; Object.assign(f, labFlags(lab)); const E = window.DotSoccer, id = ++wid; wwait.set(id, res);
     w.postMessage({ id, src: w.src, flags: f, args: [E.atLevel(E.beginningTeam(), 'S'), E.atLevel(E.presetTeam('バランス型'), 'S'), sd, { oneHalf: false, shootout: false, soForce: undefined, soGkFirst: undefined }] }); });
   const scanM = (dy, sd, m) => { if (dy.pick) return dy.pick(m).map((t) => ({ seed: sd, t })); const out = []; for (const a of (m && m.actions) || []) { if (!dy.ok(a)) continue; if (dy.gk) { const F = m.frames || [], f = F.find((g) => g[0] >= a.t - 0.2); if (!(f && f[4] >= 0 && f[4] % 11 === 0)) continue; } out.push({ seed: sd, t: a.t }); } return out; };
@@ -78,7 +84,7 @@
   const K = (k) => KINDS.find((x) => x[0] === k);
   function loadSeed(seed, lab) {
     const key = seed + (lab ? 'L' + lab : ''); if (loaded === key) return;
-    globalThis.__Kgkft = lab ? 1 : undefined; globalThis.__labLP = lab === 'lp' || lab === 'lpu' ? true : undefined; globalThis.__labLPmax = lab === 'lpu' ? true : undefined; globalThis.__labCi = lab === 'ci' ? true : undefined; globalThis.__labBic = lab === 'bic' ? true : undefined; globalThis.__labMd = lab === 'md' || lab === 'md4' ? true : undefined; globalThis.__labSut = lab === 'sut' ? true : undefined; globalThis.__labPost = lab === 'post' ? true : undefined;   // 版1016：ポストに当たって入る場面を作る（確認画面だけ）   // 版946：確認画面だけの新しい止め方（近い距離のシュートを、飛ばずに足・体で止める）
+    globalThis.__Kgkft = lab ? 1 : undefined; globalThis.__labLP = lab === 'lp' || lab === 'lpu' ? true : undefined; globalThis.__labLPmax = lab === 'lpu' ? true : undefined; globalThis.__labCi = lab === 'ci' || lab === 'wg' ? true : undefined; globalThis.__labWg = lab === 'wg' ? true : undefined; globalThis.__labBic = lab === 'bic' ? true : undefined; globalThis.__labMd = lab === 'md' || lab === 'md4' ? true : undefined; globalThis.__labSut = lab === 'sut' ? true : undefined; globalThis.__labPost = lab === 'post' ? true : undefined;   // 版1016：ポストに当たって入る場面を作る（確認画面だけ）   // 版946：確認画面だけの新しい止め方（近い距離のシュートを、飛ばずに足・体で止める）
     document.querySelector('#level').value = 's'; const op = document.querySelector('#opponent'); if (op) op.value = 'バランス型';
     document.getElementById('seed').value = String(seed);
     D.start(); D.stop(); loaded = key;

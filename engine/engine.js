@@ -464,6 +464,7 @@
     opts = opts || {};
     const rec = opts.frames !== false || !!opts.acts;   // acts：絵は作らず、動作の記録だけ残す（確認画面の集計用）
     const R = rngFrom(seed || 1);
+    if (globalThis.__labWg && homeIn) homeIn = { ...homeIn, formation: '4-3-3', cells: [null, { r: 1, c: 1 }, { r: 1, c: 5 }, { r: 1, c: 9 }, { r: 1, c: 13 }, { r: 4, c: 3 }, { r: 4, c: 7 }, { r: 4, c: 11 }, { r: 8, c: 1 }, { r: 8, c: 7 }, { r: 8, c: 13 }] };   // 版1256：確認画面（ウイングの幅）だけ：こちらを4-3-3（両ウイング）にする
     const teamsIn = [homeIn, awayIn];
 
     // 実行時の選手
@@ -1347,6 +1348,23 @@
     }
     // 版1149：運んでくる相手の前にいる守備（2人まで）は、下がりながら並走せず、進路に入ってぶつかりに行く（ほかの決まりより後で、最後に決める）
     //  キックオフから1人で真ん中を全員抜いていた：前の守備が全員、横に5〜7m間をあけたまま一緒に下がっていて、誰も進路に入らなかった
+    // 版1256：ウイング（前の列のサイドに置いた選手）は、攻撃の時、ボールが相手ゴール前（ゴールまで25m）に来るまでタッチライン際に張っておく（相手の守備を横に広げ、ボールを受けたらサイドから仕掛ける）
+    //  裏へ走っている・パスを受けに行く・ボールを追っている・逆サイドの深い所にボールがある（ゴール前へ入る）時はのぞく。ほかの動きの決まりの後にかける
+    function wgPost() {
+      if (!(globalThis.__Kwg ?? 1) || S.restart || S.celebrate > 0 || S.setPiece) return;
+      const own = ownerP(), b = S.ball, anc = own || (b.lastTeam != null && b.kind !== 'shot' ? b : null); if (!anc) return;
+      const t = own ? own.team : b.lastTeam; if (S.poss !== t) return;
+      const bxW = fx(t, anc.x); if (bxW >= L - (globalThis.__Kwgx ?? 25)) return;
+      for (const p of T[t].players) {
+        if (p.off || p.gk || p === own || !p.slot || p.slot.gk || !(p.slot.line >= 2) || Math.abs(p.slot.y - GOAL_Y) < 14 || p.run > 0 || chasing[p.idx] || b.intended === p.idx || (p.ckRun && p.ckRun.until > S.t) || !targets[p.idx]) continue;
+        const sdW = Math.sign(p.slot.y - GOAL_Y);
+        if (bxW > L - 32 && Math.abs(anc.y - GOAL_Y) > 11 && Math.sign(anc.y - GOAL_Y) !== sdW) continue;
+        const tg = targets[p.idx], wy = GOAL_Y + sdW * (globalThis.__Kwgw ?? 27);
+        if (Math.sign(tg[1] - GOAL_Y) === sdW && Math.abs(tg[1] - GOAL_Y) >= Math.abs(wy - GOAL_Y)) continue;
+        tg[1] = wy; const xf = fx(t, tg[0]), ol = offsideLine(t); if (xf > ol - 0.8) tg[0] = fx(t, ol - 0.8);
+        if (Math.abs(p.y - wy) > 6) urgent[p.idx] = true; p.wgHold = S.t;
+      }
+    }
     function lanePost() {
       if (!(globalThis.__Klane ?? 1) || S.restart || S.celebrate > 0 || S.setPiece || S.pk) return;
       const own = ownerP(); if (!own || own.gk) return;
@@ -9168,6 +9186,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       urgentPost();
       lanePost();
       if ((globalThis.__Kbyr ?? 1) && brainOn()) { const o0 = ownerP(); for (const p of P) if ((p.byRunT || 0) > S.t && p.byRunTo && !p.off && o0 && o0.team === p.team && o0 !== p) { const olR = offsideLine(p.team); targets[p.idx] = [fx(p.team, Math.min(fx(p.team, p.byRunTo[0]), olR - 1.5)), p.byRunTo[1]]; urgent[p.idx] = true; } }   // 版957：白夜の視界の走り出しを、新しい動きの位置取りで上書きしない
+      wgPost();
       if (globalThis.__Kkg2 ?? 1) for (const p of P) if (p.kgTgtT === S.t && !p.off) { targets[p.idx] = p.kgTgt; urgent[p.idx] = true; }   // 版936：影縫い：張りつく位置を、ほかの守備の決まり（ゾーン・ライン）で上書きしない
       smoothPost();
       if (globalThis.__tgHook) globalThis.__tgHook(S, P, targets, urgent, fx, offsideLine, ownerP);
