@@ -639,18 +639,21 @@
     // 版1225：翠の起点の積み重ねが効くのは、ボールを持つ選手（パスを出す選手）が中盤まで（相手陣の奥3分の1に入るまで）にいる時だけ。崩しの場面は港の指揮者の役目
     const lpUra = (g) => !(globalThis.__Klpq ?? 1) || ((g.kick || 0) >= 74 && (g.physical || 0) >= 74);   // 版1228：裏のスペースへ蹴り込めるのは、キック・フィジカルがどちらもA以上のGKだけ
     // 版1255：カットインを始める場所＝ペナルティエリアの角のあたり（ゴールまで約15〜26m、真ん中から10〜26m）。見本の「カットインシュート」の型
-    const ciZone = (p) => { const xq = fx(p.team, p.x), w = Math.abs(p.y - GOAL_Y); return (globalThis.__Kci6 ?? 1) ? xq >= L - (globalThis.__Kciz ?? 34) && xq <= L - 14 && w >= 9 && w <= 28 : xq >= L - 35 && w > 9; };
+    const ciZone = (p) => { const xq = fx(p.team, p.x), w = Math.abs(p.y - GOAL_Y); return (globalThis.__Kci7 ?? 1) ? xq >= L - (globalThis.__Kciz ?? 20) && xq <= L - 4 && w >= 12 && w <= 32 : (globalThis.__Kci6 ?? 1) ? xq >= L - (globalThis.__Kciz ?? 34) && xq <= L - 14 && w >= 9 && w <= 28 : xq >= L - 35 && w > 9; };
     // 版1247：カットイン（縦への突破）の後に何を狙うか。浅い所（ペナルティエリアの外）：シュートが得意ならシュート（コントロールショットなら逆サイドのサイドネットへ巻く）、パスが得意ならアーリー／ピンポイントクロス。深い所：横パス→ワンタッチで流し込む、か、角度のある所まで運んで打つ
+    // 版1256：カットインを仕掛ける場所＝ペナルティエリアの横（ゴールラインから約4〜20m、真ん中から12m以上外）。それより手前では、縦が空いていれば縦へ運んでここまで来る
+    const ciLane = (p, len) => { const xq = fx(p.team, p.x); return !opps(p).some((o) => { if (o.off || o.gk || (o.lagT || 0) > S.t) return false; const rx = fx(p.team, o.x) - xq; return rx > -0.5 && rx < len && Math.abs(o.y - p.y) < 2.2 + Math.max(0, rx) * 0.25; }); };
     function ciPlanSet(own, tate) {
       const xf = fx(own.team, own.x); if (xf <= L - 35) return;
-      const deep = !(globalThis.__Kci6 ?? 1) && (xf >= L - 16 || (tate && xf >= L - 22)) || (tate && xf >= L - 16);
+      const deep = (globalThis.__Kci7 ?? 1) ? xf >= L - 9 : !(globalThis.__Kci6 ?? 1) && (xf >= L - 16 || (tate && xf >= L - 22)) || (tate && xf >= L - 16);
       let k;
       if (deep) k = R.next() < 0.55 ? 'square' : 'carry';
       else if (tate) k = R.next() < 0.8 ? 'cross' : 'shoot';
+      else if ((globalThis.__Kci7 ?? 1)) k = 'cut7';   // 版1256：はっきり中へ切れ込み、その向きのまま運んで、中側の足で打つ（打てなければクロス）
       else if ((globalThis.__Kci6 ?? 1)) k = 'side';   // 版1255：エリアの線に沿って横へ運び、正面寄りまで来たら打つ
       else if (globalThis.__Kci5 ?? 1) k = 'cutcarry';   // 版1254：切り込んだ向きのまま斜めに運ぶ → ペナルティエリアの手前1mまで来たらシュート、それまでに止められそうならクロス（どちらも中側の足で）
       else { const sh = (own.kick || 50) >= (own.pass || 50); k = sh ? (R.next() < 0.8 ? 'shoot' : 'cross') : (R.next() < 0.7 ? 'cross' : 'shoot'); }
-      own.ciPlan = { k, t0: S.t, at: S.t + (k === 'side' ? 0.24 : k === 'cutcarry' ? 0.47 : (globalThis.__Kci4 ?? 1) ? (tate ? 0.85 : k === 'shoot' ? 0.55 : 0.6) : (tate ? 1.0 : deep ? 0.6 : 0.75)), until: S.t + 3.2 };   // 版1253：切れ込んだら、すぐ打つ・上げる（カバーの相手が来る前に） if (globalThis.__ciSet) globalThis.__ciSet.push(k);
+      own.ciPlan = { k, t0: S.t, at: S.t + (k === 'cut7' ? 0.5 : k === 'side' ? 0.24 : k === 'cutcarry' ? 0.47 : (globalThis.__Kci4 ?? 1) ? (tate ? 0.85 : k === 'shoot' ? 0.55 : 0.6) : (tate ? 1.0 : deep ? 0.6 : 0.75)), until: S.t + 3.2 };   // 版1253：切れ込んだら、すぐ打つ・上げる（カバーの相手が来る前に） if (globalThis.__ciSet) globalThis.__ciSet.push(k);
     }
     function mdK(p) { const k = (p && T[p.team].mdStack) || 0; if (!k || !(globalThis.__Kmd3 ?? 1)) return k; return fx(p.team, p.x) < L * 2 / 3 ? k : 0; }
     // 港の指揮者（おおかわ）：指揮が続いている間の、チーム全体の強さ（0＝なし 1＝無凸 2＝凸）
@@ -5683,11 +5686,25 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       // 版1247：カットインを持つ選手は、相手陣の奥のサイドで前に相手がいたら、自分から果敢に仕掛ける（相手が寄せてくるのを待たない）
       if ((globalThis.__Kci3 ?? 1) && skZ(p, 'cutIn') && !p.gk && !S.setPiece && !S.restart && S.ball.owner === p.idx && !p.ciPlan && !((p.skillCd || 0) > S.t) && !(p.moveQ && p.moveQ.length)) {
         const xq = fx(p.team, p.x);
-        // 版1255：カットインが得意な選手は、相手陣のサイドでボールを持ったら、ペナルティエリアの角の方へ運んでいく（そこから仕掛ける）
-        if ((globalThis.__Kci6 ?? 1) && !ciZone(p) && xq >= L - 42 && xq < L - 22 && Math.abs(p.y - GOAL_Y) >= 9 && !opps(p).some((o) => !o.off && !o.gk && hyp(o.x - p.x, o.y - p.y) < 3.2) && R.next() < (globalThis.__Kcia ?? 0.5)) {
+        // 版1256：エリアの横まで来る前は、縦が空いていれば縦へ運ぶ。仕掛ける場所に来ても、縦が空いていれば、まだ縦へ（ゴールラインの近くまで）
+        if ((globalThis.__Kci7 ?? 1)) {
+          const w = Math.abs(p.y - GOAL_Y), zn = ciZone(p);
+          if (zn) {   // 仕掛ける場所で、前（中寄りも含む）に相手が向かってきていたら、果敢にカットイン
+            let q = null, qd = 99; for (const o of opps(p)) { if (o.off || o.gk) continue; const d = hyp(o.x - p.x, o.y - p.y); if (d < qd && d > 1.3 && d < 6 && fx(p.team, o.x) > xq - 0.5) { q = o; qd = d; } }
+            if (q && R.next() < (globalThis.__Kcip ?? 0.9)) { p.ciForce = true; const ok = skillMove(p, q); p.ciForce = false; if (ok) return; }
+          }
+          else if (w >= 11 && xq >= L - 32 && xq < L - 20 && !ciLane(p, 6) && R.next() < (globalThis.__Kcit ?? 0.5)) {   // 手前で前をふさがれた：中と見せて縦へ抜く（エリアの横まで入っていくため）
+            let q = null, qd = 99; for (const o of opps(p)) { if (o.off || o.gk) continue; const d = hyp(o.x - p.x, o.y - p.y); if (d < qd && d > 1.3 && d < 5 && fx(p.team, o.x) > xq - 0.5) { q = o; qd = d; } }
+            if (q) { p.ciForce = true; p.ciTate = true; const ok = skillMove(p, q); p.ciForce = false; p.ciTate = false; if (ok) return; }
+          }
+          if (w >= 11 && xq >= L - 45 && xq < L - 9 && ciLane(p, zn ? 6 : 8) && R.next() < (globalThis.__Kcia ?? 0.85)) {
+            const ty = GOAL_Y + Math.sign(p.y - GOAL_Y) * clamp(w, 13, 27), sx = fx(p.team, 1) - fx(p.team, 0), dy = clamp((ty - p.y) * 0.15, -0.3, 0.3), dl = hyp(1, dy);
+            S.dribbleDir = [sx / dl, dy / dl]; S.dribbleMode = 'break'; p.pace = { ph: 'burst', until: S.t + 0.6 }; p.settle = false; S.decision = 0.3; return; }
+        }
+        else if ((globalThis.__Kci6 ?? 1) && !ciZone(p) && xq >= L - 42 && xq < L - 22 && Math.abs(p.y - GOAL_Y) >= 9 && !opps(p).some((o) => !o.off && !o.gk && hyp(o.x - p.x, o.y - p.y) < 3.2) && R.next() < (globalThis.__Kcia ?? 0.5)) {
           const tx = fx(p.team, L - 23), ty = GOAL_Y + Math.sign(p.y - GOAL_Y) * Math.min(Math.abs(p.y - GOAL_Y), 18), dx = tx - p.x, dy = ty - p.y, dl = hyp(dx, dy) || 1;
           S.dribbleDir = [dx / dl, dy / dl]; S.dribbleMode = 'carry'; p.settle = false; S.decision = 0.35; return; }
-        if (ciZone(p)) {
+        if (!(globalThis.__Kci7 ?? 1) && ciZone(p)) {
           let q = null, qd = 99; for (const o of opps(p)) { if (o.off || o.gk) continue; const d = hyp(o.x - p.x, o.y - p.y); if (d < qd && d > ((globalThis.__Kci6 ?? 1) ? 1.8 : 2.4) && d < (globalThis.__Kcid ?? ((globalThis.__Kci6 ?? 1) ? 7 : 10)) && fx(p.team, o.x) > xq - 0.5) { q = o; qd = d; } }
           const crowd = q ? opps(p).filter((o) => !o.off && !o.gk && o !== q && hyp(o.x - p.x, o.y - p.y) < 6).length : 9;
           if (q && crowd <= (globalThis.__Kcic ?? 1) && R.next() < (globalThis.__Kcip ?? 0.9)) { p.ciForce = true; const ok = skillMove(p, q); p.ciForce = false; if (ok) return; }
@@ -5704,6 +5721,24 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           const laneOK = (m) => !opps(p).some((o) => !o.off && !o.gk && segDist(o.x, o.y, p.x, p.y, m.x, m.y).d < 1.6);
           let k2 = pl.k;
           const inF = sgn(p.team) * (p.y - GOAL_Y) > 0 ? 'L' : 'R';   // 中側の足（右サイドから中へ＝左足、左サイドから中へ＝右足）
+          if (k2 === 'cut7') {
+            const w = Math.abs(p.y - GOAL_Y), el = S.t - pl.t0, rngS = Math.min(25, 20 + (p.kick || 50) * 0.08 + (skZ(p, 'controlShot') ? 2 : 0));
+            const dir = p.ciDir || [fx(p.team, 1) - fx(p.team, 0), Math.sign(GOAL_Y - p.y) || 1];
+            const gx = fx(p.team, L), ty = GOAL_Y - sS * (POST - 0.5);
+            const blocked = opps(p).some((o) => !o.off && !o.gk && !((o.lagT || 0) > S.t) && hyp(o.x - p.x, o.y - p.y) < 12 && segDist(o.x, o.y, p.x, p.y, gx, ty).d < 0.9);   // シュートコースに相手の体
+            const wall = opps(p).some((o) => { if (o.off || o.gk || (o.lagT || 0) > S.t) return false; const rx = o.x - p.x, ry = o.y - p.y, d = hyp(rx, ry); return d < 1.3 && (rx * dir[0] + ry * dir[1]) / (d || 1) > 0.4; });
+            const fire = () => { p.forceFoot = { f: inF, until: S.t + 1 }; shootNow(skZ(p, 'controlShot') ? 'controlShot' : null); };
+            if (dG <= rngS && xq >= L - 18.5 && !blocked && (w <= 16 || el > 0.8)) { fire(); return; }   // エリアの線の近くで、コースが見えたら、中側の足でファーへ
+            if (wall || el > 1.5 || w < 7) {
+              const ms = P.filter((m) => m.team === p.team && m !== p && !m.off && !m.gk && fx(p.team, m.x) <= Math.max(offsideLine(p.team), xq) + 0.2 && fx(p.team, m.x) > L - 16 && Math.abs(m.y - GOAL_Y) < 10).sort((a, c) => nearestOpp(c, c.x, c.y).d - nearestOpp(a, a.x, a.y).d);
+              if (ms[0] && (blocked || xq < L - 18.5 || dG > rngS)) { p.ciPlan = null; p.forceFoot = { f: inF, until: S.t + 1 }; ms[0].wantShot = S.t + 3.5; act(p, 'ciplan', 0.1, { k: 'cross' }); startPass(p, ms[0], false, false, skZ(p, 'pinpointCross') ? 'pinpointCross' : skZ(p, 'earlyCross') ? 'earlyCross' : null); return; }
+              if (dG <= rngS && xq >= L - 20) { fire(); return; }
+              p.ciPlan = null; k2 = null;
+            } else {   // 切れ込んだ向きのまま運ぶ（エリアの線に近づいたら、横寄りに）
+              const f = xq < L - 17 ? 0.5 : 0.15, sx = fx(p.team, 1) - fx(p.team, 0), vy = Math.sign(GOAL_Y - p.y) || 1, vl = hyp(f, 1);
+              S.dribbleDir = [sx * f / vl, vy / vl]; S.dribbleMode = 'carry'; p.settle = false; pl.at = S.t + 0.15; S.decision = 0.15; return;
+            }
+          }
           if (k2 === 'side') {
             const w = Math.abs(p.y - GOAL_Y), rngS = 22 + (p.kick || 50) * 0.11 + (skZ(p, 'controlShot') ? 2 : 0), el = S.t - pl.t0;
             const dir = p.ciDir || [0, Math.sign(GOAL_Y - p.y) || 1];
@@ -8075,7 +8110,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       };
       const set = new Set();   // 版1246：カットインは、相手陣の奥（ゴールまで35m以内）のサイドだけ。中へ入ると利き足になる選手（右サイドの左利きなど）ほど選びやすい
       const dq = hyp(q.x - own.x, q.y - own.y);
-      for (const z in DRIB_ZONES) for (const k of DRIB_ZONES[z]) if (skZ(own, k) && k !== 'speedDribble' && !(k === 'cutIn' && (dq < ((globalThis.__Kci6 ?? 1) ? 1.8 : 2.4) || ((globalThis.__Kci2 ?? 1) && !ciZone(own)))) && !(k === 'heelLift' && !hlSpace(own, q))) set.add(k);   // どこで使うかは「スキルのエリア設定」の表で決める（場面は重みだけ）   // カットインは相手に近すぎると仕掛けない（少し離れた所から）
+      for (const z in DRIB_ZONES) for (const k of DRIB_ZONES[z]) if (skZ(own, k) && k !== 'speedDribble' && !(k === 'cutIn' && (dq < ((globalThis.__Kci6 ?? 1) ? (own.ciForce && (globalThis.__Kci7 ?? 1) ? 1.3 : 1.8) : 2.4) || ((globalThis.__Kci2 ?? 1) && !ciZone(own) && !own.ciTate))) && !(k === 'heelLift' && !hlSpace(own, q))) set.add(k);   // どこで使うかは「スキルのエリア設定」の表で決める（場面は重みだけ）   // カットインは相手に近すぎると仕掛けない（少し離れた所から）
       return { ctx, list: [...set] };
     }
     // ボディフェイント・シザース：逆へ行くと見せて（踏み出す／ボールをまたぐ）体重を乗せる → 反対の足でボールを転がし、踏み出した足の反発でグン！と逆へ
@@ -8160,7 +8195,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       if (k === 'cutIn' && (globalThis.__Kci3 ?? 1)) {
         const tb = (T[q.team].ciRead = T[q.team].ciRead || {}), rd = tb[own.idx] || 0;
         if (own.ciForce) pS = clamp(pS + (globalThis.__Kcis ?? 0.18), 0.1, 0.95);   // 間合いがある所から自分で仕掛ける時は、スピードに乗って抜きやすい
-        if (rd >= 1 && R.next() < Math.min(0.6, 0.2 * rd + ((own.vision || 50) - 50) * 0.004)) { tate = true; pS = clamp(pS + 0.07 * rd, 0.1, 0.95); }
+        if (own.ciTate || (rd >= 1 && R.next() < Math.min(0.6, 0.2 * rd + ((own.vision || 50) - 50) * 0.004))) { tate = true; pS = clamp(pS + 0.07 * rd, 0.1, 0.95); }
         else pS = clamp(pS - Math.min(0.3, 0.07 * rd), 0.08, 0.97);
         tb[own.idx] = tate ? Math.max(0, rd - 1.5) : rd + 1;
       }
@@ -8170,7 +8205,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       if (k === 'heelLift') { heelLiftStart(own, q, miss, fdx, fdy, lx, ly); return true; }   // 版666：ヒールリフトは、溜め（足でボールを背中側へ転がし上げる）→ かかとで跳ね上げる → 相手の横を回って拾う。失敗は、跳び上がった相手に頭で止められる
       if (miss) {
         // 読まれた：足を出されて奪われる
-        act(own, 'dmove', 0.45, { k, dx: lx, dy: ly, fail: 1 });
+        act(own, 'dmove', 0.45, { k, dx: lx, dy: ly, fail: 1, ...(tate ? { tate: 1 } : {}) });
         stats[q.team].tackles_won++; stats[own.team].tackles_lost++;
         stealRoll(q, own);
         act(own, 'lose', 0.8, { o: q.idx }); own.stun = 0.7;
@@ -8229,16 +8264,27 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             const [fx2, fy2] = sd0(fdx * 0.55, inY0 * 0.85), [vx2, vy2] = sd0(fdx, (fdy || 0) * 0.2 - inY0 * 0.1);
             own.moveQ = [{ until: S.t + 0.3, dx: fx2, dy: fy2, v: 3.0, snap: 0.6 }, { until: S.t + 0.42, dx: fx2, dy: fy2, v: 0.5, snap: 0.85 }];
             own.moveEnd = { dx: vx2, dy: vy2, v: 2.6 }; S.dribbleMode = 'break'; own.pace = { ph: 'burst', until: S.t + 1.6 };
-            act(own, 'dmove', 1.1, { k, dx: vx2, dy: vy2, fx: fdx, fy: fdy, ox: fx2, oy: fy2 });
+            act(own, 'dmove', 1.1, { k, dx: vx2, dy: vy2, fx: fdx, fy: fdy, ox: fx2, oy: fy2, tate: 1 });
             q.stun = Math.max(q.stun, 1.0); q.tackleCd = Math.max(q.tackleCd, 1.5); q.vx = fx2 * 3.8; q.vy = fy2 * 3.8;   // 中を切りに行った相手は、縦へ置いていかれる
             q.lateLose = { t: S.t + 0.5, o: own.idx, dx: fx2, dy: fy2, fall: R.next() < 0.12 };
             own.protect = S.t + 1.1;
-            ciPlanSet(own, true);
+            if (!own.ciTate) ciPlanSet(own, true);   // 版1256：仕掛ける場所の手前で縦に抜いた時は、狙いを決めない（そのまま縦へ運んで、エリアの横で次を仕掛ける）
             break;
           }
           // カットイン：サイドで縦へ行くと見せて（1歩外へ）、利き足側へ斜めに中へ切れ込む → そのままシュートへ
           const sd = (a, b) => { const l = hyp(a, b) || 1; return [a / l, b / l]; };
           const inY = Math.sign(GOAL_Y - own.y) || 1;
+          if ((globalThis.__Kci7 ?? 1)) {   // 版1256：縦へ行くと見せて（外へ半歩）→ 止まって → はっきり中へ切れ込む。相手は半歩遅れて、横についてくる
+            const [ox3, oy3] = sd(fdx, -inY * 0.35), [ix3, iy3] = sd(fdx * 0.45, inY);
+            own.moveQ = [{ until: S.t + 0.16, dx: ox3, dy: oy3, v: 2.8, snap: 0.6 }, { until: S.t + 0.26, dx: ox3, dy: oy3, v: 0.6, snap: 0.85 }];
+            own.moveEnd = { dx: ix3, dy: iy3, v: 3.0 }; S.dribbleMode = 'carry'; own.pace = { ph: 'burst', until: S.t + 0.9 };
+            act(own, 'dmove', 1.0, { k, dx: ix3, dy: iy3, fx: fdx, fy: fdy, ox: ox3, oy: oy3 });
+            own.ciDir = [ix3, iy3];
+            q.stun = Math.max(q.stun, 0.35); q.vx = ox3 * 2.6; q.vy = oy3 * 2.6; q.tackleCd = Math.max(q.tackleCd, 1.2); q.lagT = Math.max(q.lagT || 0, S.t + 0.5);
+            own.protect = S.t + 0.7;
+            ciPlanSet(own, false);
+            break;
+          }
           if ((globalThis.__Kci6 ?? 1)) {   // 版1255：小さく内へ持ち出して、すぐエリアの線に沿って横（少し前）へ運ぶ。相手は抜き去らず、下がりながら横についてくる。打つ角度を作る動き
             const [lx2, ly2] = sd(fdx * 0.3, inY), [sx2, sy2] = sd(fdx * 0.12, inY);
             own.moveQ = [{ until: S.t + 0.22, dx: lx2, dy: ly2, v: 3.6, snap: 0.7 }];
