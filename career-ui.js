@@ -6534,7 +6534,7 @@
         const ok = confirm(`「${d.name}」（${d.team.players.length}人・ランクポイント${p.rp || 0}）を作り直して、引き継ぎコードを作ります。よろしいですか？`); if (!ok) return;
         const sv = window.DotCareer.rebuildSave(d, { fid: id, rp: p.rp || 0 });
         const code = await DotNet.cloudPutFor(sv, window.__career.cloudInfo(sv), id);
-        await window.__career.modal('作り直しました', `<b>${esc1(d.name)}</b>（ID ${id}）<br>引き継ぎコード：<b style="font-size:20px;letter-spacing:1px">${esc1(String(code).replace(/(.{4})(.{4})(.{4})/, '$1-$2-$3'))}</b><br><small>このコードを相手に伝えて、新しく入れたゲームのメニュー「データ引き継ぎ」に入れてもらうと、チームとフレンドID（${id}）が戻ります。<br>戻るもの：チーム名・ユニフォーム・エンブレム・1軍の選手（能力・スキル・☆・凸）・フォーメーション・リーグ・ランクポイント。<br>戻らないもの：コイン・リザーブ・2軍・カード・カケラ・シーズンの進み具合・フレンド一覧。</small>`);
+        await window.__career.modal(`<b>${esc1(d.name)}</b>（ID ${id}）<br>引き継ぎコード：<b style="font-size:20px;letter-spacing:1px">${esc1(String(code).replace(/(.{4})(.{4})(.{4})/, '$1-$2-$3'))}</b><br><small>このコードを相手に伝えて、新しく入れたゲームのメニュー「データ引き継ぎ」に入れてもらうと、チームとフレンドID（${id}）が戻ります。<br>戻るもの：チーム名・ユニフォーム・エンブレム・1軍の選手（能力・スキル・☆・凸）・フォーメーション・リーグ・ランクポイント。<br>戻らないもの：コイン・リザーブ・2軍・カード・カケラ・シーズンの進み具合・フレンド一覧。</small>`, [{ label: 'OK', primary: true }], { head: '作り直しました' });
       } catch (e) { alert('作り直せませんでした：' + (e && e.message || e)); }
       return; }
     else if (m === 'fidlook') {   // 版1249：（開発用）フレンドIDから引き継ぎコードを調べる（消えたアカウントの復元の手伝い）
@@ -6542,7 +6542,7 @@
       const id = (prompt('調べるアカウントID（8けた）') || '').replace(/\D/g, ''); if (id.length !== 8) return;
       try { const r = await DotNet.fidLookup(id); const fmtD = (t) => t ? new Date(t).toLocaleString('ja-JP') : '―';
         const html = !r.found ? `ID ${id} は見つかりませんでした。` : r.code ? `<b>${esc1(r.name || '')}</b>（ID ${id}）<br>引き継ぎコード：<b style="font-size:20px;letter-spacing:1px">${esc1(String(r.code).replace(/(.{4})(.{4})(.{4})/, '$1-$2-$3'))}</b><br><small>クラウドに保存した日時：${fmtD(r.save && r.save.at)}${r.save && r.save.info ? `（${esc1(String(r.save.info.season || ''))}年目 ${esc1(String(r.save.info.m || ''))}月${esc1(String(r.save.info.w || ''))}週）` : ''}<br>新しい端末で、メニューの「データ引き継ぎ」にこのコードを入れると戻せます。</small>` : `<b>${esc1(r.name || '')}</b>（ID ${id}）<br>このアカウントは、クラウドに保存したことがありません（引き継ぎコードがありません）。<br><small>最後にアプリを開いた日時：${fmtD(r.seen)}</small>`;
-        await window.__career.modal('アカウントの調査', html);
+        await window.__career.modal(html, [{ label: 'OK', primary: true }], { head: 'アカウントの調査' });
       } catch (e) { alert('調べられませんでした：' + (e && e.message || e)); }
       return; }
     else if (m === 'testcoin') { const sv = window.__career.save; sv.coins = (sv.coins || 0) + 10000; window.__career.store(); sheet.hidden = true; try { window.__career.renderHome(); } catch (_) {} return; }   // 版552：演出のテスト用
