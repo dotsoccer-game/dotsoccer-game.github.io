@@ -558,6 +558,7 @@
     }
     return t;
   }
+  const RK_COMBOS = [['きのした', 'かとう'], ['あおやま', 'みやうち'], ['おおかわ', 'にしの'], ['ことう', 'くもい'], ['かめい', 'てらだ'], ['なかむら', 'あかい']];   // 版1276：名コンビ（選抜チームにそろって出てくる）
   function rankAllStar(save, prog, R) {   // S級：国内屈指の選手を集めた選抜チーム（D1・D2の全クラブのスタメンから、ポジションごとにランダム。RPが高いほど上位の選手が入りやすい）
     const pool = { GK: [], DF: [], MF: [], FW: [] }, seen = new Set();
     for (const id of ['d1', 'd2']) for (const tm of (save.world.leagues[id] || [])) {
@@ -565,13 +566,23 @@
       for (const p of t0.players.slice(0, 11)) { if (seen.has(p.name) || !pool[p.position]) continue; seen.add(p.name); pool[p.position].push({ ...p, _ovr: avgParam(p) }); }
     }
     for (const k in pool) pool[k].sort((a, b) => b._ovr - a._ovr);
-    const m = 6 - 4 * Math.max(0, Math.min(1, prog || 0));   // 何人に1人の中から選ぶか（S級に上がったばかり：上位の6倍の中から → 上の方：2倍の中から）
+    const m = (globalThis.__Krk2 ?? 1) ? 8 - 4 * Math.max(0, Math.min(1, prog || 0)) : 6 - 4 * Math.max(0, Math.min(1, prog || 0));   // 何人に1人の中から選ぶか（S級に上がったばかり：上位の6倍の中から → 上の方：2倍の中から）
     const take = (pos, c, used) => { const top = pool[pos].filter((p) => !used.has(p.name)).slice(0, Math.max(c, Math.round(c * m))), out = []; while (out.length < c && top.length) { const p = top.splice(Math.floor(R() * top.length), 1)[0]; out.push(p); used.add(p.name); } return out; };
     const used = new Set(), forms = ['4-4-2', '4-3-3', '4-2-3-1', '3-4-3'], formation = forms[Math.floor(R() * forms.length)];
     const need = { '4-4-2': [4, 4, 2], '4-3-3': [4, 3, 3], '4-2-3-1': [4, 5, 1], '3-4-3': [3, 4, 3] }[formation];
-    const xi = [...take('GK', 1, used), ...take('DF', need[0], used), ...take('MF', need[1], used), ...take('FW', need[2], used)];
+    let xi;
+    if (globalThis.__Krk2 ?? 1) {   // 版1276：国内屈指級（固有能力を持つ選手）を中心に、毎回ちがう組み合わせ。名コンビ（きのした＋かとう、あおやま＋みやうち など）もそろって出てくる
+      const all = []; for (const k in pool) for (const p of pool[k]) if (p.uniq) all.push(p);
+      const byName = (n) => all.find((p) => p.name === n), cnt = { GK: 1, DF: need[0], MF: need[1], FW: need[2] }, got = { GK: [], DF: [], MF: [], FW: [] };
+      const add = (p) => { if (!p || used.has(p.name) || got[p.position].length >= cnt[p.position]) return false; got[p.position].push(p); used.add(p.name); return true; };
+      const combos = RK_COMBOS.slice(); for (let i = combos.length - 1; i > 0; i--) { const j = Math.floor(R() * (i + 1)); [combos[i], combos[j]] = [combos[j], combos[i]]; }
+      let nc = R() < 0.35 ? 2 : 1; for (const c of combos) { if (!nc) break; const ps = c.map(byName); if (ps.every((p) => p && !used.has(p.name)) && ps.every((p) => got[p.position].length < cnt[p.position])) { ps.forEach(add); nc--; } }
+      const nTop = 4 + Math.floor(R() * 3), rest = all.filter((p) => !used.has(p.name)); while (used.size < nTop && rest.length) add(rest.splice(Math.floor(R() * rest.length), 1)[0]);
+      const fill = (pos) => { const c = cnt[pos] - got[pos].length; if (c > 0) got[pos].push(...take(pos, c, used)); };
+      const keep = used.size; ['GK', 'DF', 'MF', 'FW'].forEach(fill); xi = [...got.GK, ...got.DF, ...got.MF, ...got.FW]; xi.__keep = keep; const chosen = new Set([...used].slice(0, keep)); xi.sort(() => 0); xi.__chosen = chosen;
+    } else xi = [...take('GK', 1, used), ...take('DF', need[0], used), ...take('MF', need[1], used), ...take('FW', need[2], used)];
     const bench = [...take('GK', 1, used), ...take('DF', 2, used), ...take('MF', 2, used), ...take('FW', 2, used)];
-    { const uq = [...xi, ...bench].filter((p) => p.uniq).sort((a, b) => b._ovr - a._ovr); for (const p of uq.slice(3)) { delete p.uniq; delete p.uniqLv; } }   // 固有能力は、能力の高い3人まで（多すぎると、試合が技だらけになる）
+    { const ch = xi.__chosen || new Set(), uq = [...xi, ...bench].filter((p) => p.uniq).sort((a, b) => (ch.has(b.name) - ch.has(a.name)) || (xi.includes(b) - xi.includes(a)) || b._ovr - a._ovr); for (const p of uq.slice((globalThis.__Krk2 ?? 1) ? Math.min(8, Math.max(6, (xi.__keep || 0))) : 3)) { delete p.uniq; delete p.uniqLv; } }   // 固有能力は、能力の高い3人まで（多すぎると、試合が技だらけになる）
     const ps = [...xi, ...bench].map((p) => { const q = { ...p }; delete q._ovr; const sk = (q.skills || []).slice(), pl = (SKILL_POOL[q.position] || []).filter((k) => !sk.includes(k)); while (sk.length < 3 && pl.length) sk.push(pl.splice(Math.floor(R() * pl.length), 1)[0]); q.skills = sk; return q; });
     const st = STYLES[Math.floor(R() * STYLES.length)] || STYLES[0];
     const team = { name: 'ドリーム選抜', short: '選抜', color: 'red', policies: [], autoSubs: true, players: ps };
