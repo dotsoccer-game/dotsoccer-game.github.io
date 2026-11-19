@@ -729,7 +729,8 @@
   // グラウンドの座標（u：サイドラインに沿って右上へ、v：サイドラインから手前へ）→ 画面
   const GO = [0, 590], GU = [15.5, -7.6], GV = [9.2, 6.2];
   const gp = (u, v) => [GO[0] + u * GU[0] + v * GV[0], GO[1] + u * GU[1] + v * GV[1]];
-  let fieldCv = null;
+  let fieldCv = null, fieldChkT = -1e9;
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { fieldCv = null; fieldChkT = -1e9; } });   // 版1279：裏から戻ったら、クラブハウスの絵を作り直す
   function buildField() {
     const cv = document.createElement('canvas'); cv.width = 1280; cv.height = 720; const c = cv.getContext('2d');
     c.fillStyle = '#3fcf34'; c.fillRect(0, 0, 1280, 720);
@@ -979,6 +980,10 @@
   function drawClub(tAbs) {
     const c = cx;
     if (!fieldCv) buildField();
+    /* 版1279：iPhoneでアプリを長く裏に回すと、作っておいたクラブハウスの絵（fieldCv）の中身が消されることがある。
+       消えたまま重ねて描くと、前のコマが残って選手が帯のように伸びる。2秒ごとに中身を確かめて、消えていたら描き直す。毎コマ、先に画面を消す */
+    if (!(tAbs - fieldChkT < 2000)) { fieldChkT = tAbs; try { if (fieldCv.getContext('2d').getImageData(640, 360, 1, 1).data[3] === 0) buildField(); } catch (_) { buildField(); } }
+    c.clearRect(0, 0, c.canvas.width, c.canvas.height);
     c.drawImage(fieldCv, 0, 0);
     if (view !== 'club') return;
     if (drillT0 < 0) drillT0 = tAbs;
