@@ -5142,4 +5142,4 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 .sq3 .q3r .q3bf{touch-action:none}   /* 版1244：リザーブの顔をつまむと、ななめ・縦にも引っぱってピッチへ持っていける */
 /* 版1248：スタメン画面の3つのゾーンの名前（左はしに小さく） */
 .q3zn{position:absolute;font-style:normal;font:800 1.5cqh/1 "Hiragino Kaku Gothic ProN",sans-serif;letter-spacing:.04em;padding:.4cqh .9cqh;border-radius:99px;background:rgba(0,0,0,.28);white-space:nowrap;pointer-events:none;z-index:1}
-.q3zn.za{color:rgba(255,190,170,.75)}.q3zn.zm{color:rgba(255,240,170,.7)}.q3zn.zd{color:rgba(180,210,255,.75)}
+.q3zn.zw{color:#c8ffe4;transform:translateX(-50%);font-size:1.5cqh}.q3wg{position:absolute;left:50%;top:-1.6cqh;transform:translateX(-50%);font:900 2cqh/1 sans-serif;font-style:normal;color:#063;background:#9fffd0;border-radius:99px;padding:.25cqh .7cqh;pointer-events:none;z-index:3}.q3zn.za{color:rgba(255,190,170,.75)}.q3zn.zm{color:rgba(255,240,170,.7)}.q3zn.zd{color:rgba(180,210,255,.75)}

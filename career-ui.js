@@ -1958,7 +1958,7 @@
   const sq3On = () => { try { return !localStorage.getItem('dsSq2'); } catch (_) { return true; } };   /* 版1069：本番もこの画面（前の画面は localStorage の dsSq2 で戻せる） */
   let sq3Type = false, sq3Pick = -1, sq3Menu = false, sq3Res = false, sq3R = -1, sq3Multi = null, sq3Swap = false, sq3Role = null;   /* 版1075：sq3Swap＝「入れ替える」を押した後、sq3Role＝役割設定（選んでいる役割） */
   /* 版1082：新しいスタメン画面のピッチ（台形・縞・線）と、マスの番号⇔画面の％の変換。試合中の交代画面・作戦画面でも使う */
-  function q3Geo(R, COLS) {
+  function q3Geo(R, COLS, wingW) {
     /* 版1067：ピッチは奥がせまい台形（監督の画像の角度）。u＝横0〜1、v＝縦0（奥）〜1（手前）→ 画面の％ */
     const TY0 = 2, TY1 = 99, HW0 = 43.5, HW1 = 49.5, tx = (u, v) => 50 + (u - 0.5) * 2 * (HW0 + (HW1 - HW0) * v), ty = (v) => TY0 + (TY1 - TY0) * v;
     /* 縦の位置：使っている列（DF・MF・FWなど）を、奥から手前まで等間隔に並べる（重ならないように）。使っていない行はその間を割る */
@@ -1978,8 +1978,15 @@
     const zones = band(-0.05, vA, 'rgba(255,96,64,.17)') + band(vA, vD, 'rgba(255,226,90,.09)') + band(vD, 1.25, 'rgba(90,160,255,.17)')
       + `<polyline points="${P(0, vA)} ${P(1, vA)}" stroke="rgba(255,255,255,.35)" stroke-width="1" stroke-dasharray="4 4" vector-effect="non-scaling-stroke" fill="none"/><polyline points="${P(0, vD)} ${P(1, vD)}" stroke="rgba(255,255,255,.35)" stroke-width="1" stroke-dasharray="4 4" vector-effect="non-scaling-stroke" fill="none"/>`;
     const zl = (v0, v1, t, c) => `<i class="q3zn ${c}" style="left:${(tx(0.02, v0 + 0.012) + 0.8).toFixed(2)}%;top:${(ty(v0 + 0.012) + 0.6).toFixed(2)}%">${t}</i>`;
+    /* 版1278：ウイングレーン（左右の端の、中盤ゾーンの前半分より前）。ここに置いた選手は、攻める時タッチライン際に張る */
+    let wingL = '', wingLab = '';
+    if (wingW != null) { const th = C.wingTh(wingW), uL = CU(7 - th), uR = CU(7 + th), vB = RV(C.WING_R);
+      const lane = (u0, u1) => `<polygon points="${P(u0, -0.05)} ${P(u1, -0.05)} ${P(u1, vB)} ${P(u0, vB)}" fill="rgba(120,255,200,.2)" stroke="rgba(190,255,225,.75)" stroke-width="1.2" stroke-dasharray="5 4" vector-effect="non-scaling-stroke"/>`;
+      wingL = lane(0, uL) + lane(uR, 1);
+      const wl = (u) => `<i class="q3zn zw" style="left:${tx(u, vB - 0.035).toFixed(2)}%;top:${ty(vB - 0.035).toFixed(2)}%">ウイングレーン</i>`;
+      wingLab = wl(uL / 2) + wl((uR + 1) / 2); }
     const zoneLab = zl(0.02, vA, 'アタッキングゾーン', 'za') + zl(vA, vD, 'ミドルゾーン', 'zm') + zl(vD, 1, 'ディフェンシブゾーン', 'zd');
-    const field = `<svg class="q3fd" viewBox="0 0 100 100" preserveAspectRatio="none"><defs><radialGradient id="q3vg" cx="50%" cy="48%" r="70%"><stop offset="55%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#021a04" stop-opacity=".45"/></radialGradient><linearGradient id="q3sh" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".18"/><stop offset=".35" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity=".04"/></linearGradient></defs>${stripes}${zones}<rect width="100" height="100" fill="url(#q3sh)"/><rect width="100" height="100" fill="url(#q3vg)"/>${lines}</svg>${zoneLab}`;   /* 版1068：芝の色を監督の画像に寄せる（深い緑の縞、奥と四隅を少し暗く） */
+    const field = `<svg class="q3fd" viewBox="0 0 100 100" preserveAspectRatio="none"><defs><radialGradient id="q3vg" cx="50%" cy="48%" r="70%"><stop offset="55%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#021a04" stop-opacity=".45"/></radialGradient><linearGradient id="q3sh" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".18"/><stop offset=".35" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity=".04"/></linearGradient></defs>${stripes}${zones}${wingL}<rect width="100" height="100" fill="url(#q3sh)"/><rect width="100" height="100" fill="url(#q3vg)"/>${lines}</svg>${zoneLab}${wingLab}`;   /* 版1068：芝の色を監督の画像に寄せる（深い緑の縞、奥と四隅を少し暗く） */
     /* 版1085：作戦ボード（白いボードに緑の線）。試合中の作戦の画面で使う */
     const lnB = (pts) => `<polyline points="${pts.map(([u, v]) => P(u, v)).join(' ')}" fill="none" stroke="#1f6b35" stroke-width="2.4" vector-effect="non-scaling-stroke"/>`;
     const arcB = (cu, cv, ru, rv, a0, a1) => lnB(Array.from({ length: 25 }, (_, k) => { const a = a0 + (a1 - a0) * k / 24; return [cu + Math.cos(a) * ru, cv + Math.sin(a) * rv]; }));
@@ -1991,11 +1998,11 @@
     const ps = save.team.players, tac = C.ensureTactics(save), cells = tac.cells, R = C.GRID_R, COLS = C.GRID_C;
     /* 版1072：置いた所そのまま（マスに合わせない）なので、重なりを直す処理（unpile）はしない */
     const L = $('#clubLayer'); { const bk = $('#cvBack'); if (bk) bk.style.visibility = 'hidden'; }
-    const { TY0, TY1, HW0, HW1, tx, ty, RV, VR, CU, px, py, field } = q3Geo(R, COLS);   /* 版1082：ピッチの形は q3Geo（試合中の交代画面と同じ） */
+    const { TY0, TY1, HW0, HW1, tx, ty, RV, VR, CU, px, py, field } = q3Geo(R, COLS, tac.width || 3);   /* 版1082：ピッチの形は q3Geo（試合中の交代画面と同じ） */
     const tags = (q) => ['pk', 'fk', 'ck'].filter((k) => tac.roles[k] === q.name).map((k) => `<i class="q3t t-${k}">${ROLE_TAG[k]}</i>`).join('');
     const chip = (q, i, x, y) => `<div class="q3p${i === sq3Pick ? ' sel' : ''}${q.injury > 0 ? ' inj' : ''}${i === 0 ? ' gk' : ''}" data-i="${i}" style="left:${x}%;top:${y}%;z-index:${2 + Math.round(y)}"><div class="q3fw">${facePic(q, 'q3f', false)}<b class="q3o g-${D.grade(statOvr(q))}">${statOvr(q)}</b><span class="q3ts">${tags(q)}</span>${tac.roles.captain === q.name ? '<i class="q3c">C</i>' : ''}<i class="q3cd cdot ${condDot(q)}"></i>${q.suspend > 0 ? '<i class="q3sus"></i>' : ''}</div>${sq3Type ? `<span class="q3nt tbadge ${TYPE_CLS[q.type] || 'ty-bal'}">${esc(q.type || '')}</span>` : `<span class="q3n${tac.roles.captain === q.name ? ' cap' : ''}">${esc(q.name)}</span>`}</div>`;
     let dots = chip(ps[0], 0, 50, ty(0.9));
-    for (let i = 1; i < 11; i++) { const c = cells[i]; if (c) dots += chip(ps[i], i, px(c.c, c.r), py(c.r)); }
+    for (let i = 1; i < 11; i++) { const c = cells[i]; if (c) dots += chip(ps[i], i, px(c.c, c.r), py(c.r)).replace(/<\/div>$/, C.isWing(c, tac.width || 3) ? '<i class="q3wg">WG</i></div>' : '</div>'); }
     const row = (q, i) => `<div class="q3b${i === sq3Pick ? ' sel' : ''}${q.injury > 0 ? ' inj' : ''}" data-i="${i}">${facePic(q, 'q3bf', true)}${sq3Type ? `<span><em class="q3bt tbadge ${TYPE_CLS[q.type] || 'ty-bal'}">${esc(q.type || '')}</em></span>` : `<span>${esc(q.name)}</span>`}<i class="q3cd cdot ${condDot(q)}"></i>${q.suspend > 0 ? '<i class="q3sus"></i>' : ''}<b class="q3o g-${D.grade(statOvr(q))}">${statOvr(q)}</b></div>`;
     /* 版1069：選んだ選手のくわしい板（前の画面と同じ中身：能力・タイプ・疲労・利き足・役割・選手データ）。リザーブを選んだ時は、その選手と放出 */
     const PK = D.PARAMS.map((x) => x.k), rsv = save.reserve || [];

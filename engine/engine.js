@@ -1359,7 +1359,7 @@
       const t = own ? own.team : b.lastTeam; if (S.poss !== t) return;
       const bxW = fx(t, anc.x); if (bxW >= L - (globalThis.__Kwgx ?? 25)) return;
       for (const p of T[t].players) {
-        if (p.off || p.gk || p === own || !p.slot || p.slot.gk || !(p.slot.line >= 2 || ((globalThis.__Kwg2 ?? 1) && p.slot.cell && p.slot.line === 1 && p.slot.cell.r >= 5 && Math.abs(p.slot.y - GOAL_Y) >= 16)) || Math.abs(p.slot.y - GOAL_Y) < 14 /* 版1276：中盤ゾーンでも前寄り（5行目より前）の大外に置いた選手は、ウイングとして張る */ || p.run > 0 || chasing[p.idx] || b.intended === p.idx || (p.ckRun && p.ckRun.until > S.t) || !targets[p.idx]) continue;
+        if (p.off || p.gk || p === own || !p.slot || p.slot.gk || !(p.slot.line >= 2 || ((globalThis.__Kwg2 ?? 1) && p.slot.cell && p.slot.line === 1 && p.slot.cell.r >= 5)) || Math.abs(p.slot.y - GOAL_Y) < 14 /* 版1276：中盤ゾーンでも前寄り（5行目より前）の大外に置いた選手は、ウイングとして張る */ || p.run > 0 || chasing[p.idx] || b.intended === p.idx || (p.ckRun && p.ckRun.until > S.t) || !targets[p.idx]) continue;
         const sdW = Math.sign(p.slot.y - GOAL_Y);
         if (bxW > L - 32 && Math.abs(anc.y - GOAL_Y) > 11 && Math.sign(anc.y - GOAL_Y) !== sdW) continue;
         const tg = targets[p.idx], wy = GOAL_Y + sdW * (globalThis.__Kwgw ?? 27);
