@@ -1066,7 +1066,7 @@
       if (b.aoP && S.t - (b.passT ?? -9) < 0.25 && !p.gk) { const vl = hyp(b.vx, b.vy) || 1, rx = p.x - b.x, ry = p.y - b.y; if ((rx * b.vx + ry * b.vy) / vl < 0.3) return false; }   // 蒼の王座の1本：蹴った瞬間、背中・横で押さえていた相手の足は届かない（出す方向の前にいる相手は触れる）
       if ((b.tsukiP || b.tact) && b.z < 0.6 && hyp(b.vx, b.vy) < 7.5) return true;   // 勢いが落ちて足もとに転がってきた球は、相手もふつうに触れる（目の前の球を見送ることはない）
       if (b.tsukiP && (globalThis.__Ktk5 ?? 1) && !p.gk && b.z < 0.6 && hyp(p.x - b.x, p.y - b.y) < 1.3) {   // 版1249：足もとを通るボールは、相手も触りにいく（棒立ちで見送らない）。触れるかは、出し手のパスが低いほど高い
-        b.tkRoll = b.tkRoll || {}; if (b.tkRoll[p.idx] == null) { const kp = (P[b.kicker] && P[b.kicker].pass) || 50; b.tkRoll[p.idx] = R.next() < ((globalThis.__Ktk7 ?? 1) ? clamp(0.6 - (kp - 40) * 0.009, 0.1, 0.45) : clamp(0.85 - (kp - 40) * 0.011, 0.2, 0.75)); }   // 版1276：月影の1本は、DFに触られにくく
+        b.tkRoll = b.tkRoll || {}; if (b.tkRoll[p.idx] == null) { const kp = (P[b.kicker] && P[b.kicker].pass) || 50; b.tkRoll[p.idx] = R.next() < ((globalThis.__Ktk7 ?? 0) ? clamp(0.6 - (kp - 40) * 0.009, 0.1, 0.45) : clamp(0.85 - (kp - 40) * 0.011, 0.2, 0.75)); }   // 版1277：版1276で下げた触る確率を元に戻す（足もとを通る球を見送る不自然さが出るため）
         if (b.tkRoll[p.idx]) return true; }
       if (b.tsukiP) return p.idx === b.tsukiDef || (p.gk && p.gkAtk);
       if (b.tact) return p.idx === b.tactDef || (p.gk && p.gkAtk);   // 港の指揮者の1本も、決まった相手しか触れない
@@ -5489,7 +5489,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       S.ball.shotSkill = skill || (dShot ? 'dribbleShot' : '');
       if (emptyNet) S.ball.gkPen += 0.6;   // 無人のゴール：GKは届かない
       S.ball.brk = !emptyNet && (p.tsukiRecv > 0 || (p.uFireT && S.t - p.uFireT < 7 && p.uniq === 'tsukikage'));   // 抜け出してからの1対1のシュート
-      S.ball.tsukiShot = p.uniq === 'tsukikage' && !(p.uniqLv >= 2) && S.t - Math.max(p.tsukiRecv || -99, p.uFireT || -99) < 8;   // 月影の抜け出し（無凸）：抜け出した後の決定力は控えめ（エースのかとうより下）
+      S.ball.tsukiShot = !(globalThis.__Ktk8 ?? 1) && p.uniq === 'tsukikage' &&   /* 版1277：抜け出した後の決定力を下げる決まりはなくす（裏を取ってGKと1対1になる強さを活かす） */ !(p.uniqLv >= 2) && S.t - Math.max(p.tsukiRecv || -99, p.uFireT || -99) < 8;   // 月影の抜け出し（無凸）：抜け出した後の決定力は控えめ（エースのかとうより下）
       if ((p.hariT || 0) > S.t) { S.ball.gkPen += p.hariLv >= 2 ? 0.3 : 0.22; }   // 針の穴通しの1本から：シュートの補正は若干だけ   // 最強のラストパス：受けたら1点   // 針の穴通しの1本を受けて：決めきる
       S.ball.gkPen += uOn(p, 'guren') ? (p.uniqLv >= 2 ? 1.1 : 0.95) * grF(p) : uOn(p, 'kage') ? (p.uniqLv >= 2 ? 0.8 : 0.65) : uOn(p, 'shiden') ? (S.t - (p.sdBeat || -9) < 1.5 ? (globalThis.__Ksdgp ?? 0.15) : 0.06) : uOn(p, 'tsukikage') && p.uniqLv >= 2 ? 0.09 : 0;   // GKが反応しにくい（月影の抜け出し：抜け出した勢いのまま1対1を決める）
       S.ball.uDelay = uOn(p, 'guren') ? 0.15 * uP(p) * grF(p) : 0; S.ball.grF = uOn(p, 'guren') ? grF(p) : 1; S.ball.pkShot = !!S.pk; S.ball.guren = uOn(p, 'guren') ? p.uniqLv || 1 : 0;   // 紅蓮の牙のシュート（2＝凸：GKはキャッチできない）
