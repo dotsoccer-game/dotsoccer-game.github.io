@@ -5287,7 +5287,9 @@
   const lbIco1 = (r) => r.c ? `${COIN}<b>コイン ×${r.c}</b>` : r.cards ? `<img class="lb-cd" src="cards/dribble.jpg" alt=""><b>特訓カード ×${r.cards}</b>` : `<img src="icons/kakera.png" alt=""><b>覚醒のカケラ ×${r.kak}</b>`;
   const lbTxt = (r) => r.c ? `${r.c}コイン` : r.cards ? `特訓カード ${r.cards}枚` : `覚醒のカケラ ${r.kak}個`;
   let lbBusy = false;
-  function lbPending() { return !!(save && save.clubSet && (!save.login || save.login.last !== lbKey())); }   // クラブを作り終えてから
+  /* 版1280：これまでログインボーナスでDコインに入っていた分を、金のコインで渡し直す（Dコインはそのまま）。1回だけ */
+  function lbFix1280() { if (!save || save.lbFix1280 != null) return; let tot = 0; const n0 = (save.login && save.login.n) || 0; for (let k = 0; k < n0; k++) tot += LB[k % 7].c || 0; save.lbFix1280 = tot; if (tot > 0) save.coins = (save.coins || 0) + tot; try { store(); } catch (_) {} }
+  function lbPending() { lbFix1280(); return !!(save && save.clubSet && (!save.login || save.login.last !== lbKey())); }   // クラブを作り終えてから
   async function loginDaily() {
     if (lbBusy || !save || /lab\.html$/.test(location.pathname)) return;
     if (!lbPending()) return;
@@ -5307,7 +5309,7 @@
       (document.getElementById('app') || document.body).appendChild(el);
       await new Promise((ok) => { el.querySelector('.lb2-go').onclick = ok; });
       const got = [];
-      if (rw.c) { C.earnCoins(save, rw.c); got.push(`${COIN}<b>+${rw.c}</b>`); }
+      if (rw.c) { save.coins = (save.coins || 0) + rw.c; got.push(`${COIN}<b>+${rw.c}</b>`); }   // 版1280：ログインボーナスのコインは金のコイン（前はDコインに入っていた）
       if (rw.kak) { save.kakera = (save.kakera || 0) + rw.kak; got.push(`<img class="kk-ico" src="icons/kakera.png" alt=""><b>+${rw.kak}</b>`); }
       if (rw.cards) { const cards = Object.keys(C.CARDS); for (let k = 0; k < rw.cards; k++) { let cd = null; for (let j = 0; j < 40; j++) { const c = cards[Math.floor(Math.random() * cards.length)]; if ((save.cards[c] || 0) < C.cardMax(save)) { cd = c; break; } } if (cd) { save.cards[cd] = (save.cards[cd] || 0) + 1; got.push(`<img class="pd-card" src="cards/${cd}.jpg" alt=""><b>${esc(C.CARDS[cd].name)}</b>`); } } }
       L.n++; L.last = lbKey(); store();
