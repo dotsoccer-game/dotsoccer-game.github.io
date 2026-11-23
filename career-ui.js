@@ -5537,7 +5537,8 @@
     if (info.faceKey) return starFace(info.faceKey, shirt, !!info.gk || info.position === 'GK');
     if (info.cpuTid && info.cpuNo != null) { const mk = mobKey(info.cpuTid, { no: info.cpuNo }); if (mk) return starFace(mk, shirt, !!info.gk || info.position === 'GK'); }   // CPUのモブ選手：共有の顔（ユニフォームの色を塗り替え）
     const mine = save && save.team && save.team.players.find((q) => q.name === info.name && (q.number == null || info.number == null || q.number === info.number));
-    return mine ? faceURL(mine) : null;
+    if (mine) return faceURL(mine);
+    return faceURL(info, false, { shirt: shirt || '#2f6fd6', sub: '#ffffff', pat: 'solid', gk: shirt || '#f2c230' });   // 版1281：フレンド・ほかの人のチームの選手も、その人の画面と同じ顔写真（前はドット絵になっていた）
   }
   function townRect(key) {   // ホームの建物（名前の札と建物の絵）が画面のどこにあるか（チュートリアルで光らせる）
     const hs = (hot && hot.length ? hot : townHot).filter((h) => h.go === key); if (!hs.length) return null;

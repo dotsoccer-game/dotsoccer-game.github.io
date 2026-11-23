@@ -511,8 +511,10 @@
         players: starters.map((p, i) => { const q = mkPlayer(p, ti, i, slots[i] || slots[slots.length - 1], P.length); q.slotIdx = i; P.push(q); return q; }),
       };
     });
-    const infoOf = (p) => ({ params: Object.fromEntries(PARAM_KEYS.map((k) => [k, p[k]])), name: p.name, number: p.number, type: p.type, position: p.position, hair: p.hair, hairColor: p.hairColor, skin: p.skin, gk: p.gk, skills: [...p.sk], uniq: p.uniq || undefined, passive: p.passive || undefined, faceKey: p.faceKey || undefined, cpuTid: p.cpuTid || undefined, cpuNo: p.cpuNo ?? undefined });
+    const infoOf = (p) => ({ params: Object.fromEntries(PARAM_KEYS.map((k) => [k, p[k]])), name: p.name, number: p.number, type: p.type, position: p.position, hair: p.hair, hairColor: p.hairColor, skin: p.skin, gk: p.gk, skills: [...p.sk], uniq: p.uniq || undefined, passive: p.passive || undefined, faceKey: p.faceKey || undefined, face: p.face || undefined, cpuTid: p.cpuTid || undefined, cpuNo: p.cpuNo ?? undefined });
     const rosterStart = T.map((tm) => tm.players.map(infoOf));   // キックオフ時の顔ぶれ（途中で交代したら、表示はこれと交代の記録から決める）
+    const faceMap = new Map(); for (const tm of T) for (const q of tm.players) if (q.face && typeof q.face === 'object') faceMap.set(q.name + '|' + q.number, q.face);
+    const faceSrc = (p) => faceMap.get(p.name + '|' + p.number);   // 版1281：顔写真の形（選手の向きの face とは別物）
     const pendingCh = (opts.changes || []).filter((c) => c.at != null).sort((a, b) => a.at - b.at);
     // 選手を入れ替える（ユーザーの交代・相手の自動交代で共通）
     function doSub(tm, k, pl) {
@@ -9540,7 +9542,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
     return {
       home: T[0].name, away: T[1].name, homeShort: T[0].short, awayShort: T[1].short, score: S.score, stats, events, frames,
       teamCells: teamsIn.map((t) => (Array.isArray(t.cells) ? t.cells.map((c) => c && { r: c.r, c: c.c }) : null)), teamForm: teamsIn.map((t) => t.formation || null),   /* 版1084：作戦の画面で相手の並びを出す */
-      roster: [P.slice(0, 11), P.slice(11, 22)].map((ps) => ps.map((p) => ({ params: Object.fromEntries(PARAM_KEYS.map((k) => [k, p[k] - (p.moodAdd || 0)])), name: p.name, number: p.number, type: p.type, position: p.position, hair: p.hair, hairColor: p.hairColor, skin: p.skin, gk: p.gk, skills: [...p.sk], uniq: p.uniq || undefined, passive: p.passive || undefined, faceKey: p.faceKey || undefined, cpuTid: p.cpuTid || undefined, cpuNo: p.cpuNo ?? undefined }))),
+      roster: [P.slice(0, 11), P.slice(11, 22)].map((ps, ti) => ps.map((p) => ({ params: Object.fromEntries(PARAM_KEYS.map((k) => [k, p[k] - (p.moodAdd || 0)])), name: p.name, number: p.number, type: p.type, position: p.position, hair: p.hair, hairColor: p.hairColor, skin: p.skin, gk: p.gk, skills: [...p.sk], uniq: p.uniq || undefined, passive: p.passive || undefined, faceKey: p.faceKey || undefined, face: faceSrc(p), cpuTid: p.cpuTid || undefined, cpuNo: p.cpuNo ?? undefined }))),
       uniqLog,
       actions,
       rosterStart,
