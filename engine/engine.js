@@ -201,8 +201,8 @@
   // 版850・852：固有スキルの強さ＝本人の総合力（50で4割・80で満点）×所属リーグ（地域0.7・D3 0.75・D2 0.9・D1 1.0）。発動しやすさは（0.5＋0.5×総合力の係数）×√リーグ
   const UNIQ_LG = { regE2: 1, regW2: 1, regE1: 1, regW1: 1, d3: 1, d2: 1, d1: 1 };   // 版855：リーグの係数はやめた（D3から上はCPUが強くなったので、本人の総合力だけで決める）。仕組みは残す
   function uniqStrength(p, lgId) {
-    const ovr = PARAM_KEYS.reduce((a, k) => a + (p[k] || 0), 0) / PARAM_KEYS.length, ef = Math.max(0.15, Math.min(1, (ovr - 50) / 30)), lf = lgId ? UNIQ_LG[lgId] ?? 1 : 1;
-    return { ovr, ef, lf, power: (0.4 + 0.6 * ef) * lf, chance: (0.5 + 0.5 * ef) * Math.sqrt(lf), powerD1: 0.4 + 0.6 * ef };
+    const ovr = PARAM_KEYS.reduce((a, k) => a + (p[k] || 0), 0) / PARAM_KEYS.length, ef = Math.max(0.05, Math.min(1, (ovr - 57) / 38)), lf = lgId ? UNIQ_LG[lgId] ?? 1 : 1;   // 版1283：試合の計算（uEF・uEK）と同じ式に。総合力95で満額
+    return { ovr, ef, lf, power: (0.25 + 0.75 * ef) * lf, chance: (0.35 + 0.65 * ef) * Math.sqrt(lf), powerD1: 0.25 + 0.75 * ef };
   }
   // タイプごとの得意・不得意（5つの基本能力から残りの7つを作る時のくせ）
   const TYPE_BIAS = {
