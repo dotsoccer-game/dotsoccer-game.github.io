@@ -713,10 +713,10 @@
     const uLgF = (p) => { const a = T[p.team] && T[p.team].lgId, b = T[1 - p.team] && T[1 - p.team].lgId; return a && b ? LG_UF[a] ?? 1 : 1; };
     // 版1015：国内屈指が何人も同時に出ていると、1人1人の固有スキルは少し控えめになる（4人までは満額。11人そろえると約6割）。全員を国内屈指でそろえると、格上にも一度も負けないほど強すぎた
     const uCrC = [{ t: -1, v: 1 }, { t: -1, v: 1 }];
-    const uCrowd = (t) => { const c = uCrC[t]; if (S.t - c.t < 1) return c.v; const n = P.filter((q) => q.team === t && q.uniq && !q.off).length; c.t = S.t; c.v = (globalThis.__Kucr ?? 1) ? Math.min(1, Math.sqrt((globalThis.__Kucr1 ?? 4) / Math.max(1, n))) : 1; return c.v; };   // 版1282：また使う。固有スキル持ちを11人そろえたチームが、総合力で8低くても4試合に3試合勝っていた。4人までは満額、11人で約6割（同じ条件で勝ち31%・分け41%・負け28%）
+    const uCrowd = (t) => { const c = uCrC[t]; if (S.t - c.t < 1) return c.v; const n = P.filter((q) => q.team === t && q.uniq && !q.off).length; c.t = S.t; c.v = (globalThis.__Kucr ?? 0) ? Math.min(1, Math.sqrt((globalThis.__Kucr1 ?? 4) / Math.max(1, n))) : 1; return c.v; };   // 版1282：また使う。固有スキル持ちを11人そろえたチームが、総合力で8低くても4試合に3試合勝っていた。4人までは満額、11人で約6割（同じ条件で勝ち31%・分け41%・負け28%）
     // 版1016：人数で弱めるのはやめ、本人の能力でしっかり差をつける：総合57以下はほぼ効かない（3割弱）→ 63で4割 → 70で約6割 → 87で満額
     const uOv2 = (globalThis.__Kuov ?? 1);
-    const uEF = (p) => uOv2 ? clamp((uOvr(p) - 57) / 30, 0.05, 1) : clamp((uOvr(p) - 50) / 30, 0.15, 1), uEK = (p) => (uOv2 ? 0.25 + 0.75 * uEF(p) : 0.4 + 0.6 * uEF(p)) * uLgF(p) * uCrowd(p.team);
+    const uEF = (p) => uOv2 ? clamp((uOvr(p) - 57) / ((globalThis.__Kuo95 ?? 1) ? 38 : 30), 0.05, 1)   /* 版1283：満額になる総合力を87→95に（人数で弱めるのはやめ、本人の能力だけで決める） */ : clamp((uOvr(p) - 50) / 30, 0.15, 1), uEK = (p) => (uOv2 ? 0.25 + 0.75 * uEF(p) : 0.4 + 0.6 * uEF(p)) * uLgF(p) * uCrowd(p.team);
     const uP = (p) => (p.uniqLv >= 2 ? 1.3 : 1) * uEK(p);   // 凸で強化：効果が1.3倍
     const grF = (p) => uEK(p) * clamp(((p.kick || 0) * 0.5 + (p.technique || 0) * 0.3 + (p.mental || 0) * 0.2 - 45) / 45, 0.25, 1.15);   // 版665：紅蓮の牙の強さは、本人のシュート力（キック・テクニック・メンタル）に連動。スカウト直後（60台）は4割ほど、国内屈指（90前後）で満額
     // GKの固有スキル（白亜の城壁・捨て身の守護神）の止める力の上乗せは、本人のセービング力に連動（CPUの国内屈指＝満額、手に入れた直後のE〜D＝2〜3割、99まで育てると満額を超える）
