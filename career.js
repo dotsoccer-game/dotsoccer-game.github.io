@@ -1669,7 +1669,7 @@
     ['ハードワーク', 'press running dash', { up: { speed: 10, dash: 4, stamina: 14, defense: 7 } }],
     ['鬼プレス', 'press weight camp', { up: { speed: 3, stamina: 7, physical: 7, defense: 7 } }],
     ['カウンター特訓', 'counter dash dribble', { up: { dribble: 11, speed: 13, dash: 7, vision: 5 } }],
-    ['ポゼッション', 'pass mini lifting', { up: { technique: 13, pass: 10, vision: 5 } }],
+    ['ポゼッション', 'pass mini lifting', { up: { technique: 13, pass: 22, vision: 5 } }],
     ['サイドアタック', 'dribble running agility', { up: { dribble: 13, speed: 11, stamina: 15 } }],
     ['空中戦強化', 'heading weight kickTr', { up: { physical: 13, jump: 16 } }],
     ['パワーヘッド', 'heading shoot weight', { up: { kick: 11, physical: 5, jump: 10 } }],

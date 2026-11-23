@@ -483,6 +483,7 @@
   // 試合終了：笛 → 最終スコア → 観客席 → ダイジェスト（ゴールシーン） → 結果
   // ================= 試合終了 → ダイジェスト → 試合結果（カルチョビットA） =================
   //  ダイジェスト：ゴール・決定機・タイムアップの場面を、緑の枠の中の画面で順に流す（くり返し）。右下の▶で試合結果へ
+  const FLASHY = { volley: 'ボレー', bicycle: 'バイシクル', divingHeader: 'ダイビングヘッド' };   // 版1289：ハイライトに必ず出す派手なシュート
   function digestItems() {
     const out = [], ev = match.events, ts = (k) => (k ? match.awayShort : match.homeShort);
     const tName = (k) => (k ? (mctx && mctx.opts.awayName) || match.awayShort : (mctx && mctx.opts.homeName) || match.homeShort);
@@ -500,7 +501,10 @@
         g.style === 'head' ? `${g.assist ? g.assist + 'のクロスに、' : ''}${name}が頭で合わせて${what === '先制' ? '先制' : what === '同点' ? '同点' : 'ゴール'}` :
         g.assist ? `${g.assist}からのパスを受けた、${name}の${what === '先制' ? '先制パンチ' : what === '同点' ? '同点弾' : what === '勝ち越し' ? '勝ち越し弾' : 'ゴール'}` :
         `${name}が${g.knuckle ? '無回転シュートで' : g.speed >= 100 ? '強烈なシュートで' : ''}${what === '先制' ? '先制' : what === '同点' ? '同点に追いつく' : 'ネットを揺らす'}`;
-      out.push({ t0: Math.max(0.2, g.t - 6), t1: (g.netEnd || g.t + 1.4) + 0.5, t: g.t, head: `${name}（${ts(g.team)}）${minTxt(g.t)}`, sc, cap1: `${halfTxt(g.t)}　${tName(g.team)}`, cap2: line, goal: true });
+      { const fs = ev.find((x) => x.type === 'shot' && x.team === g.team && x.player === g.player && x.t <= g.t + 0.05 && g.t - x.t < 3 && FLASHY[x.sk]); if (fs && g.player !== 'オウンゴール') line = `${name}の${FLASHY[fs.sk]}が炸裂！ ${g.assist ? g.assist + 'のボールに合わせて' : ''}${what === '先制' ? '先制' : what === '同点' ? '同点' : what === '勝ち越し' ? '勝ち越し' : 'ゴール'}`; }   // 版1289：派手なシュートのゴールは、技の名前を出す
+      // 版1289：GKのパントキック（ロングキック）から生まれたゴールは、GKが蹴るところから映す（試合中のリプレイと同じ決まり）
+      const rf = (globalThis.__Kdgk ?? 1) ? repFrom(g) : 99, t0g = rf < g.t - 6.6 ? rf : Math.max(0.2, g.t - 6);
+      out.push({ t0: t0g, t1: (g.netEnd || g.t + 1.4) + 0.5, t: g.t, head: `${name}（${ts(g.team)}）${minTxt(g.t)}`, sc, cap1: `${halfTxt(g.t)}　${tName(g.team)}`, cap2: line, goal: true });
     }
     // 決定機（GKが止めた・ポストに当たった）：多すぎないように、ゴールから離れたものを最大3つ
     const ch = [];
@@ -517,6 +521,12 @@
       const e = c.e, sc = scoreAt(e.t);
       out.push({ t0: Math.max(0.2, e.t - 5), t1: e.t + 2.2, t: e.t, head: `${minTxt(e.t)}`, sc, cap1: `${halfTxt(e.t)}　${tName(e.team)}`, cap2: c.post ? `${e.player}のシュートは、ポストに嫌われた` : `${e.player}がシュートを放つが、ゴールは阻まれた` });
     }
+    // 版1289：派手なシュート（ボレー・バイシクル・ダイビングヘッド）は、入らなくてもハイライトに出す（ほかの場面と近すぎないもの・最大3つ）
+    { let nf = 0; for (const e of ev) { if (e.type !== 'shot' || !FLASHY[e.sk] || nf >= 3) continue; if (goals.some((g) => g.t >= e.t && g.t - e.t < 3)) continue;
+      const sv = ev.find((x) => (x.type === 'save' || x.type === 'post') && x.t >= e.t && x.t - e.t < 2), nm = FLASHY[e.sk], same = out.find((x) => !x.goal && Math.abs(x.t - e.t) < 0.3);
+      if (same) { same.cap2 = sv && sv.type === 'post' ? `${e.player}の${nm}！ ポストに嫌われた` : `${e.player}の${nm}！ GKが止めた`; same.sp = true; nf++; continue; }   // 決定機として入っている場面は、技の名前を出す
+      if (out.some((x) => Math.abs(x.t - e.t) < 8)) continue;
+      out.push({ t0: Math.max(0.2, e.t - 5), t1: e.t + 2.2, t: e.t, head: `${minTxt(e.t)}`, sc: scoreAt(e.t), cap1: `${halfTxt(e.t)}　${tName(e.team)}`, cap2: sv && sv.type === 'post' ? `${e.player}の${nm}！ ポストに嫌われた` : sv ? `${e.player}の${nm}！ GKが止めた` : `${e.player}の${nm}！ わずかに枠の外`, sp: true }); nf++; } }
     // 版944：ファインセーブ：エリアに運び込んできた相手を、GKが詰めて足で止めた場面（最大2つ。ほかの場面と近すぎないもの）
     { let nb = 0; for (const e of ev) { if (e.type !== 'gkblock' || nb >= 2) continue; if (out.some((x) => Math.abs(x.t - e.t) < 10)) continue;
       out.push({ t0: Math.max(0.2, e.t - 5), t1: e.t + 2.2, t: e.t, head: `${minTxt(e.t)}`, sc: scoreAt(e.t), cap1: `${halfTxt(e.t)}　${tName(e.team)}`, cap2: `ファインセーブ！ ${e.player}が飛び出して、${e.shooter}を${e.how === 'body' ? '体を張って' : '足を伸ばして'}止めた` }); nb++; } }
