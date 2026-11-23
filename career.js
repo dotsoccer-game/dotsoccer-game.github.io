@@ -1560,6 +1560,7 @@
   const CAT_NAME = { tact: 'TACTICAL', tech: 'TECHNICAL', phys: 'PHYSICAL', sup: 'SUPPORT' };
   // スペシャルメニュー：カード3枚の組み合わせ（順番は関係なし）
   //  skill：覚えるスキル / type：裏パラをそのタイプへ / up：大きく上がる育成ポイント
+  // 版1288：それぞれの能力で一番大きく伸びるのは、能力系のスペシャルメニュー（スキル・タイプ・クセあり・全体アップのメニューより尖らせる）
   const SP = [
     // シュート
     ['無回転シュート', 'shoot placeKick lifting', { skill: 'knuckle', up: { kick: 15, technique: 9 } }],
@@ -1656,14 +1657,14 @@
     ['オーバートレーニング', 'sliding running weight', { up: { kick: -2, stamina: -5, physical: 24, mental: -2 }, fat: 145 }],
     ['のんびり休日', 'karaoke gameNight onsen', { up: { technique: 7, physical: -4, mental: 10 }, fat: -60 }],
     // ---- 能力をのばすメニュー（3枚） ----
-    ['鋼の肉体', 'weight kickTr stretch', { up: { kick: 6, physical: 20, jump: 4 } }],
+    ['鋼の肉体', 'weight kickTr stretch', { up: { kick: 6, physical: 26, jump: 4 } }],
     ['スプリンター', 'dash agility running', { up: { speed: 20, dash: 16, stamina: 4 } }],
-    ['跳躍力強化', 'heading aerobics stretch', { up: { stamina: 3, physical: 11, jump: 20 } }],
+    ['跳躍力強化', 'heading aerobics stretch', { up: { stamina: 3, physical: 11, jump: 22 } }],
     ['精密機械', 'lifting placeKick image', { up: { kick: 7, technique: 13, pass: 4 } }],
     ['キープ力', 'lifting weight dribble', { up: { technique: 7, dribble: 12, physical: 10 } }],
     ['ゲームの支配者', 'pass mini video', { up: { technique: 3, pass: 11, vision: 11 } }],
     ['不屈の精神', 'zazen aikido karaoke', { up: { mental: 20 } }],
-    ['鉄の肺', 'running aerobics camp', { up: { speed: 10, stamina: 20 } }],
+    ['鉄の肺', 'running aerobics camp', { up: { speed: 10, stamina: 22 } }],
     ['攻守の要', 'press pass running', { up: { pass: 8, speed: 4, stamina: 12, defense: 7 } }],
     ['ハードワーク', 'press running dash', { up: { speed: 10, dash: 4, stamina: 14, defense: 7 } }],
     ['鬼プレス', 'press weight camp', { up: { speed: 3, stamina: 7, physical: 7, defense: 7 } }],
@@ -1675,7 +1676,7 @@
     ['ミドルレンジ', 'shoot kickTr image', { up: { kick: 15, technique: 2, vision: 6 } }],
     ['ゴールハンター', 'shoot dash image', { up: { kick: 13, speed: 8, dash: 4, vision: 5 } }],
     ['決定力', 'shoot zazen image', { up: { kick: 9, vision: 3, mental: 11 } }],
-    ['クロス精度', 'placeKick pass mini', { up: { kick: 10, technique: 3, pass: 16 } }],
+    ['クロス精度', 'placeKick pass mini', { up: { kick: 10, technique: 3, pass: 20 } }],
     ['視野の広さ', 'video image meeting', { up: { vision: 14, mental: 8 } }],
     ['戦術眼', 'video line mini', { up: { defense: 6, vision: 13, mental: 2 } }],
     ['読みの鋭さ', 'video line sliding', { up: { defense: 14, vision: 11 } }],
@@ -1739,7 +1740,7 @@
     ['ビルドアップ型養成', 'pass line counter', { type: 'ビルドアップ型', up: { pass: 12, vision: 8, defense: 4 } }],
     ['スイーパーキーパー養成', 'dash line kickTr', { type: 'スイーパーキーパー', gk: true, up: { dash: 10, kick: 6, vision: 6 } }],
     // ---- 版676：能力をのばすメニューを増やす（スキルより能力のメニューの方がずっと多くなるように。番号がずれないよう、いちばん後ろに足す） ----
-    ['キック力強化', 'kickTr shoot aerobics', { up: { kick: 18, physical: 8 } }],
+    ['キック力強化', 'kickTr shoot aerobics', { up: { kick: 22, physical: 8 } }],
     ['シュート練習', 'shoot running dash', { up: { kick: 12, speed: 7, dash: 6 } }],
     ['左右の足', 'shoot lifting agility', { up: { kick: 10, technique: 10, dash: 4 } }],
     ['枠を狙え', 'shoot image placeKick', { up: { kick: 16, technique: 4, mental: 5 } }],
@@ -1788,7 +1789,7 @@
     ['体幹', 'weight aikido zazen', { up: { physical: 13, mental: 8, technique: 3 } }],
     ['ジャンプ力', 'stretch heading running', { up: { jump: 16, physical: 6, dash: 4 } }],
     ['けがに強い体', 'stretch onsen aerobics', { up: { physical: 12, stamina: 8 }, fat: -20 }],
-    ['守備練習', 'sliding manMark line', { up: { defense: 18, physical: 6 } }],
+    ['守備練習', 'sliding manMark line', { up: { defense: 21, physical: 6 } }],
     ['奪う力', 'sliding press dash', { up: { defense: 14, dash: 7, speed: 4 } }],
     ['ボール奪取', 'press manMark agility', { up: { defense: 13, dash: 8, speed: 4 } }],
     ['守備の約束事', 'line meeting zazen', { up: { defense: 10, vision: 10, mental: 5 } }],
@@ -1845,7 +1846,7 @@
     ['イメージシュート', 'image pk setplay', { up: { kick: 18, mental: 10, technique: 8 } }],
     ['PK戦特訓', 'pk camp meeting', { up: { kick: 16, mental: 14, vision: 6 } }],
     ['PKキッカー', 'pk setplay aroma', { up: { kick: 18, mental: 12, technique: 6 } }],
-    ['イメージドリブル', 'image mini aikido', { up: { dribble: 14, technique: 12, dash: 8, vision: 4 } }],
+    ['イメージドリブル', 'image mini aikido', { up: { dribble: 19, technique: 12, dash: 8, vision: 4 } }],
     ['技と心', 'aikido image gameNight', { up: { technique: 16, mental: 10, dash: 6, vision: 4 } }],
     ['空中戦の読み', 'setplay image aikido', { up: { jump: 16, physical: 8, vision: 8, mental: 4 } }],
     ['合気道の体さばき', 'aikido camp onsen', { up: { physical: 14, technique: 10, mental: 8, jump: 4 } }],
