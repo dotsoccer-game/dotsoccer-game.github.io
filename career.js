@@ -1866,6 +1866,8 @@
     ['イメトレ', 'image meeting', { up: { mental: 10, vision: 10, technique: 4 } }],
   ].map(([name, rec, o], id) => { const tot = Object.values(o.up || {}).reduce((a, v) => a + Math.max(0, v), 0) + (o.all || 0) * 12;
     return { id, name, key: rec.split(' ').sort().join('+'), cards: rec.split(' '), fat: Math.min(150, Math.round(40 + tot * 3)), ...o }; });
+  /* 版1287：スペシャルメニューの伸びは決まった数（ランダムなし）。アロマテラピーのおまけ（0〜上限のランダム）は、スペシャルメニューでは平均くらい（上限の半分）を決まった数として足しておく */
+  for (const m of SP) for (const c of m.cards) { const cd = CARDS[c]; if (cd && cd.rand) { m.up = { ...(m.up || {}) }; for (const k in cd.rand) m.up[k] = (m.up[k] || 0) + Math.floor(cd.rand[k] / 2); } }
   const SP_BY_KEY = Object.fromEntries(SP.map((m) => [m.key, m]));
   function findSpecial(cards, p) {
     if (cards.length < 2) return null;
@@ -1917,10 +1919,10 @@
       for (const c of cards) { const cd = CARDS[c]; for (const k in cd.up) add(k, cd.up[k]); if (cd.all) for (const k of KEYS) add(k, cd.all); }
     }
     // 版1286：カードのおまけ（アロマテラピーなど。0〜決まった数のランダム）。スペシャルメニューでも足される。表示に出すため、上がりうる最大を返す（疲れ・倍率はかからない）
-    const rnd = {}; for (const c of cards) { const cd = CARDS[c]; if (cd && cd.rand) for (const k in cd.rand) rnd[k] = (rnd[k] || 0) + cd.rand[k]; }
+    const rnd = {}; if (!sp) for (const c of cards) { const cd = CARDS[c]; if (cd && cd.rand) for (const k in cd.rand) rnd[k] = (rnd[k] || 0) + cd.rand[k]; }   // 版1287：スペシャルメニューはランダムなし
     return { ups, sp, rnd };
   }
-  const spRand = (m) => { const rnd = {}; for (const c of (m && m.cards) || []) { const cd = CARDS[c]; if (cd && cd.rand) for (const k in cd.rand) rnd[k] = (rnd[k] || 0) + cd.rand[k]; } return rnd; };
+  const spRand = () => ({});   // 版1287：スペシャルメニューはランダムなし（決まった数）
   // 1週間：全体練習＋カード特訓
   const TEAM_PTS = {
     base: { name: '基礎練習', all: 1, fat: 6 },
@@ -1963,7 +1965,7 @@
     const pv = previewCards(p, cards, trainMult(save));
     for (const k in pv.ups) add(k, Math.round(pv.ups[k]));
     for (const c of cards) { const cd = CARDS[c]; if (cd.hid && !(pv.sp && pv.sp.type)) moveHidden(p, cd.hid, (pv.sp ? 2 : 1) * TYPE_TUNE.hid);   // 版735：タイプ養成のSPは、カードごとのくせ（例：パスはsupport＋）を足さない。足すと目標のタイプを通り越して、近いタイプ（ゲームメイカー→レジスタ）に止まってしまう
-      if (cd.rand) for (const k in cd.rand) add(k, Math.floor(r() * (cd.rand[k] + 1)));
+      if (cd.rand && !pv.sp) for (const k in cd.rand) add(k, Math.floor(r() * (cd.rand[k] + 1)));   // 版1287：スペシャルメニューでは、カードのおまけ（ランダム）は足さない（メニューの決まった数に入れてある）
       if (!pv.sp) fat += (cd.fat || 0) / 12; if (cd.cond) p.cond = clamp((p.cond || 0) + cd.cond, -2, 2); }
     if (pv.sp) { out.sp = pv.sp.id; fat += (pv.sp.fat ?? 100) / 6;
       if (!save.spFound.includes(pv.sp.id)) { save.spFound.push(pv.sp.id); out.spNew = true; }
