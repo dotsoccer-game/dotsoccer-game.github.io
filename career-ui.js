@@ -1839,7 +1839,7 @@
     const canP = !(p.injury > 0) && !C.trainedThisWeek(save, p), lack = m.cards.filter((c) => (save.cards[c] || 0) < 1), gkNg = m.gk && p.position !== 'GK';
     const ok = known && canP && !lack.length && !gkNg;
     const why = !known ? 'まだ見つけていないメニューです' : !canP ? (p.injury > 0 ? `${esc(p.name)}はケガ中です` : `${esc(p.name)}は今週もう特訓しました`) : gkNg ? 'GK専用のメニューです' : lack.length ? `${lack.map((c) => esc(C.CARDS[c].name)).join('・')}のカードが足りません` : '';
-    const ups = known ? [...(m.all ? [`<span class="spu all">全能力<b>+${m.all}</b></span>`] : []), ...D.PARAM_KEYS.filter((k) => (m.up || {})[k]).map((k) => `<span class="spu">${ico(k)}${J[k]}<b>${m.up[k] > 0 ? '+' : ''}${m.up[k]}</b></span>`)].join('') : '<p class="sp-q">特訓で、このカードの組み合わせを試すと見つかります。<br>（色はカードの種類のヒント）</p>';
+    const ups = known ? [...(m.all ? [`<span class="spu all">全能力<b>+${m.all}</b></span>`] : []), ...(() => { const rr = C.spRand(m); return D.PARAM_KEYS.filter((k) => (m.up || {})[k] || rr[k]).map((k) => { const u = (m.up || {})[k] || 0, r = rr[k] || 0; return `<span class="spu${u ? '' : ' rnd'}">${ico(k)}${J[k]}<b>${r ? `+${u}〜${u + r}` : `${u > 0 ? '+' : ''}${u}`}</b></span>`; }); })()].join('')   /* 版1286：アロマテラピーなどのおまけ（ランダム）も、上がりうる幅で出す */ : '<p class="sp-q">特訓で、このカードの組み合わせを試すと見つかります。<br>（色はカードの種類のヒント）</p>';
     const rate = known && m.skill ? Math.round(C.skillRate(p, m.skill) * 100) : null;
     const who = ps.map((q, i) => `<button class="spw${i === pi ? ' on' : ''}${q.injury > 0 || C.trainedThisWeek(save, q) ? ' done' : ''}" data-pi="${i}">${portrait(q)}<b>${esc(q.name)}</b><i class="pos ${POSC[q.position]}">${q.position}</i>${q.injury > 0 ? '<em>ケガ</em>' : C.trainedThisWeek(save, q) ? '<em>済</em>' : ''}</button>`).join('');
     // 版1161：この選手が特訓したら、どの能力がどこまで上がるか（疲れ具合・上限も入れた、実際の伸び）
@@ -1849,13 +1849,13 @@
       if (!pv.sp || pv.sp.id !== m.id) return '';
       C.ensurePts(p);
       const cap = C.capPts(p), capG = C.capGrade(p);
-      const keys = D.PARAM_KEYS.filter((k) => Math.round(pv.ups[k] || 0) !== 0);
+      const rr = pv.rnd || {}, keys = D.PARAM_KEYS.filter((k) => Math.round(pv.ups[k] || 0) !== 0 || rr[k]);
       if (!keys.length) return '';
       // 版1162：選手カードの「詳しい能力値」と同じ並び（12の能力のアイコン・ランク・伸びる数・バーと数値）。黄色が今回伸びる分
       const col = D.PARAMS.map((q) => {
-        const k = q.k, v = p.pts[k], add = Math.round(pv.ups[k] || 0), to = add > 0 ? Math.min(C.PMAX - 1, Math.max(v, Math.min(cap, v + add))) : Math.max(0, v + add);
+        const k = q.k, v = p.pts[k], add = Math.round(pv.ups[k] || 0), to = add > 0 ? Math.min(C.PMAX - 1, Math.max(v, Math.min(cap, v + add))) : Math.max(0, v + add), rmax = rr[k] || 0, toMax = rmax ? Math.min(C.PMAX - 1, Math.max(to, Math.min(cap, to + rmax))) : to, effMax = Math.round(toMax - v);
         const a = C.rankInfo(v), b = C.rankInfo(to), up = b.g !== a.g && to > v, eff = Math.round(to - v);
-        const tag = add > 0 ? (eff <= 0 ? '<em class="cap">上限</em>' : up ? `<em class="rkup">→${b.g}</em>` : `<em>+${eff}</em>`) : add < 0 ? `<em class="dn">${add}</em>` : '<em></em>';
+        const tag = rmax && add >= 0 ? (effMax <= 0 ? '<em class="cap">上限</em>' : `<em class="rng">+${Math.max(0, eff)}〜${effMax}</em>`) : add > 0 ? (eff <= 0 ? '<em class="cap">上限</em>' : up ? `<em class="rkup">→${b.g}</em>` : `<em>+${eff}</em>`) : add < 0 ? `<em class="dn">${add}</em>` : '<em></em>';   // 版1286：おまけ（ランダム）のある能力は「+最小〜最大」
         const p1 = Math.round(a.pct * 100), p2 = up ? 100 : Math.round(b.pct * 100);
         return { ic: `<span class="pc-abi" data-abq="${k}">${ico(k)}</span>`, gr: `<div><b class="rk rk-${a.g}">${a.g}</b>${tag}</div>`,
           bar: `<div class="ab-bar"><i class="bar"><i style="height:${Math.min(p1, p2)}%"></i>${to > v ? `<u style="bottom:${p1}%;height:${Math.max(0, p2 - p1)}%"></u>` : ''}${to < v ? `<s style="bottom:${p2}%;height:${Math.max(0, p1 - p2)}%"></s>` : ''}</i><b>${Math.floor(v)}</b></div>` };

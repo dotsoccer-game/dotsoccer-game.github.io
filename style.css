@@ -4935,7 +4935,7 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 .sp2-ab .ab-gr div{display:flex;flex-direction:column;align-items:center;line-height:1}
 .sp2-ab .ab-gr .rk{font-size:22px;-webkit-text-stroke-width:1.5px}
 .sp2-ab .ab-gr em{font-style:normal;font-size:12px;font-weight:900;color:#1a9a2a;height:13px;white-space:nowrap}
-.sp2-ab .ab-gr em.rkup{color:#e8501a}.sp2-ab .ab-gr em.dn{color:#c02020}.sp2-ab .ab-gr em.cap{color:#887;font-size:10px}
+.sp2-ab .ab-gr em.rng{font-size:10px;letter-spacing:-.5px}.spu.rnd{background:#4a4f4a}.sp2-ab .ab-gr em.rkup{color:#e8501a}.sp2-ab .ab-gr em.dn{color:#c02020}.sp2-ab .ab-gr em.cap{color:#887;font-size:10px}
 .sp2-ab .ab-bars{margin-top:3px;background:#fdf7d6;border:2px solid #e2d8a0;border-radius:8px;padding:4px 2px 2px}
 .sp2-ab .ab-bar{display:flex;flex-direction:column;align-items:center;gap:1px}
 .sp2-ab .ab-bar .bar{position:relative;display:block;width:15px;height:54px;background:#1c2420;border:2px solid #555;border-radius:3px;overflow:hidden}
