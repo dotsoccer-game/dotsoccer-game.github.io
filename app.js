@@ -3079,7 +3079,8 @@
       let view = 'side';
       {
         let vx2 = 0, vy2 = 0;
-        if (p.sp > 0.6) { const m = proj(p.x + p.vx, p.y + p.vy); vx2 = m.x - q.x; vy2 = m.y - q.y; }
+        const gkLook = (globalThis.__Kgkl ?? 1) && (info.gk || info.position === 'GK') && p.sp < 4.5 && !(st.gk && st.gk[team]);   // 版1285：GKは、全力で走る時・セービングの動きの時以外は、横に動いていてもボールに正対する（PKで横を向いて、ボールを見ていなかった）
+        if (p.sp > 0.6 && !gkLook) { const m = proj(p.x + p.vx, p.y + p.vy); vx2 = m.x - q.x; vy2 = m.y - q.y; }
         else { const m = proj(st.ball.x, st.ball.y); vx2 = m.x - q.x; vy2 = (m.y - q.y) * 0.8; }
         // 向きは少しずつ回す（なめらかに）＋8方向の境目で行ったり来たりしないように「遊び」を持たせる
         const h = (viewHold[i] ||= { sx: 0, sy: 0, k: -1, t: animT });

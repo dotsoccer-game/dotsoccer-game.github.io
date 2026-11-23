@@ -7838,8 +7838,12 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
     // パンチング（スキル）：スペースか味方を狙ってはじく。持っていなければ前・外へ大きく
     // 版862：はじく方向を選ぶ（うまいGKほど、相手のいない所へ逃がす）。候補：ゴールラインの外（CK）・左右のタッチライン寄り。落ちる所のまわりの相手が少ない方
     // 版868：GKがはじいた球は、来たシュートより必ず遅い（手・体に当たって勢いを失う）
+    /* 版1285：シュート（PKも）をはじいた球は、来た球より必ず遅く・低く。PKやシュートをはじいて、センターライン近くまで飛んでいくことがあった（パンチングの強い返しが、シュートにもそのまま使われていた） */
+    function shotCap(b, k0, sp0) { if (!(globalThis.__Kpc ?? 1) || k0 !== 'shot') return; const pk = !!b.pkShot, cap = Math.min(pk ? 7 : 11, Math.max(4, sp0 * 0.42)), h = hyp(b.vx, b.vy); if (h > cap) { b.vx *= cap / h; b.vy *= cap / h; } b.vz = Math.min(b.vz, pk ? 1.6 : 2.8); }   // PKは、はじいてもペナルティエリアの中まで
+    function punchTo(p, b, hard) { const k0 = b.kind, sp0 = hyp(b.vx, b.vy); punchTo0(p, b, hard); shotCap(b, k0, sp0); }
+    function parryAway(p, b, skill, pref) { const k0 = b.kind, sp0 = hyp(b.vx, b.vy), r = parryAway0(p, b, skill, pref); if (r) shotCap(b, k0, sp0); return r; }
     function capOut(b, sp) { const cap = Math.max(4, sp * 0.5), h = hyp(b.vx, b.vy); if (h > cap) { b.vx *= cap / h; b.vy *= cap / h; } }
-    function parryAway(p, b, skill, pref) {   // 版867：pref＝ボールが流れていく側（はじいた球は、その向きのまま外へ）
+    function parryAway0(p, b, skill, pref) {   // 版867：pref＝ボールが流れていく側（はじいた球は、その向きのまま外へ）
       const good = R.next() < clamp(0.3 + (skill - 50) * 0.015, 0.25, 0.93);
       if (!good) return false;
       const s0 = sgn(p.team), gl = fx(p.team, 0), side0 = pref || Math.sign(b.y - GOAL_Y) || (R.next() < 0.5 ? -1 : 1), cands = [];
@@ -7851,7 +7855,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       Object.assign(b, { vx: c.vx, vy: c.vy, vz: R.range(1.2, 3), z: Math.max(b.z, 0.4), kind: 'loose', lastTeam: p.team, lastPlayer: p.idx, spin: 0, knuckle: false, intended: -1 });
       return true;
     }
-    function punchTo(p, b, hard) {
+    function punchTo0(p, b, hard) {
       // 版955：パンチングは、ボールが飛んできたのと逆のサイドへ（そちらの方が空いていることが多い）。来た方へ返すと詰められる
       if (globalThis.__Kpn2 ?? 1) { const dx0 = b.x - p.x, dy0 = b.y - p.y, dl0 = hyp(dx0, dy0); if (dl0 > 0.5) { b.x = p.x + dx0 / dl0 * 0.5; b.y = p.y + dy0 / dl0 * 0.5; } if (hard) b.z = Math.max(b.z, 2.2); }   // 版959：パンチは、こぶしの所（体の前0.5m・跳んだ頭の上）で当たる（離れた所ではじけない）
       const K5 = (globalThis.__Kpun ?? 1), oy0 = b.kY != null ? b.kY : b.sy0 != null ? b.sy0 : null;
@@ -8904,6 +8908,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
                   p.saveT = 0.75; p.saveK = sty === 'block' ? 11 : kd; if (globalThis.__scnLog) globalThis.__scnLog.push(['sv' + p.saveK, +S.t.toFixed(1), p.team]); p.touchCd = 0.8;
                   if (narP) { const sy = Math.sign(b.y - GOAL_Y) || 1; Object.assign(b, { vx: -s0 * R.range(1.5, 3.5), vy: sy * R.range(4, 7), vz: R.range(0.2, 1.2), z: Math.max(b.z, 0.3), kind: 'loose', lastTeam: p.team, lastPlayer: p.idx, spin: 0, knuckle: false, intended: -1 }); }   // 版948：角度のない所からのシュートを足で止めた：ゴールの前にこぼさず、ポストの外（ゴールラインの外＝CK）へはじく
                   else if (!parryAway(p, b, skill, Math.sign(yAt - p.y) || 0)) Object.assign(b, { vx: s0 * R.range(2, 6), vy: R.gauss() * 4, vz: R.range(0.3, 1.5), z: Math.max(b.z, 0.3), kind: 'loose', lastTeam: p.team, lastPlayer: p.idx, spin: 0, knuckle: false, intended: -1 });
+                  if (globalThis.__Kpc ?? 1) shotCap(b, 'shot', sp);   // 版1285：はじいた球は来た球より遅く
                   { const cap = Math.max(4, sp * R.range(0.3, 0.45)), h = hyp(b.vx, b.vy); if (h > cap) { b.vx *= cap / h; b.vy *= cap / h; } b.vz = Math.min(b.vz, 2.5); }   // 版868：足に当たった球も、シュートより遅く
                   return;
                 } }
