@@ -7202,7 +7202,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           }
         } else if (r.type === 'goalkick' && R.next() < 0.75) {
           // ゴールキック：キック力があるほど遠くへ
-          const dist = Math.min(26 + tk.kick * 0.38 + R.gauss() * 3, L / 2 + 9.15 - fx(tk.team, tk.x));   // 届いても相手のセンターサークルの終わりくらいまで
+          const kp = (globalThis.__Kgkd2 ?? 1) ? (tk.kick || 50) * 0.7 + (tk.physical || 50) * 0.3 : 0, dist = Math.min((globalThis.__Kgkd2 ?? 1) ? 16 + kp * 0.45 + R.gauss() * 2.5 : 26 + tk.kick * 0.38 + R.gauss() * 3, L / 2 + 9.15 - fx(tk.team, tk.x));   // 届いても相手のセンターサークルの終わりくらいまで。版1302：キック7割・フィジカル3割で決める。キックD・フィジカルCで約40m（ハーフウェーラインの手前）、オールSでやっと相手のセンターサークルまで（前はキックDでもセンターサークルの先まで飛んでいた）
           const fwds = mates(tk).filter((m) => m.slot.last || m.slot.line === 1);
           const tgt = fwds.reduce((best, m) => (Math.abs(fx(tk.team, m.x) - fx(tk.team, tk.x) - dist) < Math.abs(fx(tk.team, best.x) - fx(tk.team, tk.x) - dist) ? m : best), fwds[0]);
           const tx = clamp(tk.x + sgn(tk.team) * dist, 5, L - 5), ty = clamp(tgt.y + R.gauss() * 5, 6, W - 6);
