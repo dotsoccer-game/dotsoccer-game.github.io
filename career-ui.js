@@ -3591,6 +3591,13 @@
       store(); open();
       await postComp(res, info);
       store(); open();
+      if ((globalThis.__Kcpz ?? 1) && res.kind === 'cup' && (res.prize || res.cupPaid)) {   // 版1299：国内カップの賞金（Dコイン）を、いくらもらえたか必ず出す（ふつうの試合の流れでは出ていなかった）
+        const acc = save.prize && save.prize.season === save.season ? save.prize.items.filter((x) => /^国内カップ/.test(x.label)).reduce((a2, x) => a2 + (x.coins || 0), 0) : 0;
+        const rows = res.cupPaid ? res.cupPaid.items.map((x) => `<div class="gc-prize"><b>${esc(x.label)}</b><em>${DCOIN}+${(x.coins || 0).toLocaleString()}</em></div>`).join('') : '';
+        await storyCard({ theme: 'win', tag: '国内カップ', title: res.cupPaid ? `賞金 ${res.cupPaid.total.toLocaleString()} Dコイン 獲得！` : `賞金 +${res.prize.toLocaleString()} Dコイン`,
+          body: res.cupPaid ? `${rows}<div class="gc-prize"><b>受け取った合計</b><em>${DCOIN}+${res.cupPaid.total.toLocaleString()} Dコイン</em></div><p class="cp-msg gc-msg">カップ戦の賞金を受け取りました。Dコインは、ショップで特訓カードを買うのに使えます。</p>`
+            : `<div class="gc-prize"><b>この試合の賞金</b><em>${DCOIN}+${res.prize.toLocaleString()} Dコイン</em></div><div class="gc-prize"><b>たまっている賞金</b><em>${DCOIN}${acc.toLocaleString()} Dコイン</em></div><p class="cp-msg gc-msg">賞金は、カップ戦が終わった時（負けた時・優勝した時）にまとめて受け取れます。</p>` });
+        store(); open(); }
       if (res.champNow) { await champAfter(res.champNow); store(); open(); }   // 版580：優勝のあと（選手のひとこと → トロフィー → 秘書）
       await blackClear(350);   // 版561：順位表のあとの暗転を明ける（前は秘書の画面が明けていたが、支持率をなくしたので真っ暗のまま止まっていた）
       await endWeek();
