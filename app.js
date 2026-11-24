@@ -2375,7 +2375,13 @@
   // ---------- スキル演出 ----------
   let mdBallTeam = -1, mdFiresM = null, mdFires = [[], []];   // 版1224：翠の起点：ボールを持っている（最後に持った）チームと、そのチームの発動の時刻
   // 版1259：ゴールのリプレイは、ふつうはゴールの6.5秒前から。GKのキック（パントキック）からそのまま点になった時（16秒以内・その間に相手が一度も持っていない）は、GKが蹴る所から映す
-  function repFrom(g) {
+  function repFrom(g) { const r0 = repFrom0(g); if (!(globalThis.__Krep2 ?? 1) || !match || !match.frames || g.team == null || r0 < g.t - 6.6) return r0;
+    /* 版1290：GKがキャッチして手に持っている間は、ボールの持ち主が「だれでもない」になるので、上の探し方では相手のシュートまでさかのぼってしまい、GKのキックが見つからなかった。GKのキック（パント・低弾道パント・ロングキック）を記録から探し、そこから点が入るまで相手にボールが渡っていなければ、蹴る少し前から映す */
+    const gk = g.team * 11, F = match.frames, ka = (match.actions || []).filter((a) => a.i === gk && a.t < g.t - 0.5 && g.t - a.t < 16 && (a.a === 'kick' || a.a === 'punt' || (a.a === 'skill' && a.k === 'lowPunt'))).pop();
+    if (!ka) return r0;
+    for (const f of F) { if (f[0] <= ka.t + 0.2) continue; if (f[0] > g.t) break; const o = f[4]; if (o >= 0 && (o < 11 ? 0 : 1) !== g.team) return r0; }
+    return Math.max(0.2, ka.t - 1.5); }
+  function repFrom0(g) {
     const def = Math.max(0.2, g.t - 6.5); if (!(globalThis.__Krep ?? 1) || !match || !match.frames || g.team == null) return def;
     const F = match.frames, gk = g.team * 11; let i = F.length - 1; while (i > 0 && F[i][0] > g.t) i--;
     for (; i > 0 && F[i][0] >= g.t - 16; i--) { const o = F[i][4]; if (o < 0) continue; if ((o < 11 ? 0 : 1) !== g.team) return def; if (o === gk) { if (F[i][0] >= def) return def; const kickT = F[i][0], ks = (match.actions || []).some((a) => a.i === gk && Math.abs(a.t - kickT) < 1.2 && (a.a === 'kick' || a.a === 'punt' || (a.a === 'skill' && a.k === 'lowPunt')));
