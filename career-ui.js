@@ -721,7 +721,8 @@
         [lg, sm, b].forEach((e) => e && (e.style.fontSize = '')); if (tr) tr.style.display = '';
         if (tr && h.scrollWidth > h.clientWidth + 1) tr.style.display = 'none';   // 版1292：入りきらない時は、まずトロフィーの絵を外す（準々決勝などが切れていた）
         for (let f = 11; f >= 7 && h.scrollWidth > h.clientWidth + 1; f -= 0.5) { if (lg) lg.style.fontSize = f + 'px'; if (sm) sm.style.fontSize = f + 'px'; if (b && f < 10) b.style.fontSize = (f + 3) + 'px'; } };
-      fit(); requestAnimationFrame(fit); setTimeout(fit, 300); }
+      fit(); requestAnimationFrame(fit); setTimeout(fit, 300); setTimeout(fit, 1500);
+      card._fit = fit; try { if (document.fonts) { document.fonts.ready.then(() => card._fit && card._fit()); if (!card._fl) { card._fl = 1; document.fonts.addEventListener('loadingdone', () => card._fit && card._fit()); } } } catch (_) {} }   // 版1295：アプリを開いてすぐは、文字の形（フォント）が読み込まれる前に大きさを測っていて、読み込み後にはみ出していた。読み込みが終わったら測り直す
     { const go2 = card.querySelector('.nm2-when'); if (go2) go2.onclick = (e) => { e.stopPropagation(); advance(); }; }   // 版657：赤いボタンは「週を進める」と同じく、コーチが「スタジアムに移動しますか？」と聞く（ほかの所は今まで通り試合日程）
   }
   // ================= クラブハウス：練習グラウンド（カルチョビットAのように、ななめのグラウンドで色んな練習） =================
