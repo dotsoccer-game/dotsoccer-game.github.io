@@ -4763,7 +4763,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       if ((globalThis.__Kkg3 ?? 1) && kgOn(p)) pressure = Math.max(pressure, 1) + 0.6;   // 版1013：影縫いに張りつかれている：シュートもパスも大きく乱れる
       const fatigue = 1 - (p.sk.has('lateGrit') && S.t * CLOCK_SCALE / 60 >= 70 ? Math.max(curE(p), 60) : curE(p)) / 100;   // 版985：キックへの疲れの影響は4割に（へとへとでもシュートは打てる。落ちるのは守備・判断・走り）
       const fatigueK = (globalThis.__Kfw ?? 1) ? fatigue * 0.4 : fatigue;   // 終盤の粘り：疲れてもプレーが落ちない
-      const maxV = 12 + p.kick * 0.28;                      // キック力 50 → 26m/s、80 → 34m/s
+      const maxV = Math.max(12 + p.kick * 0.28, opt.gkLong ? 27 : 0);   // キック力 50 → 26m/s、80 → 34m/s。版1303：ゴールキックは、キックEでもハーフウェーラインの手前まで届く強さで蹴れる
       let csGkNear = 0, driveG = 0, driveUp = 0, driveOn = false, csPlace = false, csType = '', ang = Math.atan2(dy, dx), speed, vz = 0, spin = 0, knuckle = false, bs = -0.4, aimCurve = false;
       if (kind === 'shot') {
         // 目で追える速さ（カルチョビットA程度）。強い選手ほど速いが、最速でも70km/h台
@@ -7202,11 +7202,11 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           }
         } else if (r.type === 'goalkick' && R.next() < 0.75) {
           // ゴールキック：キック力があるほど遠くへ
-          const kp = (globalThis.__Kgkd2 ?? 1) ? (tk.kick || 50) * 0.7 + (tk.physical || 50) * 0.3 : 0, dist = Math.min((globalThis.__Kgkd2 ?? 1) ? 16 + kp * 0.45 + R.gauss() * 2.5 : 26 + tk.kick * 0.38 + R.gauss() * 3, L / 2 + 9.15 - fx(tk.team, tk.x));   // 届いても相手のセンターサークルの終わりくらいまで。版1302：キック7割・フィジカル3割で決める。キックD・フィジカルCで約40m（ハーフウェーラインの手前）、オールSでやっと相手のセンターサークルまで（前はキックDでもセンターサークルの先まで飛んでいた）
+          const kp = (globalThis.__Kgkd2 ?? 1) ? (tk.kick || 50) * 0.7 + (tk.physical || 50) * 0.3 : 0, dist = (globalThis.__Kgkd2 ?? 1) ? Math.min(21 + kp * 0.63 + R.gauss() * 2.5, L - 20.5 - fx(tk.team, tk.x)) : Math.min(26 + tk.kick * 0.38 + R.gauss() * 3, L / 2 + 9.15 - fx(tk.team, tk.x));   /* 版1303：オールEでもハーフウェーラインの手前まで（約43m）、オールSで相手のペナルティアークまで（約79m） */   // 届いても相手のセンターサークルの終わりくらいまで。版1302：キック7割・フィジカル3割で決める。キックD・フィジカルCで約40m（ハーフウェーラインの手前）、オールSでやっと相手のセンターサークルまで（前はキックDでもセンターサークルの先まで飛んでいた）
           const fwds = mates(tk).filter((m) => m.slot.last || m.slot.line === 1);
           const tgt = fwds.reduce((best, m) => (Math.abs(fx(tk.team, m.x) - fx(tk.team, tk.x) - dist) < Math.abs(fx(tk.team, best.x) - fx(tk.team, tk.x) - dist) ? m : best), fwds[0]);
           const tx = clamp(tk.x + sgn(tk.team) * dist, 5, L - 5), ty = clamp(tgt.y + R.gauss() * 5, 6, W - 6);
-          kick(tk, tx, ty, 'pass', 'high', { landFrac: 1 });
+          kick(tk, tx, ty, 'pass', 'high', { landFrac: 1, gkLong: (globalThis.__Kgkd2 ?? 1) }); if (globalThis.__gkkDbg) globalThis.__gkkDbg.push({ t: S.t, x0: tk.x, tx, kick: tk.kick, ph: tk.physical });
           S.ball.intended = tgt.idx; S.ball.offside = false; stats[tk.team].passes++;
           S.lastPass[tk.team] = { from: tk.idx, t: S.t };
         } else if (r.type === 'penalty') {
