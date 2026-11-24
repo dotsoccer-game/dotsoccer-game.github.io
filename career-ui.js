@@ -707,7 +707,7 @@
       const opSub = fx.kind === 'league' ? `${rank(fx.opp)}位` : lgName(fx.opp);
       const wl = fx.weeksLeft;
       const when = wl <= 0 ? '<b class="nm2-big">今週は試合の日！</b><small>ここを押してスタジアムへ</small>' : `<span>試合まで あと</span><b class="nm2-num">${wl}</b><span>週</span><small>${fk.m}月${fk.w}週</small>`;   // 版643：今週か、まだ先かをはっきり
-      body = `<div class="nm2-hd${wl <= 0 ? ' today' : ''}"><b>${wl <= 0 ? '今週の試合' : '次の試合'}</b>${fx.kind === 'league' ? `<i class="nm2-kind lg">リーグ戦</i><span class="nm2-lgi" title="${esc(fx.comp)}">${lgBadge(save.league.id)}</span>` : fx.kind === 'cup' ? `<img class="nm2-tr" src="${trophyImg('cup')}" alt=""><i class="nm2-kind cup">国内カップ</i>` : `<i class="h2-lg cup">${esc(fx.comp)}</i>`}${fx.label ? `<small>${esc(fx.label)}</small>` : ''}</div>
+      body = `<div class="nm2-hd${wl <= 0 ? ' today' : ''}"><b>${wl <= 0 ? '今週の試合' : '次の試合'}</b>${fx.kind === 'league' ? `<i class="nm2-kind lg">リーグ戦</i><span class="nm2-lgi" title="${esc(fx.comp)}">${lgBadge(save.league.id)}</span>` : fx.kind === 'cup' ? `<i class="nm2-kind cup">国内カップ</i>` : `<i class="h2-lg cup">${esc(fx.comp)}</i>`}${fx.label ? `<small>${esc(fx.label)}</small>` : ''}</div>
         <div class="nm2-vs"><div class="nm2-t me"><img src="${emblemURL(save.team.name, 96)}" alt=""><b>${esc(save.team.name)}</b>${meSub ? `<small>${meSub}</small>` : ''}<i class="nm2-ha ${fx.home ? 'h' : 'a'}">${fx.home ? 'HOME' : 'AWAY'}</i></div>
           <span class="nm2-x">VS</span>
           <div class="nm2-t"><img src="${emblemURL(fx.opp.name, 96)}" alt=""><b>${esc(fx.opp.name)}</b>${opSub ? `<small>${opSub}</small>` : ''}</div></div>
@@ -717,8 +717,9 @@
     let card = home.querySelector('.h2-card'); if (!card) { card = document.createElement('div'); card.className = 'h2-card'; home.appendChild(card); card.onclick = () => go('assoc'); }
     card.innerHTML = body; card.classList.toggle('cup', !!(fx && fx.kind === 'cup')); card.classList.toggle('lgm', !!(fx && fx.kind === 'league'));   // 版1291：国内カップの週は、カードを金色に（リーグ戦は今までの青）
     // 版716：見出しが入りきらない時は、「…」で切らずに、文字を少しずつ小さくして全部入れる
-    { const fit = () => { const h = card.querySelector('.nm2-hd'); if (!h || !h.clientWidth) return; const lg = h.querySelector('.h2-lg'), sm = h.querySelector('small'), b = h.querySelector('b');
-        [lg, sm, b].forEach((e) => e && (e.style.fontSize = ''));
+    { const fit = () => { const h = card.querySelector('.nm2-hd'); if (!h || !h.clientWidth) return; const lg = h.querySelector('.h2-lg') || h.querySelector('.nm2-kind'), sm = h.querySelector('small'), b = h.querySelector('b'), tr = h.querySelector('.nm2-tr');
+        [lg, sm, b].forEach((e) => e && (e.style.fontSize = '')); if (tr) tr.style.display = '';
+        if (tr && h.scrollWidth > h.clientWidth + 1) tr.style.display = 'none';   // 版1292：入りきらない時は、まずトロフィーの絵を外す（準々決勝などが切れていた）
         for (let f = 11; f >= 7 && h.scrollWidth > h.clientWidth + 1; f -= 0.5) { if (lg) lg.style.fontSize = f + 'px'; if (sm) sm.style.fontSize = f + 'px'; if (b && f < 10) b.style.fontSize = (f + 3) + 'px'; } };
       fit(); requestAnimationFrame(fit); setTimeout(fit, 300); }
     { const go2 = card.querySelector('.nm2-when'); if (go2) go2.onclick = (e) => { e.stopPropagation(); advance(); }; }   // 版657：赤いボタンは「週を進める」と同じく、コーチが「スタジアムに移動しますか？」と聞く（ほかの所は今まで通り試合日程）
