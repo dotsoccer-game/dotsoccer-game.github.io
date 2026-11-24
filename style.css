@@ -5156,3 +5156,10 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 /* 版1292：国内カップの試合の日は、カードの外側の光も金色に（赤い枠と重なって変に見えていた）。見出しの札は少し小さく */
 .h2-card.cup:has(.nm2-hd.today){border-color:#ffe27a;box-shadow:0 0 0 3px #e8a400,0 0 18px rgba(255,200,40,.6)}
 .nm2-hd .nm2-kind{font-size:12px;padding:1px 6px}
+
+/* 版1293：国内リーグは赤でそろえる（試合の日だけでなく、ふだんの週の「次の試合」の見出しも赤）。国内カップは金色 */
+.h2-card.lgm .nm2-hd{background:linear-gradient(#ff6a3a,#d8301a)}
+.nm2-kind.lg{color:#c8202a}
+#compTag.lg{background:linear-gradient(#ff6a3a,#d8301a);color:#fff}
+/* 版1293：リーグ戦の見出しは、試合の日もいつもの青のまま（赤は「試合の日」の色で、リーグとカップの区別がつきにくかった）。試合の日は下の赤いボタンで分かる */
+.h2-card.lgm .nm2-hd.today{background:linear-gradient(#2a62d8,#1745b0)}
