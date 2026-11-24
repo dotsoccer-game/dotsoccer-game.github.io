@@ -3177,6 +3177,16 @@
         if (ex) { const o = opts.filter((o) => o.kind === 'pass' && o.q && ex.includes(o.q.idx)); const srt = opts.slice().sort((x, y) => y.v - x.v), bv = srt[0].v; globalThis.__gpDbg.push([gpG.k + (gpG.ph || ''), o.length ? +Math.max(...o.map((x) => x.v)).toFixed(1) : null, +bv.toFixed(1), o.length ? +Math.min(...o.map((x) => x.danger ?? 9)).toFixed(2) : null, srt.slice(0, 3).map((x) => x.kind + (x.mode || '') + ':' + x.v.toFixed(1)).join(' ')]); } }   // 版924：デカラ：背負ったまま無理に前を向かない（預けられる味方がいる時）
       { const mk = (globalThis.__Kmd2 ?? 1) && !p.gk && !S.setPiece ? Math.min(4, mdK(p)) : 0;   // 版1219：翠の起点：たまるほど、短いパスでテンポよく回す
         if (mk && xf < L - 18) for (const o of opts) { const dd = o.d ?? (o.q ? hyp(o.q.x - p.x, o.q.y - p.y) : 30); if (o.kind === 'pass' && !o.cross && dd < 20 && (o.danger ?? 1) < 0.7) o.v += 0.5 * mk; else if (o.kind === 'dribble') o.v -= mk >= 4 && opts.some((o2) => o2.kind === 'pass' && (o2.danger ?? 1) < 0.9) ? 4 : 0.45 * mk; else if (o.kind === 'pass' && dd > 28 && !o.through) o.v -= 0.15 * mk; } }
+      /* 版1296：サイドの深い所（ゴールラインまで9m以内・真ん中から8m以上外）まで運んだら、ゴールラインへ向かって運び続けない。
+         中へのクロス・マイナスのパス・シュート、またはゴールの方（中）へ切り込む。前はフリーだとゴールラインを割るまで運ぶことがあった */
+      if ((globalThis.__Kbl ?? 1) && !p.gk && !S.setPiece && xf >= L - 9 && Math.abs(p.y - GOAL_Y) >= 8) { if (globalThis.__blDbg) globalThis.__blDbg.n++;
+        const sd = Math.sign(p.y - GOAL_Y) || 1, sg = sgn(t), deep = xf - (L - 9);
+        for (const o of opts) { if (o.kind === 'dribble' && !o.protect && o.dir) { const fwd0 = o.dir[0] * sg, inw = -o.dir[1] * sd; if (fwd0 > 0.3 && inw < 0.45) o.v -= 2.5 + deep * 0.5; }
+          else if (o.kind === 'pass') o.v += 0.5 + deep * 0.1; else if (o.kind === 'shoot' || o.kind === 'shot') o.v += 0.3; }
+        const tx = fx(t, L - 8), ty = GOAL_Y + sd * 5, ddx = tx - p.x, ddy = ty - p.y, dl0 = hyp(ddx, ddy) || 1;
+        let blk = 9; for (const o of foes) { if (o.gk) continue; const rx = o.x - p.x, ry = o.y - p.y, d2 = hyp(rx, ry); if (d2 < 9 && (rx * ddx + ry * ddy) / (d2 * dl0 || 1) > 0.7) blk = Math.min(blk, d2); }
+        if (blk >= 2.5) opts.push({ kind: 'dribble', mode: 'carry', dir: [ddx / dl0, ddy / dl0], v: 0.6 + (blk - 2.5) * 0.15 + ((p.dribble || 50) - 50) / 100 });
+      }
       // 選ぶ：判断（視野）の高い選手ほど、一番良い選択にはっきり寄る
       const sharp = 0.9 + (p.vision || 50) / 45;
       let sum = 0; for (const o of opts) { o.w = Math.exp(clamp(o.v, -6, 8) * sharp); sum += o.w; }
@@ -6439,6 +6449,15 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         const shortOK = opts.some((o) => o.kind === 'pass' && o.q && (o.d ?? 99) < 16 && (o.danger ?? 1) < 1.2);
         if (nOpp >= 2 && shortOK) { const k = p.dribble >= 85 || p.type === 'ファンタジスタ' ? 0.55 : 0.22; for (const o of opts) { if (o.kind === 'dribble') o.w *= k; else if (o.kind === 'pass' && o.q && (o.d ?? 99) < 16 && (o.danger ?? 1) < 1.2) o.w *= 1.6; } if (globalThis.__qk) globalThis.__qk.crowd++; }
       }
+      /* 版1296：サイドの深い所（ゴールラインまで9m以内・真ん中から8m以上外）では、ゴールラインへ向かって運び続けない。中へのクロス・マイナスのパス・シュート、または中へ切り込む（フリーだとゴールラインを割るまで運ぶことがあった） */
+      if ((globalThis.__Kbl ?? 1) && !p.gk && !S.setPiece && xf >= L - 9 && Math.abs(p.y - GOAL_Y) >= 8) {
+        if (globalThis.__blDbg) globalThis.__blDbg.m++;
+        const sd = Math.sign(p.y - GOAL_Y) || 1, sg = sgn(p.team), deep = xf - (L - 9); let dw = 0;
+        for (const o of opts) { if (o.kind === 'dribble' && !o.protect && o.dir) { dw = Math.max(dw, o.w); const fwd0 = o.dir[0] * sg, inw = -o.dir[1] * sd; if (fwd0 > 0.3 && inw < 0.45) o.w *= Math.max(0.01, 0.08 - deep * 0.01); } else if (o.kind === 'pass') o.w *= 1.8 + deep * 0.15; else if (o.kind === 'shot') o.w *= 1.3; }
+        const tx = fx(p.team, L - 8), ty = GOAL_Y + sd * 5, ddx = tx - p.x, ddy = ty - p.y, dl0 = hyp(ddx, ddy) || 1;
+        let blk = 9; for (const o of opps(p)) { if (o.gk || o.off) continue; const rx = o.x - p.x, ry = o.y - p.y, d2 = hyp(rx, ry); if (d2 < 9 && (rx * ddx + ry * ddy) / (d2 * dl0 || 1) > 0.7) blk = Math.min(blk, d2); }
+        if (blk >= 2.5 && dw > 0) opts.push({ kind: 'dribble', mode: 'carry', dir: [ddx / dl0, ddy / dl0], w: dw * (0.6 + (blk - 2.5) * 0.12), inCut: true });
+      }
       for (const o of opts) o.w *= Math.exp(R.gauss() * (1 - p.vision / 100) * 0.9);   /* v740 判断：低いと、パス・ドリブル・シュートのどれが良いかを見誤る */
       for (const o of opts) o.ww = Math.pow(Math.max(o.w, 1e-6), sharp);
       // 港の指揮者：指揮の間は「前へ運ぶ」。①前へ通るショートパス（ダイレクト）②前が空いていれば、パスコースを作るための運ぶドリブル ③どちらも無い時だけ、横・後ろへつないでやり直す
@@ -9254,6 +9273,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           else if (own.cutInShot && S.t >= own.cutInShot) { own.cutInShot = 0; S.decision = Math.min(S.decision, 0.05); own.wantShot = S.t + 0.6; }
           else if (own.ciPlan && S.t >= own.ciPlan.at && !(own.moveQ && own.moveQ.length)) { S.decision = Math.min(S.decision, 0.05); }   // 版1247   // 技の足さばきの途中では次のプレーを選ばない
           if (!own.gk && S.decision > 0.05 && !S.setPiece && fx(own.team, own.x) > L - 24 && emptyGoal(own)) S.decision = 0;
+          if ((globalThis.__Kbl ?? 1) && !own.gk && !S.setPiece && S.decision > 0.05 && fx(own.team, own.x) > L - 6.5 && Math.abs(own.y - GOAL_Y) >= 8 && own.vx * sgn(own.team) > 1 && (own.blT || 0) < S.t) { own.blT = S.t + 0.5; S.decision = 0; if (globalThis.__blDbg) globalThis.__blDbg.f = (globalThis.__blDbg.f || 0) + 1; }   // 版1296：サイドの深い所でゴールラインへ運んでいる：すぐ考え直す（クロス・マイナス・中へ）
           // 版1095：紫電の遊戯：GKと1対1になったら、時々（5割）は打たずにGKへ向かい、フェイントでGKまでかわして無人のゴールへ流し込む
           if ((globalThis.__Ksdgk ?? 1) && uOn(own, 'shiden') && !S.setPiece && S.forceShot == null) {
             const g = opps(own).find((q) => q.gk && !q.off && !(q.downT > 0) && !(q.diveT > 0)), dG = g ? hyp(g.x - own.x, g.y - own.y) : 99, dGl = hyp(L - fx(own.team, own.x), GOAL_Y - own.y);
