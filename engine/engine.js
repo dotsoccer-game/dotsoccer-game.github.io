@@ -3485,7 +3485,7 @@
         { const pv = S.bPrevV, cv = [b.vx, b.vy, b.vz || 0]; if (!pv || hyp(cv[0] - pv[0], cv[1] - pv[1]) > 2.5 || b.kind !== S.bPrevK) S.bChgT = S.t; S.bPrevV = cv; S.bPrevK = b.kind; }   // 版1013：ボールの向き・種類が変わった時刻
         for (const tm of T) {
           let best = -1, bt = 99;
-          const oppToG = (globalThis.__Kpgk ?? 1) && b.lastTeam !== tm.ti && b.owner < 0 && b.kind !== 'shot' && !S.restart && path.some((pt) => fx(tm.ti, pt[0]) < 0.6 && Math.abs(pt[1] - GOAL_Y) < POST + 0.6 && pt[2] < BAR);   // 版1013：相手のパス・クリアがそのままゴールへ転がってくる：GKが必ず取りに行く（見送って入れられていた）
+          const oppToG = (globalThis.__Kpgk ?? 1) && b.lastTeam !== tm.ti && b.owner < 0 && (b.kind !== 'shot' || ((globalThis.__Kgks ?? 1) && hyp(b.vx, b.vy) < 15 && !b.pkShot)) && !S.restart && path.some(   /* 版1300：ゆるい・弾んだシュート（秒速15m未満）も、ゴールへ向かっていればGKが必ず取りに行く（前に出ていたGKの横を転がって入っていた） */ (pt) => fx(tm.ti, pt[0]) < 0.6 && Math.abs(pt[1] - GOAL_Y) < POST + 0.6 && pt[2] < BAR);   // 版1013：相手のパス・クリアがそのままゴールへ転がってくる：GKが必ず取りに行く（見送って入れられていた）
           for (const p of tm.players) {
             p._ct = 99; p._cx = path[path.length - 1][0]; p._cy = path[path.length - 1][1];
             const oppBall = b.lastTeam !== tm.ti;
@@ -3512,13 +3512,14 @@
               const tt = (k + 1) * 0.1;
               if (path[k][2] > (p.gk ? (fx(tm.ti, path[k][0]) < 16.5 && Math.abs(path[k][1] - GOAL_Y) < 20.2 ? gkReachZ(p) : 1.9) : 2.6)) continue;   // ペナルティエリアの外では手が使えない：頭を越える浮き球には飛び出さない   // 頭より高いうちは触れない（GKはジャンプして手が届く高さまで）
               if (p.gk && oppBall && !oppToG && !(fx(tm.ti, path[k][0]) < gkX && Math.abs(path[k][1] - GOAL_Y) < gkY)) continue;
+              if (p.gk && oppBall && b.ppP && (globalThis.__Kgkpp ?? 1) && fx(tm.ti, path[k][0]) > 5.5) continue;   // 版1300：ピンポイントクロス（味方の走り込む所へ落ちる球）は、落ち所を読み違えやすい。GKはゴールエリアの中に落ちる時だけ飛び出す（前に出て空振りし、後ろへ弾んでゴールに入っていた）
               if (p.gk && oppBall && b.hari && (globalThis.__Khrg ?? 1) && fx(tm.ti, path[k][0]) >= 5.5 && !((globalThis.__Khrk ?? 1) && fx(tm.ti, path[k][0]) < 16.5 && Math.abs(path[k][1] - GOAL_Y) < 20.2 && (() => { const q = b.intended >= 0 ? P[b.intended] : null; return !q || hyp(q.x - path[k][0], q.y - path[k][1]) > 2.5; })())) continue;   // 版919：針の穴通しの1本は、GKもゴールエリアの外では触れない。触れない所へは飛び出さない（設計一覧22章）
               if (p.gk && oppBall && !thruB && !oppToG && !(fx(tm.ti, path[k][0]) < 16.5 && Math.abs(path[k][1] - GOAL_Y) < 20.2) && p.vision >= 50) continue;   // 版862：裏へのボール以外（こぼれ球・はね返り）は、ペナルティエリアの外まで取りに出ない（判断力の低いGKだけ、つい出てしまう）
               if (hyp(path[k][0] - p.x, path[k][1] - p.y) <= v * Math.max(0, tt - react) + (gc ? 1.6 : p.gk ? 0.9 : (globalThis.__Kphy ?? 1) ? 0.2 : 0.5)) { p._ct = tt; p._cx = path[k][0]; p._cy = path[k][1]; break; }   // 版908：足が届く範囲が狭くなった分、ボールの通り道の上まで入る
             }
             if (p.gk && (globalThis.__Kbpg ?? 1) && fx(tm.ti, p._cx) < 0.4) p._cx = fx(tm.ti, 0.4);   // GKはゴールの中へは走り込まない
             let score = p._ct + (p._ct === 99 ? hyp(p._cx - p.x, p._cy - p.y) / v : 0);
-            if (p.gk && (toOwnG || toMeG || (oppToG && p._ct < 99))) score -= 5;   // 自分への・自陣ゴールへの球は、必ずGKが行く（版1013：相手の球がゴールへ転がってくる時も）
+            if (p.gk && (toOwnG || toMeG || (oppToG && (p._ct < 99 || (globalThis.__Kgks ?? 1))))) score -= 5;   // 版1300：間に合わなくても、ゴールへ向かう球にはGKが戻って追う（前に出て空振りしたGKが、ゴールへ転がる球を見送っていた）   // 自分への・自陣ゴールへの球は、必ずGKが行く（版1013：相手の球がゴールへ転がってくる時も）
 if (icR && p._ct < 99) score -= 0.2;   // 版838
             if (baitR && p._ct < 99) { score -= 0.25; if (!p.baitGo) { p.baitGo = 1; if (globalThis.__tacLog) globalThis.__tacLog.push(['baitGo', +S.t.toFixed(1), tm.ti, p.idx]); } }
                         if (swR) { score -= 0.35; p.swRead = S.t + 0.6; }   // 版800：スイーパー：裏へのボールには、誰よりも先に反応して触りに行く（一歩目が速い）
