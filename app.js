@@ -149,6 +149,7 @@
     simT = 0; mdBallTeam = -1; speed = 1; selected = -1; trail = []; evIndex = 0; halfShown = false; halfT = match.halfTime || 225; banner = null; cornerT = -99; zoom = 1; lastBall = null; ballTrail.length = 0; cam.init = false; offsideT = -99; offsideX = -1; nextBanner = null; camMaxY = 62;
     $('#homeName').textContent = match.homeShort;
     $('#awayName').textContent = match.awayShort;
+    setCompTag(mctx.opts.comp || '');
     $$('.speeds button').forEach((b) => b.classList.toggle('active', b.dataset.speed === '1'));
     showScreen('match');
     resize();
@@ -4899,6 +4900,10 @@
     const ws = document.getElementById('wStop'), wsWas = ws && !ws.hidden; if (ws) ws.hidden = true;   // 版535：状況の画面には自分のもどるボタンがあるので、観戦をやめるボタンは隠す
     renderStatus(el.querySelector('.lk-sub'), t, `${second ? '後半' : '前半'}　${m}分`, m, () => { el.hidden = true; if (ws && wsWas) ws.hidden = false; if (wasPlaying) play(); });
   }
+  /* 版1291：試合中、左上のスコアの横に「国内カップ」（金）か「リーグ戦」（青）を出す。親善試合・観戦などは出さない */
+  function setCompTag(comp) { const sb = document.querySelector('#match .scorebar') || document.querySelector('.scorebar'); if (!sb) return; let t = document.getElementById('compTag'); if (!t) { t = document.createElement('i'); t.id = 'compTag'; sb.insertBefore(t, sb.firstChild); }
+    const cup = comp === '国内カップ', lg = !cup && /リーグ/.test(comp) && !/観戦/.test(comp); t.hidden = !(globalThis.__Kcpt ?? 1) || !(cup || lg); t.className = cup ? 'cup' : 'lg'; t.textContent = cup ? '国内カップ' : 'リーグ戦'; }
+  window.__setCompTag = setCompTag;
   function renderStatus(sub, T0, title, minute, onBack, final) {
     const { S2, pos } = statsUntil(T0);
     const sc = [S2[0].goals.length, S2[1].goals.length];

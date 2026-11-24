@@ -5143,3 +5143,12 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 /* 版1248：スタメン画面の3つのゾーンの名前（左はしに小さく） */
 .q3zn{position:absolute;font-style:normal;font:800 1.5cqh/1 "Hiragino Kaku Gothic ProN",sans-serif;letter-spacing:.04em;padding:.4cqh .9cqh;border-radius:99px;background:rgba(0,0,0,.28);white-space:nowrap;pointer-events:none;z-index:1}
 .q3zn.zw{color:#c8ffe4;transform:translateX(-50%);font-size:1.5cqh}.q3wg{position:absolute;left:50%;top:-1.6cqh;transform:translateX(-50%);font:900 2cqh/1 sans-serif;font-style:normal;color:#063;background:#9fffd0;border-radius:99px;padding:.25cqh .7cqh;pointer-events:none;z-index:3}.q3zn.za{color:rgba(255,190,170,.75)}.q3zn.zm{color:rgba(255,240,170,.7)}.q3zn.zd{color:rgba(180,210,255,.75)}
+
+/* 版1291：国内カップとリーグ戦を一目で（ホームの「次の試合」：カップは金色のカード・トロフィー、リーグは青。試合中のスコアの横にも札） */
+.nm2-kind{font-style:normal;flex:none;font-weight:900;font-size:13px;border-radius:6px;padding:2px 8px;line-height:1.3}
+.nm2-kind.lg{background:#fff;color:#1745b0}.nm2-kind.cup{background:#fff3b0;color:#7a4a00}
+.nm2-tr{width:22px;height:22px;object-fit:contain;flex:none;filter:drop-shadow(0 1px 1px rgba(0,0,0,.5))}
+.h2-card.cup{background:linear-gradient(rgba(92,58,0,.95),rgba(58,34,0,.95));border-color:#ffd54a;box-shadow:0 0 0 2px rgba(255,213,74,.35),0 0 18px rgba(255,200,40,.45)}
+.h2-card.cup .nm2-hd{background:linear-gradient(#f2b51f,#b47800);border-bottom-color:#ffe9a0}
+#compTag{font-style:normal;font-weight:900;font-size:12px;border-radius:6px;padding:2px 8px;margin-right:8px;align-self:center;white-space:nowrap}
+#compTag.cup{background:linear-gradient(#ffd54a,#c58a00);color:#3a2400}#compTag.lg{background:#2a62d8;color:#fff}#compTag[hidden]{display:none}
