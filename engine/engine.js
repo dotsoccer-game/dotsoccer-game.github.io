@@ -1232,6 +1232,13 @@
         front.forEach((a, k) => { const d = ds[k]; if (!d) return; const [ax, ay] = fkSpots[a.idx]; fkSpots[d.idx] = [ax + sgn(att) * 0.9, ay + (GOAL_Y - ay) * 0.1]; });
         ds.slice(front.length).forEach((d, k) => { fkSpots[d.idx] = W2(L - 20, GOAL_Y + (k % 2 ? 7 : -7)); });   // あまった選手はペナルティエリアの前（こぼれ球）
         if (keepUp) fkSpots[keepUp.idx] = W2(L / 2 - 2, GOAL_Y + (r.y < GOAL_Y ? 8 : -8));
+      } else if ((globalThis.__Kdfk ?? 1) && P[r.taker] && P[r.taker].gk && xf < 35) {
+        // 版1304：GKが蹴る自陣のFK：ラインを上げて、前線のFWめがけて蹴る（DFはハーフウェーラインの手前まで上がる・FWは相手のラインぎりぎり）
+        const ol = fx(att, offsideLine(att));
+        for (const p of atk) { const ln = clamp(lineOf(p), 0, 2), y0 = p.slot && p.slot.y != null ? p.slot.y : p.y;
+          fkSpots[p.idx] = W2(ln === 0 ? 38 : ln === 1 ? Math.min(58, ol - 8) : Math.min(ol - 1, L - 22), y0); }
+        const DX = { 0: 70, 1: 58, 2: 45 };
+        for (const p of dfs) { const ln = clamp(lineOf(p), 0, 2), y0 = p.slot && p.slot.y != null ? p.slot.y : p.y; fkSpots[p.idx] = W2(DX[ln], y0); }
       } else {
         // 中盤・自陣：近くの味方2人が受けに来る（横と前）。ほかはいつもの形のまま
         const near2 = atk.slice().sort((a, c) => hyp(a.x - r.x, a.y - r.y) - hyp(c.x - r.x, c.y - r.y)).slice(0, 2);
@@ -6926,6 +6933,9 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       S.charge = null;
       const tm = T[team];
       let taker = takerIdx;
+      if ((globalThis.__Kdfk ?? 1) && type === 'free' && fx(team, x) < 35) {   // 版1304：ディフェンシブゾーンの自分たちのFK（オフサイド・ファウルなど）は、GKか、キック力の高いDFが蹴る
+        let bs = -1e9; if (globalThis.__fkT) globalThis.__fkT.push(S.t); for (const p of tm.players) { if (p.off || !((p.gk && fx(team, x) < 26) || (!p.gk && (p.position === 'DF' || (p.slot && p.slot.line === 0))))) continue; const d = hyp(p.x - x, p.y - y), sc = (p.kick || 50) + (p.gk && fx(team, x) < 26 ? 6 : 0) - d * 0.35; if (sc > bs) { bs = sc; taker = p.idx; } }
+      }
       if (taker == null) {
         let bd = 1e9;
         for (const p of tm.players) { if (p.gk) continue; const d = hyp(p.x - x, p.y - y); if (d < bd) { bd = d; taker = p.idx; } }
@@ -7200,6 +7210,15 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             tk.touchCd = 0.5; stats[tk.team].passes++;
             S.lastPass[tk.team] = { from: tk.idx, t: S.t };
           }
+        } else if ((globalThis.__Kdfk ?? 1) && r.type === 'free' && tk.gk && fx(tk.team, r.x) < 35) {
+          // 版1304：GKが蹴る自陣のFK：前線のFWめがけて大きく蹴る（飛ぶ距離はゴールキックと同じ決まり）
+          const kp = (tk.kick || 50) * 0.7 + (tk.physical || 50) * 0.3, dist0 = Math.min(21 + kp * 0.63 + R.gauss() * 2.5, L - 20.5 - fx(tk.team, tk.x));
+          const fwds = mates(tk).filter((m) => !m.off && !m.gk).sort((a2, c2) => fx(tk.team, c2.x) - fx(tk.team, a2.x)).slice(0, 3);
+          const tgt = fwds.reduce((best, m) => (Math.abs(fx(tk.team, m.x) - fx(tk.team, tk.x) - dist0) < Math.abs(fx(tk.team, best.x) - fx(tk.team, tk.x) - dist0) ? m : best), fwds[0]);
+          const dist = Math.min(dist0, fx(tk.team, tgt.x) - fx(tk.team, tk.x) + 3), tx = clamp(tk.x + sgn(tk.team) * dist, 5, L - 5), ty = clamp(tgt.y + R.gauss() * 4, 6, W - 6);
+          kick(tk, tx, ty, 'pass', 'high', { landFrac: 1, gkLong: true });
+          S.ball.intended = tgt.idx; S.ball.offside = false; stats[tk.team].passes++;
+          S.lastPass[tk.team] = { from: tk.idx, t: S.t };
         } else if (r.type === 'goalkick' && R.next() < 0.75) {
           // ゴールキック：キック力があるほど遠くへ
           const kp = (globalThis.__Kgkd2 ?? 1) ? (tk.kick || 50) * 0.7 + (tk.physical || 50) * 0.3 : 0, dist = (globalThis.__Kgkd2 ?? 1) ? Math.min(21 + kp * 0.63 + R.gauss() * 2.5, L - 20.5 - fx(tk.team, tk.x)) : Math.min(26 + tk.kick * 0.38 + R.gauss() * 3, L / 2 + 9.15 - fx(tk.team, tk.x));   /* 版1303：オールEでもハーフウェーラインの手前まで（約43m）、オールSで相手のペナルティアークまで（約79m） */   // 届いても相手のセンターサークルの終わりくらいまで。版1302：キック7割・フィジカル3割で決める。キックD・フィジカルCで約40m（ハーフウェーラインの手前）、オールSでやっと相手のセンターサークルまで（前はキックDでもセンターサークルの先まで飛んでいた）
