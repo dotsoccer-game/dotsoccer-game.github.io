@@ -2212,8 +2212,9 @@
       const hasB = !(globalThis.__Kgkb ?? 1) || (kpBall && Math.hypot(kpBall.x - p.x, kpBall.y - p.y) < 1.3 && (kpBall.z || 0) < 2.6), behindB = M[3] && !(globalThis.__Kgkb ?? 1);   // 版1259：背中側を向いた時も、ボールは体の横に見えるように（腕の下に描く）。持っていない時は描かない
       if (behindB && hasB) drawBall(dot0);
       const r15 = sprite(q.x, q.y, q.s, info, team, facing, 0, false, false, false, PRE + '_' + key, 0, 'front');
-      if (!behindB && hasB) drawBall((r15 && r15.dot) || dot0);
+      if (!behindB && hasB && !(globalThis.__Kgkb2 ?? 1)) drawBall((r15 && r15.dot) || dot0);
       sprite(q.x, q.y, q.s, info, team, facing, 0, false, false, true, PRE + 'F_' + key, 0, 'front');
+      if (!behindB && hasB && (globalThis.__Kgkb2 ?? 1)) drawBall((r15 && r15.dot) || dot0);   // 版1297：ボールは手の絵の上に描く（正面向きでキャッチした時、手の絵でボールが隠れて見えなかった）
       dmFacing = null; return r15;
     }
     if (code === 12) {   // 正面の低い球：腰を落として、すくい上げるように抱える

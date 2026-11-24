@@ -3177,6 +3177,8 @@
         if (ex) { const o = opts.filter((o) => o.kind === 'pass' && o.q && ex.includes(o.q.idx)); const srt = opts.slice().sort((x, y) => y.v - x.v), bv = srt[0].v; globalThis.__gpDbg.push([gpG.k + (gpG.ph || ''), o.length ? +Math.max(...o.map((x) => x.v)).toFixed(1) : null, +bv.toFixed(1), o.length ? +Math.min(...o.map((x) => x.danger ?? 9)).toFixed(2) : null, srt.slice(0, 3).map((x) => x.kind + (x.mode || '') + ':' + x.v.toFixed(1)).join(' ')]); } }   // 版924：デカラ：背負ったまま無理に前を向かない（預けられる味方がいる時）
       { const mk = (globalThis.__Kmd2 ?? 1) && !p.gk && !S.setPiece ? Math.min(4, mdK(p)) : 0;   // 版1219：翠の起点：たまるほど、短いパスでテンポよく回す
         if (mk && xf < L - 18) for (const o of opts) { const dd = o.d ?? (o.q ? hyp(o.q.x - p.x, o.q.y - p.y) : 30); if (o.kind === 'pass' && !o.cross && dd < 20 && (o.danger ?? 1) < 0.7) o.v += 0.5 * mk; else if (o.kind === 'dribble') o.v -= mk >= 4 && opts.some((o2) => o2.kind === 'pass' && (o2.danger ?? 1) < 0.9) ? 4 : 0.45 * mk; else if (o.kind === 'pass' && dd > 28 && !o.through) o.v -= 0.15 * mk; } }
+      /* 版1297：自分のゴールに近い所（ゴールから35m以内）では、パスは相手のマークから遠い（取られる心配の少ない）味方へ。近くに相手のいる味方へのパスは、ほぼ出さない */
+      if ((globalThis.__Kdpz ?? 1) && !p.gk && !S.setPiece && xf < 35) for (const o of opts) if (o.kind === 'pass' && !o.cross) { const dg = o.danger ?? 0.5; o.v += (0.35 - dg) * (xf < 22 ? 3.2 : 2.2); }
       /* 版1296：サイドの深い所（ゴールラインまで9m以内・真ん中から8m以上外）まで運んだら、ゴールラインへ向かって運び続けない。
          中へのクロス・マイナスのパス・シュート、またはゴールの方（中）へ切り込む。前はフリーだとゴールラインを割るまで運ぶことがあった */
       if ((globalThis.__Kbl ?? 1) && !p.gk && !S.setPiece && xf >= L - 9 && Math.abs(p.y - GOAL_Y) >= 8) { if (globalThis.__blDbg) globalThis.__blDbg.n++;
@@ -6449,6 +6451,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         const shortOK = opts.some((o) => o.kind === 'pass' && o.q && (o.d ?? 99) < 16 && (o.danger ?? 1) < 1.2);
         if (nOpp >= 2 && shortOK) { const k = p.dribble >= 85 || p.type === 'ファンタジスタ' ? 0.55 : 0.22; for (const o of opts) { if (o.kind === 'dribble') o.w *= k; else if (o.kind === 'pass' && o.q && (o.d ?? 99) < 16 && (o.danger ?? 1) < 1.2) o.w *= 1.6; } if (globalThis.__qk) globalThis.__qk.crowd++; }
       }
+      /* 版1297：自分のゴールに近い所（ゴールから35m以内）では、パスは相手のマークから遠い味方へ */
+      if ((globalThis.__Kdpz ?? 1) && !p.gk && !S.setPiece && xf < 35) for (const o of opts) if (o.kind === 'pass' && !o.cross) { const dg = o.danger ?? 0.5; o.w *= Math.exp((0.35 - dg) * (xf < 22 ? 3.2 : 2.2)); }
       /* 版1296：サイドの深い所（ゴールラインまで9m以内・真ん中から8m以上外）では、ゴールラインへ向かって運び続けない。中へのクロス・マイナスのパス・シュート、または中へ切り込む（フリーだとゴールラインを割るまで運ぶことがあった） */
       if ((globalThis.__Kbl ?? 1) && !p.gk && !S.setPiece && xf >= L - 9 && Math.abs(p.y - GOAL_Y) >= 8) {
         if (globalThis.__blDbg) globalThis.__blDbg.m++;
@@ -7423,9 +7427,10 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         }
       }
       // クロスやこぼれ球がそのままゴールへ向かう時は、GKがシュートと同じように反応する
-      if ((b.kind === 'pass' || b.kind === 'loose') && !b.selfPass && Math.abs(b.vx) > 3) {
+      const cvK = (globalThis.__Kcv2 ?? 1);   // 版1297：ゴールへ向かう角度が浅い（横に流れる）ゆるい巻いたクロスも、GKがシュートと同じように反応する（前は横向きの速さが大きいと、ゴールに入るまで見送っていた）
+      if ((b.kind === 'pass' || b.kind === 'loose') && !b.selfPass && (cvK ? Math.abs(b.vx) > 0.8 && hyp(b.vx, b.vy) > 3 : Math.abs(b.vx) > 3)) {
         const gx = b.vx > 0 ? L : 0, tHit = (gx - b.x) / b.vx;
-        if (tHit > 0 && tHit < 1.2) {
+        if (tHit > 0 && tHit < (cvK ? 1.8 : 1.2)) {
           const yHit = b.y + b.vy * tHit, zHit = b.z + b.vz * tHit - 4.9 * tHit * tHit;
           const defTeam = (gx === L) === (side[0] > 0) ? 1 : 0;
           if (Math.abs(yHit - GOAL_Y) < POST + 1.5 && zHit < BAR + 0.5 && b.lastTeam !== defTeam) { b.kind = 'shot'; b.shotOnTarget = true; b.oneOnOne = false; b.conv = true; b.shotFrom = hyp(b.x - (b.vx > 0 ? L : 0), b.y - GOAL_Y); b.gkPen = 0; b.shotT = S.t - 0.3; }
@@ -7934,6 +7939,9 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             if (shotD < 16) prob -= CLOSE_FINISH * (1 - shotD / 22) * clamp(1.4 - skill / 100, 0.35, 1) * narrowF;   // うまいGKほど至近距離でも反応できる
             // 正面へのゆるいシュートは、相手が誰でも止める
             { const gl = fx(p.team, 0), yGl = b.y + b.vy * ((gl - b.x) / (b.vx || 1e-6)); if ((Math.abs(yGl - p.y) < 1.1 || Math.abs(yAt - p.y) < 0.8) && sp < 15.5 && !b.knuckle && !b.curveAll && !(b.drive > 0 && b.driveOn)) prob = Math.max(prob, 0.62 + skill * 0.0035); }   // GKの正面に来たゆるい球は止める（下手なGKはたまにこぼす）   // シュート技（トゥーキック・ニア上など）はGKが反応しにくい
+            // 版1297：GKの体の正面（左右0.9m以内・腰より低い）に飛んできたシュートは、よほど強い球でない限り止める（D1で、正面のシュートが股の下を抜けて入っていた）
+            if ((globalThis.__Kbody ?? 1) && !b.pkShot && !(p.downT > 0) && !(p.diveT > 0) && b.z < 1.2 && !b.knuckle && !(b.drive > 0 && b.driveOn)) { const gl = fx(p.team, 0), yGl = b.y + b.vy * ((gl - b.x) / (b.vx || 1e-6)), ctr = Math.min(Math.abs(yGl - p.y), Math.abs(yAt - p.y));
+              if (ctr < 0.9) prob = Math.max(prob, (sp < 20 ? 0.9 : sp < 25 ? 0.78 : 0.6) * (0.85 + 0.15 * clamp((skill - 40) / 40, 0, 1))); }
             // 版929：ゆるい球（時速47km未満）は、体の届く所に来たら、誰が蹴っても止める（ボテボテのシュートがGKの前を抜けない）
             let slowF = 0; if ((globalThis.__Kslow ?? 1) && sp < 13 && !b.knuckle && !(b.drive > 0 && b.driveOn) && !(p.downT > 0)) { slowF = 0.95 - Math.max(0, sp - 8) * 0.04; prob = Math.max(prob, slowF); }
             // 構えているGKに、地面を転がるゆるいシュート（コロコロ）は通用しない
@@ -8764,7 +8772,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             // バイシクル：味方のクロス、または自分の頭上を後ろへ越えていく球（ゴールに背を向けている時）だけ
             const toGoal = fx(p.team, L) - p.x, away = Math.sign(b.vx || 1) !== Math.sign(toGoal);
             const cross = b.kind === 'pass' && (b.style === 'cross' || b.style === 'high' || b.style === 'lob') && b.kicker !== p.idx;
-            if ((cross && hyp(b.vx, b.vy) > 4) || (away && hyp(b.vx, b.vy) > 3)) how = 'bicycle';
+            const mateBall = b.kind === 'pass' && b.kicker >= 0 && P[b.kicker] && P[b.kicker].team === p.team && b.kicker !== p.idx;   // 版1297：味方が蹴ったパス・クロスだけ（相手のクリアや、こぼれ球をそのままバイシクルはしない）
+            if ((cross && hyp(b.vx, b.vy) > 4) || (away && hyp(b.vx, b.vy) > 3 && (!(globalThis.__Kbic2 ?? 1) || mateBall))) how = 'bicycle';
           }
           if (!how || (how !== 'volleyB' && R.next() > 0.75) || oppFirst(p, b)) continue;
           const basicV = how === 'volleyB'; if (basicV) how = 'volley';   // 版948：相手が先に触れる球は、ボレーで合わせたことにしない
