@@ -3077,7 +3077,7 @@
           }
         }
         if (!(goalDefer && (goalDefer.before.length || goalDefer.after.length)) && (bb.z || 0) > 1.6) { hiBall = [bb, st.spin, st.bs, st.owner >= 0, st.held]; continue; }   // 版670：高い浮き球（ヒールリフトなど）は、名前・スキルの吹き出しに隠れないよう、いちばん最後に描く
-        if ((globalThis.__Kgkb3 ?? 1) && st.gk && [0, 1].some((g) => [1, 2, 3, 4, 13, 14].includes(st.gk[g]) && gkHasBall(st, g))) { hiBall = [bb, st.spin, st.bs, st.owner >= 0, st.held]; ballOwned = st.owner >= 0; continue; }   // 版1299：横っ跳びでキャッチした時、ボールがGKの体の後ろに隠れていた。ボールはGKの絵の上（最後）に描く
+        if ((globalThis.__Kgkb3 ?? 1) && st.gk && [0, 1].some((g) => [1, 2, 3, 4, 13, 14].includes(st.gk[g]) && gkHasBall(st, g))) { hiBall = [bb, st.spin, st.bs, st.owner >= 0, st.held]; ballOwned = st.owner >= 0; if (goalDefer && goalDefer.before.length) goalDraw(goalDefer.gx, goalDefer.before); if (goalDefer && goalDefer.after.length) goalDraw(goalDefer.gx, goalDefer.after); continue; }   /* 版1301：ここでゴールの一部（ボールの前後に描く柱・ネット）を描かずに飛ばしていて、GKがゴール前でボールを持つとゴールがチカチカ消えていた */   // 版1299：横っ跳びでキャッチした時、ボールがGKの体の後ろに隠れていた。ボールはGKの絵の上（最後）に描く
         if (goalDefer && goalDefer.before.length) goalDraw(goalDefer.gx, goalDefer.before);   // ボールの奥にある柱・手前のネット
         ballOwned = st.owner >= 0; if (st.owner >= 0) mdBallTeam = st.owner < 11 ? 0 : 1; if (!(st.gk && [0, 1].some((g) => (st.gk[g] === 15 || st.gk[g] === 16) && gkHasBall(st, g)))) ballDraw(bb, st.spin, st.bs, st.held);   // 版1259：キャッチの絵のGKがボールを持っている時だけ、ふつうのボールを消す（もう一方のGK・離した後に、ボールが消えないように）   // 版1041：キャッチの絵（15）はボールも絵の中に描いてある
         if (goalDefer && goalDefer.after.length) goalDraw(goalDefer.gx, goalDefer.after);   // ボールの手前にある奥のネット（ゴールの裏・天井の上など）
