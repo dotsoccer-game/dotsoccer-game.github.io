@@ -93,9 +93,10 @@
   function slotInfo(p) {
     ensurePts(p);
     const avg = KEYS.reduce((a, k) => a + p.pts[k], 0) / KEYS.length;
-    const tech = 2 + TECH_AT.filter((v) => avg >= v - 1e-9).length, trait = 1 + TRAIT_AT.filter((v) => avg >= v - 1e-9).length;
+    const zx = p.uniq === 'zerog' && (p.totsu || 0) >= 1 ? 1 : 0;   // 版1315：ゼログラビティ（1凸）：スキル枠が増える（技＋2・特性＋1）
+    const tech = 2 + TECH_AT.filter((v) => avg >= v - 1e-9).length + zx * 2, trait = 1 + TRAIT_AT.filter((v) => avg >= v - 1e-9).length + zx;
     const nextTech = TECH_AT.find((v) => avg < v - 1e-9) ?? null, nextTrait = TRAIT_AT.find((v) => avg < v - 1e-9) ?? null;
-    return { techAt: TECH_AT, traitAt: TRAIT_AT, techMax: SLOT_MAX, traitMax: TRAIT_MAX, total: tech + trait, tech, trait, ability: tech + trait, exp: 0, avg, nextAvg: nextTech, nextTech, nextTrait, nextGames: null };
+    return { techAt: TECH_AT, traitAt: TRAIT_AT, techMax: SLOT_MAX + zx * 2, traitMax: TRAIT_MAX + zx, total: tech + trait, tech, trait, ability: tech + trait, exp: 0, avg, nextAvg: nextTech, nextTech, nextTrait, nextGames: null };
   }
   function slotsOf(p, kind) { const si = slotInfo(p); return kind === 'trait' ? si.trait : si.tech; }
   function skillsOf(p, kind) { return (p.skills || []).filter((k) => skKind(k) === kind); }
@@ -330,6 +331,7 @@
     const p = { number: q.no, name: q.name, position: q.pos, type: q.type, role: q.role, age: q.age, skills: (q.skills || []).slice(), hair: q.looks[0], hairColor: q.looks[1], skin: q.looks[2],
       zone_man: h.zone_man + wob(1), press: clamp(h.press + wob(2), 0, 100), support: clamp(h.support + wob(3), 0, 100), overlap: clamp(h.overlap + wob(4), 0, 100), run_space: clamp(h.run_space + wob(5), 0, 100), goal_wait: clamp(h.goal_wait + wob(6), 0, 100) };
     for (const k2 of KEYS) p[k2] = q[k2];
+    if (q.uq && D.UNIQ && D.UNIQ[q.uq] && !(q.gen > 0)) { p.uniq = q.uq; p.uniqLv = q.uqLv || 1; }   // 版1315：ドリームリーグのスーパースター（引退したら、後継ぎには引き継がない）
     if (q.top && D.UNIQ_BY_TOP && D.UNIQ_BY_TOP[q.top]) { p.uniq = D.UNIQ_BY_TOP[q.top]; p.uniqLv = 1; p.topHair = D.UNIQ[p.uniq].hair; if (D.UNIQ[p.uniq].skin != null) p.skin = D.UNIQ[p.uniq].skin; }   // 顔を入れ替えた選手は、肌も顔に合わせる   // 国内屈指：その選手だけの固有スキル
     return p;
   }
@@ -1481,7 +1483,7 @@
     // 疲れている選手は能力が少し落ちる
     for (const p of ps) { p.startCur = 100 - (p.fatigue || 0) * 0.5; const f = perfMul(p); for (const k of KEYS) p[k] = Math.round(p[k] * f); }   // 版998：疲労度だけで（調子はなくした）
     // 凸の効果：サポートパッシブ（☆2は3凸で付与、☆3は2凸で付与・3凸で強化、☆4は1凸で付与・2凸で強化・3凸で範囲拡大、☆5は2凸で付与・3凸で強化）と、固有スキルの覚醒（☆5の1凸から）
-    for (const p of ps) { const st = ensureStar(p), tz = p.totsu || 0; p.passive = pasLv(st, tz); if (p.uniq) p.uniqLv = st >= 5 && tz >= 1 ? 2 : 1; }
+    for (const p of ps) { const st = ensureStar(p), tz = p.totsu || 0; p.passive = pasLv(st, tz); if (p.uniq) p.uniqLv = p.uniq === 'zerog' ? (tz >= 3 ? 3 : tz >= 2 ? 2 : 1) : st >= 5 && tz >= 1 ? 2 : 1; }   /* 版1315：ゼログラビティは、1凸でスキル枠・2凸で相手を引き寄せる・3凸でいつでも発動 */
     const tac = ensureTactics(save);
     applyTactics(t, tac);
     t.roles = {};

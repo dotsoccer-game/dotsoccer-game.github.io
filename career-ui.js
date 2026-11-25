@@ -4085,7 +4085,7 @@
     } else {
       const sk = C.cpuSkills ? C.cpuSkills(q, t.lg, C.rosterOfTeam(t.id, save.season, save)) : C.noSkillLg(t.lg) ? [] : q.skills || [];   // 版941：試合と同じ（能力に見合った数。地域2部はなし・地域1部は1人だけ1つ）
       const cells = sk.length ? sk.map((k) => `<button class="has pc-skb" data-sk="${k}">${esc((D.SKILLS[k] || {}).name || k)}<i>説明</i></button>`) : ['<span>なし</span>'];
-      const uk = q.top && D.UNIQ_BY_TOP ? D.UNIQ_BY_TOP[q.top] : null, u = uk && D.UNIQ[uk];   // 国内屈指：その選手だけの固有スキル
+      const uk = q.uq && !(q.gen > 0) && D.UNIQ[q.uq] ? q.uq : q.top && D.UNIQ_BY_TOP ? D.UNIQ_BY_TOP[q.top] : null, u = uk && D.UNIQ[uk];   // 版1315：ドリームリーグのスーパースター   // 国内屈指：その選手だけの固有スキル
       // 固有スキル：名前だけ出しておき、タップすると発動の条件と効果が開く
       const uq = u ? `<details class="pc-uq"><summary><span class="pc-uqh">固有スキル</span><b>${esc(u.name)}</b><i class="pc-uqi">説明</i></summary><div class="pc-uqd"><p><span>発動</span>${esc(u.sw || u.when)}</p><p><span>効果</span>${esc(u.se || u.what)}</p>${u.st ? `<p><span>凸</span>${esc(u.st)}</p>` : ''}</div></details>` : '';
       body = `${uq}${skGridHTML(sk, null)}`;
