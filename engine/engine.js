@@ -3098,8 +3098,8 @@
       if (xf > 15) for (const o of brainSpacePass(p, foes)) { if (bTy(p, 'ゲームメイカー', 'ファンタジスタ')) o.v += 0.3; opts.push(o); }
       // クロス・折り返し：サイドの深い所から、ゴール前の空いている所（ニア・ファー・PKマーク・マイナス）へ。味方が相手より先に着ける所だけ
       // 版907：クロスは、エリアの中で合わせる味方が2人以上いる（走り込んでいる）時に上げる（設計一覧13章：エリア1・2に2人以上）
-      const boxMates = (globalThis.__Kfb ?? 1) ? mates(p).filter((m) => !m.off && !m.gk && m !== p && ((fx(t, m.x) > L - (globalThis.__Kbx ?? 24) && Math.abs(m.y - GOAL_Y) < 18) || (m.bRun && m.bRun.until > S.t && fx(t, m.bRun.x) > L - 18 && fx(t, m.x) > L - (globalThis.__Kbr ?? 30)))).length : 9;
-      if (xf > L - 34 && Math.abs(p.y - GOAL_Y) > 11 && (boxMates >= ((globalThis.__Kwg ?? 1) ? 1 : 2) || held > (globalThis.__Kcrh ?? ((globalThis.__Kwg ?? 1) ? 2.0 : 3.5)))) {   // 版1211：中に1人いれば上げる
+      const boxMates = (globalThis.__Kfb ?? 1) ? mates(p).filter((m) => !m.off && !m.gk && m !== p && ((fx(t, m.x) > L - (globalThis.__Kbx ?? 24) && Math.abs(m.y - GOAL_Y) < 18) || (m.bRun && m.bRun.until > S.t && fx(t, m.bRun.x) > L - 18 && fx(t, m.x) > L - (globalThis.__Kbr ?? 30)) || ((globalThis.__Kcr4 ?? 1) && S.t - (m.boxIn ?? -9) < 0.3 && fx(t, m.x) > L - 30))).length : 9;
+      if (xf > L - 34 && Math.abs(p.y - GOAL_Y) > 11 && (boxMates >= ((globalThis.__Kwg ?? 1) ? 1 : 2) || (!(globalThis.__Kcr4 ?? 1) && held > (globalThis.__Kcrh ?? ((globalThis.__Kwg ?? 1) ? 2.0 : 3.5))))) {   // 版1311：中に誰もいないのに、持ちすぎたからと上げるのはやめた   // 版1211：中に1人いれば上げる
         const sd = Math.sign(p.y - GOAL_Y), spots = [[L - 6, GOAL_Y + sd * 4, 'near'], [L - 11, GOAL_Y, 'pk'], [L - 6, GOAL_Y - sd * 5, 'far'], [L - 15, GOAL_Y + sd * 2, 'cut']];
         if (globalThis.__Kcr3 ?? 1) { const oL = fx(t, offsideLine(t)); for (const m of mates(p)) { if (m === p || m.off || m.gk) continue; const mx = fx(t, m.x); if (mx < L - 38 || mx < oL - 14 || Math.abs(m.y - GOAL_Y) > 20) continue; spots.push([Math.min(L - 5, Math.max(mx + 7, Math.min(oL + 4, L - 5))), GOAL_Y + (m.y - GOAL_Y) * 0.6, 'run']); } }   // 版1212：走り込む味方の前（DFラインの裏・ゴール前）へ落とすクロス。決まった所（ニア・ファー）だけだと、中に誰も間に合わなかった
         for (const [sx0, sy, k] of spots) {
@@ -3112,8 +3112,8 @@
           let to = 99; for (const o of foes) to = Math.min(to, bDefT(o, t, sx, sy) - 0.05);
           const margin = to - Math.max(tb, tq);
           if (globalThis.__crDbg) globalThis.__crDbg.m.push([k, +margin.toFixed(2), +(tq - tb).toFixed(2)]);
-          const crM = chip ? -((globalThis.__Kcr2 ?? 1) ? (globalThis.__Kcrm2 ?? 2.8) : (globalThis.__Kcrm ?? 1.6)) : ((globalThis.__Kcr2 ?? 1) ? -0.9 : -0.2);   // 版1212：クロスは、中で競り合いになる所へも上げる（DFの方が先に着く所でも、走り込んで合わせにいく）   // 版905：浮き球のクロスは、相手と競り合いになる所でも上げる（中で合わせる味方が走り込んでいれば）
-          if (margin < crM || tq > tb + ((globalThis.__Kcr2 ?? 1) ? 1.4 : 0.8)) continue;   // 浮き球のクロスは、競り合いになっても良い（先に触れなくても、ほぼ同時なら）
+          const crM = chip ? -((globalThis.__Kcr4 ?? 1) ? (globalThis.__Kcrm4 ?? 1.2) : (globalThis.__Kcr2 ?? 1) ? (globalThis.__Kcrm2 ?? 2.8) : (globalThis.__Kcrm ?? 1.6)) : ((globalThis.__Kcr2 ?? 1) ? -0.9 : -0.2);   // 版1311：DFやGKの方がずっと先に着く所へは上げない（前は2.8秒先でも上げていて、最初に触るのがほとんど相手だった）   // 版1212：クロスは、中で競り合いになる所へも上げる（DFの方が先に着く所でも、走り込んで合わせにいく）   // 版905：浮き球のクロスは、相手と競り合いになる所でも上げる（中で合わせる味方が走り込んでいれば）
+          if (margin < crM || tq > tb + ((globalThis.__Kcr4 ?? 1) ? (globalThis.__Kcrq ?? 0.7) : (globalThis.__Kcr2 ?? 1) ? 1.4 : 0.8)) continue;   // 浮き球のクロスは、競り合いになっても良い（先に触れなくても、ほぼ同時なら）
           const lm = chip ? 2 : laneMargin(t, p.x, p.y, sx, sy, -1); if (lm < 0.3) continue;
           const runIn = (globalThis.__Kfb ?? 1) ? (mates(p).some((m) => m.bRun && m.bRun.until > S.t && fx(t, m.bRun.x) > L - 18) ? 0.5 : pr <= 1 ? -0.4 : 0) : 0;   // 版907：クロスは、走り込む味方が動き出したのを見てから（寄せが弱ければ待つ）
           opts.push({ kind: 'pass', q: bq, through: !chip, chip, space: [sx, sy], d: dS, danger: margin < 0.2 ? 0.6 : 0.3, v: 1.2 + ((globalThis.__Kcr2 ?? 1) ? (globalThis.__Kcrv ?? 0.8) : 0) + runIn + clamp(margin, -1.6, 1) * (chip ? 0.6 : 1.2) + (chip ? (((bq.jump || 50) - 50) / 60) : 0) + (k === 'cut' ? 0.3 : 0) + (ph === 'fin' ? 0.4 : 0) + ((p.kick || 50) - 50) / 100 + ((globalThis.__Kov2 ?? 1) && ((p.ovUntil || 0) + 2 > S.t || S.t - (p.ovRecvT ?? -9) < 8) && p.sk.has('overlap') ? 1.2 : 0), cross: k });   // 版1308：オーバーラップで受けたら、そのままクロス
@@ -3633,7 +3633,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         }
         // 版844：サイドの深い所（ゴールまで約24m）で持ったら、3〜4人がゴール前の決まった所へ入る（ニア・ファー・PKマーク・マイナス）。えぐった時に中に誰もいない、をなくす
         tm.boxR = null;
-        if (attacking && own && own.team === tm.ti && !own.gk && !S.restart && !S.setPiece && fx(tm.ti, own.x) > L - 24 && Math.abs(own.y - GOAL_Y) > 11) {
+        if (attacking && own && own.team === tm.ti && !own.gk && !S.restart && !S.setPiece && fx(tm.ti, own.x) > L - ((globalThis.__Kbx2 ?? 1) ? 34 : 24) && Math.abs(own.y - GOAL_Y) > 11) {
           const ns = Math.sign(own.y - GOAL_Y) || 1, ol = offL;
           const spots = [[L - 5.5, GOAL_Y + ns * 2.5, 1], [L - 7.5, GOAL_Y - ns * 4.5, 1], [L - 11, GOAL_Y - ns * 0.5, 1], [L - 15.5, GOAL_Y + ns * 2, 0]];
           const nB = 3 + (tm.attitude === 'attacking' ? 2 : S.score[tm.ti] < S.score[1 - tm.ti] ? 1 : 0) - (tm.attitude === 'defensive' ? 1 : 0);   /* 版1088：攻撃的はゴール前に2人多く */
@@ -4782,6 +4782,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
     const LOFT_ANGLE = { dink: [0.42, 0.5], drive: [0.32, 0.42], high: [0.62, 0.74], lob: [0.6, 0.78], cross: [0.42, 0.55], clear: [0.6, 0.85] };
 
     function kick(p, tx, ty, kind, loft, opt) {
+      if (globalThis.__crX && loft === 'cross' && !S.setPiece) { const t = p.team; globalThis.__crX.push({ t: S.t, team: t, i: p.idx, xf: Math.round(L - fx(t, p.x)), dy: Math.round(Math.abs(p.y - GOAL_Y)), tx: Math.round(L - fx(t, tx)), ty: Math.round(ty - GOAL_Y), att: mates(p).filter((m) => !m.gk && fx(t, m.x) > L - 18 && Math.abs(m.y - GOAL_Y) < 15).length, def: opps(p).filter((m) => !m.gk && fx(t, m.x) > L - 18 && Math.abs(m.y - GOAL_Y) < 15).length, ov: S.t - (p.ovRecvT ?? -9) < 8 ? 1 : 0, bx: T[t].boxR ? Object.keys(T[t].boxR).map((k) => Math.round(hyp(fx(t, P[k].x) - T[t].boxR[k][0], P[k].y - T[t].boxR[k][1]))).join('/') : 'none', held: +(S.t - (S.heldSince ?? S.t)).toFixed(1), st: (new Error().stack.split('\n').slice(2, 6).map((l) => (l.match(/at (\S+)/) || [])[1] + ':' + (l.match(/:(\d+):\d+\)?$/) || [])[1]).join('<')) }); }
       if (globalThis.__ovX && S.t - (p.ovRecvT ?? -9) < 8) { globalThis.__ovX.push({ k: kind, loft: loft || (opt && opt.style) || '', xf: Math.round(L - fx(p.team, p.x)), dy: Math.round(Math.abs(p.y - GOAL_Y)), tx: Math.round(L - fx(p.team, tx)), ty: Math.round(Math.abs(ty - GOAL_Y)), t: S.t, team: p.team }); }
       opt = opt || {};
       if (globalThis.__mdDbg2 && kind === 'pass' && (T[p.team].mdStack || 0) >= 4 && !p.gk && p._gT != null) globalThis.__mdDbg2.push(+(S.t - p._gT).toFixed(2));
@@ -9382,6 +9383,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       wgPost();
       tkPost();
       if (globalThis.__Kkg2 ?? 1) for (const p of P) if (p.kgTgtT === S.t && !p.off) { targets[p.idx] = p.kgTgt; urgent[p.idx] = true; }   // 版936：影縫い：張りつく位置を、ほかの守備の決まり（ゾーン・ライン）で上書きしない
+      if ((globalThis.__Kbx2 ?? 1) && !S.restart && !S.setPiece && S.celebrate <= 0) { const o = ownerP();   // 版1311：サイドの深い所で持ったら、ゴール前へ入る役の選手は、ほかの位置取りに上書きされずに本当に入る（前は、上書きされてゴール前に誰もいないクロスが多かった）
+        if (o && !o.gk && T[o.team].boxR) for (const k in T[o.team].boxR) { const q = P[k]; if (!q || q === o || q.off || S.ball.intended === q.idx) continue; const sp = T[o.team].boxR[k]; targets[q.idx] = [fx(o.team, sp[0]), sp[1]]; urgent[q.idx] = true; q.boxIn = S.t; } }
       if ((globalThis.__Kov2 ?? 1) && !S.restart && !S.setPiece && S.celebrate <= 0) { const o = ownerP() || (S.ball.lastPlayer >= 0 && P[S.ball.lastPlayer] && S.poss === P[S.ball.lastPlayer].team ? P[S.ball.lastPlayer] : null);   // 版1308：オーバーラップの走りは、ほかの位置取りに上書きされない（前は、新しい位置取りに消されて、走り出してもその場に留まっていた）
         if (o && !o.gk) for (const p of T[o.team].players) if (p !== o && !p.off && (p.ovUntil || 0) > S.t && p.ovSide && !(S.ball.intended === p.idx)) { const t = o.team, bxf = Math.max(fx(t, o.x), fx(t, S.ball.x)), ol = fx(t, offsideLine(t)); targets[p.idx] = [fx(t, Math.min(Math.max(fx(t, p.x) + 4, bxf + 13), ol - 1)), clamp(GOAL_Y + p.ovSide * 29, 2, W - 2)]; urgent[p.idx] = true; if (!(p.bRun && p.bRun.until > S.t && !p.bRun.ov)) p.bRun = { x: targets[p.idx][0], y: targets[p.idx][1], until: Math.min(p.ovUntil, S.t + 0.5), ov: 1 }; } }   // 走る先へのスルーパス（タッチライン際の前のスペース）も出せるように
       smoothPost();
