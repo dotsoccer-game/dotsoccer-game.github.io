@@ -3116,7 +3116,7 @@
           if (margin < crM || tq > tb + ((globalThis.__Kcr2 ?? 1) ? 1.4 : 0.8)) continue;   // 浮き球のクロスは、競り合いになっても良い（先に触れなくても、ほぼ同時なら）
           const lm = chip ? 2 : laneMargin(t, p.x, p.y, sx, sy, -1); if (lm < 0.3) continue;
           const runIn = (globalThis.__Kfb ?? 1) ? (mates(p).some((m) => m.bRun && m.bRun.until > S.t && fx(t, m.bRun.x) > L - 18) ? 0.5 : pr <= 1 ? -0.4 : 0) : 0;   // 版907：クロスは、走り込む味方が動き出したのを見てから（寄せが弱ければ待つ）
-          opts.push({ kind: 'pass', q: bq, through: !chip, chip, space: [sx, sy], d: dS, danger: margin < 0.2 ? 0.6 : 0.3, v: 1.2 + ((globalThis.__Kcr2 ?? 1) ? (globalThis.__Kcrv ?? 0.8) : 0) + runIn + clamp(margin, -1.6, 1) * (chip ? 0.6 : 1.2) + (chip ? (((bq.jump || 50) - 50) / 60) : 0) + (k === 'cut' ? 0.3 : 0) + (ph === 'fin' ? 0.4 : 0) + ((p.kick || 50) - 50) / 100 + ((globalThis.__Kov2 ?? 1) && (p.ovUntil || 0) + 2 > S.t && p.sk.has('overlap') ? 1.2 : 0), cross: k });   // 版1308：オーバーラップで受けたら、そのままクロス
+          opts.push({ kind: 'pass', q: bq, through: !chip, chip, space: [sx, sy], d: dS, danger: margin < 0.2 ? 0.6 : 0.3, v: 1.2 + ((globalThis.__Kcr2 ?? 1) ? (globalThis.__Kcrv ?? 0.8) : 0) + runIn + clamp(margin, -1.6, 1) * (chip ? 0.6 : 1.2) + (chip ? (((bq.jump || 50) - 50) / 60) : 0) + (k === 'cut' ? 0.3 : 0) + (ph === 'fin' ? 0.4 : 0) + ((p.kick || 50) - 50) / 100 + ((globalThis.__Kov2 ?? 1) && ((p.ovUntil || 0) + 2 > S.t || S.t - (p.ovRecvT ?? -9) < 8) && p.sk.has('overlap') ? 1.2 : 0), cross: k });   // 版1308：オーバーラップで受けたら、そのままクロス
         }
       }
       // ドリブル
@@ -3154,6 +3154,12 @@
         const gx0 = fx(t, L - 17), gy0 = GOAL_Y + Math.sign(p.y - GOAL_Y) * 4, ddx = gx0 - p.x, ddy = gy0 - p.y, dl0 = hyp(ddx, ddy) || 1;
         let sp2 = 9; for (const o of foes) { if (o.gk) continue; const rx = o.x - p.x, ry = o.y - p.y, d2 = hyp(rx, ry); if (d2 < 9 && (rx * ddx + ry * ddy) / (d2 * dl0 || 1) > 0.5) sp2 = Math.min(sp2, d2); }
         if (sp2 >= 4) opts.push({ kind: 'dribble', mode: 'carry', dir: [ddx / dl0, ddy / dl0], v: 0.4 + (sp2 - 4) * 0.2 + (globalThis.__Bcut ?? 0.6) });
+      }
+      // 版1310：オーバーラップで追い越して受けたサイドバックは、前が空いていればそのままタッチライン沿いを運んで、深い所からクロスを狙う
+      if ((globalThis.__Kov3 ?? 1) && p.sk.has('overlap') && S.t - (p.ovRecvT ?? -9) < 6 && xf < L - 14 && Math.abs(p.y - GOAL_Y) > 12 && pr <= 1) {
+        const sd = Math.sign(p.y - GOAL_Y), gx0 = fx(t, Math.min(L - 10, xf + 18)), gy0 = GOAL_Y + sd * clamp(Math.abs(p.y - GOAL_Y), 18, 28), ddx = gx0 - p.x, ddy = gy0 - p.y, dl0 = hyp(ddx, ddy) || 1;
+        let sp2 = 9; for (const o of foes) { if (o.gk) continue; const rx = o.x - p.x, ry = o.y - p.y, d2 = hyp(rx, ry); if (d2 < 9 && (rx * ddx + ry * ddy) / (d2 * dl0 || 1) > 0.5) sp2 = Math.min(sp2, d2); }
+        if (sp2 >= 3.5) opts.push({ kind: 'dribble', mode: 'carry', dir: [ddx / dl0, ddy / dl0], v: (globalThis.__Kov3v ?? 3.0) + (sp2 - 3.5) * 0.25, ovc: 1 });
       }
       if (xf < 22 && pr === 2 && bestSafe < 0) opts.push({ kind: 'clear', v: 0.6 });
       else if ((globalThis.__Kgz ?? 1) && xf < 30 && (pr >= 1 || near.d < 3.5) && !p.gk && bestSafe < 0.8) opts.push({ kind: 'clear', v: pr === 2 ? 0.9 : 0.5 });   // 版992：ゴール前で寄せられて、安全につなげる味方がいなければ、大きく蹴り出す
@@ -3201,6 +3207,7 @@
       const sharp = 0.9 + (p.vision || 50) / 45;
       let sum = 0; for (const o of opts) { o.w = Math.exp(clamp(o.v, -6, 8) * sharp); sum += o.w; }
       let r0 = R.next() * sum, pick = opts[opts.length - 1]; for (const o of opts) { r0 -= o.w; if (r0 <= 0) { pick = o; break; } }
+      if (globalThis.__ovD && p.sk.has('overlap') && S.t - (p.ovRecvT ?? -9) < 6) { const o2 = opts.find((o) => o.ovc); globalThis.__ovD.push([Math.round(L - xf), Math.round(Math.abs(p.y - GOAL_Y)), pr, o2 ? +o2.v.toFixed(1) : null, pick.kind + (pick.ovc ? '*' : '') + (pick.cross ? ':cross' : ''), +pick.v.toFixed(1), +Math.max(...opts.map((o) => o.v)).toFixed(1)]); }
       if (globalThis.__ovC) { const ovm = mates(p).find((m) => (m.ovUntil || 0) > S.t && m !== p); if (ovm) { const C = globalThis.__ovC; C.dec = (C.dec || 0) + 1; const oo = opts.find((o) => o.kind === 'pass' && o.q === ovm); if (oo) C.has = (C.has || 0) + 1; else (C.why ||= []).push([Math.round(fx(t, ovm.x) - xf), Math.round(hyp(ovm.x - p.x, ovm.y - p.y)), Math.round(fx(t, offsideLine(t)) - fx(t, ovm.x))]); if (pick.q === ovm) C.pk = (C.pk || 0) + 1; } }
       if (globalThis.__ppDbg) { const G = globalThis.__ppDbg; if (backMk) { G.back++; G['b_' + pick.kind + (pick.kind === 'pass' && fx(t, pick.q.x) < xf + 2 ? 'Back' : '')] = (G['b_' + pick.kind + (pick.kind === 'pass' && fx(t, pick.q.x) < xf + 2 ? 'Back' : '')] || 0) + 1; } if (brushQ) { G.br++; if (pick.kind === 'pass' && pick.q === brushQ) G.brRet++; else G['r_' + pick.kind] = (G['r_' + pick.kind] || 0) + 1; } }
       if (globalThis.__mdDbg3 && (T[t].mdStack || 0) >= 4 && !p.gk && p._gT != null) globalThis.__mdDbg3.push(+(S.t - p._gT).toFixed(2));
@@ -4566,7 +4573,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           let farB = false;
           { const bb = S.ball, ex = bb.x - p.x, ey = bb.y - p.y, dB = hyp(ex, ey); if ((globalThis.__Kr2 ?? 1) && bb.z < 0.05 && dB > 0.9 && (ex * S.dribbleDir[0] + ey * S.dribbleDir[1]) / dB < 0.82) { const rv = bb.rv || [0, 0]; tx = bb.x + rv[0] * 0.35; ty = bb.y + rv[1] * 0.35; farB = true; vmax = Math.max(vmax, maxSpeed(p) * 0.8); p._bCh = hyp(rv[0], rv[1]); } }   // 版895：向きを変える前に、まず転がっているボールに追いつく（触らないとボールの向きは変わらない）
           if (S.charge && S.charge.p === p.idx && !S.charge.dShot && !(farB || hyp(S.ball.x - p.x, S.ball.y - p.y) > 0.8)) vmax *= 0.15;
-          if ((globalThis.__Kov2 ?? 1) && own === p && T[p.team].ovWait && T[p.team].ovWait.until > S.t && T[p.team].ovWait.r !== p.idx && P[T[p.team].ovWait.r] && fx(p.team, P[T[p.team].ovWait.r].x) <= fx(p.team, p.x) + 1.5 && nearestOpp(p, p.x, p.y).d > 2.8) vmax *= 0.5;   // 版1308：オーバーラップ：追い越してくる味方を待つ間は、運ぶ速さを落として引きつける
+          if ((globalThis.__Kovw ?? 0) && own === p && T[p.team].ovWait && T[p.team].ovWait.until > S.t && T[p.team].ovWait.r !== p.idx && P[T[p.team].ovWait.r] && fx(p.team, P[T[p.team].ovWait.r].x) <= fx(p.team, p.x) + 1.5 && nearestOpp(p, p.x, p.y).d > 2.8) vmax *= 0.5;   // 版1308：オーバーラップ：追い越してくる味方を待つ間は、運ぶ速さを落として引きつける
           if ((p.burstT || 0) > S.t) vmax = Math.max(vmax, maxSpeed(p));   // 技で抜いた直後は一気に加速   // 溜めている間はほぼ止まる
           if ((globalThis.__Kkg3 ?? 1) && kgOn(p)) vmax *= globalThis.__Kkg3v ?? 0.75;   // 版1013：影縫いに張りつかれている間は、ドリブルが遅くなる
         } else if (own === p) {
@@ -4626,8 +4633,9 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             const sd = Math.sign(p.slot.y - GOAL_Y), oxf = fx(p.team, own.x);
             const fwdOwn = ((own.vx || 0) * sgn(p.team) > 0.6) || !opps(own).some((q) => !q.off && !q.gk && hyp(q.x - own.x, q.y - own.y) < 3 && fx(p.team, q.x) > oxf);   // 版878：持っている人が前を向いている（後ろから寄せられていない・前へ運んでいる）時だけ上がる。後ろ向きなら、出せる所で待って助ける
             if (!fwdOwn && Math.sign(own.y - GOAL_Y) === sd && Math.abs(own.y - GOAL_Y) > 6 && oxf > L / 2 - 8 && oxf < L - 14 && xf < oxf + 1 && xf > oxf - 26 && globalThis.__tacLog && S.t - (p.sbhLog ?? -9) > 6) { p.sbhLog = S.t; globalThis.__tacLog.push(['sbhold', +S.t.toFixed(1), p.team, p.idx]); }
-            if (fwdOwn && Math.sign(own.y - GOAL_Y) === sd && Math.abs(own.y - GOAL_Y) > 6 && oxf > L / 2 - 8 && oxf < L - 14 && xf < oxf + 1 && xf > oxf - ((globalThis.__Kov2 ?? 1) ? 20 : 26)) {
-              p.ovUntil = S.t + ((globalThis.__Kov2 ?? 1) ? R.range(4.5, 5.5) : R.range(3, 4)); p.ovNext = p.ovUntil + R.range(4, 7); p.ovSide = sd; if (globalThis.__ovC) (globalThis.__ovC.sx ||= []).push(Math.round(L - oxf) + '/' + Math.round(L - xf)); act(p, 'ovrun', p.ovUntil - S.t); if (globalThis.__Kov2 ?? 1) T[p.team].ovWait = { r: p.idx, until: S.t + 2.4 }; if (globalThis.__tacLog) globalThis.__tacLog.push(['sbgo', +S.t.toFixed(1), p.team, p.idx]); if (globalThis.__tyDbg) globalThis.__tyDbg.ov = (globalThis.__tyDbg.ov || 0) + 1; }
+            const contOwn = (globalThis.__Kov3 ?? 1) && hyp(own.vx || 0, own.vy || 0) < 3.5 && opps(own).some((q) => !q.off && !q.gk && hyp(q.x - own.x, q.y - own.y) < 7 && fx(p.team, q.x) > oxf);   // 版1310：サイドで前をふさがれて止まっている味方を、外から追い越して助ける（いちばん自然なオーバーラップ）
+            if ((fwdOwn || contOwn) && Math.sign(own.y - GOAL_Y) === sd && Math.abs(own.y - GOAL_Y) > 6 && oxf > L / 2 - 8 && oxf < L - 14 && xf < oxf + 1 && xf > oxf - ((globalThis.__Kov2 ?? 1) ? (globalThis.__Kovb ?? 22) : 26)) {
+              p.ovUntil = S.t + ((globalThis.__Kov2 ?? 1) ? R.range(4.5, 5.5) : R.range(3, 4)); p.ovNext = p.ovUntil + R.range(4, 7); p.ovSide = sd; if (globalThis.__ovC) (globalThis.__ovC.sx ||= []).push(Math.round(L - oxf) + '/' + Math.round(L - xf)); act(p, 'ovrun', p.ovUntil - S.t); if (globalThis.__Kovw ?? 0) T[p.team].ovWait = { r: p.idx, until: S.t + 2.4 };   /* 版1310：持っている味方は待たない（ふつうに運ぶ。追い越しは走る側の速さで自然に） */ if (globalThis.__tacLog) globalThis.__tacLog.push(['sbgo', +S.t.toFixed(1), p.team, p.idx]); if (globalThis.__tyDbg) globalThis.__tyDbg.ov = (globalThis.__tyDbg.ov || 0) + 1; }
           }
           const thr = clamp(p.run_space + T[p.team].mods.through + T[p.team].tac.through + T[p.team].urg * 35 + (T[p.team].attitude === 'defensive' ? 12 : 0), 0, 100);
           // 渦潮の囮：味方が前を向いて持ったら、裏へ全力で走る／月影の抜け出し：ボールを持った味方が近くにいたら、裏へ抜け出してスルーパスを呼び込む
@@ -4774,6 +4782,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
     const LOFT_ANGLE = { dink: [0.42, 0.5], drive: [0.32, 0.42], high: [0.62, 0.74], lob: [0.6, 0.78], cross: [0.42, 0.55], clear: [0.6, 0.85] };
 
     function kick(p, tx, ty, kind, loft, opt) {
+      if (globalThis.__ovX && S.t - (p.ovRecvT ?? -9) < 8) { globalThis.__ovX.push({ k: kind, loft: loft || (opt && opt.style) || '', xf: Math.round(L - fx(p.team, p.x)), dy: Math.round(Math.abs(p.y - GOAL_Y)), tx: Math.round(L - fx(p.team, tx)), ty: Math.round(Math.abs(ty - GOAL_Y)), t: S.t, team: p.team }); }
       opt = opt || {};
       if (globalThis.__mdDbg2 && kind === 'pass' && (T[p.team].mdStack || 0) >= 4 && !p.gk && p._gT != null) globalThis.__mdDbg2.push(+(S.t - p._gT).toFixed(2));
       if (globalThis.__crsLog && kind === 'pass' && loft && loft !== 'clear' && !p.gk && S.ball.owner === p.idx && fx(p.team, p.x) > L - 36 && Math.abs(p.y - GOAL_Y) > 11 && fx(p.team, tx) > L - 20 && Math.abs(ty - GOAL_Y) < 20) globalThis.__crsLog.push({ t: S.t, i: p.idx, tx, ty, sp: !!S.setPiece, loft });   // 確認用：サイドからゴール前への浮き球
@@ -7577,7 +7586,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
     function bpFoot(p, b) { const k = b.kicker; if (k >= 0 && k !== p.idx && k === b.lastPlayer && b.ftBy === k && b.kickKind !== 'head' && P[k] && P[k].team === p.team) return true;
       const f = b.footBy; return !!(globalThis.__Kbp2 ?? 1) && f != null && f >= 0 && f !== p.idx && f === b.lastPlayer && b.kind !== 'shot' && P[f] && P[f].team === p.team && !P[f].gk; }   // 版929：味方が足で運んで（ドリブルで）離した球も、手で取れない
     function gainBall(p, how) {
-      if (globalThis.__ovC && (p.ovUntil || 0) > S.t - 0.5 && p.sk.has('overlap')) (globalThis.__ovC.rx ||= []).push(Math.round(L - fx(p.team, p.x)));
+      if ((p.ovUntil || 0) > S.t - 0.5 && p.sk.has('overlap')) { p.ovRecvT = S.t; if (globalThis.__ovC) (globalThis.__ovC.rx ||= []).push(Math.round(L - fx(p.team, p.x))); }
       p._gT = S.t;
       if (globalThis.__gbFar) { const dd = hyp(S.ball.x - p.x, S.ball.y - p.y); if (dd > 3.5) globalThis.__gbFar.push({ t: +S.t.toFixed(1), p: p.idx, how, dd: +dd.toFixed(1), kind: S.ball.kind, owner: S.ball.owner, st: new Error().stack.split('\n').slice(2, 6).map((x) => x.trim().replace(/^at /, '').replace(/\(.*engine.js:/, '(')).join(' < ') }); }
       if (globalThis.__mdG && p.uniq === 'midori') globalThis.__mdG.push([+fx(p.team, p.x).toFixed(0), how, S.restart ? 1 : 0, S.setPiece ? 1 : 0]);
@@ -9328,7 +9337,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           else if (own.cutInShot && S.t >= own.cutInShot) { own.cutInShot = 0; S.decision = Math.min(S.decision, 0.05); own.wantShot = S.t + 0.6; }
           else if (own.ciPlan && S.t >= own.ciPlan.at && !(own.moveQ && own.moveQ.length)) { S.decision = Math.min(S.decision, 0.05); }   // 版1247   // 技の足さばきの途中では次のプレーを選ばない
           if (!own.gk && S.decision > 0.05 && !S.setPiece && fx(own.team, own.x) > L - 24 && emptyGoal(own)) S.decision = 0;
-          if ((globalThis.__Kov2 ?? 1) && T[own.team].ovWait && T[own.team].ovWait.until > S.t && T[own.team].ovWait.r !== own.idx && !own.gk && !S.setPiece && close > 2.8 && P[T[own.team].ovWait.r] && fx(own.team, P[T[own.team].ovWait.r].x) <= fx(own.team, own.x) + 1.5) S.decision = Math.max(S.decision, 0.15);   // 版1308：オーバーラップ：味方が追い越してくるまで（最大2.4秒）、寄せられていなければ持って運んで待つ
+          if ((globalThis.__Kovw ?? 0) && T[own.team].ovWait && T[own.team].ovWait.until > S.t && T[own.team].ovWait.r !== own.idx && !own.gk && !S.setPiece && close > 2.8 && P[T[own.team].ovWait.r] && fx(own.team, P[T[own.team].ovWait.r].x) <= fx(own.team, own.x) + 1.5) S.decision = Math.max(S.decision, 0.15);   // 版1308：オーバーラップ：味方が追い越してくるまで（最大2.4秒）、寄せられていなければ持って運んで待つ
           if ((globalThis.__Kov2 ?? 1) && !own.gk && !S.setPiece && S.decision > 0.05) { const ov = T[own.team].players.find((m) => m !== own && !m.off && (m.ovUntil || 0) > S.t && m.ovAsk !== m.ovUntil && fx(own.team, m.x) > fx(own.team, own.x) + 1.5); if (ov) { ov.ovAsk = ov.ovUntil; S.decision = 0.05; if (globalThis.__ovC) globalThis.__ovC.p = (globalThis.__ovC.p || 0) + 1; } }   // 版1308：オーバーラップの味方が自分を追い越したら、その瞬間に出すかどうか決め直す
           if ((globalThis.__Kbl ?? 1) && !own.gk && !S.setPiece && S.decision > 0.05 && fx(own.team, own.x) > L - 6.5 && Math.abs(own.y - GOAL_Y) >= 8 && own.vx * sgn(own.team) > 1 && (own.blT || 0) < S.t) { own.blT = S.t + 0.5; S.decision = 0; if (globalThis.__blDbg) globalThis.__blDbg.f = (globalThis.__blDbg.f || 0) + 1; }   // 版1296：サイドの深い所でゴールラインへ運んでいる：すぐ考え直す（クロス・マイナス・中へ）
           // 版1095：紫電の遊戯：GKと1対1になったら、時々（5割）は打たずにGKへ向かい、フェイントでGKまでかわして無人のゴールへ流し込む
