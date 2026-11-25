@@ -211,7 +211,7 @@
   }
 
   // ---------- リーグ（7リーグ・66チーム）----------
-  // 地域2部（東・西 各6）→ 地域1部（東・西 各8）→ D3（12）→ D2（14）→ D1（12）
+  // 地域2部（東・西 各6）→ 地域1部（東・西 各8）→ D3（12）→ D2（14）→ D1（12）→（海外）ドリームリーグ（12）
   const LEAGUES = [
     { id: 'regE2', name: '地域2部リーグ東', tier: 0, region: 'E', size: 6, base: [40, 46], skills: [0, 1] },
     { id: 'regW2', name: '地域2部リーグ西', tier: 0, region: 'W', size: 6, base: [40, 46], skills: [0, 1] },
@@ -220,6 +220,7 @@
     { id: 'd3', name: 'D3リーグ', tier: 2, size: 12, base: [50, 58], skills: [1, 2] },
     { id: 'd2', name: 'D2リーグ', tier: 3, size: 14, base: [58, 67], skills: [2, 3] },
     { id: 'd1', name: 'D1リーグ', tier: 4, size: 12, base: [67, 78], skills: [3, 5] },
+    { id: 'dream', name: 'ドリームリーグ', tier: 5, size: 12, base: [85, 95], skills: [4, 6], abroad: true },   // 版1313：海外。D1で優勝すると招待が届く（行くかどうかは選べる）。下位2チームはD1へ戻る
   ];
   const LG = Object.fromEntries(LEAGUES.map((l) => [l.id, l]));
   const TOWN_W = ['宿毛', '土佐', '四万十', '高松', '松山', '徳島', '今治', '宇和島', '室戸', '鳴門', '丸亀', '新居浜', '岡山', '倉敷', '広島', '福山', '下関', '小倉', '博多', '久留米', '佐賀', '長崎', '熊本', '別府', '宮崎', '薩摩', '那覇', '姫路', '堺', '奈良', '和歌山', '鳥取', '出雲', '尾道', '呉', '周南'];
@@ -256,6 +257,18 @@
     save.world = w; w.fixed = 1;
   }
   const myLgId = (save) => save.world.me;
+  // 版1313：ドリームリーグ（海外）ができる前のセーブに、ドリームリーグの12チームを足す。今シーズンの試合も、今の週まで進めておく
+  function ensureDream(save) {
+    if (!save.world || !save.world.leagues || save.world.leagues.dream) return;
+    const r = rng(save), lg = LG.dream;
+    save.world.leagues.dream = TEAMS.filter((m) => m.lg === 'dream').map((m) => teamEntry(m, lg, r));
+    if (save.lgs && !save.lgs.dream && save.lgs.season === save.season) {
+      const teams = save.world.leagues.dream.map((t) => ({ name: t.name, stats: newStats() }));
+      const rounds = makeSchedule(teams.length);
+      save.lgs.dream = { id: 'dream', name: lg.name, teams, rounds, weeks: leagueWeeks(rounds.length, 'dream'), round: 0, results: [] };
+      advanceOthers(save, (save.week || 1) - 1);
+    }
+  }
   // 版610：対戦（空港）の相手チーム。友達のチームコードから作る（セーブには入れない）
   const GUESTS = {};
   function registerGuest(save, d) {
@@ -494,6 +507,7 @@
     if (!LIFE_ON) return [];
     const out = [], hold = save.titles || {};
     for (const id in ROSTERS) {
+      if (ROSTERS[id].dream && !dreamKnown(save)) continue;   // 版1313
       const a = rosterAt(id, season - 1), b = rosterAt(id, season);
       a.players.forEach((p, i) => {
         if (b.players[i].gen === p.gen) return;
@@ -512,7 +526,7 @@
     return r2;
   }
   // 版850：D3から上はプロ。CPUのチームは、名簿の能力より少し上の力で試合をする（D3 +6・D2 +5・D1 +4）
-  const PRO_BOOST = { d3: 6, d2: 5, d1: 4 };
+  const PRO_BOOST = { d3: 6, d2: 5, d1: 4, dream: 3 };
   // ===== 版1213：ランクマッチのCPUクラブ =====
   //  級ごとの相手：D級＝地域リーグ、C級＝D3、B級＝D1の下半分、A級＝D1の上半分（スキルは1人2〜3個）、S級＝国内屈指の選手を集めた選抜チーム（毎回メンバーが変わる）
   //  同じ級の中でも、RPが上がるほど少し強くなる（prog：0〜1）
@@ -646,6 +660,7 @@
   }
   // 2回総当たりの日程
   function makeSchedule(n) {
+    if (n % 2) return makeSchedule(n + 1).map((ps) => ps.filter(([a, b]) => a !== n && b !== n));   // 版1313：奇数のリーグは、毎節1チームが休み（自分が海外にいる間、地域2部の片方が5チームになる）
     const arr = [...Array(n).keys()], rounds = [];
     for (let r = 0; r < n - 1; r++) {
       const pairs = [];
@@ -921,20 +936,20 @@
   //  トーナメント：64 → 32 → 16 → 8（準々決勝）→ 4（準決勝）→ 決勝。D1は早く当たらないように散らして置く
   function newCup(save) {
     const r = rng(save), all = [];
-    for (const id in save.world.leagues) for (const t of save.world.leagues[id]) all.push({ name: t.name, lg: id });
-    all.push({ name: save.team.name, lg: myLgId(save) });
+    for (const id in save.world.leagues) if (!(LG[id] && LG[id].abroad)) for (const t of save.world.leagues[id]) all.push({ name: t.name, lg: id });
+    if (!(LG[myLgId(save)] || {}).abroad) all.push({ name: save.team.name, lg: myLgId(save) });   // 版1313：海外のリーグにいる間は、国内カップに出ない
     const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
     const reg2 = shuffle(all.filter((t) => /^reg.2$/.test(t.lg)));
-    const pre = reg2.slice(0, 4).map((t) => t.name);
+    const preN = clamp(all.length - 64, 0, 2), pre = reg2.slice(0, preN * 2).map((t) => t.name);   // 版1313：自分が海外にいる間は65チームなので、出場決定戦は1試合
     // 版1167：シード（強い順に1〜64番）で組む。1回戦は1番と64番、2番と63番…のように、強いチームと弱いチームが当たる。
     //  強いチーム同士は勝ち上がった先（シード1と2は決勝）で当たる。同じリーグの中の順番は毎年くじで変わる
     const TIER = { d1: 4, d2: 3, d3: 2, regE1: 1, regW1: 1, regE2: 0, regW2: 0 };
     const seeded = shuffle(all.filter((t) => !pre.includes(t.name))).sort((a, b) => (TIER[b.lg] ?? 0) - (TIER[a.lg] ?? 0)).map((t) => t.name);   // 62チーム（並べ替えは同じリーグなら、くじの順のまま）
-    seeded.push('#pre0', '#pre1');   // 63・64番：出場決定戦の勝者
+    for (let k = 0; k < preN; k++) seeded.push('#pre' + k);   // 63・64番：出場決定戦の勝者
     let order = [1, 2]; while (order.length < 64) { const n = order.length * 2; order = order.flatMap((x) => [x, n + 1 - x]); }   // 1,64,32,33,16,49,… の並び（1と2は反対の山）
     const slots = order.map((sd) => seeded[sd - 1]);
-    const preSlots = [slots.indexOf('#pre0'), slots.indexOf('#pre1')];
-    save.cup = { season: save.season, ver: 3, seeded: 1, round: 0, bracket: slots.slice(), slots, pre: [[pre[0], pre[1]], [pre[2], pre[3]]], preSlots, log: [], hist: [], champion: null, alive: all.map((t) => t.name), waiting: [], bye: null };
+    const preSlots = Array.from({ length: preN }, (_, k) => slots.indexOf('#pre' + k));
+    save.cup = { season: save.season, ver: 3, seeded: 1, round: 0, bracket: slots.slice(), slots, pre: Array.from({ length: preN }, (_, k) => [pre[k * 2], pre[k * 2 + 1]]), preSlots, log: [], hist: [], champion: null, alive: all.map((t) => t.name), waiting: [], bye: null };
     save.cup.pairs = save.cup.pre.map((x) => x.slice());
   }
   // カップ戦（CPU同士）：力の差がはっきり出る。準決勝はほぼD1、ときどきD2のジャイアントキリング
@@ -1025,8 +1040,8 @@
   }
   // 公式戦の結果を反映
   /* v747 賞金：シーズン中にためて、シーズンが終わった時にまとめてコインで受け取る */
-  const PRIZE_LG = [30, 60, 120, 200, 300];   /* v748：多すぎたので約3分の1に */   // リーグの格ごとの順位賞金（優勝の額。順位が下がるほど少なく）
-  const PRIZE_UP = [0, 100, 150, 250, 500];
+  const PRIZE_LG = [30, 60, 120, 200, 300, 500];   /* v748：多すぎたので約3分の1に */   // リーグの格ごとの順位賞金（優勝の額。順位が下がるほど少なく）
+  const PRIZE_UP = [0, 100, 150, 250, 500, 1000];
   const GOLD_LG = {};   // 版1173：Dリーグ優勝の金のコインはやめた（金のコインはランクマッチでもらえる）     // 昇格ボーナス（上がった先のリーグ）
   /* v762：リーグの賞金を足して、たまった賞金をまとめて払う */
   function payPrize(save, fromId, pos, n0, toId) {
@@ -1198,7 +1213,7 @@
     //  基準は自分のリーグ。シーズンが終わって行き先（昇格・降格）が決まっていたら、その新しいリーグ
     const myLg = myLgId(save), baseLg = (() => { try { return myNextLg(save) || myLg; } catch (e) { return myLg; } })(), baseTier = LG[baseLg].tier;
     const all = [];
-    for (const lg of LEAGUES) for (const t of save.world.leagues[lg.id] || []) all.push({ ...t, lg: lg.id, tier: lg.tier });
+    for (const lg of LEAGUES) if (!lg.abroad || dreamKnown(save)) for (const t of save.world.leagues[lg.id] || []) all.push({ ...t, lg: lg.id, tier: lg.tier });   // 版1313：ドリームリーグは、招待が届くまで内緒
     const nf = nextFixture(save), busy = new Set(nf && nf.week <= save.week && nf.opp ? [nf.opp.name] : []);
     const region = save.world.region;
     // 同じリーグ（基準のリーグ）を中心に、ひとつ下のリーグも少し
@@ -1240,6 +1255,20 @@
     return out;
   }
 
+  /* 版1313：自分が海外へ出る（dir +1）と、日本のD1が1つ空く。D2の次に良かったクラブをD1へ、D3の次をD2へ…と1つずつ上げ、地域2部が1つ少なくなる。
+     戻ってくる（dir −1）と、D1が1つ多い。D1でいちばん下だったクラブをD2へ…と1つずつ下げ、地域2部に戻る */
+  function dreamCascade(lists, fin, me, dir, regionOf) {
+    const best = (id) => (fin[id] || []).find((n) => n !== me && lists[id].includes(n)), worst = (id) => (fin[id] || []).slice().reverse().find((n) => n !== me && lists[id].includes(n));
+    const mv = (n, from, to) => { if (!n) return; lists[from] = lists[from].filter((x) => x !== n); lists[to].push(n); };
+    if (dir > 0) {
+      mv(best('d2'), 'd2', 'd1'); mv(best('d3'), 'd3', 'd2');
+      const e = best('regE1'), w = best('regW1'), pe = e ? fin.regE1.indexOf(e) : 99, pw = w ? fin.regW1.indexOf(w) : 99, R = pe <= pw ? 'E' : 'W';
+      mv(R === 'E' ? e : w, 'reg' + R + '1', 'd3'); mv(best('reg' + R + '2'), 'reg' + R + '2', 'reg' + R + '1');
+    } else {
+      mv(worst('d1'), 'd1', 'd2'); mv(worst('d2'), 'd2', 'd3');
+      const n3 = worst('d3'), R = regionOf(n3) === 'E' ? 'E' : 'W'; mv(n3, 'd3', 'reg' + R + '1'); mv(worst('reg' + R + '1'), 'reg' + R + '1', 'reg' + R + '2');
+    }
+  }
   // シーズン終了（2月4週のあと）：昇格・降格して、次のシーズンを作る
   function endSeason(save) {
     if (!save.post) setupPost(save);
@@ -1268,18 +1297,31 @@
       const d2t = lists.d2.includes(m.a) ? m.a : m.b, d1t = d2t === m.a ? m.b : m.a;
       if (m.w === d2t) { move(d2t, 'd2', 'd1'); move(d1t, 'd1', 'd2'); }
     }
+    /* 版1313：ドリームリーグ（海外）への移籍と、戻り。日本の中の数は、1つずつ下のリーグから上げて（戻る時は下げて）そろえる */
+    const W0 = save.world, abroadNow = fromId === 'dream';
+    if (!abroadNow && fromId === 'd1' && pos === 1 && dreamGo(save)) { if (!lists.dream) lists.dream = (W.dream || []).map((t) => t.name);
+      move(me, 'd1', 'dream');
+      const rest = (fin.dream || []).slice().reverse().find((n) => n !== me && lists.dream.includes(n));   // ドリームリーグの最下位のクラブは、1年休む（自分が入る分）
+      if (rest) { lists.dream = lists.dream.filter((n) => n !== rest); W0.dreamRest = W.dream.find((t) => t.name === rest) || null; }
+      dreamCascade(lists, fin, me, +1, (n) => (findTeam(save, n) || {}).region);
+    } else if (abroadNow && pos >= fin.dream.length - 1) {
+      move(me, 'dream', 'd1');
+      if (W0.dreamRest) { lists.dream.push(W0.dreamRest.name); }
+      dreamCascade(lists, fin, me, -1, (n) => (findTeam(save, n) || {}).region);
+    }
     /* 地域2部の東西を6チームずつにそろえる（あふれた方から移す） */
-    for (let guard = 0; guard < 6 && lists.regE2.length !== lists.regW2.length; guard++) {
+    for (let guard = 0; guard < 6 && Math.abs(lists.regE2.length - lists.regW2.length) > 1; guard++) {
       const [big, small] = lists.regE2.length > lists.regW2.length ? ['regE2', 'regW2'] : ['regW2', 'regE2'];
       const n = lists[big].filter((x) => x !== me).pop(); move(n, big, small);
     }
     // 地域1部の東西を8チームずつにそろえる（あふれた方から移す）
-    for (let guard = 0; guard < 6 && lists.regE1.length !== lists.regW1.length; guard++) {
+    for (let guard = 0; guard < 6 && Math.abs(lists.regE1.length - lists.regW1.length) > 1; guard++) {
       const [big, small] = lists.regE1.length > lists.regW1.length ? ['regE1', 'regW1'] : ['regW1', 'regE1'];
       const n = lists[big].filter((x) => x !== me).pop(); move(n, big, small);
     }
     // 新しい世界：AIチームは少しずつ強さが変わる
     const all = {}; for (const id in W) for (const t of W[id]) all[t.name] = t;
+    if (save.world.dreamRest) { all[save.world.dreamRest.name] = save.world.dreamRest; if (lists.dream && lists.dream.includes(save.world.dreamRest.name)) save.world.dreamRest = null; }
     const nw = {}; let myNew = fromId;
     for (const id in lists) {
       nw[id] = [];
@@ -1292,7 +1334,7 @@
     const up = LG[myNew].tier > LG[fromId].tier, down = LG[myNew].tier < LG[fromId].tier;
     if (save.prizePaid !== save.season) payPrize(save, fromId, pos, fin[fromId].length, myNew);   /* v762：ふつうは1月の試合が終わった時に払い済み */
     else save.lastPrize = null;
-    const msg = up ? `${pos}位！${LG[myNew].name}へ昇格！` : down ? `${pos}位…${LG[myNew].name}へ降格` : LG[fromId].tier === 4 && pos === 1 ? 'D1リーグ優勝！！' : `${pos}位。${LG[fromId].name}に残留`;
+    const msg = myNew === 'dream' && fromId === 'd1' ? `D1リーグ優勝！！ ${LG.dream.name}へ挑戦！` : fromId === 'dream' && myNew === 'd1' ? `${pos}位…日本の${LG.d1.name}へ戻る` : up ? `${pos}位！${LG[myNew].name}へ昇格！` : down ? `${pos}位…${LG[myNew].name}へ降格` : LG[fromId].tier === 4 && pos === 1 ? 'D1リーグ優勝！！' : fromId === 'dream' && pos === 1 ? 'ドリームリーグ優勝！！' : `${pos}位。${LG[fromId].name}に残留`;
     { const rec = (() => { const t = (save.league && save.league.teams || []).find((x) => x.name === me); return t ? { ...t.stats } : null; })();   // 版834：監督成績用に、成績・リーグの数・行き先も残す
       save.history.push({ season: save.season, league: LG[fromId].name, lgId: fromId, pos, n: (fin[fromId] || []).length || 0, msg, move: up ? 'up' : down ? 'dn' : 'st', to: LG[myNew].name, rec, club: save.team.name, cup: save.cup && save.cup.champion === me ? '国内カップ優勝' : '' }); }
     save.season++; save.week = 1; save.post = null;
@@ -1478,8 +1520,9 @@
   }
   function starOf(tid, q) {
     if (q.top) return 5;
-    if (q.role === 'ace' || q.role === 'core') return 4;
     const lg = (TEAM_BY_ID[tid] || {}).lg || '';
+    if (lg === 'dream') return q.role === 'ace' || q.role === 'core' ? 5 : 4;   // 版1313：ドリームリーグは世界の名門
+    if (q.role === 'ace' || q.role === 'core') return 4;
     return lg === 'd1' || lg === 'd2' ? 3 : lg === 'd3' || /1$/.test(lg) ? 2 : 1;
   }
   // CPUの選手の凸：いちばん高い能力のランクに届くのに必要な数だけ（☆3＝Aまでなので、Sがあれば1凸）
@@ -2002,12 +2045,33 @@
   }
   // 1週間を終える：全体練習（合宿中は強化）→ 週を進める → 年が明けたらシーズン終了（昇格・降格）
   /* v745 来季のリーグが決まったか（決まっていなければ null）。決まった時点でホームのスタジアムを改装する */
+  // ---------- 版1313：ドリームリーグの招待。D1で優勝したら届く。行くかどうかは選べる（決めるまでは、来季もD1のまま）----------
+  function dreamOffer(save) {
+    const lg = save.league; if (!lg || lg.id !== 'd1' || lg.round < lg.rounds.length) return null;
+    if (!DREAM_GATE && !dreamKnown(save)) return null;
+    if (standings(save).findIndex((t) => t.me) !== 0) return null;
+    const d = save.dream && save.dream.season === save.season ? save.dream : null;
+    return { season: save.season, decided: !!d, go: !!(d && d.go), teams: (save.world.leagues.dream || []).map((t) => t.name) };
+  }
+  /* 招待は、まずは決まったアカウントだけ（DREAM_GATE。画面の側で決める）。一度招待が届いたセーブは、そのあともずっと届く */
+  let DREAM_GATE = false;
+  const setDreamGate = (v) => { DREAM_GATE = !!v; };
+  const dreamKnown = (save) => !!(save && save.dreamSeen);
+  const dreamGo = (save) => !!(save.dream && save.dream.season === save.season && save.dream.go);
+  function decideDream(save, go) {
+    if (!dreamOffer(save)) return false;
+    save.dream = { season: save.season, go: !!go, at: save.week }; save.dreamSeen = save.dreamSeen || save.season;
+    if (save.renov && save.renov.season === save.season && save.renov.none) save.renov = null;   // 来季のリーグが変わったので、改装工事の予定を決め直す
+    return true;
+  }
   function myNextLg(save) {
     const me = save.team.name, id = myLgId(save), lg = save.league;
     if (!lg || lg.round < lg.rounds.length) return null;
     const st = standings(save), n = st.length, pos = st.findIndex((t) => t.me) + 1, post = save.post;
     const regOne = (two) => (two === 'regE2' ? 'regE1' : 'regW1'), regTwo = (one) => (one === 'regE1' ? 'regE2' : 'regW2');
     const ko = (comp) => post && post.matches.find((m) => m.comp === comp && (m.a === me || m.b === me) && m.label !== '決勝');
+    if (id === 'dream') return pos >= n - 1 ? 'd1' : 'dream';   // 版1313：ドリームリーグの下位2チームは、日本のD1へ戻る
+    if (id === 'd1' && pos === 1 && dreamGo(save)) return 'dream';   // 版1313：D1優勝で、ドリームリーグの招待を受けた
     if (/^reg.2$/.test(id)) return pos === 1 ? regOne(id) : id;
     if (/^reg.1$/.test(id)) {
       if (pos === n) return regTwo(id);
@@ -2036,7 +2100,7 @@
       const nx = myNextLg(save); if (!nx) return;
       if (save.post && save.post.matches.some((m) => !m.done && (m.a === save.team.name || m.b === save.team.name))) return;   /* v757：自分の1月の試合（親善試合の決勝など）が残っている間は、工事を始めない（工事中に公式戦はない） */
       const from = LG[myLgId(save)].tier, to = LG[nx].tier;
-      if (to === from) { save.renov = { season: save.season, none: true }; return; }
+      if (to === from || LG[nx].abroad || LG[myLgId(save)].abroad) { save.renov = { season: save.season, none: true }; return; }   // 版1313：海外へ行く・戻る時は、ホームの改装はない（D1の大きなスタジアムのまま）
       save.renov = { season: save.season, from, to, lg: nx, start: save.week, open: save.week + RENOV_WEEKS };
       out.renovStart = { ...save.renov };
     } else if (!r.none && !r.done && save.week >= r.open) { r.done = true; out.renovDone = { ...r }; }
@@ -2187,6 +2251,7 @@
     // 7リーグ制より前のセーブ：世界を作り直して、地域2部リーグ西の開幕から
     if (!save.world) { makeWorld(save); newLeague(save); newCup(save); save.week = 1; save.post = null; save.migratedWorld = true; }
     fixWorldNames(save);
+    ensureDream(save);   // 版1313：ドリームリーグができる前のセーブ
     /* v737：地域2部カップ／地域1部昇格トーナメント → 地域2部 東西親善試合（シーズン途中のセーブも名前を付け替える） */
     if (save.post) for (const m of save.post.matches) { if (m.comp === '地域2部カップ' || m.comp === '地域1部昇格トーナメント') m.comp = '地域2部 東西親善試合'; for (const k of ['key', 'next']) if (m[k] === '地域2部カップ:F' || m[k] === '地域1部昇格トーナメント:F') m[k] = '地域2部 東西親善試合:F'; }
     if (save.world) for (const id in save.world.leagues) for (const t of save.world.leagues[id]) if (ROSTERS[t.id]) t.lvl = lvlAt(t.id, save.season);   // 固定選手の強さに合わせる
@@ -2227,7 +2292,7 @@
   function gachaPoolAll() {
     if (gachaPool) return gachaPool;
     gachaPool = { 1: [], 2: [], 3: [], 4: [], 5: [] };
-    for (const tid in ROSTERS) for (const q of rosterAt(tid, 1).players) { const st = starOf(tid, q); gachaPool[st].push({ tid, no: q.no }); }
+    for (const tid in ROSTERS) { if (ROSTERS[tid].dream) continue; for (const q of rosterAt(tid, 1).players) { const st = starOf(tid, q); gachaPool[st].push({ tid, no: q.no }); } }   // 版1313：ドリームリーグ（海外）の選手は、スカウトに出ない
     return gachaPool;
   }
   // 版910：ピックアップをやめて、国内屈指の18人を全員入れる（☆5が出たら18人のだれか。1人あたり0.5%÷18）
@@ -2332,5 +2397,5 @@
     const picks = []; for (let i = 0; i < n; i++) picks.push(gachaOne(save, bn, r, n >= 10 && i === n - 1 && !picks.some((x) => x.star >= 3) ? 3 : 0));   // 10連は☆3以上を1人確定
     return { banner: bn, results: picks.map((pk) => { const res = gachaApply(save, pk); if (pk.off) res.off = true; return res; }) };
   }
-  root.DotCareer = { spRand, rebuildSave, LIM_NEED, capTz, setNoSusp, noSusp: () => NO_SUSP, rankCpu, firstSquad, goldOf, switchSquad, fix2nd, _t: { gachaWeak, gachaFloor, fix1164, rosterPlayer, gachaQ }, PRIZE_LG, PRIZE_UP, GOLD_LG, totsuGain, pasLv, gachaPick, setGachaPick, gachaReady, GACHA_PU_N, GACHA_PU_RATE, gachaUniqList, cpuSkills, skKind, slotsOf, skillsOf, syncSuspend, PREFS, prefRegion, setHometown, earnCoins, earnedOf, homeTier, myNextLg, PREM, premOn, cardMax, awaken, awakeCost, AWAKE_COST, registerGuest, guestCode, GUESTS, champPeek, CARD_MAX, noSkillLg, gachaBanner, gachaPull, gachaPoolAll, ensureGacha, GACHA_RATE, GACHA_COST, GACHA_PITY, KAKERA_OF, oppKits, BENCH_N, kitsPair, d1Round, pinWatch, faceKeyOf, cpuTeam, ensureStar, starOf, totsuOf, capGrade, capPts, capIdx, GRADES, rosterAt, lvlAt, retiredAt, titleOf, ensureTitles, evalTitles, CUP_LABELS, cupIn, ensureClub, renameClub, kitsFor, KIT_DEFAULT, EMB_DEFAULT, TEAMS, TEAM_BY_ID, ROSTERS, rosterOfTeam, leagueTable, prevOrder, goalRank, recordGoals, CUP_WEEKS_ALL: CUP_WEEKS, leagueWeeksOf: leagueWeeks, POST_WEEKS, CARDS, CAT_NAME, SP, findSpecial, previewCards, trainCards, trainOne, weekTick, GRID_R, GRID_C, zoneOf, wingTh, WING_R, isWing, cellsFor, formationLabel, FORMATIONS, TACTIC_ITEMS, STYLES, SITU_DEFAULT, SITU_ACTS, SITU_ROWS, SITU_FROM, ensureTactics, slotRoles, applyTactics, skillRate, endWeek, SEASON_WEEKS, INJURIES, TYPE_TUNE, COND_NAME, condOf, trainedThisWeek, trainsDone, trainLimit, trainMult, campState, campAdvance, CAMP, slotInfo, SLOT_MAX, SKILL_RATE, rewardCards, newLeague, newCup, playFixture, peekRound, afterOfficial, playPractice, practiceOpponent, practiceOptions, teamLook, recordStats, teamLevel, findTeam, CUP_WEEKS, CAMPS, LG, rankInfo, PMAX, PRICE, buyCard, buyPack, toEng, toPts, migrate, ensurePts, TEAM_MENUS: TEAM_PTS, MENUS, SPECIAL, LEAGUES, PNAME, newCareer, menusFor, train, learnSkill, slots, skillChance, nextFixture, finishRound, standings, endSeason, opponentTeam, matchTeam, avgParam, decideType, TYPES_BY_POS };
+  root.DotCareer = { dreamOffer, decideDream, setDreamGate, dreamKnown, spRand, rebuildSave, LIM_NEED, capTz, setNoSusp, noSusp: () => NO_SUSP, rankCpu, firstSquad, goldOf, switchSquad, fix2nd, _t: { gachaWeak, gachaFloor, fix1164, rosterPlayer, gachaQ }, PRIZE_LG, PRIZE_UP, GOLD_LG, totsuGain, pasLv, gachaPick, setGachaPick, gachaReady, GACHA_PU_N, GACHA_PU_RATE, gachaUniqList, cpuSkills, skKind, slotsOf, skillsOf, syncSuspend, PREFS, prefRegion, setHometown, earnCoins, earnedOf, homeTier, myNextLg, PREM, premOn, cardMax, awaken, awakeCost, AWAKE_COST, registerGuest, guestCode, GUESTS, champPeek, CARD_MAX, noSkillLg, gachaBanner, gachaPull, gachaPoolAll, ensureGacha, GACHA_RATE, GACHA_COST, GACHA_PITY, KAKERA_OF, oppKits, BENCH_N, kitsPair, d1Round, pinWatch, faceKeyOf, cpuTeam, ensureStar, starOf, totsuOf, capGrade, capPts, capIdx, GRADES, rosterAt, lvlAt, retiredAt, titleOf, ensureTitles, evalTitles, CUP_LABELS, cupIn, ensureClub, renameClub, kitsFor, KIT_DEFAULT, EMB_DEFAULT, TEAMS, TEAM_BY_ID, ROSTERS, rosterOfTeam, leagueTable, prevOrder, goalRank, recordGoals, CUP_WEEKS_ALL: CUP_WEEKS, leagueWeeksOf: leagueWeeks, POST_WEEKS, CARDS, CAT_NAME, SP, findSpecial, previewCards, trainCards, trainOne, weekTick, GRID_R, GRID_C, zoneOf, wingTh, WING_R, isWing, cellsFor, formationLabel, FORMATIONS, TACTIC_ITEMS, STYLES, SITU_DEFAULT, SITU_ACTS, SITU_ROWS, SITU_FROM, ensureTactics, slotRoles, applyTactics, skillRate, endWeek, SEASON_WEEKS, INJURIES, TYPE_TUNE, COND_NAME, condOf, trainedThisWeek, trainsDone, trainLimit, trainMult, campState, campAdvance, CAMP, slotInfo, SLOT_MAX, SKILL_RATE, rewardCards, newLeague, newCup, playFixture, peekRound, afterOfficial, playPractice, practiceOpponent, practiceOptions, teamLook, recordStats, teamLevel, findTeam, CUP_WEEKS, CAMPS, LG, rankInfo, PMAX, PRICE, buyCard, buyPack, toEng, toPts, migrate, ensurePts, TEAM_MENUS: TEAM_PTS, MENUS, SPECIAL, LEAGUES, PNAME, newCareer, menusFor, train, learnSkill, slots, skillChance, nextFixture, finishRound, standings, endSeason, opponentTeam, matchTeam, avgParam, decideType, TYPES_BY_POS };
 })(typeof window !== 'undefined' ? window : globalThis);

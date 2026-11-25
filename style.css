@@ -1316,7 +1316,7 @@ html.short .ct-bust img.art{width:250px}
 .tm-tier{font-style:normal;font:800 13px/1 sans-serif;padding:4px 8px;border-radius:12px;background:#ddd;color:#333;margin-left:10px;vertical-align:5px}.tm-tier.top{background:#ffd27a;color:#6a3a00}.tm-tier.low{background:#cfd8e0;color:#334}
 .std-tiles i{white-space:nowrap;font-size:13px;display:flex;align-items:center;justify-content:center}.std-tiles i b{font-size:15px}.std-tiles .t-r1,.std-tiles .t-r2{font-size:12px}
 /* リーグの色：D1赤・D2青・D3緑・地域1部黄・地域2部くすんだ灰黄 */
-.lgb.b-d1{background:#d8202a}.lgb.b-d2{background:#1f5fd0}.lgb.b-d3{background:#2f9e44}.lgb.b-r1{background:#e8b416;color:#3a2a00}.lgb.b-r2{background:#9a926a}
+.lgb.b-d1{background:#d8202a}.lgb.b-dr{background:linear-gradient(135deg,#1a1a4a,#7a3fc4);color:#ffe27a}.lgb.b-d2{background:#1f5fd0}.lgb.b-d3{background:#2f9e44}.lgb.b-r1{background:#e8b416;color:#3a2a00}.lgb.b-r2{background:#9a926a}
 .std-tiles .t-d1{background:#d8202a}.std-tiles .t-d2{background:#1f5fd0}.std-tiles .t-d3{background:#2f9e44}.std-tiles .t-r1{background:#e8b416;color:#3a2a00}.std-tiles .t-r1 b{color:#fff}.std-tiles .t-r2{background:#9a926a}
 
 .sn-t{font-size:14px;color:#555;margin:2px 0}.sn-r{font-size:14px;color:#555;margin-top:8px;line-height:1.5}.sn-r b{display:inline-block;background:#666;color:#fff;padding:0 6px;margin-right:6px;border-radius:3px}
@@ -5161,3 +5161,21 @@ html,body,button,a,[data-go],[data-a]{touch-action:manipulation}   /* 版1079：
 .nm2-kind.lg{color:#c8202a}
 #compTag.lg{background:linear-gradient(#ff6a3a,#d8301a);color:#fff}
 /* 版1294：試合がない週は青。試合の日は、リーグ戦なら赤（今まで通り）、国内カップなら黄色 */
+
+/* 版1313：ドリームリーグの招待状 */
+.dr-wrap .lk-box{background:#0b0b1e;overflow:hidden}
+.dr-bg{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 30%,#3a2a7a 0%,#141236 55%,#06061a 100%)}
+.dr-bg::after{content:"";position:absolute;inset:0;background:repeating-conic-gradient(from 0deg at 50% 30%,rgba(255,226,122,.07) 0 6deg,transparent 6deg 18deg)}
+.dr-in{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;padding:34px 60px 0;color:#fff;text-align:center}
+.dr-k{font:900 22px/1 sans-serif;letter-spacing:.5em;color:#ffe27a;opacity:.85}
+.dr-h{margin:10px 0 6px;font:900 74px/1 sans-serif;letter-spacing:.06em;background:linear-gradient(180deg,#fff7d0,#ffd23a 55%,#b8860b);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 0 30px rgba(255,210,58,.35)}
+.dr-s{margin:4px 0 14px;font:700 22px/1.5 sans-serif;color:#f2eedc}
+.dr-g{display:grid;grid-template-columns:repeat(6,1fr);gap:10px 18px;width:1080px}
+.dr-t{display:flex;flex-direction:column;align-items:center;gap:4px}
+.dr-t img{width:72px;height:72px;filter:drop-shadow(0 0 8px rgba(255,226,122,.35))}
+.dr-t b{font:700 13px/1.2 sans-serif;color:#e8e4ff;white-space:nowrap}
+.dr-n{margin:14px 0 0;font:600 18px/1.5 sans-serif;color:#c9c4ea}
+.dr-b{display:flex;gap:40px;margin-top:16px}
+.dr-b button{min-width:260px;padding:16px 0;border-radius:14px;border:3px solid #ffe27a;font:900 28px/1 sans-serif;cursor:pointer}
+.dr-go{background:linear-gradient(180deg,#ffe27a,#d4a017);color:#2a1a00}
+.dr-st{background:rgba(255,255,255,.08);color:#fff}

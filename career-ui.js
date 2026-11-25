@@ -13,6 +13,13 @@
   // ---------- セーブ ----------
   function load() { try { const s = localStorage.getItem(KEY); if (s) { const o = JSON.parse(s); if (o && o.version === 1) return o; } } catch (e) { /* 保存できない環境 */ } return null; }
   function store() { try { if (save) save.savedAt = Date.now(); localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { /* 無視 */ } }
+  /* 版1313：ドリームリーグの招待は、まずは決まったアカウント（引き継ぎコードで見分ける。コードそのものはファイルに書かず、ハッシュだけ）にだけ届く */
+  const DREAM_KEYS = ['83491354dd4ee205ac8d67929d4cea4b184f9d33d120c963573a76df8b5dd3bf'];
+  async function dreamGateCheck() {
+    let ok = false;
+    try { const c = String((save && save.cloudCode) || '').toUpperCase().replace(/[^0-9A-Z]/g, ''); if (c && crypto && crypto.subtle) { const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(c)); ok = DREAM_KEYS.includes([...new Uint8Array(h)].map((b) => b.toString(16).padStart(2, '0')).join('')); } } catch (_) {}
+    C.setDreamGate(ok); return ok;
+  }
   function ensure() {
     if (!save) save = load();
     if (!save) { save = C.newCareer(); store(); }
@@ -21,6 +28,7 @@
     save.cards = save.cards || { shoot: 3, dribble: 2, pass: 2, tech: 2, dash: 2, run: 2, muscle: 2, defend: 2, tactic: 2, massage: 1 };
     save.spFound = save.spFound || [];
     C.migrate(save);
+    dreamGateCheck();   // 版1313
     setTimeout(() => { try { rkForfeit(); } catch (_) {} }, 0);   // 版1213：ランクマッチの途中で終わっていたら、負けにする
     if (save.lineupKeep) lineupRestore([]);   // 版804：試合の途中でアプリを閉じた時も、スタメンはクラブハウスの形に戻す
     save.phase = 'train';
@@ -2888,9 +2896,11 @@
       L.push({ ...F, text: 'サッカー協会の順位表で、今年昇格するチーム・降格するチームを見ておきましょう。' });
       await talkScreen(L, `<img class="sec-bg" src="${clubhouseBg()}" alt="">`);
       await new Promise(async (done) => { await blackFade(250); openAssoc({ tab: 'stats', sub: { kind: 'table', id }, direct: true, onClose: async () => { await blackFade(300); done(); } }); await blackClear(300); });
+      if (id === 'd1' && pos === 1) { await dreamGateCheck(); const of = C.dreamOffer(save); if (of && !of.decided) await dreamSurprise(of); }   // 版1313：D1優勝のあと、海外から招待状が届く（サプライズ）
     }
     if (res.seasonEnd && res.seasonEnd.post) { await facesReady(); await talkScreen([{ name: '秘書', face: staffFace('sec'), art: !!staffImg.sec, text: '監督、お疲れさまです。\n今シーズンの全日程が終了しました。' }], `<img class="sec-bg" src="${clubhouseBg()}" alt="">`); await blackClear(250); }   // 版834：入れ替え戦などが終わってから「全日程が終了」
     if (res.seasonEnd) await seasonEndCard(res.seasonEnd);   /* 版762：自分の1月の試合が全部終わった時が、シーズンの終わり */
+    if (!res.leagueDone && !res.season && save.league && save.league.id === 'd1' && !(save.dream && save.dream.season === save.season)) { const of = C.dreamOffer(save) || ((await dreamGateCheck()) && C.dreamOffer(save)); if (of && !of.decided) await dreamSurprise(of); }   // 版1313：招待の途中でアプリを閉じた時は、次の週に改めて
     if (res.renovStart) await renovTalk('start', res.renovStart);
     if (res.renovDone) await renovTalk('done', res.renovDone);
     if (res.season) await venueTalk(res.season);
@@ -2926,7 +2936,7 @@
   function stadiumName(op, meta) {
     /* 版743：会場は、リーグが上のチームのもの（同じリーグならホームのチーム。練習試合は自分の練習場） */
     const tierOf = (name) => ((C.LG[lgOf(name)] || {}).tier ?? 2), myT = C.homeTier(save);
-    if (op.name === save.team.name) { const t = myT ?? tierOf(op.name); return (save.team.short || save.team.name) + (t <= 1 ? ['市民グラウンド', '運動公園'][Math.max(0, t)] : t === 4 ? 'フットボールパーク' : STADIUM_SUF[3]); }   /* 自分のホーム（改装後の名前も） */
+    if (op.name === save.team.name) { const t = Math.min(4, myT ?? tierOf(op.name)); return (save.team.short || save.team.name) + (t <= 1 ? ['市民グラウンド', '運動公園'][Math.max(0, t)] : t === 4 ? 'フットボールパーク' : STADIUM_SUF[3]); }   /* 自分のホーム（改装後の名前も） */
     const opUp = tierOf(op.name) > (myT ?? -1);
     if (meta.practice && tierOf(op.name) <= tierOf(save.team.name)) return `${save.team.name}　練習場`;
     const atMe = !opUp && meta.home;
@@ -3461,9 +3471,9 @@
     meta = meta || {};
     const tierOf = (name) => ((C.LG[lgOf(name)] || {}).tier ?? 2);
     /* 版743：練習試合も、相手のリーグが上なら相手の会場で（前は練習試合だけ、いつも自分の練習場だった） */
-    if (meta.practice && tierOf(op.name) <= tierOf(save.team.name)) return Math.min(1, tierOf(save.team.name));
+    if (meta.practice && tierOf(op.name) <= tierOf(save.team.name)) return Math.min(1, tierOf(save.team.name));   /* 版1313：ドリームリーグ（格5）も、会場の絵はD1（格4）の大きなスタジアム */
     const myT = C.homeTier(save);   /* 版745：改装工事中（null）は相手の会場で。改装後は新しいスタジアムの格 */
-    return myT == null ? tierOf(op.name) : Math.max(myT, tierOf(op.name));   // 版658：会場は、リーグが上のチームのスタジアムに合わせる（カップ戦など）
+    return Math.min(4, myT == null ? tierOf(op.name) : Math.max(myT, tierOf(op.name)));   // 版658：会場は、リーグが上のチームのスタジアムに合わせる（カップ戦など）
   }
   // 試合のユニフォームを選ぶ（カルチョビットAの、ホーム・アウェー・キーパーが並ぶ画面）
   function kitPick(el, op, meta, back) {
@@ -3544,7 +3554,7 @@
     runMatch('試合の日！', `${esc(fx.comp)}　${esc(fx.label)}（${fx.home ? 'ホーム' : 'アウェイ'}）`, fx.opp, (score, ev, played) => officialDone(fx, score, ev, played), { comp: fx.comp, label: fx.label, home: !!fx.home, fx, shootout: fx.kind === 'cup' || (fx.kind === 'post' && !!(fx.m && fx.m.ko)) });
   }
   // 練習試合申し込み（カルチョビットAの黒板）：相手を選ぶ
-  const LG_BADGE = { regE2: ['東2', 'b-e2'], regW2: ['西2', 'b-w2'], regE1: ['東1', 'b-e1'], regW1: ['西1', 'b-w1'], d3: ['D3', 'b-d3'], d2: ['D2', 'b-d2'], d1: ['D1', 'b-d1'] };
+  const LG_BADGE = { regE2: ['東2', 'b-e2'], regW2: ['西2', 'b-w2'], regE1: ['東1', 'b-e1'], regW1: ['西1', 'b-w1'], d3: ['D3', 'b-d3'], d2: ['D2', 'b-d2'], d1: ['D1', 'b-d1'], dream: ['DR', 'b-dr'] };
   function practiceBoard(info) {
     const list = C.practiceOptions(save);
     const slots = [...list, ...Array(Math.max(0, 8 - list.length)).fill(null)].slice(0, 8);
@@ -3708,11 +3718,12 @@
     }, { confirmQuit: () => coachAsk('観戦をやめますか？'), onQuit: () => { open(); openAssoc({ tab: 'watch' }); }, venue: 4, kits: C.kitsPair(save, f.A, f.B), watch: true, noIntro: true, comp: 'D1観戦', label: `第${R.round + 1}節`, homeName: f.A, awayName: f.B, embH: emblemURL(f.A, 48), embA: emblemURL(f.B, 48), grade: (q, k, tm) => { const tp = ((tm ? tb : ta) || {}).players || [], pl = tp.find((x) => x.name === q.name && x.number === q.number) || tp.find((x) => x.name === q.name); if (pl && pl.bg && pl.bg[k]) return pl.bg[k]; return C.rankInfo(C.toPts((q.params || q)[k])).g; } });   // 版629：クラブ画面と同じ、素の能力ランクを表示
   }
   // ================= サッカー協会（本家の N.LEAGUE の画面）：試合日程・成績・監督成績・移籍情報 =================
-  const LG_ORDER = ['d1', 'd2', 'd3', 'regE1', 'regW1', 'regE2', 'regW2'];
-  const LG_LABEL = { d1: 'D1リーグ', d2: 'D2リーグ', d3: 'D3リーグ', regE1: '地域1部 東', regW1: '地域1部 西', regE2: '地域2部 東', regW2: '地域2部 西' };
+  const LG_ORDER = ['dream', 'd1', 'd2', 'd3', 'regE1', 'regW1', 'regE2', 'regW2'];
+  const LG_LABEL = { dream: 'ドリームリーグ', d1: 'D1リーグ', d2: 'D2リーグ', d3: 'D3リーグ', regE1: '地域1部 東', regW1: '地域1部 西', regE2: '地域2部 東', regW2: '地域2部 西' };
   // 順位表の色分け（シーズンの終わりにどうなるか）
   function zoneOf(id, k, n) {
-    if (id === 'd1') return k === 0 ? ['champ', '優勝'] : k >= n - 2 ? ['ex', 'D1/D2入れ替え戦（残留をかけて）'] : null;
+    if (id === 'dream') return k === 0 ? ['champ', '優勝'] : k >= n - 2 ? ['dn', '日本のD1へ戻る'] : null;   // 版1313
+    if (id === 'd1') return k === 0 ? ['champ', C.dreamKnown(save) ? '優勝（ドリームリーグの招待）' : '優勝'] : k >= n - 2 ? ['ex', 'D1/D2入れ替え戦（残留をかけて）'] : null;
     if (id === 'd2') return k < 2 ? ['up', 'D1/D2入れ替え戦'] : k === n - 2 ? ['ex', '入れ替え戦'] : k === n - 1 ? ['dn', '降格'] : null;
     if (id === 'd3') return k === 0 ? ['up', '昇格'] : k === 1 ? ['ex', '入れ替え戦'] : k >= n - 2 ? ['dn', '降格'] : null;
     if (id === 'regE1' || id === 'regW1') return k < 2 ? ['up', 'D3昇格トーナメント'] : k === n - 1 ? ['dn', '降格'] : null;
@@ -3829,7 +3840,7 @@
       add(C.SEASON_WEEKS, { badge: '<i class="sc-b end">次へ</i>', label: '3月から新シーズン', plan: true }); }
     const others = (w) => {
       let h = '';
-      for (const id of LG_ORDER) { if (id === lg.id) continue; const o = save.lgs && save.lgs[id]; if (o && o.weeks.includes(w)) h += lgBadge(id); }
+      for (const id of LG_ORDER) { if (id === lg.id || (id === 'dream' && !C.dreamKnown(save))) continue; const o = save.lgs && save.lgs[id]; if (o && o.weeks.includes(w)) h += lgBadge(id); }
       if (C.CUP_WEEKS.includes(w)) h += lgBadge('cup');
       return h;
     };
@@ -3849,7 +3860,7 @@
   }
   // ---- 成績のメニュー ----
   function statMenuHTML(myLg) {
-    const rows = LG_ORDER.map((id) => `<div class="sm-row${id === myLg ? ' mine' : ''}"><span class="sm-n">${lgBadge(id)}${LG_LABEL[id]}</span><button data-sub="table:${id}">順位表</button><button data-sub="goal:${id}">ゴール</button><button data-sub="assist:${id}">アシスト</button></div>`).join('');
+    const rows = LG_ORDER.filter((id) => id !== 'dream' || C.dreamKnown(save)).map((id) => `<div class="sm-row${id === myLg ? ' mine' : ''}"><span class="sm-n">${lgBadge(id)}${LG_LABEL[id]}</span><button data-sub="table:${id}">順位表</button><button data-sub="goal:${id}">ゴール</button><button data-sub="assist:${id}">アシスト</button></div>`).join('');
     const cup = `<div class="sm-row"><span class="sm-n">${lgBadge('cup')}国内カップ</span><button data-sub="cup">組み合わせ</button><button data-sub="goal:cup">ゴール</button><button data-sub="assist:cup">アシスト</button></div>`;
     const post = save.post ? `<div class="sm-row"><span class="sm-n"><i class="lgb b-post">決</i>昇格・入れ替え戦</span><button data-sub="post">結果</button></div>` : '';
     return `<div class="std-body"><div class="sm-menu">${rows}${cup}${post}<div class="sm-pkrow"><button class="sm-pk" data-sub="perk:${myLg}">各リーグの優勝特典</button></div></div></div>`;   // 版1166：優勝特典のボタンは1つだけ
@@ -3869,7 +3880,8 @@
     const my = save.league.id, regOf = (id) => id.replace(/[EW]/, '');
     const coin = (n) => `<b class="yp-c">${DCOIN}${n.toLocaleString()}</b>`;
     const ROWS = [
-      { id: 'd1', ids: ['d1'], name: 'D1リーグ', up: '日本一のクラブ（いちばん上のリーグ）', upB: 0 },
+      ...(C.dreamKnown(save) ? [{ id: 'dream', ids: ['dream'], name: 'ドリームリーグ（海外）', up: '世界一のクラブ（下位2チームは日本のD1へ戻る）', upB: 0 },
+        { id: 'd1', ids: ['d1'], name: 'D1リーグ', up: '日本一のクラブ。海外のドリームリーグから招待が届く（行くかどうかは選べる）', upB: C.PRIZE_UP[5] }] : [{ id: 'd1', ids: ['d1'], name: 'D1リーグ', up: '日本一のクラブ（いちばん上のリーグ）', upB: 0 }]),
       { id: 'd2', ids: ['d2'], name: 'D2リーグ', up: 'D1への入れ替え戦へ（2位までが出場。勝てばD1へ）', upB: C.PRIZE_UP[4] },
       { id: 'd3', ids: ['d3'], name: 'D3リーグ', up: 'そのままD2へ昇格', upB: C.PRIZE_UP[3] },
       { id: 'reg1', ids: ['regE1', 'regW1'], name: '地域1部リーグ（東・西）', up: '「D3昇格トーナメント」へ（2位までが出場。勝てばD3へ）', upB: C.PRIZE_UP[2] },
@@ -3879,7 +3891,7 @@
     const card = (r) => { const t = (C.LG[r.ids[0]] || {}).tier ?? 0, base = C.PRIZE_LG[t] || 100, mine = r.ids.includes(my), on = r.ids.includes(focus);
       return `<div class="yp-row${on ? ' on' : ''}"><img class="yp-tr" src="${trophyImg('league', r.ids[0])}" alt=""><div class="yp-m"><div class="yp-h">${r.ids.map(lgBadge).join("")}<b>${esc(r.name)}</b>${mine ? '<i class="yp-me">いまのリーグ</i>' : ''}</div>
         <p><span>賞金</span>${coin(base * 11)}<small>（1位の順位賞金 ${base}＋優勝ボーナス ${(base * 10).toLocaleString()}）</small></p>
-        <p><span>${t === 4 ? '称号' : '来シーズン'}</span>${esc(r.up)}${r.upB ? `<small>昇格できたら、さらに ${coin(r.upB)}</small>` : ''}</p>
+        <p><span>${t >= 5 ? '称号' : '来シーズン'}</span>${esc(r.up)}${r.upB ? `<small>昇格できたら、さらに ${coin(r.upB)}</small>` : ''}</p>
         <p><span>トロフィー</span>もらえる（クラブ情報・監督成績に残る）${t < 4 ? `<small>昇格すると、ホームの会場が${VEN[t + 1]}に改装される</small>` : ''}</p></div></div>`; };
     const cup = `<div class="yp-row${focus === 'cup' ? ' on' : ''}"><img class="yp-tr" src="${trophyImg('cup')}" alt=""><div class="yp-m"><div class="yp-h">${lgBadge('cup')}<b>国内カップ</b></div>
         <p><span>賞金</span>勝つたびに ${coin(150)}、優勝で さらに ${coin(1000)}</p>
@@ -4450,7 +4462,7 @@
     return (clubBg = cv.toDataURL());
   }
   // 版588：トロフィーの絵（監督の絵）。リーグごとに違う。カップは今は金（D1）と同じ
-  const trophyImg = (kind, lgId) => { if (kind === 'cup') return 'img/trophy/cup.png'; const id = lgId || save.league.id; return `img/trophy/${/^reg.2/.test(id) ? 'reg2' : /^reg.1/.test(id) ? 'reg1' : id}.png`; };
+  const trophyImg = (kind, lgId) => { if (kind === 'cup') return 'img/trophy/cup.png'; const id = lgId || save.league.id; return `img/trophy/${/^reg.2/.test(id) ? 'reg2' : /^reg.1/.test(id) ? 'reg1' : id === 'dream' ? 'd1' : id}.png`; };
   // ================= 版580：優勝 =================
   // 試合の最後に出す演出のための情報（app.js の優勝演出が使う）
   function champView(fx, sc) {
@@ -4460,6 +4472,25 @@
       sec: staffImg.sec || '', small: ch.kind === 'cup' ? 'DOT SOCCER CUP' : 'DOT SOCCER LEAGUE' };
   }
   // だれかが話す画面（背景・顔・名前・文）。タップで次へ
+  // 版1313：ドリームリーグの招待（D1で優勝した時だけ。前もっては知らせない）
+  async function dreamSurprise(of) {
+    const F = { name: '秘書', face: staffFace('sec'), art: !!staffImg.sec }, bg = `<img class="sec-bg" src="${clubhouseBg()}" alt="">`;
+    await talkScreen([{ ...F, text: '監督……！\nたった今、海外から一通の手紙が届きました。' }, { ...F, text: '差出人は……「ドリームリーグ」。\n世界中の名門クラブだけが集まる、海外のリーグです。' }, { ...F, text: '日本一になったクラブだけが、招かれるそうです。\n開けてみますね……！' }], bg);
+    const el = fullScreen('dreamScreen', 'dr-wrap'), box = el.querySelector('.lk-box');
+    const emb = of.teams.map((n) => `<div class="dr-t"><img src="${emblemURL(n, 72)}" alt=""><b>${esc(n)}</b></div>`).join('');
+    box.innerHTML = `<div class="dr-bg"></div><div class="dr-in"><div class="dr-k">INVITATION</div><h2 class="dr-h">DREAM LEAGUE</h2><p class="dr-s">${esc(save.team.name)} 殿<br>日本一、おめでとうございます。来シーズン、ドリームリーグへお迎えしたく、ここにご招待いたします。</p>
+      <div class="dr-g">${emb}</div><p class="dr-n">世界の名門12クラブのリーグ（能力はD1よりずっと上）。下位2チームになると、日本のD1へ戻ります。<br>ドリームリーグにいる間は、国内カップには出られません。</p>
+      <div class="dr-b"><button data-v="1" class="dr-go">挑戦する</button><button data-v="0" class="dr-st">日本に残る</button></div></div>`;
+    el.hidden = false; el._fit();
+    try { DotSound.play('reveal5'); } catch (_) {}
+    await blackClear(400);
+    let go = await new Promise((res) => box.querySelectorAll('[data-v]').forEach((b) => b.onclick = () => res(b.dataset.v === '1')));
+    if (!go) { const sure = await coachAsk('招待を断って、来年も日本のD1で戦いますか？<br>（また D1で優勝すれば、招待は届きます）', [{ label: '日本に残る', value: true }, { label: 'やっぱり挑戦する', value: false }], 'sec'); if (!sure) go = true; }
+    C.decideDream(save, go); store();
+    await blackFade(300); el.hidden = true;
+    await talkScreen(go ? [{ ...F, text: '来年は、世界が相手ですね……！\n選手たちにも伝えておきます。' }, { ...F, text: 'ドリームリーグの順位表は、サッカー協会の「成績」から見られます。\n相手を、よく調べておきましょう！' }]
+      : [{ ...F, text: 'わかりました。来年も、日本の王者として戦いましょう。\nまたD1で優勝すれば、招待は届くはずです。' }], bg);
+  }
   function talkScreen(lines, bg) {
     const el = fullScreen('talkScreen', 'sec-wrap2'), box = el.querySelector('.lk-box');
     return new Promise(async (res) => {
@@ -6446,7 +6477,7 @@
     if (loading) { try { const r = await DotNet.cloudInfo(code()); cloud = r ? { info: r.info, at: r.at } : null; } catch (_) { flash('通信できませんでした（クラウドの情報が読めません）'); } loading = false; if (document.body.contains(scr) && !scr.querySelector('.cs-dlg')) draw(); }
   }
   window.__career_rw = (i) => { const main = Object.keys(C.CARDS).filter((c) => C.CARDS[c].cat !== 'sup' && !C.CARDS[c].sp); const RW = RANK_REWARD[i]; resCard(rewardCard({ rank: i, coins: RW.coins, kak: RW.kak, cards: Array.from({ length: RW.cards }, () => main[Math.floor(Math.random() * main.length)]) })); };
-  window.__career = { faceURL: (p, b, k) => faceURL(p, b, k), modal: (h, b, o) => modal(h, b, o), pmToast: (m) => pmToast(m), airport: () => airport(), startRank: () => startRank(), rkForfeit: () => rkForfeit(), halfOthers: (m, mi) => halfOthers(m, mi), rankConfirm: (...a) => rankConfirm(...a), resTest: (n) => { save.reserve = save.team.players.slice(11, 11 + (n || 6)).map((q, k) => ({ ...JSON.parse(JSON.stringify(q)), name: q.name + "R" + k })); }, spTest: (pi, idx, all) => { if (all) save.spFound = C.SP.map((x) => x.id); spSel = idx; spList(pi); }, abilDoc: (k) => abilDoc(k), abilOne: (k) => abilOne(k), totsuDoc: (t) => totsuDoc(t), friendSquad: (k) => friendSquad(k), friendCard: (...a) => friendCard(...a), roomScreen: (id, r) => roomScreen(id, r), friendMenu: (b) => friendMenu(b), roomPrep: (r, me) => roomPrep(r, me), playRoom: (r, me) => playRoom(r, me), packCode: (o) => packCode(o), openKitEditor: (o) => openKitEditor(o), drawEmblem: (c, x, y, s, lk) => drawEmblem(c, x, y, s, lk), openClub: (o) => openClub(o), playerDetail: (i, o) => playerDetail(i, o), resCard: (o) => resCard(o), seasonEndCard: (o) => seasonEndCard(o), coachNews: (l) => coachNews(l), rewardCard: (r) => rewardCard(r), gachaDemo: (st, pr, fx) => gachaDemo(st, pr, fx), storyCard: (o) => storyCard(o), gotCardsHTML: (got) => `<div class="gc-cards${got.length > 8 ? ' lots' : got.length > 4 ? ' many' : ''}">${got.map((c) => artCard(c, { ups: true })).join('')}</div><p class="cp-msg gc-msg">クラブハウスの「特訓」で、選手に最大3枚セットできます。</p>`, trainResult: (o) => trainResult(o), airport, openPost, syncPost, onlineDone, setVenue: (k) => { venueNow = k; }, champDemo, champAfter, coinShop, faceFill: () => faceFill(), openGacha, venueTalk: (se) => venueTalk(se), matchFace, openOffice, cpuCard, openClub, openAssoc, open, go, stadium, advance, subSheet, labMatch, townRect, tutPractice, shop, store: () => store(), renderHome: () => renderHome(), clubhouseBg: () => clubhouseBg(), isMatchWeek: () => isMatchWeek(), get view() { return view; }, staffFace: (k) => staffFace(k), get save() { return save; }, get drill() { return clubDrill; }, faceURL, starFace, setDrill(d) { clubDrill = d; drillT0 = -1; drillSnap = true; } };
+  window.__career = { openAssoc: (o) => openAssoc(o), dreamSurprise: (of) => dreamSurprise(of), dreamGateCheck: () => dreamGateCheck(), faceURL: (p, b, k) => faceURL(p, b, k), modal: (h, b, o) => modal(h, b, o), pmToast: (m) => pmToast(m), airport: () => airport(), startRank: () => startRank(), rkForfeit: () => rkForfeit(), halfOthers: (m, mi) => halfOthers(m, mi), rankConfirm: (...a) => rankConfirm(...a), resTest: (n) => { save.reserve = save.team.players.slice(11, 11 + (n || 6)).map((q, k) => ({ ...JSON.parse(JSON.stringify(q)), name: q.name + "R" + k })); }, spTest: (pi, idx, all) => { if (all) save.spFound = C.SP.map((x) => x.id); spSel = idx; spList(pi); }, abilDoc: (k) => abilDoc(k), abilOne: (k) => abilOne(k), totsuDoc: (t) => totsuDoc(t), friendSquad: (k) => friendSquad(k), friendCard: (...a) => friendCard(...a), roomScreen: (id, r) => roomScreen(id, r), friendMenu: (b) => friendMenu(b), roomPrep: (r, me) => roomPrep(r, me), playRoom: (r, me) => playRoom(r, me), packCode: (o) => packCode(o), openKitEditor: (o) => openKitEditor(o), drawEmblem: (c, x, y, s, lk) => drawEmblem(c, x, y, s, lk), openClub: (o) => openClub(o), playerDetail: (i, o) => playerDetail(i, o), resCard: (o) => resCard(o), seasonEndCard: (o) => seasonEndCard(o), coachNews: (l) => coachNews(l), rewardCard: (r) => rewardCard(r), gachaDemo: (st, pr, fx) => gachaDemo(st, pr, fx), storyCard: (o) => storyCard(o), gotCardsHTML: (got) => `<div class="gc-cards${got.length > 8 ? ' lots' : got.length > 4 ? ' many' : ''}">${got.map((c) => artCard(c, { ups: true })).join('')}</div><p class="cp-msg gc-msg">クラブハウスの「特訓」で、選手に最大3枚セットできます。</p>`, trainResult: (o) => trainResult(o), airport, openPost, syncPost, onlineDone, setVenue: (k) => { venueNow = k; }, champDemo, champAfter, coinShop, faceFill: () => faceFill(), openGacha, venueTalk: (se) => venueTalk(se), matchFace, openOffice, cpuCard, openClub, openAssoc, open, go, stadium, advance, subSheet, labMatch, townRect, tutPractice, shop, store: () => store(), renderHome: () => renderHome(), clubhouseBg: () => clubhouseBg(), isMatchWeek: () => isMatchWeek(), get view() { return view; }, staffFace: (k) => staffFace(k), get save() { return save; }, get drill() { return clubDrill; }, faceURL, starFace, setDrill(d) { clubDrill = d; drillT0 = -1; drillSnap = true; } };
   window.__career.openCloud = openCloud; window.__career.cpuCard = (t, i) => cpuCard(t, i, $("#career"));
   window.__career.shop = (t) => shop(t); window.__career.premDaily = () => premDaily(); window.__career.loginDaily = () => loginDaily(); window.__career.unpack = (c) => unpackCode(c); window.__career.cloudInfo = (sv) => cloudInfoOf(sv); window.__career.go = (v) => go(v);
   window.__career.embURL = () => { try { return save ? embFromLook(C.ensureClub(save).emb, 96) : ''; } catch (_) { return ''; } };   // 版680：設定のアカウントIDの横に出す、自分のクラブのエンブレム
