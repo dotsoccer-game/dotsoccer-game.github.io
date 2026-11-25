@@ -276,7 +276,7 @@
     for (let k = L2.length - 1; k >= 0; k--) {
       const a = L2[k];
       if (a.a === 'bicycle' && (globalThis.__Kbic ?? 1)) { const H0 = 0.42, t0 = a.t - H0, d0 = a.d + H0; if (simT >= t0 && simT - t0 <= d0) return { ...a, u: (simT - t0) / d0, hitU: H0 / d0 }; if (a.t > simT) continue; }   // 版1209：バイシクルは、蹴る0.42秒前から後ろへ倒れながら跳び始める（前は蹴った瞬間から跳んでいて、一瞬で終わっていた）
-      if (a.a === 'head') { const H0 = 0.32, t0 = a.t - H0, d0 = a.d + H0; if (simT >= t0 && simT - t0 <= d0) return { ...a, u: (simT - t0) / d0, hitU: H0 / d0 }; if (a.t > simT) continue; }   // 版456：ヘディングは、当たる少し前に跳び始める
+      if (a.a === 'head') { const H0 = (globalThis.__Khj ?? 1) ? 0.42 : 0.32, t0 = a.t - H0, d0 = a.d + H0; if (simT >= t0 && simT - t0 <= d0) return { ...a, u: (simT - t0) / d0, hitU: H0 / d0 }; if (a.t > simT) continue; }   // 版456：ヘディングは、当たる少し前に跳び始める
       if (a.t > simT + 0.05) continue;
       if (simT - a.t > 1.6) break;
       if (MARK[a.a]) continue;
@@ -293,6 +293,7 @@
     // 同時に出した技（ドリブルシュート＋強烈ミドルなど）は「＋」でつなげて出す
     for (let k = L2.length - 1; k >= 0; k--) {
       const a = L2[k]; if (a.t > simT) continue; if (simT - a.t > 1.8) break;
+      if ((globalThis.__Khj ?? 1) && a.a === 'head' && simT - a.t < 1.3 && shotsList.some((sh) => sh.i === i && Math.abs(sh.t - a.t) < 0.35) && !L2.some((b2) => (b2.a === 'skill' || b2.a === 'uniq') && Math.abs(b2.t - a.t) < 0.4)) return 'ヘディングシュート';   // 版1305：頭で打ったシュートは、吹き出しで分かるように
       if (a.a === 'skill' || a.a === 'uniq') {
         // 固有スキルは【】で囲む（ほかの技と同時なら「【紅蓮の牙】＋強烈ミドル」）
         const nm = (x) => (x.a === 'uniq' ? `【${(D.UNIQ && D.UNIQ[x.k] && D.UNIQ[x.k].name) || x.k}${x.lv >= 2 ? '・覚醒' : ''}】` : SKILL_NAME[x.k] || x.k);   // 凸で強化した固有スキルは「・覚醒」
@@ -3293,7 +3294,7 @@
       } else {
         let lift = 0, tilt = 0, dxs = 0, arms = st.held === i || cheer;
         let jumpPose = false;
-        if (ac && (ac.a === 'head' || ac.a === 'jump')) { lift = Math.sin(Math.PI * Math.min(1, ac.u * (ac.a === 'head' ? 1 : 1.1))) * (ac.a === 'head' ? 0.75 : 0.55); jumpPose = true; }
+        if (ac && (ac.a === 'head' || ac.a === 'jump')) { lift = Math.sin(Math.PI * Math.min(1, ac.u * (ac.a === 'head' ? 1 : 1.1))) * (ac.a === 'head' ? ((globalThis.__Khj ?? 1) ? 1.2 : 0.75) : 0.55); jumpPose = true; }   // 版1305：ヘディングのジャンプを高く・早めに（混戦の中で跳んでいるように見えなかった）
         let headPose = null;
         if (ac && ac.a === 'head') {   // 版456：ヘディング（手で描いた絵・8方向）。いつもボールの方を向く（来るボールに向かって跳び、当てたら飛んでいく方を向いたまま）
           const bq = proj(st.ball.x, st.ball.y), bd = Math.hypot(st.ball.x - p.x, st.ball.y - p.y), h = viewHold[i];
