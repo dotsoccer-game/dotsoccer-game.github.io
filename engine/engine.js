@@ -3650,7 +3650,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           if (ranked[0] && !(plv < 0 && own && bF > L * 0.5 && ranked[0].d > 3.5)) pressers.add(ranked[0].p.idx);
           // 2人目：ボールとゴールを結ぶ線上に入って中央を締める（カバー）
           { const cv = ranked.slice(1, 5).find((r) => skZ(r.p, 'cover') && r.d < 24);   // カバーリング：少し離れていても2人目としてカバーに入る
-            if (cv) { coverer[tm.ti] = cv.p.idx; if ((globalThis.__Kdfv ?? 1) && ranked[0] && (cv !== ranked[1] || ranked[1].d >= 18) && !(cv.p.cvUntil > S.t)) { cv.p.cvUntil = S.t + 1.8; act(cv.p, 'cvrun', 1.8, { o: ranked[0].p.idx }); } } else if (ranked[1] && ranked[1].d < 18) coverer[tm.ti] = ranked[1].p.idx; else coverer[tm.ti] = -1; }
+            if (cv) { coverer[tm.ti] = cv.p.idx; if ((globalThis.__Kdfv ?? 0) && ranked[0] && (cv !== ranked[1] || ranked[1].d >= 18) && !(cv.p.cvUntil > S.t)) { cv.p.cvUntil = S.t + 1.8; act(cv.p, 'cvrun', 1.8, { o: ranked[0].p.idx }); } } else if (ranked[1] && ranked[1].d < 18) coverer[tm.ti] = ranked[1].p.idx; else coverer[tm.ti] = -1; }
           let extra = 0;
           // 負け・引き分けで70分過ぎ：全体で前から追い込む（パスの出し先にも寄せてミスを誘う）
           const urg = tm.urg;
@@ -3665,7 +3665,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             const pr = clamp(p.press + tm.mods.press + tm.tac.press + DOM[tm.ti] * 50 + urg * 40 + (skZ(p, 'pressMonster') ? 40 : 0), 0, 100);
             if (pr >= 35 && d < 3 + pr * 0.07 + urg * 4) { pressers.add(p.idx); extra++;
               /* 版1306：プレスの鬼で寄せに行った（スキルが無ければ行かない距離）時だけ、赤い猛追を見せる */
-              if ((globalThis.__Kdfv ?? 1) && skZ(p, 'pressMonster') && own && own.team !== tm.ti && !(p.pmUntil > S.t)) { const pr0 = pr - 40; if (!(pr0 >= 35 && d < 3 + pr0 * 0.07 + urg * 4)) { p.pmUntil = S.t + 1.6; act(p, 'pmrun', 1.6, { o: own.idx }); } } }
+              if ((globalThis.__Kdfv ?? 0) && skZ(p, 'pressMonster') && own && own.team !== tm.ti && !(p.pmUntil > S.t)) { const pr0 = pr - 40; if (!(pr0 >= 35 && d < 3 + pr0 * 0.07 + urg * 4)) { p.pmUntil = S.t + 1.6; act(p, 'pmrun', 1.6, { o: own.idx }); } } }
           }
           // 版841：守備の合図で一斉に寄せる（2人目も行く）：相手がタッチライン際・後ろ向き（自分のゴールへ戻りながら）で受けた時。抜かれた直後は隣がすぐカバーに出る
           if (own && own.team !== tm.ti && !own.gk && ranked[1]) {
@@ -4116,7 +4116,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
               let w = clamp(Math.max(p.zone_man, tm.urg && p.slot.line > 0 ? 70 : 0, skZ(p, 'manMark') || p.markHard ? 95 : 0) / 85, 0, 1);
               /* 版1306：マンマーク：スキルで張り付いている相手との間に紫のひもを見せる（自陣側の、近くにいる時だけ） */
               if ((globalThis.__Kdfs ?? 1) && skZ(p, 'manMark') && hyp(p.x - q.x, p.y - q.y) < 8) p.mmGo = S.t + 0.25;   // 版1306：マンマーク：張り付いた相手には、少し速く付いていく
-              if ((globalThis.__Kdfv ?? 1) && skZ(p, 'manMark') && !p.markHard && p.zone_man < 85 && !(p.mmUntil > S.t) && hyp(p.x - q.x, p.y - q.y) < 5 && fx(tm.ti, q.x) < L * 0.6 && hyp(q.x - b.x, q.y - b.y) < 30) { p.mmUntil = S.t + 1.5; act(p, 'mmtie', 1.5, { o: q.idx }); }
+              if ((globalThis.__Kdfv ?? 0) && skZ(p, 'manMark') && !p.markHard && p.zone_man < 85 && !(p.mmUntil > S.t) && hyp(p.x - q.x, p.y - q.y) < 5 && fx(tm.ti, q.x) < L * 0.6 && hyp(q.x - b.x, q.y - b.y) < 30) { p.mmUntil = S.t + 1.5; act(p, 'mmtie', 1.5, { o: q.idx }); }
               if (sweep5 && !p.markHard) w *= 0.7;
               if (p.type === 'ストッパー' && !p.markHard && !globalThis.__stpOld && fx(tm.ti, q.x) > Lx + 6) w *= 0.25;   // 版807：ストッパー：DFラインから離れて下がる相手には、ついて行きすぎない（ラインに残る）
               if (p.kgCover === S.t) w = 0;   // 影縫いで空いた所をカバー中（狙う相手は上で決めている）   // 5バックの真ん中は、人より後ろのスペースを見る
@@ -4165,7 +4165,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
               let bq = null, bd = 14; for (const o of opps(p)) { if (o.off || o === own || o.gk) continue; const d0 = hyp(o.x - p.x, o.y - p.y); if (d0 < bd) { bd = d0; bq = o; } }
               if (bq) { const lx = own.x + (bq.x - own.x) * 0.7, ly = own.y + (bq.y - own.y) * 0.7; tx += (fx(tm.ti, lx) - tx) * 0.35; ty += (ly - ty) * 0.35;
                 /* 版1306：インターセプト：パスコースを読んでいる間、持っている相手→狙う相手に青い点線（自分はその線の上へ） */
-                if ((globalThis.__Kdfv ?? 1) && skZ(p, 'intercept') && !(p.icUntil > S.t) && hyp(own.x - p.x, own.y - p.y) < 26 && hyp(own.x - bq.x, own.y - bq.y) < 24 && (() => { const vx = bq.x - own.x, vy = bq.y - own.y, l2 = vx * vx + vy * vy || 1, t0 = clamp(((p.x - own.x) * vx + (p.y - own.y) * vy) / l2, 0.2, 0.95); return hyp(own.x + vx * t0 - p.x, own.y + vy * t0 - p.y) < 3.5; })()) { p.icUntil = S.t + 1.2; act(p, 'icread', 1.2, { o: own.idx, q: bq.idx }); } }
+                if ((globalThis.__Kdfv ?? 0) && skZ(p, 'intercept') && !(p.icUntil > S.t) && hyp(own.x - p.x, own.y - p.y) < 26 && hyp(own.x - bq.x, own.y - bq.y) < 24 && (() => { const vx = bq.x - own.x, vy = bq.y - own.y, l2 = vx * vx + vy * vy || 1, t0 = clamp(((p.x - own.x) * vx + (p.y - own.y) * vy) / l2, 0.2, 0.95); return hyp(own.x + vx * t0 - p.x, own.y + vy * t0 - p.y) < 3.5; })()) { p.icUntil = S.t + 1.2; act(p, 'icread', 1.2, { o: own.idx, q: bq.idx }); } }
             }
             if (p.recUntil > S.t && !pressers.has(p.idx)) { if (fx(tm.ti, p.x) > bxf - 4) { tx = Math.min(tx, bxf - 5); ty += (b.y - ty) * 0.25; } else p.recUntil = 0; u = true; }
             if (pressers.has(p.idx) && skZ(p, 'pressMonster') && own && own.team !== tm.ti) p.pmGo = S.t + 0.25;   // 版1306：プレスの鬼：寄せる時は一段速く詰める
@@ -8852,7 +8852,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             let best = null, bsc = -1e9;
             for (const p of hc) { const sc = p.jump * 0.75 + p.physical * 0.3 + p.technique * 0.15 + R.next() * 26 - hyp(p.x - b.x, p.y - b.y) * 25 + (skZ(p, 'aerial') ? ((globalThis.__Kdfs ?? 1) ? 42 : 28) : 0) + (p.position === 'DF' ? 6 * aura(p, 'bodyVoice') : 0) + (uOn(p, 'matsuri') ? 32 * mtF(p) : 0) + ((p.b5 || -9) > S.t - 0.5 && fx(p.team, b.x) < 18 ? 10 : 0) + (lpB && p.idx === b.intended && b.z < 2.1 ? 40 : 0) + ((globalThis.__Kcr5 ?? 1) && p.team === b.lastTeam && (b.style === 'cross' || b.style === 'high' || b.style === 'lob') && fx(p.team, b.x) > L - 18 && Math.abs(b.y - GOAL_Y) < 20 ? (globalThis.__Kcr5v ?? 16) : 0); if (sc > bsc) { bsc = sc; best = p; } }   // 版1212：ゴール前のクロスに走り込んだ攻める側は、勢いをつけて飛び込める（待って構えるDFより有利）
             if (lpB && (globalThis.__Klp7 ?? 1) && b.z < 2.1) { const rc = hc.find((p) => p.idx === b.intended); if (rc) { const dr = hyp(rc.x - b.x, rc.y - b.y), dd = Math.min(9, ...hc.filter((p) => p.team !== rc.team).map((p) => hyp(p.x - b.x, p.y - b.y))); if (dr <= dd + 0.2) best = rc; } }   // 版1204：胸の高さへ落ちてくる球に、受け手が相手より近くで構えていれば、受け手が先に触る（球に正対して待てる）   // 空中戦の鬼：競り合いにめっぽう強い
-            if ((globalThis.__Kdfv ?? 1) && best && skZ(best, 'aerial') && hc.some((p) => p.team !== best.team)) act(best, 'airwin', 0.8);   // 版1306：空中戦の鬼で競り勝った：頭の所で黄色い衝撃
+            if ((globalThis.__Kdfv ?? 0) && best && skZ(best, 'aerial') && hc.some((p) => p.team !== best.team)) act(best, 'airwin', 0.8);   // 版1306：空中戦の鬼で競り勝った：頭の所で黄色い衝撃
             for (const p of hc) if (p !== best) { act(p, 'jump', 0.55); p.touchCd = 0.4; }
             if ((globalThis.__Kbd ?? 0) && contested) { const o = hc.filter((p) => p.team !== best.team).sort((a0, c0) => hyp(a0.x - best.x, a0.y - best.y) - hyp(c0.x - best.x, c0.y - best.y))[0];   // 版1028：空中戦の競り合い：同時に跳んだ相手と、空中で体をぶつけ合う（勝った方が頭で触る）
               if (o && hyp(o.x - best.x, o.y - best.y) < 1.6) { act(best, 'airbump', 0.55, { o: o.idx, w: 1 }); act(o, 'airbump', 0.55, { o: best.idx, w: 0 }); const ux = o.x - best.x, uy = o.y - best.y, ul = hyp(ux, uy) || 1; o.x += ux / ul * 0.25; o.y += uy / ul * 0.25; ev('duel', { k: 'air', w: best.idx, l: o.idx }); } }
@@ -9058,7 +9058,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
               // 体に当たったシュートは、勢いのままゴールラインの外へ逃げることも多い（CKになる）
               if (R.next() < 0.4 && fx(p.team, p.x) < 22) { const sp2 = Math.max(4, hyp(b.vx, b.vy) * 0.4); vx = -sgn(p.team) * sp2 * R.range(0.6, 0.9); vy = (Math.sign(b.y - GOAL_Y) || (R.next() < 0.5 ? 1 : -1)) * sp2 * R.range(0.5, 0.9); }
               Object.assign(b, { vx, vy, kind: 'loose', lastTeam: p.team, lastPlayer: p.idx }); }
-            { const ux = b.x - p.x, uy = b.y - p.y, ud = hyp(ux, uy) || 1; act(p, 'poke', 0.35, { dx: ux / ud, dy: uy / ud, blk: 1 }); if ((globalThis.__Kdfv ?? 1) && skZ(p, 'shotBlock')) act(p, 'sbwall', 0.9, { dx: ux / ud, dy: uy / ud }); }
+            { const ux = b.x - p.x, uy = b.y - p.y, ud = hyp(ux, uy) || 1; act(p, 'poke', 0.35, { dx: ux / ud, dy: uy / ud, blk: 1 }); if ((globalThis.__Kdfv ?? 0) && skZ(p, 'shotBlock')) act(p, 'sbwall', 0.9, { dx: ux / ud, dy: uy / ud }); }
             p.touchCd = 0.6;
             return;
           }

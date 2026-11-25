@@ -3608,7 +3608,7 @@
           const px0 = r.px || q.s * 2.6, el = simT - a.t;
           if (a.a === 'ovrun' && st.owner !== i) { seen.ovrun = 1; tactFx.push(['urun', q.x, q.y, '80,205,255', px0, el / a.d]); }
           else if (a.a === 'recrun') { seen.recrun = 1; tactFx.push(['urun', q.x, q.y, '255,160,60', px0, el / a.d]); }
-          else if (a.a === 'icpt') { seen.icpt = 1; tactFx.push(['ring2', q.x, q.y, px0, el / a.d, '90,170,255', 1.4]); tactFx.push(['dfcut', q.x, q.y, px0, el / a.d]); }
+          else if (a.a === 'icpt') { seen.icpt = 1; tactFx.push(['ring2', q.x, q.y, px0, el / a.d, '90,170,255', 1]); }
           /* 版1306：守備スキル：吹き出しは出さず、効果そのものを絵で見せる */
           else if (a.a === 'icread' && st.owner === a.o && st.players[a.q]) { seen.icread = 1; const m1 = proj(st.players[a.o].x, st.players[a.o].y), m2 = proj(st.players[a.q].x, st.players[a.q].y); tactFx.push(['dfline', m1.x, m1.y, m2.x, m2.y, '90,170,255', px0, el / a.d, 1]); }
           else if (a.a === 'pmrun' && st.players[a.o]) { seen.pmrun = 1; const m = proj(st.players[a.o].x, st.players[a.o].y); tactFx.push(['dfchase', q.x, q.y, m.x, m.y, '255,70,60', px0, el / a.d]); }
