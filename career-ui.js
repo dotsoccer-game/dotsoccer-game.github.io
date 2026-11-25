@@ -3591,7 +3591,7 @@
       store(); open();
       await postComp(res, info);
       store(); open();
-      if ((globalThis.__Kcpz ?? 1) && res.kind === 'cup' && (res.prize || res.cupPaid)) {   // 版1299：国内カップの賞金（Dコイン）を、いくらもらえたか必ず出す（ふつうの試合の流れでは出ていなかった）
+      if ((globalThis.__Kcpz ?? 1) && res.kind === 'cup' && (res.cupPaid || ((globalThis.__Kcpz2 ?? 0) && res.prize))) {   /* 版1306：1試合ごとには出さず、カップ戦が終わった時（負けた時・優勝した時）に、まとめて内訳と合計を出す */   // 版1299：国内カップの賞金（Dコイン）を、いくらもらえたか必ず出す（ふつうの試合の流れでは出ていなかった）
         const acc = save.prize && save.prize.season === save.season ? save.prize.items.filter((x) => /^国内カップ/.test(x.label)).reduce((a2, x) => a2 + (x.coins || 0), 0) : 0;
         const rows = res.cupPaid ? res.cupPaid.items.map((x) => `<div class="gc-prize"><b>${esc(x.label)}</b><em>${DCOIN}+${(x.coins || 0).toLocaleString()}</em></div>`).join('') : '';
         await storyCard({ theme: 'win', tag: '国内カップ', title: res.cupPaid ? `賞金 ${res.cupPaid.total.toLocaleString()} Dコイン 獲得！` : `賞金 +${res.prize.toLocaleString()} Dコイン`,
