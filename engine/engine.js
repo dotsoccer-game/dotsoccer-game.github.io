@@ -249,7 +249,7 @@
     kage:       { sw: '相手陣内で、前にFWがいる時にボールを持ったとき', se: '相手に見失われ、FWが一番打ちやすい所へ取られないパスを刺す', st: '見失わせる時間が長く、さらに正確に', name: '影の一刺し', chip: ['#212731', '#90aedf', '#e8eef7'],   who: 'かめい',   face: 'tokyo_8', hair: '#b8bec8', skin: 1,     type: 'シャドー',           when: '相手陣内（センターフォワードの後ろ）で、前に味方のFWがいる時にボールを持ったとき', what: 'ストライカーを活かす影。影のように気配を消して（銀色の残像）、寄せてくる相手は一瞬かめいを見失い、囲まれずに前を向ける。同時に前のFWが、ゴール前の打てる所へ動き出す。かめいはFWがいちばん打ちやすい所へ、相手に取られない1本（銀の光の尾）を刺し、受けたFWはトラップせずにそのまま打つ。刺したかめいはそのままゴール前へ走り込み、FWが打てない時はかめいへ返して、かめいが決める。FWにDFが寄ったら、空いた背後のスペースへ自分で抜けて打つ（凸：見失わせる時間が長く、パスもシュートもさらに正確）', dur: 4, cd: 8, ch: 1 },
     tetsurou:   { sw: '自陣ゴール前の真ん中に相手が来たとき', se: '素早く寄せてボールを奪い、すぐ縦パスでカウンターの起点に', st: '守る範囲が広く、さらに速く寄せる', name: '鉄狼の関所', chip: ['#1e2733', '#618dd1', '#e8eef7'],     who: 'さかぐち', face: 'sapporo_7', hair: '#6c7f9c',   type: 'アンカー',           when: '自陣のゴール前の真ん中（バイタルエリア）に、相手がボールを運んできた・パスを通そうとしたとき', what: '関所を閉じる（鋼色の門）。狼のような速さで寄せて、ほぼ確実にボールを奪い切る（ドリブルの技もほとんど通じない）。そばを通るパスにも足が届いてカットする。奪ったら、すぐ前の味方へ正確な縦パスを出して、カウンターの起点になる（凸：関所が広く、寄せがさらに速く、奪った後のパスがさらに正確）', dur: 3, cd: 10, ch: 1 },
     midori:     { sw: '自陣でボールを持ち、相手がプレスに来るとき', se: 'プレスを引きつけて、空いた味方へつなぐ。発動するたびに、中盤までのチームのパス回しが良くなっていく', st: '引きつける相手が3人に', name: '翠の起点', chip: ['#044e24', '#33ff8d', '#e0ffee'],       who: 'むらおか', face: 'sendai_2', hair: '#00a84a',    type: 'ビルドアップ型',     when: '自陣でボールを持ち、相手がプレスに来られる所にいるとき', what: '誘い込んで、組み立てる。わざとボールを晒して相手のプレスを引き寄せ（翠の点線）、相手のDFラインも押し上げさせて陣形を前のめりにする。引きつけ切った瞬間、食いつかれて空いたフリーの味方へつなぐ（翠の光の尾）。受けた味方は前を向いて落ち着いてプレーでき、しばらくはチーム全体のパスがつながりやすい（数的優位）。組み立てている間もDFは守備の形を保つので、取られても崩れない。発動するたびに、チーム全員のパスの精度と速さ、ボールの持ちやすさ、仕掛けやすさが積み重なって上がっていく（試合の間ずっと）（凸：引き寄せる相手が3人、ラインがさらに上がり、つながりやすい時間が長い）', dur: 5, cd: 11, ch: 1 },
-    sutemi:     { sw: '相手のスルーパスが出たとき', se: '先に触れると見たら飛び出して、必ずボールに触る', st: 'パスが出た瞬間に飛び出す', name: '捨て身の守護神', chip: ['#5a0616', '#ff4d6d', '#ffe8ec'], who: 'なかむら', face: 'hakata_1', hair: '#a8102e', skin: 2,    type: 'スイーパーキーパー', when: '相手のスルーパス・裏へのボールが出たとき', what: '飛び出しの超強化版。裏へのボールに相手より先に着けると判断した瞬間、全力で飛び出して必ずボールに触る（エリアの外では大きく蹴り出す）。凸すると、パスが出た瞬間に読んで1歩目から飛び出す', dur: 3, cd: 40, ch: 1 },
+    sutemi:     { sw: '相手のスルーパスが出たとき・1対1になったとき', se: 'ふつうなら間に合わない球・1対1にも飛び込んで、必ずボールに触る', st: 'パスが出た瞬間に飛び出す', name: '捨て身の守護神', chip: ['#5a0616', '#ff4d6d', '#ffe8ec'], who: 'なかむら', face: 'hakata_1', hair: '#a8102e', skin: 2,    type: 'スイーパーキーパー', when: '相手のスルーパス・裏へのボールが出たとき／DFを振り切られて1対1になったとき', what: '飛び出しの超強化版。ふつうに出たら相手に先に触られる裏へのボールでも、捨て身の全力で飛び出して必ずボールに触る。DFを振り切られた1対1では、相手の足もとへ飛び込んで止める（エリアの外では大きく蹴り出す）。凸すると、パスが出た瞬間に読んで1歩目から飛び出す', dur: 3, cd: 40, ch: 1 },
   };
   // 最初の持ち主（rosters.js の国内屈指）→ 固有スキル
   const UNIQ_BY_TOP = Object.fromEntries(Object.entries(UNIQ).map(([k, u]) => [u.type, k]));
@@ -3494,7 +3494,7 @@
           let best = -1, bt = 99;
           const oppToG = (globalThis.__Kpgk ?? 1) && b.lastTeam !== tm.ti && b.owner < 0 && (b.kind !== 'shot' || ((globalThis.__Kgks ?? 1) && hyp(b.vx, b.vy) < 15 && !b.pkShot)) && !S.restart && path.some(   /* 版1300：ゆるい・弾んだシュート（秒速15m未満）も、ゴールへ向かっていればGKが必ず取りに行く（前に出ていたGKの横を転がって入っていた） */ (pt) => fx(tm.ti, pt[0]) < 0.6 && Math.abs(pt[1] - GOAL_Y) < POST + 0.6 && pt[2] < BAR);   // 版1013：相手のパス・クリアがそのままゴールへ転がってくる：GKが必ず取りに行く（見送って入れられていた）
           for (const p of tm.players) {
-            p._ct = 99; p._cx = path[path.length - 1][0]; p._cy = path[path.length - 1][1];
+            p._ct = 99; p._cx = path[path.length - 1][0]; p._cy = path[path.length - 1][1]; p._ctB = 99;
             const oppBall = b.lastTeam !== tm.ti;
             // 版936：味方からGKへのパス・自陣ゴールへ向かう球は、遠くからでもGKが取りに行く（見送ってオウンゴールにしない）
             const pe0 = path[path.length - 1], toOwnG = (globalThis.__Kbpg ?? 1) && p.gk && !oppBall && b.kind !== 'shot' && path.some((pt) => fx(tm.ti, pt[0]) < 0.6 && Math.abs(pt[1] - GOAL_Y) < POST + 0.6 && pt[2] < BAR), toMeG = (globalThis.__Kbpg ?? 1) && p.gk && !oppBall && b.kind === 'pass' && b.intended === p.idx;
@@ -3522,6 +3522,7 @@
               if (p.gk && oppBall && b.ppP && (globalThis.__Kgkpp ?? 1) && fx(tm.ti, path[k][0]) > 5.5) continue;   // 版1300：ピンポイントクロス（味方の走り込む所へ落ちる球）は、落ち所を読み違えやすい。GKはゴールエリアの中に落ちる時だけ飛び出す（前に出て空振りし、後ろへ弾んでゴールに入っていた）
               if (p.gk && oppBall && b.hari && (globalThis.__Khrg ?? 1) && fx(tm.ti, path[k][0]) >= 5.5 && !((globalThis.__Khrk ?? 1) && fx(tm.ti, path[k][0]) < 16.5 && Math.abs(path[k][1] - GOAL_Y) < 20.2 && (() => { const q = b.intended >= 0 ? P[b.intended] : null; return !q || hyp(q.x - path[k][0], q.y - path[k][1]) > 2.5; })())) continue;   // 版919：針の穴通しの1本は、GKもゴールエリアの外では触れない。触れない所へは飛び出さない（設計一覧22章）
               if (p.gk && oppBall && !thruB && !oppToG && !(fx(tm.ti, path[k][0]) < 16.5 && Math.abs(path[k][1] - GOAL_Y) < 20.2) && p.vision >= 50) continue;   // 版862：裏へのボール以外（こぼれ球・はね返り）は、ペナルティエリアの外まで取りに出ない（判断力の低いGKだけ、つい出てしまう）
+              if (p.gk && p.uniq === 'sutemi' && p._ctB === 99 && (globalThis.__Ksut3 ?? 1) && hyp(path[k][0] - p.x, path[k][1] - p.y) <= v * (p.uOn > S.t ? 1 : 1 + 0.35 * uP(p)) * Math.max(0, tt - Math.max(0.04, react - 0.08)) + 0.9) { p._ctB = tt; p._cxB = path[k][0]; p._cyB = path[k][1]; }   // 版1306：捨て身の守護神を出したら、いつ届くか（出さなければ届かない球を見分ける）
               if (hyp(path[k][0] - p.x, path[k][1] - p.y) <= v * Math.max(0, tt - react) + (gc ? 1.6 : p.gk ? 0.9 : (globalThis.__Kphy ?? 1) ? 0.2 : 0.5)) { p._ct = tt; p._cx = path[k][0]; p._cy = path[k][1]; break; }   // 版908：足が届く範囲が狭くなった分、ボールの通り道の上まで入る
             }
             if (p.gk && (globalThis.__Kbpg ?? 1) && fx(tm.ti, p._cx) < 0.4) p._cx = fx(tm.ti, 0.4);   // GKはゴールの中へは走り込まない
@@ -3533,6 +3534,10 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             if ((b.tsukiP || b.tact || ((globalThis.__Khrl ?? 1) && b.hari)) && b.kind === 'pass' && b.lastTeam !== tm.ti && !passOk(p, b)) score += 6;   // 触れない相手より、触れる選手（GKなど）を優先して行かせる
             if (score < bt) { bt = score; best = p.idx; }
           }
+            /* 版1306：捨て身の守護神は「ふつうに出ても間に合わない（相手と五分か負けている）けれど、全力で捨て身に出れば先に触れる」球でだけ発動する。ふつうに先に取れる球は、ふつうに取る */
+            { const g = tm.players.find((m) => m.gk && m.uniq === 'sutemi' && !m.off && !(m.downT > 0)), oT = g ? Math.min(99, ...P.filter((q) => q.team !== tm.ti && !q.off).map((q) => q._ct ?? 99)) : 99;
+            if (g && (globalThis.__Ksut3 ?? 1) && b.lastTeam !== tm.ti && !oppToG && b.kind !== 'shot' && !uOn(g, 'sutemi') && !(g.uCd > S.t) && b.owner < 0 && oT < 99 && g._ct > oT - 0.3 && g._ctB < oT + 0.15 && fx(tm.ti, g._cxB) > 5 && fx(tm.ti, g._cxB) < 32 && hyp(g._cxB - g.x, g._cyB - g.y) < 28 && b.z < 2.2
+              && !tm.players.some((m) => !m.gk && !m.off && m._ct < g._ctB + 0.1) && uFire(g, 'sutemi')) { g._ct = g._ctB; g._cx = g._cxB; g._cy = g._cyB; best = g.idx; if (globalThis.__sutLog) globalThis.__sutLog.push({ t: S.t, n: g._ct, o: oT }); } }
           // GKは「相手より明らかに先に触れる」時だけ飛び出す（五分五分なら出ずにゴールを守る。DFが追う）
           if (best >= 0 && P[best].gk && b.lastTeam !== tm.ti && !oppToG && !(S.gkCk && S.gkCk.g === best)) {
             const g = P[best], oT = Math.min(99, ...P.filter((q) => q.team !== tm.ti && !q.off).map((q) => q._ct ?? 99));
@@ -3540,9 +3545,9 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             const thru = (b.tsukiP || b.tact || (b.kind === 'pass' && b.style && b.intended >= 0 && P[b.intended] && P[b.intended].team !== tm.ti)) && fx(tm.ti, g._cx) > 14;   // 裏へのスルーパス・バイタル付近に落ちてくるボールだけ
             const crowd = P.filter((q) => q.team !== tm.ti && !q.off && hyp(q.x - g._cx, q.y - g._cy) < 5).length, crowdM = !thru && crowd >= 2 ? 0.25 + 0.2 * (crowd - 2) : 0;   // 版862：相手が何人も寄っているこぼれ球（混戦）には、よほど先に触れる時しか出ない
             const margin = (g.type === 'スイーパーキーパー' && thru ? (uOn(g, 'sutemi') || (g.uniq === 'sutemi' && !(g.uCd > S.t)) ? 0.05 : 0.08) : 0.45) + crowdM * clamp((g.vision - 40) / 40, 0.2, 1.2);   // 判断力が高いほど、混戦には飛び込まない   // ペナルティエリアの中の球は、ふつうに五分なら出ない   // スイーパーキーパーは五分に近くても出る（間に合わなければ無人のゴール）
-            if (!deep && g._ct > oT - margin) { let b2 = -1, t2 = 1e9; for (const p of tm.players) { if (p.gk) continue; const sc2 = p._ct + (p._ct === 99 ? hyp(p._cx - p.x, p._cy - p.y) / maxSpeed(p) : 0); if (sc2 < t2) { t2 = sc2; b2 = p.idx; } } best = b2; }
+            if (!deep && !(uOn(g, 'sutemi') && (globalThis.__Ksut3 ?? 1)) && g._ct > oT - margin) { let b2 = -1, t2 = 1e9; for (const p of tm.players) { if (p.gk) continue; const sc2 = p._ct + (p._ct === 99 ? hyp(p._cx - p.x, p._cy - p.y) / maxSpeed(p) : 0); if (sc2 < t2) { t2 = sc2; b2 = p.idx; } } best = b2; }
           }
-          if (best >= 0 && P[best].gk && P[best].uniq === 'sutemi' && b.lastTeam !== tm.ti && b.owner < 0 && b.kind === 'pass' && b.intended >= 0 && P[b.intended] && P[b.intended].team !== tm.ti && fx(tm.ti, P[best]._cx) > 12 && P[best]._ct < 99 && (() => { const g = P[best], oT = Math.min(99, ...P.filter((q) => q.team !== tm.ti && !q.off).map((q) => q._ct ?? 99)); return oT < 99 && g._ct < oT - 0.15 && hyp(g._cx - g.x, g._cy - g.y) < 20 && b.z < 2; })()) uFire(P[best], 'sutemi');   // 相手と競り合う裏へのボールで、はっきり先に着けて、届く高さの時だけ   // 捨て身の守護神：相手より先にボールへ行くと決めたら、迷わず全力で飛び出す
+          if (!(globalThis.__Ksut3 ?? 1) && best >= 0 && P[best].gk && P[best].uniq === 'sutemi' && b.lastTeam !== tm.ti && b.owner < 0 && b.kind === 'pass' && b.intended >= 0 && P[b.intended] && P[b.intended].team !== tm.ti && fx(tm.ti, P[best]._cx) > 12 && P[best]._ct < 99 && (() => { const g = P[best], oT = Math.min(99, ...P.filter((q) => q.team !== tm.ti && !q.off).map((q) => q._ct ?? 99)); return oT < 99 && g._ct < oT - 0.15 && hyp(g._cx - g.x, g._cy - g.y) < 20 && b.z < 2; })()) uFire(P[best], 'sutemi');   // 相手と競り合う裏へのボールで、はっきり先に着けて、届く高さの時だけ   // 捨て身の守護神：相手より先にボールへ行くと決めたら、迷わず全力で飛び出す
           chasers[tm.ti] = best;
           // ゴールに向かうシュート・こぼれ球：守る側は2人目のDFも、ゴールラインの手前でコースに入って防ぎに行く（スライディングしてでも割らせない）
           chasers2[tm.ti] = -1;
@@ -3645,7 +3650,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           if (ranked[0] && !(plv < 0 && own && bF > L * 0.5 && ranked[0].d > 3.5)) pressers.add(ranked[0].p.idx);
           // 2人目：ボールとゴールを結ぶ線上に入って中央を締める（カバー）
           { const cv = ranked.slice(1, 5).find((r) => skZ(r.p, 'cover') && r.d < 24);   // カバーリング：少し離れていても2人目としてカバーに入る
-            if (cv) coverer[tm.ti] = cv.p.idx; else if (ranked[1] && ranked[1].d < 18) coverer[tm.ti] = ranked[1].p.idx; else coverer[tm.ti] = -1; }
+            if (cv) { coverer[tm.ti] = cv.p.idx; if ((globalThis.__Kdfv ?? 1) && ranked[0] && (cv !== ranked[1] || ranked[1].d >= 18) && !(cv.p.cvUntil > S.t)) { cv.p.cvUntil = S.t + 1.8; act(cv.p, 'cvrun', 1.8, { o: ranked[0].p.idx }); } } else if (ranked[1] && ranked[1].d < 18) coverer[tm.ti] = ranked[1].p.idx; else coverer[tm.ti] = -1; }
           let extra = 0;
           // 負け・引き分けで70分過ぎ：全体で前から追い込む（パスの出し先にも寄せてミスを誘う）
           const urg = tm.urg;
@@ -3658,7 +3663,9 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             if (ownHalf && d < (bF < 35 ? 13 : 10) && !p.gk && !p.markHard) { pressers.add(p.idx); extra++; continue; }
             if (koD && d < 20 && !p.gk && p.slot && p.slot.line >= 1) { pressers.add(p.idx); extra++; continue; }   // 版1091：キックオフ直後：FW・MFの2人がすぐ寄せる
             const pr = clamp(p.press + tm.mods.press + tm.tac.press + DOM[tm.ti] * 50 + urg * 40 + (skZ(p, 'pressMonster') ? 40 : 0), 0, 100);
-            if (pr >= 35 && d < 3 + pr * 0.07 + urg * 4) { pressers.add(p.idx); extra++; }
+            if (pr >= 35 && d < 3 + pr * 0.07 + urg * 4) { pressers.add(p.idx); extra++;
+              /* 版1306：プレスの鬼で寄せに行った（スキルが無ければ行かない距離）時だけ、赤い猛追を見せる */
+              if ((globalThis.__Kdfv ?? 1) && skZ(p, 'pressMonster') && own && own.team !== tm.ti && !(p.pmUntil > S.t)) { const pr0 = pr - 40; if (!(pr0 >= 35 && d < 3 + pr0 * 0.07 + urg * 4)) { p.pmUntil = S.t + 1.6; act(p, 'pmrun', 1.6, { o: own.idx }); } } }
           }
           // 版841：守備の合図で一斉に寄せる（2人目も行く）：相手がタッチライン際・後ろ向き（自分のゴールへ戻りながら）で受けた時。抜かれた直後は隣がすぐカバーに出る
           if (own && own.team !== tm.ti && !own.gk && ranked[1]) {
@@ -4107,6 +4114,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             if (p.mark >= 0) {
               const q = P[p.mark];
               let w = clamp(Math.max(p.zone_man, tm.urg && p.slot.line > 0 ? 70 : 0, skZ(p, 'manMark') || p.markHard ? 95 : 0) / 85, 0, 1);
+              /* 版1306：マンマーク：スキルで張り付いている相手との間に紫のひもを見せる（自陣側の、近くにいる時だけ） */
+              if ((globalThis.__Kdfv ?? 1) && skZ(p, 'manMark') && !p.markHard && p.zone_man < 85 && !(p.mmUntil > S.t) && hyp(p.x - q.x, p.y - q.y) < 5 && fx(tm.ti, q.x) < L * 0.6 && hyp(q.x - b.x, q.y - b.y) < 30) { p.mmUntil = S.t + 1.5; act(p, 'mmtie', 1.5, { o: q.idx }); }
               if (sweep5 && !p.markHard) w *= 0.7;
               if (p.type === 'ストッパー' && !p.markHard && !globalThis.__stpOld && fx(tm.ti, q.x) > Lx + 6) w *= 0.25;   // 版807：ストッパー：DFラインから離れて下がる相手には、ついて行きすぎない（ラインに残る）
               if (p.kgCover === S.t) w = 0;   // 影縫いで空いた所をカバー中（狙う相手は上で決めている）   // 5バックの真ん中は、人より後ろのスペースを見る
@@ -4150,7 +4159,9 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             // 版838：インターセプト：持っている相手から、自分の近くの相手へのパスコースに先回りして立つ（パスを読んでいる）
             if (p.sk.has('intercept') && !p.gk && own && own.team !== tm.ti && !pressers.has(p.idx) && !S.restart) {
               let bq = null, bd = 14; for (const o of opps(p)) { if (o.off || o === own || o.gk) continue; const d0 = hyp(o.x - p.x, o.y - p.y); if (d0 < bd) { bd = d0; bq = o; } }
-              if (bq) { const lx = own.x + (bq.x - own.x) * 0.7, ly = own.y + (bq.y - own.y) * 0.7; tx += (fx(tm.ti, lx) - tx) * 0.35; ty += (ly - ty) * 0.35; }
+              if (bq) { const lx = own.x + (bq.x - own.x) * 0.7, ly = own.y + (bq.y - own.y) * 0.7; tx += (fx(tm.ti, lx) - tx) * 0.35; ty += (ly - ty) * 0.35;
+                /* 版1306：インターセプト：パスコースを読んでいる間、持っている相手→狙う相手に青い点線（自分はその線の上へ） */
+                if ((globalThis.__Kdfv ?? 1) && skZ(p, 'intercept') && !(p.icUntil > S.t) && hyp(own.x - p.x, own.y - p.y) < 26 && hyp(own.x - bq.x, own.y - bq.y) < 24 && (() => { const vx = bq.x - own.x, vy = bq.y - own.y, l2 = vx * vx + vy * vy || 1, t0 = clamp(((p.x - own.x) * vx + (p.y - own.y) * vy) / l2, 0.2, 0.95); return hyp(own.x + vx * t0 - p.x, own.y + vy * t0 - p.y) < 3.5; })()) { p.icUntil = S.t + 1.2; act(p, 'icread', 1.2, { o: own.idx, q: bq.idx }); } }
             }
             if (p.recUntil > S.t && !pressers.has(p.idx)) { if (fx(tm.ti, p.x) > bxf - 4) { tx = Math.min(tx, bxf - 5); ty += (b.y - ty) * 0.25; } else p.recUntil = 0; u = true; }
             if (pressers.has(p.idx)) {
@@ -5306,7 +5317,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         // 捨て身の守護神：相手のスルーパス・裏へのボールに、GKが飛び出す
         //   （相手より先に触れそうな時だけ。間に合わない時は飛び出さずにゴールを守る）
         if (thr || (style && fx(p.team, tx) > offL - 1 && fx(p.team, tx) > L - 40)) { const og = opps(p).find((o) => o.gk && o.uniq === 'sutemi');
-          if (og && og.uniqLv >= 2 && !og.off && !(og.downT > 0) && fx(og.team, tx) < 22 && fx(og.team, tx) > 12 && !style) { const tG = hyp(tx - og.x, ty - og.y) / (maxSpeed(og) * 1.35), tR = hyp(tx - q.x, ty - q.y) / Math.max(1, maxSpeed(q)); if (tG < tR - 0.1 && !T[og.team].players.some((m) => !m.gk && !m.off && hyp(tx - m.x, ty - m.y) / Math.max(1, maxSpeed(m)) < tG + 0.3) && uFire(og, 'sutemi') && globalThis.__sutEarly) globalThis.__sutEarly.n++; } } }   // 味方のDFが先に拾えるなら、GKは出ない   // 凸：パスが出た瞬間に読んで、飛び出す1歩目から発動（確実に先に触れる時だけ。浮き球には出ない）
+          if (og && og.uniqLv >= 2 && !og.off && !(og.downT > 0) && fx(og.team, tx) < 22 && fx(og.team, tx) > 12 && !style) { const tG = hyp(tx - og.x, ty - og.y) / (maxSpeed(og) * 1.35), tR = hyp(tx - q.x, ty - q.y) / Math.max(1, maxSpeed(q)); if (tG < tR - 0.1 && (!(globalThis.__Ksut3 ?? 1) || hyp(tx - og.x, ty - og.y) / maxSpeed(og) > tR - 0.3) && !T[og.team].players.some((m) => !m.gk && !m.off && hyp(tx - m.x, ty - m.y) / Math.max(1, maxSpeed(m)) < tG + 0.3) && uFire(og, 'sutemi') && globalThis.__sutEarly) globalThis.__sutEarly.n++; } } }   // 味方のDFが先に拾えるなら、GKは出ない   // 凸：パスが出た瞬間に読んで、飛び出す1歩目から発動（確実に先に触れる時だけ。浮き球には出ない）
       if (mdK(p)) { uAcc /= Math.min(3, Math.pow(1.3, mdK(p))); uSafe = Math.max(uSafe, Math.min((globalThis.__Kmd2 ?? 1) ? 0.85 : 0.6, mdK(p) * ((globalThis.__Kmd2 ?? 1) ? 0.2 : 0.15))); }   /* 版1219：4段でパスはほぼ通る */   /* 版451 翠の起点の積み重ね：パスの精度（1回ごとに1.15倍・最大2倍） */
       if (skill === 'pinpointCross') { uSafe = Math.max(uSafe, (globalThis.__Kpp2 ?? 1) ? 0.75 : 0.45); if (globalThis.__Kpp2 ?? 1) uAcc *= 0.5; q.ppShot = S.t + 3; }   // 版838：ピンポイントクロス：相手に触られにくく、受けた選手のシュートも正確に
       const accP = (PASS_ACC[skill] ?? 1) * (p.type === 'パサー' && (through || skill === 'throughPass' || skill === 'loftedThrough') ? 0.72 : 1) * uAcc;   // パサーのスルーパスは正確
@@ -7321,6 +7332,9 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       b.hx = b.x; b.hy = b.y; b.hT = S.t; b.rv = aV;
       if (S.restart) { restartBall(); return; }
       const own = ownerP();
+      /* 版1306：捨て身の守護神：DFを振り切られて1対1（このままなら決められる）になった瞬間に発動。全力で足もとへ飛び込む */
+      if (own && !own.gk && (globalThis.__Ksut3 ?? 1) && fx(own.team, own.x) > L - 36) { const g = opps(own).find((q) => q.gk && q.uniq === 'sutemi' && !q.off && !(q.downT > 0) && !uOn(q, 'sutemi') && !(q.uCd > S.t));
+        if (g && gkInFront(g, own) && hyp(g.x - own.x, g.y - own.y) < 22 && hyp(g.x - own.x, g.y - own.y) > 3 && !opps(own).some((d) => !d.gk && !d.off && !(d.downT > 0) && hyp(d.x - own.x, d.y - own.y) < 3.5 && fx(own.team, d.x) > fx(own.team, own.x) - 1.5) && uFire(g, 'sutemi') && globalThis.__sutLog) globalThis.__sutLog.push(['1v1', +S.t.toFixed(2)]); }
       if (own && !own.gk && (globalThis.__Ksut2 ?? 1)) { const g = opps(own).find((q) => q.gk && !q.off && (q.sutemiBall || 0) > S.t); if (g && hyp(g.x - own.x, g.y - own.y) < 2.8 && sutemiTackle(g, own)) { g.sutemiBall = 0; return; } }   // 版1219：捨て身の守護神は、受けた相手にも飛び込む
       if (own && globalThis.__sdbLog && uOn(own, 'shiden')) { const dd = hyp(b.x - own.x, b.y - own.y); globalThis.__sdbLog.push([dd > 1.4 ? 2 : dd > 0.9 ? 1 : 0, own.settle ? 's' : (own.moveQ && own.moveQ.length ? 'q' : S.dribbleMode || '-'), +(b.z || 0).toFixed(1), +(own.dO || 0).toFixed(2), +hyp(own.vx, own.vy).toFixed(1), S.dribbleDir ? +(((b.x - own.x) * S.dribbleDir[0] + (b.y - own.y) * S.dribbleDir[1])).toFixed(2) : null, +dd.toFixed(2), +hyp(b.vx || 0, b.vy || 0).toFixed(1)]); }
       if (own) {
@@ -8832,6 +8846,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             let best = null, bsc = -1e9;
             for (const p of hc) { const sc = p.jump * 0.75 + p.physical * 0.3 + p.technique * 0.15 + R.next() * 26 - hyp(p.x - b.x, p.y - b.y) * 25 + (skZ(p, 'aerial') ? 28 : 0) + (p.position === 'DF' ? 6 * aura(p, 'bodyVoice') : 0) + (uOn(p, 'matsuri') ? 32 * mtF(p) : 0) + ((p.b5 || -9) > S.t - 0.5 && fx(p.team, b.x) < 18 ? 10 : 0) + (lpB && p.idx === b.intended && b.z < 2.1 ? 40 : 0) + ((globalThis.__Kcr5 ?? 1) && p.team === b.lastTeam && (b.style === 'cross' || b.style === 'high' || b.style === 'lob') && fx(p.team, b.x) > L - 18 && Math.abs(b.y - GOAL_Y) < 20 ? (globalThis.__Kcr5v ?? 16) : 0); if (sc > bsc) { bsc = sc; best = p; } }   // 版1212：ゴール前のクロスに走り込んだ攻める側は、勢いをつけて飛び込める（待って構えるDFより有利）
             if (lpB && (globalThis.__Klp7 ?? 1) && b.z < 2.1) { const rc = hc.find((p) => p.idx === b.intended); if (rc) { const dr = hyp(rc.x - b.x, rc.y - b.y), dd = Math.min(9, ...hc.filter((p) => p.team !== rc.team).map((p) => hyp(p.x - b.x, p.y - b.y))); if (dr <= dd + 0.2) best = rc; } }   // 版1204：胸の高さへ落ちてくる球に、受け手が相手より近くで構えていれば、受け手が先に触る（球に正対して待てる）   // 空中戦の鬼：競り合いにめっぽう強い
+            if ((globalThis.__Kdfv ?? 1) && best && skZ(best, 'aerial') && hc.some((p) => p.team !== best.team)) act(best, 'airwin', 0.8);   // 版1306：空中戦の鬼で競り勝った：頭の所で黄色い衝撃
             for (const p of hc) if (p !== best) { act(p, 'jump', 0.55); p.touchCd = 0.4; }
             if ((globalThis.__Kbd ?? 0) && contested) { const o = hc.filter((p) => p.team !== best.team).sort((a0, c0) => hyp(a0.x - best.x, a0.y - best.y) - hyp(c0.x - best.x, c0.y - best.y))[0];   // 版1028：空中戦の競り合い：同時に跳んだ相手と、空中で体をぶつけ合う（勝った方が頭で触る）
               if (o && hyp(o.x - best.x, o.y - best.y) < 1.6) { act(best, 'airbump', 0.55, { o: o.idx, w: 1 }); act(o, 'airbump', 0.55, { o: best.idx, w: 0 }); const ux = o.x - best.x, uy = o.y - best.y, ul = hyp(ux, uy) || 1; o.x += ux / ul * 0.25; o.y += uy / ul * 0.25; ev('duel', { k: 'air', w: best.idx, l: o.idx }); } }
@@ -9037,7 +9052,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
               // 体に当たったシュートは、勢いのままゴールラインの外へ逃げることも多い（CKになる）
               if (R.next() < 0.4 && fx(p.team, p.x) < 22) { const sp2 = Math.max(4, hyp(b.vx, b.vy) * 0.4); vx = -sgn(p.team) * sp2 * R.range(0.6, 0.9); vy = (Math.sign(b.y - GOAL_Y) || (R.next() < 0.5 ? 1 : -1)) * sp2 * R.range(0.5, 0.9); }
               Object.assign(b, { vx, vy, kind: 'loose', lastTeam: p.team, lastPlayer: p.idx }); }
-            { const ux = b.x - p.x, uy = b.y - p.y, ud = hyp(ux, uy) || 1; act(p, 'poke', 0.35, { dx: ux / ud, dy: uy / ud, blk: 1 }); }
+            { const ux = b.x - p.x, uy = b.y - p.y, ud = hyp(ux, uy) || 1; act(p, 'poke', 0.35, { dx: ux / ud, dy: uy / ud, blk: 1 }); if ((globalThis.__Kdfv ?? 1) && skZ(p, 'shotBlock')) act(p, 'sbwall', 0.9, { dx: ux / ud, dy: uy / ud }); }
             p.touchCd = 0.6;
             return;
           }

@@ -293,7 +293,7 @@
     // 同時に出した技（ドリブルシュート＋強烈ミドルなど）は「＋」でつなげて出す
     for (let k = L2.length - 1; k >= 0; k--) {
       const a = L2[k]; if (a.t > simT) continue; if (simT - a.t > 1.8) break;
-      if ((globalThis.__Khj ?? 1) && a.a === 'head' && simT - a.t < 1.3 && shotsList.some((sh) => sh.i === i && Math.abs(sh.t - a.t) < 0.35) && !L2.some((b2) => (b2.a === 'skill' || b2.a === 'uniq') && Math.abs(b2.t - a.t) < 0.4)) return 'ヘディングシュート';   // 版1305：頭で打ったシュートは、吹き出しで分かるように
+      if ((globalThis.__Khjb ?? 0) && a.a === 'head' && simT - a.t < 1.3 && shotsList.some((sh) => sh.i === i && Math.abs(sh.t - a.t) < 0.35) && !L2.some((b2) => (b2.a === 'skill' || b2.a === 'uniq') && Math.abs(b2.t - a.t) < 0.4)) return 'ヘディングシュート';   // 版1305：頭で打ったシュートは、吹き出しで分かるように
       if (a.a === 'skill' || a.a === 'uniq') {
         // 固有スキルは【】で囲む（ほかの技と同時なら「【紅蓮の牙】＋強烈ミドル」）
         const nm = (x) => (x.a === 'uniq' ? `【${(D.UNIQ && D.UNIQ[x.k] && D.UNIQ[x.k].name) || x.k}${x.lv >= 2 ? '・覚醒' : ''}】` : SKILL_NAME[x.k] || x.k);   // 凸で強化した固有スキルは「・覚醒」
@@ -3608,7 +3608,14 @@
           const px0 = r.px || q.s * 2.6, el = simT - a.t;
           if (a.a === 'ovrun' && st.owner !== i) { seen.ovrun = 1; tactFx.push(['urun', q.x, q.y, '80,205,255', px0, el / a.d]); }
           else if (a.a === 'recrun') { seen.recrun = 1; tactFx.push(['urun', q.x, q.y, '255,160,60', px0, el / a.d]); }
-          else if (a.a === 'icpt') { seen.icpt = 1; tactFx.push(['ring2', q.x, q.y, px0, el / a.d, '90,170,255', 1]); }
+          else if (a.a === 'icpt') { seen.icpt = 1; tactFx.push(['ring2', q.x, q.y, px0, el / a.d, '90,170,255', 1.4]); tactFx.push(['dfcut', q.x, q.y, px0, el / a.d]); }
+          /* 版1306：守備スキル：吹き出しは出さず、効果そのものを絵で見せる */
+          else if (a.a === 'icread' && st.owner === a.o && st.players[a.q]) { seen.icread = 1; const m1 = proj(st.players[a.o].x, st.players[a.o].y), m2 = proj(st.players[a.q].x, st.players[a.q].y); tactFx.push(['dfline', m1.x, m1.y, m2.x, m2.y, '90,170,255', px0, el / a.d, 1]); }
+          else if (a.a === 'pmrun' && st.players[a.o]) { seen.pmrun = 1; const m = proj(st.players[a.o].x, st.players[a.o].y); tactFx.push(['dfchase', q.x, q.y, m.x, m.y, '255,70,60', px0, el / a.d]); }
+          else if (a.a === 'cvrun' && st.players[a.o]) { seen.cvrun = 1; const m = proj(st.players[a.o].x, st.players[a.o].y); tactFx.push(['dfline', q.x, q.y, m.x, m.y, '70,220,120', px0, el / a.d, 0]); tactFx.push(['urun', q.x, q.y, '70,220,120', px0, el / a.d]); }
+          else if (a.a === 'mmtie' && st.players[a.o]) { seen.mmtie = 1; const m = proj(st.players[a.o].x, st.players[a.o].y); tactFx.push(['dftie', q.x, q.y, m.x, m.y, px0, el / a.d]); }
+          else if (a.a === 'airwin') { seen.airwin = 1; tactFx.push(['dfstar', q.x, r.top, px0, el / a.d, '255,225,60']); }
+          else if (a.a === 'sbwall') { seen.sbwall = 1; tactFx.push(['dfwall', q.x, q.y, px0, el / a.d, a.dx || 0, a.dy || 0]); }
           else if (a.a === 'capcall') { seen.capcall = 1; tactFx.push(['ring2', q.x, q.y, px0, el / a.d, '255,205,60', 1.6]); }
           else if (a.a === 'capbuf') { seen.capbuf = 1; tactFx.push(['gbuf', q.x, q.y, px0, el, a.d, a.c]); }
           else if (a.a === 'pppass' && el < a.d) { seen.pppass = 1; const pts = [], t1 = Math.min(simT, a.t + a.d); let ended = false, tEnd = 0;
@@ -3931,6 +3938,41 @@
         ctx.beginPath(); ctx.ellipse(x, y, rr * 0.45, rr * 0.19, 0, 0, Math.PI * 2); ctx.stroke();
         for (const s0 of [-1, 1]) { ctx.beginPath(); ctx.moveTo(x + s0 * rr * 1.25, y); ctx.lineTo(x + s0 * rr * 0.7, y); ctx.stroke(); ctx.beginPath(); ctx.moveTo(x, y + s0 * rr * 0.52); ctx.lineTo(x, y + s0 * rr * 0.3); ctx.stroke(); }
         ctx.restore();
+      } else if (f[0] === 'dfline') {   // 版1306：守備スキルの線（インターセプト：読んでいるパスコースに青い点線／カバーリング：寄せた味方の背中へ緑の線）
+        const [, x, y, tx, ty, rgb, px0, u, dash] = f, px = Math.max(2.4, px0), al = Math.min(1, u * 6, (1 - u) * 4);
+        ctx.save(); ctx.lineCap = 'round'; ctx.strokeStyle = `rgba(${rgb},${0.95 * al})`; ctx.lineWidth = Math.max(3, px * 1.2);
+        if (dash) { ctx.setLineDash([px * 2.4, px * 1.6]); ctx.lineDashOffset = -simT * px * 10; }
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(tx, ty); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle = `rgba(${rgb},${0.9 * al})`; ctx.beginPath(); ctx.ellipse(tx, ty, px * 3.2, px * 1.3, 0, 0, 7); ctx.fill(); ctx.restore();
+      } else if (f[0] === 'dfchase') {   // 版1306：プレスの鬼：寄せる相手へ赤い矢じりが連なり、足もとに赤い風
+        const [, x, y, tx, ty, rgb, px0, u] = f, px = Math.max(2.4, px0), al = Math.min(1, u * 6, (1 - u) * 4), ang = Math.atan2(ty - y, tx - x), dl = Math.hypot(tx - x, ty - y);
+        ctx.save(); ctx.fillStyle = `rgba(${rgb},${0.9 * al})`; ctx.strokeStyle = `rgba(80,0,0,${0.8 * al})`; ctx.lineWidth = 2;
+        for (let k = 0; k < 3; k++) { const ph = ((simT * 2.2 + k / 3) % 1), d0 = dl * (0.15 + ph * 0.7), cx = x + Math.cos(ang) * d0, cy = y + Math.sin(ang) * d0, hl = px * 4.5;
+          ctx.globalAlpha = Math.sin(ph * Math.PI); ctx.beginPath(); ctx.moveTo(cx + Math.cos(ang) * hl, cy + Math.sin(ang) * hl); ctx.lineTo(cx + Math.cos(ang + 2.4) * hl, cy + Math.sin(ang + 2.4) * hl); ctx.lineTo(cx + Math.cos(ang - 2.4) * hl, cy + Math.sin(ang - 2.4) * hl); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+        ctx.globalAlpha = 1; ctx.strokeStyle = `rgba(${rgb},${0.85 * al})`; ctx.lineWidth = Math.max(1.5, px * 0.5);
+        for (let k = 0; k < 4; k++) { const yy = y - px * (1 + k * 1.5), ph = (simT * 5 + k * 0.3) % 1; ctx.beginPath(); ctx.moveTo(x - Math.cos(ang) * px * (4 + ph * 5), yy); ctx.lineTo(x - Math.cos(ang) * px * (0.5 + ph * 2), yy); ctx.stroke(); }
+        ctx.restore();
+      } else if (f[0] === 'dftie') {   // 版1306：マンマーク：張り付いている相手との間に紫のひも、相手の足もとに紫の輪
+        const [, x, y, tx, ty, px0, u] = f, px = Math.max(2.4, px0), al = Math.min(1, u * 6, (1 - u) * 4);
+        ctx.save(); ctx.strokeStyle = `rgba(200,100,255,${0.95 * al})`; ctx.lineWidth = Math.max(3, px * 1.1); ctx.setLineDash([px * 1.4, px * 1.0]);
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(tx, ty); ctx.stroke(); ctx.setLineDash([]);
+        ctx.lineWidth = Math.max(3, px * 0.9); ctx.beginPath(); ctx.ellipse(tx, ty, px * 4, px * 1.6, 0, 0, 7); ctx.stroke(); ctx.beginPath(); ctx.ellipse(x, y, px * 2.6, px * 1.1, 0, 0, 7); ctx.stroke(); ctx.restore();
+      } else if (f[0] === 'dfstar') {   // 版1306：空中戦の鬼：競り勝った頭の所で黄色い衝撃（とげの星）
+        const [, x, y, px0, u, rgb] = f, px = Math.max(2.4, px0), rr = px * (4 + u * 9), al = Math.max(0, 1 - u * 0.9);
+        ctx.save(); ctx.strokeStyle = `rgba(${rgb},${al})`; ctx.lineWidth = Math.max(2, px * 0.7); ctx.lineCap = 'round';
+        for (let k = 0; k < 8; k++) { const an = k * Math.PI / 4 + 0.2; ctx.beginPath(); ctx.moveTo(x + Math.cos(an) * rr * 0.45, y + Math.sin(an) * rr * 0.45); ctx.lineTo(x + Math.cos(an) * rr, y + Math.sin(an) * rr); ctx.stroke(); }
+        ctx.fillStyle = `rgba(255,255,220,${al * 0.8})`; ctx.beginPath(); ctx.arc(x, y, px * (1.6 - u), 0, 7); ctx.fill(); ctx.restore();
+      } else if (f[0] === 'dfwall') {   // 版1306：シュートブロック：体を張った所に白い盾の板と、はね返す火花
+        const [, x, y, px0, u, dx, dy] = f, px = Math.max(2.4, px0), al = Math.max(0, 1 - u), ang = Math.atan2(dy, dx), cx = x + Math.cos(ang) * px * 2, cy = y - px * 3 + Math.sin(ang) * px * 1;
+        ctx.save(); ctx.translate(cx, cy); ctx.rotate(ang + Math.PI / 2); ctx.fillStyle = `rgba(200,230,255,${0.55 * al})`; ctx.strokeStyle = `rgba(255,255,255,${al})`; ctx.lineWidth = Math.max(2, px * 0.6);
+        const w0 = px * (5.5 + u * 2), h0 = px * 7; ctx.beginPath(); ctx.moveTo(-w0, -h0 * 0.5); ctx.lineTo(w0, -h0 * 0.5); ctx.lineTo(w0, h0 * 0.1); ctx.lineTo(0, h0 * 0.6); ctx.lineTo(-w0, h0 * 0.1); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
+        ctx.save(); ctx.strokeStyle = `rgba(255,240,120,${al})`; ctx.lineWidth = Math.max(1.5, px * 0.45);
+        for (let k = -2; k <= 2; k++) { const an = ang + k * 0.35, r0 = px * (5 + u * 10); ctx.beginPath(); ctx.moveTo(cx + Math.cos(an) * r0 * 0.5, cy + Math.sin(an) * r0 * 0.5); ctx.lineTo(cx + Math.cos(an) * r0, cy + Math.sin(an) * r0); ctx.stroke(); }
+        ctx.restore();
+      } else if (f[0] === 'dfcut') {   // 版1306：インターセプト：パスを切った所に青い×の閃光
+        const [, x, y, px0, u] = f, px = Math.max(2.4, px0), al = Math.max(0, 1 - u * 1.3), rr = px * (3 + u * 3);
+        if (al > 0) { ctx.save(); ctx.strokeStyle = `rgba(160,210,255,${al})`; ctx.lineWidth = Math.max(2.5, px * 0.9); ctx.lineCap = 'round'; const cy = y - px * 3;
+          ctx.beginPath(); ctx.moveTo(x - rr, cy - rr * 0.6); ctx.lineTo(x + rr, cy + rr * 0.6); ctx.moveTo(x + rr, cy - rr * 0.6); ctx.lineTo(x - rr, cy + rr * 0.6); ctx.stroke(); ctx.restore(); }
       } else if (f[0] === 'urun') {   // 走り込む・入ってくる味方：足もとに色の風の線
         const [, x, y, rgb, px0, u] = f, px = Math.max(2.4, px0), al = Math.sin(Math.min(1, u) * Math.PI) * 0.6 + 0.3;
         ctx.strokeStyle = `rgba(${rgb},${0.85 * al})`; ctx.lineWidth = Math.max(1.5, px * 0.5);
