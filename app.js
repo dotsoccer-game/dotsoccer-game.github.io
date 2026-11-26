@@ -3754,11 +3754,11 @@
       } else if (f[0] === 'zgaura') {   // 版1319：ゼログラビティ：黒いオーラ（体を包む黒い靄＋足もとの黒い輪＋立ちのぼる黒い炎）
         const [, x, y, , top, el] = f, hgt = Math.max(12, y - top), u = hgt / 10, cy = y - hgt * 0.5, fin = Math.min(1, el / 0.25);
         ctx.save();
-        { const gr = ctx.createRadialGradient(x, cy, 0, x, cy, u * 11); gr.addColorStop(0, `rgba(5,2,12,${0.75 * fin})`); gr.addColorStop(0.6, `rgba(20,8,36,${0.5 * fin})`); gr.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = gr; ctx.beginPath(); ctx.ellipse(x, cy, u * 8, u * 11, 0, 0, 7); ctx.fill(); }
+        { const gr = ctx.createRadialGradient(x, cy, u * 2.5, x, cy, u * 11); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(0.35, `rgba(10,4,20,${0.38 * fin})`); gr.addColorStop(0.75, `rgba(25,10,45,${0.22 * fin})`); gr.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = gr; ctx.beginPath(); ctx.ellipse(x, cy, u * 8, u * 11, 0, 0, 7); ctx.fill(); }   // 体のまわりだけ（真ん中は透かして、ルナが見えるように）
         ctx.strokeStyle = `rgba(0,0,0,${0.6 * fin})`; ctx.lineWidth = Math.max(1.5, u * 0.5); ctx.beginPath(); ctx.ellipse(x, y, u * (4.2 + Math.sin(simT * 5) * 0.4), u * 1.5, 0, 0, 7); ctx.stroke();
         for (let k = 0; k < 12; k++) {   // 立ちのぼる黒い炎：下から上へゆらぎながら消える
-          const ph = (simT * 0.9 + k / 12) % 1, sx = x + Math.sin(k * 2.3 + simT * 3) * u * (3 + (k % 3) * 1.2), sy = y - hgt * 1.45 * ph, rr = u * (2.2 - ph * 1.4);
-          ctx.fillStyle = `rgba(${k % 3 === 0 ? '55,25,85' : '0,0,0'},${(1 - ph) * 0.85 * fin})`; ctx.beginPath(); ctx.ellipse(sx, sy, rr * 0.7, rr * 1.5, 0, 0, 7); ctx.fill(); }
+          const ph = (simT * 0.9 + k / 12) % 1, sd = k % 2 ? 1 : -1, sx = x + sd * u * (4.2 + (k % 3) * 1.1 + Math.sin(k * 2.3 + simT * 3) * 0.8), sy = y - hgt * 1.35 * ph, rr = u * (1.8 - ph * 1.1);   // 炎は体の左右から（体には重ねない）
+          ctx.fillStyle = `rgba(${k % 3 === 0 ? '55,25,85' : '0,0,0'},${(1 - ph) * 0.6 * fin})`; ctx.beginPath(); ctx.ellipse(sx, sy, rr * 0.7, rr * 1.5, 0, 0, 7); ctx.fill(); }
         ctx.restore();
       } else if (f[0] === 'sdaura') {   // 紫電の遊戯（凸）：体じゅうを紅い電気がはい回り、まわりがぼうっと光る
         const [, x, y, px0, top] = f, px = Math.max(2.4, px0), hgt = y - top, cy = y - hgt * 0.5;

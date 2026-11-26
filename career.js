@@ -1483,7 +1483,7 @@
     // 疲れている選手は能力が少し落ちる
     for (const p of ps) { p.startCur = 100 - (p.fatigue || 0) * 0.5; const f = perfMul(p); for (const k of KEYS) p[k] = Math.round(p[k] * f); }   // 版998：疲労度だけで（調子はなくした）
     // 凸の効果：サポートパッシブ（☆2は3凸で付与、☆3は2凸で付与・3凸で強化、☆4は1凸で付与・2凸で強化・3凸で範囲拡大、☆5は2凸で付与・3凸で強化）と、固有スキルの覚醒（☆5の1凸から）
-    for (const p of ps) { const st = ensureStar(p), tz = p.totsu || 0; p.passive = pasLv(st, tz); if (p.uniq) p.uniqLv = p.uniq === 'zerog' ? (tz >= 3 ? 3 : tz >= 2 ? 2 : 1) : st >= 5 && tz >= 1 ? 2 : 1; }   /* 版1315：ゼログラビティは、1凸でスキル枠・2凸で相手を引き寄せる・3凸でいつでも発動 */
+    for (const p of ps) { const st = ensureStar(p), tz = p.totsu || 0; p.passive = pasLv(st, tz); if (p.uniq) p.uniqLv = D.UNIQ && D.UNIQ[p.uniq] && D.UNIQ[p.uniq].dream ? (tz >= 3 ? 3 : tz >= 2 ? 2 : 1) : st >= 5 && tz >= 1 ? 2 : 1; }   /* 版1320：ドリームのスーパースターは、凸ごとに効果が増える（エンジンは totsu を見る） */   /* 版1315：ゼログラビティは、1凸でスキル枠・2凸で相手を引き寄せる・3凸でいつでも発動 */
     const tac = ensureTactics(save);
     applyTactics(t, tac);
     t.roles = {};

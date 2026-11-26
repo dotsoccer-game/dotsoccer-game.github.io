@@ -22,7 +22,7 @@
     for (const p of t.players) {
       const keep = side === 'own' ? matesU && p.uniq !== k : side === 'opp' ? oppU : false;   // 調べているスキル以外の固有スキル
       if (p.uniq && !keep && (!on || p.uniq !== k)) delete p.uniq;
-      if (p.uniq) p.uniqLv = p.uniq === 'zerog' ? [1, 1, 2, 3][lv | 0] : lv ? 2 : 1; if (p.uniq === 'zerog') p.totsu = lv | 0;   // 版1315：ゼログラビティは3凸まで（1凸はスキル枠なので試合は同じ）
+      if (p.uniq) p.uniqLv = U[p.uniq].dream ? [1, 1, 2, 3][lv | 0] : lv ? 2 : 1; if (p.uniq && U[p.uniq].dream) p.totsu = lv | 0;   // 版1320：ドリームの4人は0〜3凸   // 版1315：ゼログラビティは3凸まで（1凸はスキル枠なので試合は同じ）
       if (p.uniq && combo && SHOOTERS.has(p.uniq)) p.skills = combo === 'header' ? ['aerial'] : combo === 'dribbleShot' ? [] : [combo];   // 重ねる技だけを持たせる
       if (pasOn && p.type === pasOn.type && !pasOn.done && t.players.indexOf(p) < 11) { p.passive = pasOn.lv; pasOn.done = true; }
     }
@@ -102,8 +102,9 @@
   $('#ulO').onchange = (e) => { opp = e.target.value; };
   $('#ulTm').onclick = () => { matesU = !matesU; $('#ulTm').textContent = '味方の固有スキル：' + (matesU ? 'あり' : 'なし'); $('#ulTm').classList.toggle('on', matesU); };
   $('#ulTo').onclick = () => { oppU = !oppU; $('#ulTo').textContent = '相手の固有スキル：' + (oppU ? 'あり' : 'なし'); $('#ulTo').classList.toggle('on', oppU); };
-  function lvTxt() { $('#ulL').textContent = key === 'zerog' ? `凸：${lv2 | 0}凸${['', '（シャープカーブ）', '（相手を引き寄せる）', '（いつでも発動）'][lv2 | 0]}` : '凸で強化：' + (lv2 ? 'あり' : 'なし'); $('#ulL').classList.toggle('on', !!lv2); }
-  $('#ulL').onclick = () => { lv2 = key === 'zerog' ? ((lv2 | 0) + 1) % 4 : (lv2 ? 0 : 1); lvTxt(); };
+  const DLV = { zerog: ['', '（シャープカーブ）', '（相手を引き寄せる）', '（いつでも発動）'], trivela: ['', '（トリベーラ・ミドル）', '（受けた味方が決めやすい）', '（直接FKも）'], lastmin: ['', '（流れの中でも上がる）', '（60分から）', '（勝っていても）'], titan: ['', '（シュートを乱す）', '（30mから・より遅く）', '（1対1でも）'] };
+  function lvTxt() { $('#ulL').textContent = DLV[key] ? `凸：${lv2 | 0}凸${DLV[key][lv2 | 0]}` : '凸で強化：' + (lv2 ? 'あり' : 'なし'); $('#ulL').classList.toggle('on', !!lv2); }
+  $('#ulL').onclick = () => { lv2 = DLV[key] ? ((lv2 | 0) + 1) % 4 : (lv2 ? 0 : 1); lvTxt(); };
   let pLv = 1;
   $('#ulPL').onclick = () => { pLv = pLv % 3 + 1; $('#ulPL').textContent = ['付与のみ', '強化', '強化＋範囲拡大'][pLv - 1]; $('#ulPL').classList.toggle('on', pLv > 1); };
   $('#ulP').onchange = (e) => { pasType = e.target.value; descP(); msg(''); };
