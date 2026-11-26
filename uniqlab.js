@@ -102,7 +102,7 @@
   $('#ulO').onchange = (e) => { opp = e.target.value; };
   $('#ulTm').onclick = () => { matesU = !matesU; $('#ulTm').textContent = '味方の固有スキル：' + (matesU ? 'あり' : 'なし'); $('#ulTm').classList.toggle('on', matesU); };
   $('#ulTo').onclick = () => { oppU = !oppU; $('#ulTo').textContent = '相手の固有スキル：' + (oppU ? 'あり' : 'なし'); $('#ulTo').classList.toggle('on', oppU); };
-  const DLV = { zerog: ['', '（シャープカーブ）', '（相手を引き寄せる）', '（いつでも発動）'], trivela: ['', '（トリベーラ・ミドル）', '（受けた味方が決めやすい）', '（直接FKも）'], lastmin: ['（守備だけ）', '（CK・FKで上がる）', '（流れの中でも上がる）', '（試合を通して）'], titan: ['', '（シュートを乱す）', '（30mから・より遅く）', '（1対1でも）'] };
+  const DLV = { zerog: ['', '（シャープカーブ）', '（相手を引き寄せる）', '（いつでも発動）'], trivela: ['', '（トリベーラ・ミドル）', '（受けた味方が決めやすい）', '（直接FKも）'], lastmin: ['', '（えげつないスライディング）', '（流れの中でも上がる）', '（試合を通して）'], titan: ['', '（シュートを乱す）', '（30mから・より遅く）', '（1対1でも）'] };
   function lvTxt() { $('#ulL').textContent = DLV[key] ? `凸：${lv2 | 0}凸${DLV[key][lv2 | 0]}` : '凸で強化：' + (lv2 ? 'あり' : 'なし'); $('#ulL').classList.toggle('on', !!lv2); }
   $('#ulL').onclick = () => { lv2 = DLV[key] ? ((lv2 | 0) + 1) % 4 : (lv2 ? 0 : 1); lvTxt(); };
   let pLv = 1;
