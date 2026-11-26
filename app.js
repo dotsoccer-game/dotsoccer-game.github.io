@@ -4102,7 +4102,7 @@
       // スキル発動の表示（選手の頭上に小さく）
       ctx.font = `900 24px ${JP}`; const w = ctx.measureText(k).width + 26;   // 版497：スキルの吹き出しを大きく
       // 固有スキル：スキルごとの色（engine の UNIQ の chip：地・ふち・文字）。覚醒（凸）は、ふちが太く光る
-      const uq = k.includes('【'), kk = k.includes('・覚醒'), U2 = uq && D.UNIQ ? Object.values(D.UNIQ).find((u) => k.includes('【' + u.name)) : null, cc = U2 && U2.chip ? U2.chip : ['#c8141e', '#ffd23a', '#ffe45a'];
+      const uq = k.includes('【'), kk = k.includes('・覚醒'), U2 = uq && D.UNIQ ? Object.values(D.UNIQ).find((u) => k.includes('【' + u.name) || (u.alias || []).some((n) => k.includes('【' + n))) : null, cc = U2 && U2.chip ? U2.chip : ['#c8141e', '#ffd23a', '#ffe45a'];
       if (kk) { ctx.save(); ctx.shadowColor = cc[1]; ctx.shadowBlur = 14; }
       const oc = !uq && ov ? ov : null;
       ctx.fillStyle = uq ? cc[0] : oc ? oc[0] : '#ffd400'; rrect(x - w / 2, y - 28, w, 35, 17); ctx.fill(); ctx.strokeStyle = uq ? cc[1] : oc ? oc[1] : '#3a2a00'; ctx.lineWidth = kk ? 3.5 : 2; ctx.stroke();
