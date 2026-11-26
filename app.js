@@ -296,7 +296,7 @@
       if ((globalThis.__Khjb ?? 0) && a.a === 'head' && simT - a.t < 1.3 && shotsList.some((sh) => sh.i === i && Math.abs(sh.t - a.t) < 0.35) && !L2.some((b2) => (b2.a === 'skill' || b2.a === 'uniq') && Math.abs(b2.t - a.t) < 0.4)) return 'ヘディングシュート';   // 版1305：頭で打ったシュートは、吹き出しで分かるように
       if (a.a === 'skill' || a.a === 'uniq') {
         // 固有スキルは【】で囲む（ほかの技と同時なら「【紅蓮の牙】＋強烈ミドル」）
-        const nm = (x) => (x.a === 'uniq' ? (x.nm ? `【${x.nm}】` : `【${(D.UNIQ && D.UNIQ[x.k] && D.UNIQ[x.k].name) || x.k}${x.lv >= 2 ? '・覚醒' : ''}】`) : SKILL_NAME[x.k] || x.k);   // 凸で強化した固有スキルは「・覚醒」
+        const nm = (x) => (x.a === 'uniq' ? (x.nm ? `【${x.nm}】` : `【${(D.UNIQ && D.UNIQ[x.k] && D.UNIQ[x.k].name) || x.k}${x.lv >= 2 ? '・覚醒' : ''}】`) : x.k === 'sharpCurve' ? '【シャープカーブ】' : SKILL_NAME[x.k] || x.k);   /* 版1332：シャープカーブは、ゼログラビティと同じ色 */   // 凸で強化した固有スキルは「・覚醒」
         const names = [nm(a)];
         for (let j = k - 1; j >= 0 && a.t - L2[j].t < (a.a === 'uniq' || L2[j].a === 'uniq' ? 0.8 : 0.05); j--) if ((L2[j].a === 'skill' || L2[j].a === 'uniq') && !names.includes(nm(L2[j]))) names.unshift(nm(L2[j]));
         names.sort((x, y) => (y[0] === '【') - (x[0] === '【'));
@@ -3295,7 +3295,7 @@
       } else {
         let lift = 0, tilt = 0, dxs = 0, arms = st.held === i || cheer;
         let jumpPose = false;
-        if (ac && (ac.a === 'head' || ac.a === 'jump')) { lift = Math.sin(Math.PI * Math.min(1, ac.u * (ac.a === 'head' ? 1 : 1.1))) * (ac.a === 'head' ? ((globalThis.__Khj ?? 1) ? 1.2 : 0.75) : 0.55); jumpPose = true; }   // 版1305：ヘディングのジャンプを高く・早めに（混戦の中で跳んでいるように見えなかった）
+        if (ac && (ac.a === 'head' || ac.a === 'jump')) { lift = Math.sin(Math.PI * Math.min(1, ac.u * (ac.a === 'head' ? 1 : 1.1))) * (ac.a === 'head' ? ((globalThis.__Khj ?? 1) ? 1.2 : 0.75) * (ac.hi ? 2.0 : 1) : 0.55); jumpPose = true; }   // 版1305：ヘディングのジャンプを高く・早めに（混戦の中で跳んでいるように見えなかった）
         let headPose = null;
         if (ac && ac.a === 'head') {   // 版456：ヘディング（手で描いた絵・8方向）。いつもボールの方を向く（来るボールに向かって跳び、当てたら飛んでいく方を向いたまま）
           const bq = proj(st.ball.x, st.ball.y), bd = Math.hypot(st.ball.x - p.x, st.ball.y - p.y), h = viewHold[i];
@@ -3519,7 +3519,7 @@
       const sk = skillAt(i);
       // 技が出た瞬間の輪と集中線、画面下の大きな技名
       { const L2 = actsOf[i]; for (let k = L2.length - 1; k >= 0; k--) { const a = L2[k]; if (a.t > simT) continue; if (simT - a.t > 0.5) break;
-          if (a.a === 'skill') { flashes.push([q.x, q.y, r.px || q.s * 2.6, simT - a.t]); if (!skillBanner || skillBanner.t < a.t - 0.01 || (skillBanner.t === a.t && skillBanner.i === i && !skillBanner.name.includes(SKILL_NAME[a.k]))) { const nm = SKILL_NAME[a.k] || a.k; skillBanner = skillBanner && skillBanner.i === i && Math.abs(skillBanner.t - a.t) < 0.05 && !skillBanner.name.includes(nm) ? { ...skillBanner, name: skillBanner.name + '＋' + nm } : { t: a.t, i, team, name: nm, who: `${info.number} ${info.name}` }; } break; } } }
+          if (a.a === 'skill') { flashes.push([q.x, q.y, r.px || q.s * 2.6, simT - a.t]); if (!skillBanner || skillBanner.t < a.t - 0.01 || (skillBanner.t === a.t && skillBanner.i === i && !skillBanner.name.includes(SKILL_NAME[a.k]))) { const nm = a.k === 'sharpCurve' ? '【シャープカーブ】' : SKILL_NAME[a.k] || a.k; skillBanner = skillBanner && skillBanner.i === i && Math.abs(skillBanner.t - a.t) < 0.05 && !skillBanner.name.includes(nm) ? { ...skillBanner, name: skillBanner.name + '＋' + nm } : { t: a.t, i, team, name: nm, who: `${info.number} ${info.name}` }; } break; } } }
       // 技名は頭の上の小さな吹き出しで（大きな技名はリプレイ・ダイジェストでだけ）
       if (sk) {   // 紫電の遊戯が出ている間の技の吹き出しは、紫電の遊戯と同じ色にする
         let ov = null; const L9 = actsOf[i]; if (L9) for (let k = L9.length - 1; k >= 0; k--) { const a = L9[k]; if (a.t > simT) continue; if (simT - a.t > 9) break; if (a.a === 'uend' && a.k === 'shiden') break; if (a.a === 'uniq' && a.k === 'shiden') { ov = D.UNIQ && D.UNIQ.shiden && D.UNIQ.shiden.chip; break; } }
