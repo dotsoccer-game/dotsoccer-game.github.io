@@ -6,9 +6,9 @@
   const U = D.UNIQ, PAS = D.PASSIVE;
   // 最初の持ち主（国内屈指）のチーム
   const OWN = {};
-  for (const id in C.ROSTERS) for (const q of C.ROSTERS[id].players) if (q.top && D.UNIQ_BY_TOP[q.top]) OWN[D.UNIQ_BY_TOP[q.top]] = { id, q };
+  for (const id in C.ROSTERS) for (const q of C.ROSTERS[id].players) { if (q.top && D.UNIQ_BY_TOP[q.top]) OWN[D.UNIQ_BY_TOP[q.top]] = { id, q }; if (q.uq && U[q.uq]) OWN[q.uq] = { id, q }; }   // 版1315：ドリームリーグのスーパースターも
   const TOPS = new Set(Object.values(OWN).map((o) => o.id));
-  const OPPS = ['okayama', 'kanazawa', 'niigata', 'kumamoto', 'matsuyama', 'kofu'].filter((id) => C.ROSTERS[id] && !TOPS.has(id));
+  const OPPS = ['okayama', 'kanazawa', 'niigata', 'kumamoto', 'matsuyama', 'kofu', 'london', 'paris', 'milano', 'istanbul', 'lisboa'].filter((id) => C.ROSTERS[id] && !TOPS.has(id));   // 後ろの5つはドリームリーグ
   const tname = (id) => (C.TEAM_BY_ID[id] || {}).name || id;
   let key = 'guren', lv2 = false, opp = OPPS[0], cur = null, pasType = 'ストライカー', combo = '';
   // 紅蓮の牙などと一緒に出るシュート技（選ぶと、その選手のスキルをその技だけにして、重なった場面を探す）
@@ -22,7 +22,7 @@
     for (const p of t.players) {
       const keep = side === 'own' ? matesU && p.uniq !== k : side === 'opp' ? oppU : false;   // 調べているスキル以外の固有スキル
       if (p.uniq && !keep && (!on || p.uniq !== k)) delete p.uniq;
-      if (p.uniq) p.uniqLv = lv ? 2 : 1;
+      if (p.uniq) p.uniqLv = p.uniq === 'zerog' ? [1, 1, 2, 3][lv | 0] : lv ? 2 : 1;   // 版1315：ゼログラビティは3凸まで（1凸はスキル枠なので試合は同じ）
       if (p.uniq && combo && SHOOTERS.has(p.uniq)) p.skills = combo === 'header' ? ['aerial'] : combo === 'dribbleShot' ? [] : [combo];   // 重ねる技だけを持たせる
       if (pasOn && p.type === pasOn.type && !pasOn.done && t.players.indexOf(p) < 11) { p.passive = pasOn.lv; pasOn.done = true; }
     }
@@ -46,9 +46,9 @@
   const box = document.createElement('div'); box.id = 'ul';
   box.innerHTML = `<button class="mini" id="ulMin">たたむ</button><h3>固有スキル・サポートパッシブの確認</h3>
   <div class="body">
-   <div class="row tabs"><button data-tab="u" class="on">固有スキル（国内屈指18人）</button><button data-tab="p">サポートパッシブ（19タイプ）</button><button data-tab="c">対策役との相性</button><button data-tab="v">選手の対決</button><button data-tab="d">ドリブル技</button></div>
+   <div class="row tabs"><button data-tab="u" class="on">固有スキル（国内18人＋ドリーム4人）</button><button data-tab="p">サポートパッシブ（19タイプ）</button><button data-tab="c">対策役との相性</button><button data-tab="v">選手の対決</button><button data-tab="d">ドリブル技</button></div>
    <div id="tabU">
-    <div class="row"><select id="ulK">${Object.entries(U).map(([k, u]) => `<option value="${k}">${u.name}（${u.who}・${u.type}）</option>`).join('')}</select></div>
+    <div class="row"><select id="ulK">${Object.entries(U).filter(([k]) => OWN[k]).map(([k, u]) => `<option value="${k}">${u.dream ? '★ドリーム　' : ''}${u.name}（${u.who}・${u.type}）</option>`).join('')}</select></div>
     <div class="desc" id="ulD"></div>
     <div class="row">相手 <select id="ulO">${OPPS.map((id) => `<option value="${id}">${tname(id)}</option>`).join('')}</select>
       <button id="ulL" title="凸で強化した時（出やすさ・効果・続く時間が上がる）">凸で強化：なし</button></div>
@@ -95,14 +95,15 @@
   const $ = (s) => box.querySelector(s), msg = (t) => { $('#ulM').innerHTML = t; };
   $('#ulMin').onclick = () => { box.classList.toggle('min'); $('#ulMin').textContent = box.classList.contains('min') ? 'ひらく' : 'たたむ'; };
   box.querySelectorAll('[data-tab]').forEach((b) => b.onclick = () => { box.querySelectorAll('[data-tab]').forEach((x) => x.classList.toggle('on', x === b)); $('#tabU').hidden = b.dataset.tab !== 'u'; $('#tabP').hidden = b.dataset.tab !== 'p'; $('#tabC').hidden = b.dataset.tab !== 'c'; $('#tabV').hidden = b.dataset.tab !== 'v'; $('#tabD').hidden = b.dataset.tab !== 'd'; msg(''); });
-  function descU() { const u = U[key], o = OWN[key]; $('#ulD').innerHTML = `<b>${u.name}</b>　${u.who}（${tname(o.id)}・${u.type}・${o.q.no}番）<br><small>発動：</small>${u.when}<br><small>効果：</small>${u.what}`; }
+  function descU() { const u = U[key], o = OWN[key]; $('#ulD').innerHTML = `<b>${u.name}</b>　${u.who}（${tname(o.id)}・${u.type}・${o.q.no}番）<br><small>発動：</small>${u.when}<br><small>効果：</small>${u.what}${key === 'lastmin' ? '<br><small>※確認画面では、出やすいように「70分から・負けているか同点」の条件を外しています（CK・FKのたびに出ます）</small>' : ''}`; globalThis.__Klmm = key === 'lastmin' ? 0 : undefined; }
   function descP() { const v = PAS[pasType]; $('#ulPD').innerHTML = `<b>${v.name}</b>（${pasType}）<br><small>効果：</small>${v.what}${v.rad ? `（${v.rad}m以内の味方）` : ''}`; }
-  $('#ulK').onchange = (e) => { key = e.target.value; descU(); $('#ulJ').innerHTML = ''; msg(''); $('#ulSR').hidden = !SHOOTERS.has(key); };
+  $('#ulK').onchange = (e) => { key = e.target.value; if (U[key].dream && !(C.TEAM_BY_ID[opp] || {}).lg?.startsWith?.('dream')) { opp = 'london'; $('#ulO').value = opp; } lv2 = 0; lvTxt(); descU(); $('#ulJ').innerHTML = ''; msg(''); $('#ulSR').hidden = !SHOOTERS.has(key); };
   $('#ulS').onchange = (e) => { combo = e.target.value; };
   $('#ulO').onchange = (e) => { opp = e.target.value; };
   $('#ulTm').onclick = () => { matesU = !matesU; $('#ulTm').textContent = '味方の固有スキル：' + (matesU ? 'あり' : 'なし'); $('#ulTm').classList.toggle('on', matesU); };
   $('#ulTo').onclick = () => { oppU = !oppU; $('#ulTo').textContent = '相手の固有スキル：' + (oppU ? 'あり' : 'なし'); $('#ulTo').classList.toggle('on', oppU); };
-  $('#ulL').onclick = () => { lv2 = !lv2; $('#ulL').textContent = '凸で強化：' + (lv2 ? 'あり' : 'なし'); $('#ulL').classList.toggle('on', lv2); };
+  function lvTxt() { $('#ulL').textContent = key === 'zerog' ? `凸：${lv2 | 0}凸${['', '（スキル枠が増える）', '（相手を引き寄せる）', '（いつでも発動）'][lv2 | 0]}` : '凸で強化：' + (lv2 ? 'あり' : 'なし'); $('#ulL').classList.toggle('on', !!lv2); }
+  $('#ulL').onclick = () => { lv2 = key === 'zerog' ? ((lv2 | 0) + 1) % 4 : (lv2 ? 0 : 1); lvTxt(); };
   let pLv = 1;
   $('#ulPL').onclick = () => { pLv = pLv % 3 + 1; $('#ulPL').textContent = ['付与のみ', '強化', '強化＋範囲拡大'][pLv - 1]; $('#ulPL').classList.toggle('on', pLv > 1); };
   $('#ulP').onchange = (e) => { pasType = e.target.value; descP(); msg(''); };

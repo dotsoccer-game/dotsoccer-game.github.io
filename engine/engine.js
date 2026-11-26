@@ -251,9 +251,9 @@
     midori:     { sw: '自陣でボールを持ち、相手がプレスに来るとき', se: 'プレスを引きつけて、空いた味方へつなぐ。発動するたびに、中盤までのチームのパス回しが良くなっていく', st: '引きつける相手が3人に', name: '翠の起点', chip: ['#044e24', '#33ff8d', '#e0ffee'],       who: 'むらおか', face: 'sendai_2', hair: '#00a84a',    type: 'ビルドアップ型',     when: '自陣でボールを持ち、相手がプレスに来られる所にいるとき', what: '誘い込んで、組み立てる。わざとボールを晒して相手のプレスを引き寄せ（翠の点線）、相手のDFラインも押し上げさせて陣形を前のめりにする。引きつけ切った瞬間、食いつかれて空いたフリーの味方へつなぐ（翠の光の尾）。受けた味方は前を向いて落ち着いてプレーでき、しばらくはチーム全体のパスがつながりやすい（数的優位）。組み立てている間もDFは守備の形を保つので、取られても崩れない。発動するたびに、チーム全員のパスの精度と速さ、ボールの持ちやすさ、仕掛けやすさが積み重なって上がっていく（試合の間ずっと）（凸：引き寄せる相手が3人、ラインがさらに上がり、つながりやすい時間が長い）', dur: 5, cd: 11, ch: 1 },
     sutemi:     { sw: '相手のスルーパスが出たとき・1対1になったとき', se: 'ふつうなら間に合わない球・1対1にも飛び込んで、必ずボールに触る', st: 'パスが出た瞬間に飛び出す', name: '捨て身の守護神', chip: ['#5a0616', '#ff4d6d', '#ffe8ec'], who: 'なかむら', face: 'hakata_1', hair: '#a8102e', skin: 2,    type: 'スイーパーキーパー', when: '相手のスルーパス・裏へのボールが出たとき／DFを振り切られて1対1になったとき', what: '飛び出しの超強化版。ふつうに出たら相手に先に触られる裏へのボールでも、捨て身の全力で飛び出して必ずボールに触る。DFを振り切られた1対1では、相手の足もとへ飛び込んで止める（エリアの外では大きく蹴り出す）。凸すると、パスが出た瞬間に読んで1歩目から飛び出す', dur: 3, cd: 40, ch: 1 },
     // ---------- 版1315：ドリームリーグ（海外）のスーパースター。実在の名選手がモチーフ（名前・顔は架空）。固有スキルはカタカナ ----------
-    zerog:      { sw: 'ボールを持って仕掛けたとき・囲まれたとき', se: '何人に囲まれても失わず、抜く・通す・決めるのどれでも決定的なプレーをする', st: '相手が2〜3人引き寄せられ、味方が空く（3凸：いつでも発動）', name: 'ゼログラビティ', chip: ['#0a1a3a', '#7fd0ff', '#eaf6ff'], who: 'ルナ', face: null, hair: '#5a3a1a', type: 'ワールドクラス10番', dream: 1, when: '相手陣内でボールを持ったとき・相手に寄せられたとき（3凸：いつでも）', what: 'メッシ型。史上最高の10番。低い重心で、何人に囲まれてもボールを失わない（紫電の遊戯のドリブルをすべて持ったうえで、さらに奪われない）。そこからドリブル・スルーパス・シュートのどれでも決定的なプレーをする。シュートはファーの隅へ、ほぼ枠へ。1凸でスキル枠が増え、2凸で相手が2〜3人引き寄せられて味方が空き、3凸でいつでも発動する', dur: 6, cd: 12, ch: 1 },
+    zerog:      { sw: 'ボールを持って仕掛けたとき・囲まれたとき', se: '何人に囲まれても失わず、抜く・通す・決めるのどれでも決定的なプレーをする', st: '相手が2〜3人引き寄せられ、味方が空く（3凸：いつでも発動）', name: 'ゼログラビティ', chip: ['#0a1a3a', '#7fd0ff', '#eaf6ff'], who: 'ルナ', face: null, hair: '#5a3a1a', type: 'ワールドクラス10番', dream: 1, when: '相手陣内でボールを持ったとき・相手に寄せられたとき（3凸：いつでも）', what: 'メッシ型。史上最高の10番。低い重心で、何人に囲まれてもボールを失わない。シザースやルーレットのような派手な技は使わず、ボディフェイント・キックフェイント・ダブルタッチだけで抜いていく。そこからドリブル・スルーパス・シュートのどれでも決定的なプレーをする。シュートはファーの隅へ、ほぼ枠へ。1凸でスキル枠が増え、2凸で相手が2〜3人引き寄せられて味方が空き、3凸でいつでも発動する', dur: 6, cd: 12, ch: 1 },
     trivela:    { sw: '中盤から前へパスを出すとき・遠くから打つとき', se: '足の外側で蹴る、相手の間を曲がって通るパスとシュート', st: 'さらに正確に、取られにくく', name: 'トリベーラ', chip: ['#2a0a3a', '#ff5ad0', '#ffe8f8'], who: 'マリノヴィッチ', face: null, hair: '#d8c8a0', type: 'ワールドクラス司令塔', dream: 1, when: '中盤から、前へのパス・スルーパス・長いパスを出すとき／エリアの外からシュートを打つとき', what: 'モドリッチ型。足の外側で蹴る、大きく曲がるボール。パスは相手と相手の間を曲がって通り、ほとんど取られない。エリアの外からのシュートもGKが反応しにくい。寄せられても細かいタッチでかわす', dur: 3, cd: 9, ch: 1 },
-    lastmin:    { sw: '負けている・同点の終盤のCK', se: '終盤のCKで上がって、頭でほぼ確実に決める。守っては空中戦にほぼ負けない', st: 'さらに強く', name: 'ラストミニッツヘッダー', chip: ['#3a0a0a', '#ffb02a', '#fff4e0'], who: 'モラレス', face: null, hair: '#2a1a10', type: 'ワールドクラスCB', dream: 1, when: '負けている・同点の終盤（70分から）の味方のCK（いつも：自陣の空中戦と競り合いに強い）', what: 'セルヒオ・ラモス型。闘志の塊。守っては自陣の空中戦・競り合いにほぼ負けない。負けている・同点の終盤のCKでは、ゴール前へ上がってファーで誰よりも高く跳び、GKのいない隅へ頭でたたきつける', dur: 8, cd: 20, ch: 1 },
+    lastmin:    { sw: '負けている・同点の終盤のCK・FK', se: '終盤のCKで上がって、頭でほぼ確実に決める。守っては空中戦にほぼ負けない', st: 'さらに強く', name: 'ラストミニッツヘッダー', chip: ['#3a0a0a', '#ffb02a', '#fff4e0'], who: 'モラレス', face: null, hair: '#2a1a10', type: 'ワールドクラスCB', dream: 1, when: '負けている・同点の終盤（70分から）の味方のCKと、ゴールから遠いFK（いつも：自陣の空中戦と1対1に強い）', what: 'セルヒオ・ラモス型。闘志の塊。守っては自陣の空中戦・1対1にほぼ負けず、ドリブルでもまず抜かれない。負けている・同点の終盤のCKと遠いFKでは、ゴール前へ上がってファーで誰よりも高く跳び、GKのいない隅へ頭でたたきつける', dur: 8, cd: 20, ch: 1 },
     titan:      { sw: 'ゴール前で相手がシュートを打つとき', se: '威圧して、ゴール前のシュートを乱し、打つのをためらわせる', st: 'さらに乱れる', name: 'タイタンプレッシャー', chip: ['#1a1a1a', '#ffd23a', '#fff8d8'], who: 'ケーニヒ', face: null, hair: '#e8d8a0', type: 'ワールドクラスGK', dream: 1, when: '相手がゴールまで22m以内でシュートを打つとき（いつも：DFが思い切り寄せる）', what: 'カーン型。自分の止める力ではなく、相手を崩すGK。ゴール前の相手は威圧されて、シュートが枠を外れやすく、1対1でも落ち着けず、打つのをためらう。後ろにいるので、前のDFも思い切り寄せる', dur: 1.5, cd: 0.5, ch: 1 },
   };
   // 最初の持ち主（rosters.js の国内屈指）→ 固有スキル
@@ -678,7 +678,8 @@
     const zr = (p, k) => { const z = ZONE_RULES[k]; return z ? +z[zoneIdx(p)] : 1; };
     const isSd = (p) => !!p && (p.uniq === 'shiden' || p.uniq === 'zerog');   // 版1315：ゼログラビティ（ドリームリーグのスーパースター）は、紫電の遊戯のドリブルをすべて持ったうえで、さらに上
     const SHIDEN_SK = new Set(['scissors', 'elastico', 'bodyFeint', 'doubleTouch', 'roulette', 'nutmeg', 'heelLift']);
-    const skZ = (p, k) => (p.sk.has(k) || (isSd(p) && SHIDEN_SK.has(k))) && zr(p, k) > 0;   // 紫電の遊戯（かまた）：フェイント系の技はいつでも全部使える   // スキルを覚えていて、しかも今のエリアで使ってよい（紫電の遊戯の間は、ドリブル技をぜんぶ出せる）
+    const ZEROG_SK = new Set(['bodyFeint', 'kickFeint', 'doubleTouch']), ZEROG_NO = new Set(['scissors', 'elastico', 'roulette', 'heelLift', 'nutmeg']);   // 版1315：ゼログラビティ（メッシ型）は、派手な技は使わず、シンプルなフェイントだけ
+    const skZ = (p, k) => (p.uniq === 'zerog' ? !ZEROG_NO.has(k) && (p.sk.has(k) || ZEROG_SK.has(k)) : (p.sk.has(k) || (isSd(p) && SHIDEN_SK.has(k)))) && zr(p, k) > 0;   // 紫電の遊戯（かまた）：フェイント系の技はいつでも全部使える   // スキルを覚えていて、しかも今のエリアで使ってよい（紫電の遊戯の間は、ドリブル技をぜんぶ出せる）
     const zw = (p, k) => [0, 1, 2.2][zr(p, k)];        // 選ぶ時の重み（積極的なエリアは2.2倍）
     const S = {
       t: 0, half: 1, score: [0, 0], poss: 0, nm: opts.newMove ?? (globalThis.__newMove ?? true),   /* 版1126：いつも新しい動き（実験で切りたい時だけ __newMove = false） */   // 版882：新しい動きの土台を使うか
@@ -957,7 +958,7 @@
       }
       if (q.uniq !== 'kinshachi' && ksTeam(q.team)) a += 0.05;
       if (q.position === 'DF' && T[q.team].players.some((g) => g.gk && g.uniq === 'titan' && !g.off)) a += 0.06;   // 版1315：タイタンプレッシャー：後ろのGKを信じて、DFが思い切り寄せる
-      if (q.uniq === 'lastmin' && fx(q.team, q.x) < L / 2) a += 0.2;   // 版1315：ラストミニッツヘッダー：守っては闘志の塊   // 金鯱の心臓：かいがいると、チーム全体の守備が整って、競り合いに少し強い
+      if (q.uniq === 'lastmin' && fx(q.team, q.x) < L / 2) a += globalThis.__Klmd ?? 0.4;   // 版1315：ラストミニッツヘッダー：守っては闘志の塊（1対1で奪い切る）   // 金鯱の心臓：かいがいると、チーム全体の守備が整って、競り合いに少し強い
       if (opps(own).some((o) => (o.kgT === own.idx || o.mark === own.idx) && uOn(o, 'kagenui'))) a += 0.45;   // 影縫い
       { const k = mdK(own); if (k) a -= (globalThis.__Kmd2 ?? 1) ? Math.min(0.75, 0.12 * k + (k >= 4 ? 0.25 : 0)) : Math.min(0.45, 0.12 * k); }   /* 版1219：4段たまったら、ほとんど取られない */   /* 版452 翠の起点の積み重ね：落ち着いて持てる（奪われにくい） */
       if ((own.tactBuff || 0) > S.t) a -= 0.08;   // 指揮の余韻：奪われにくい
@@ -977,6 +978,7 @@
       if (opps(own).some((o) => (o.kgT === own.idx || o.mark === own.idx) && uOn(o, 'kagenui'))) a -= 0.45;
       if (uOn(q, 'matsuri')) a -= 0.45 * mtF(q);   // ドン！と体を当てて、抜かせない
       if (uOn(q, 'tetsurou')) a -= 0.6;   // 鉄狼の関所：ドリブルの技がほとんど通じない
+      if (q.uniq === 'lastmin' && fx(q.team, q.x) < L / 2) a -= globalThis.__Klmb ?? 0.35;   // 版1315：ラストミニッツヘッダー：自陣では1対1で抜かせない
       if (Math.abs(own.y - GOAL_Y) < 15) a -= 0.16 * aura(q, 'shield', true);
       return a;
     }
@@ -1245,6 +1247,13 @@
         front.forEach((a, k) => { const d = ds[k]; if (!d) return; const [ax, ay] = fkSpots[a.idx]; fkSpots[d.idx] = [ax + sgn(att) * 0.9, ay + (GOAL_Y - ay) * 0.1]; });
         ds.slice(front.length).forEach((d, k) => { fkSpots[d.idx] = W2(L - 20, GOAL_Y + (k % 2 ? 7 : -7)); });   // あまった選手はペナルティエリアの前（こぼれ球）
         if (keepUp) fkSpots[keepUp.idx] = W2(L / 2 - 2, GOAL_Y + (r.y < GOAL_Y ? 8 : -8));
+        r.lmTo = null;
+        { /* 版1315：ラストミニッツヘッダー：負けている・同点の終盤の、ゴール前へ蹴るFK（壁なし）でも上がって、頭で合わせる */
+          const rm = T[att].players.find((q) => q.uniq === 'lastmin' && !q.off && q.idx !== r.taker), minute = S.t * CLOCK_SCALE / 60;
+          if (rm && !r.wall && minute >= (globalThis.__Klmm ?? 70) && S.score[att] <= S.score[def] && uFire(rm, 'lastmin')) {
+            fkSpots[rm.idx] = W2(L - 9.5, GOAL_Y - near * 2.5); r.lmTo = rm.idx;
+            const d = dfs.slice().sort((a, c) => hyp(a.x - rm.x, a.y - rm.y) - hyp(c.x - rm.x, c.y - rm.y))[0]; if (d) fkSpots[d.idx] = W2(L - 8.7, GOAL_Y - near * 2.2);   // 相手も1人つく
+          } }
       } else if ((globalThis.__Kdfk ?? 1) && P[r.taker] && P[r.taker].gk && xf < 35) {
         // 版1304：GKが蹴る自陣のFK：ラインを上げて、前線のFWめがけて蹴る（DFはハーフウェーラインの手前まで上がる・FWは相手のラインぎりぎり）
         const ol = fx(att, offsideLine(att));
@@ -6505,6 +6514,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         else if (o.kind === 'shot') o.w *= sdCtx.gkGo ? 0.001 : shootNow ? 4 : carry ? 0.06 : dGoal < 17 ? 3 : dGoal < 21 ? 1.6 : dGoal < 25 ? 0.4 : 0.1;
         else o.w *= 0.2;
       }
+      if (globalThis.__zgD && p.uniq === 'zerog') { const ps = opts.filter((o) => o.kind === 'pass' && o.q); globalThis.__zgD.push([Math.round(dGoal), ps.length, ps.length ? +Math.min(...ps.map((o) => o.danger ?? 1)).toFixed(2) : null, ps.length ? Math.round(Math.min(...ps.map((o) => hyp(L - fx(p.team, o.q.x), GOAL_Y - o.q.y)))) : null, uOn(p, 'zerog') ? 1 : 0]); }
+      if (p.uniq === 'zerog' && (uOn(p, 'zerog') || p.uniqLv >= 3)) for (const o of opts) if (o.kind === 'pass' && o.q) { const qd = hyp(L - fx(p.team, o.q.x), GOAL_Y - o.q.y); if ((o.danger ?? 1) < 0.4 && qd < Math.min(20, dGoal - 3)) o.w *= (o.through ? 30 : 20) * (globalThis.__Kzg7 ?? 1); }   // 版1315：ゼログラビティ：引きつけて、空いた味方へ決定的なパス（自分より良い所にいる味方がいれば、迷わず通す）
       if (p.uniq === 'zerog' && (uOn(p, 'zerog') || p.uniqLv >= 3)) for (const o of opts) if (o.kind === 'shot') o.w *= dGoal > 22 ? (globalThis.__Kzg6 ?? 0.04) : dGoal < 18 ? 2 : 1;   // 版1315：ゼログラビティ：遠くからは打たず、ゴール前まで運んで決める
       { const c = condLv(p.team) || (p.uniq === 'minato' && !(p.uCd > S.t) && !(p.cdRem > 0) && !S.setPiece && xf > 22 ? (p.uniqLv >= 2 ? 2 : 1) : 0);   // 合図の1本（おおかわ）も、ショートパスから
         if (c && !p.gk && !uOn(p, 'shiden') && dGoal > 25) for (const o of opts) {   // 港の指揮者：テンポよくつなぐ（空いた味方へ。囲まれる前に離す）
@@ -6838,7 +6849,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         const okPass = opts.some((o) => o.kind === 'pass' && o.q && !o.q.gk && (o.danger ?? 1) < 0.6);
         if (okPass && (held > (globalThis.__Kholdt ?? 2.5) || crowd >= 2)) for (const o of opts) if (o.kind === 'dribble' && !o.wait) o.ww *= crowd >= 2 ? (globalThis.__Kholdc ?? 0.3) : (globalThis.__Kholdk ?? 0.35);
       }
-      if (sdMode && dGoal > 22 && opts.some((o) => o.kind === 'dribble' && o.ww > 0)) for (const o of opts) if (o.kind === 'pass') o.ww = 0;   // 版1094：ゴール前（22m）までは、パスを選ばずに運ぶ。ゴール前でラストパスかシュート
+      if (sdMode && dGoal > 22 && opts.some((o) => o.kind === 'dribble' && o.ww > 0)) for (const o of opts) if (o.kind === 'pass' && !(p.uniq === 'zerog' && o.q && (o.danger ?? 1) < 0.4 && hyp(L - fx(p.team, o.q.x), GOAL_Y - o.q.y) < Math.min(20, dGoal - 3))) o.ww = 0;   // 版1315：ゼログラビティは、遠くからでも、空いた味方への決定的な1本は出す   // 版1094：ゴール前（22m）までは、パスを選ばずに運ぶ。ゴール前でラストパスかシュート
       for (const o of opts) sum += o.ww;
       let r = R.next() * sum, pick = opts[opts.length - 1];
       for (const o of opts) { r -= o.ww; if (r <= 0) { pick = o; break; } }
@@ -7316,6 +7327,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
           // 助走からそのまま蹴る（止まってドリブルしない）
           // バイタルエリアのFKは基本、直接狙う
           if (r.type === 'free' && r.wall) { S.fkDirect = true; S.setPiece = true; shoot(tk); S.setPiece = false; S.ball.fkD = true; }
+          else if (r.type === 'free' && r.lmTo != null && P[r.lmTo] && !P[r.lmTo].off && uOn(P[r.lmTo], 'lastmin')) { S.lastSpT = { type: r.type, t: S.t }; S.setPiece = true; startPass(tk, P[r.lmTo], false, true, null); S.setPiece = false; }   // 版1315：ラモス型めがけて蹴る
           else { S.lastSpT = { type: r.type, t: S.t }; S.setPiece = true; S.spType = r.type; decide(tk); S.setPiece = false; S.spType = null; }
         }
       }
