@@ -1909,6 +1909,15 @@
     if (ballTrail.length > 10) ballTrail.shift();
     // シュート技のエフェクト（強烈ミドル・ニア上ぶち抜き・コントロールショット・無回転・ドリブルシュート）
     const shs = ballOwned ? null : curShot(), sfx = shs && shs.sk && SHOT_FX[shs.sk] ? shs.sk : null, red = !!(shs && shs.guren), kaku = red && shs.guren >= 2;   // kaku：凸（覚醒）した紅蓮の牙
+    if (shs && shs.rocket) {   /* 版1338：ヴァレンテのロケット：ボールの後ろに、白〜青く光る噴射と橙の炎の尾（ナックルは揺れる尾） */
+      if (!shs.rpath || simT < shs.rpathT) shs.rpath = []; shs.rpathT = simT; shs.rpath.push([b.x, b.y, b.z]); if (shs.rpath.length > 60) shs.rpath.shift();
+      const RP = shs.rpath.map((w) => { const v = P3(w[0], w[1], w[2] + 0.11); return [v.x, v.y - r * 0.6]; }), n = Math.min(RP.length, 16), wob = shs.rocket === 2;
+      ctx.save(); ctx.lineCap = 'round';
+      for (let k = 1; k < n; k++) { const a = 1 - k / n, A = RP[RP.length - k], B2 = RP[RP.length - k - 1] || A, jx = wob ? Math.sin((simT * 40) + k) * r * 0.5 * a : 0, w0 = r * (0.5 + 1.6 * a);
+        ctx.strokeStyle = `rgba(255,${120 + 80 * a | 0},40,${0.55 * a})`; ctx.lineWidth = w0 * 1.6; ctx.beginPath(); ctx.moveTo(A[0] + jx, A[1]); ctx.lineTo(B2[0] + jx, B2[1]); ctx.stroke();
+        ctx.strokeStyle = `rgba(${200 + 55 * a | 0},${230 + 25 * a | 0},255,${0.9 * a})`; ctx.lineWidth = w0 * 0.6; ctx.beginPath(); ctx.moveTo(A[0] + jx, A[1]); ctx.lineTo(B2[0] + jx, B2[1]); ctx.stroke(); }
+      { const L0 = RP[RP.length - 1]; ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.beginPath(); ctx.arc(L0[0], L0[1], r * 1.5, 0, 7); ctx.fill(); }
+      ctx.restore(); }
     if (sfx || red) {
       const age = simT - shs.t;
       if (!shs.path || simT < shs.pathT) { shs.path = []; }
@@ -2401,7 +2410,8 @@
     for (let k = shotsList.length - 1; k >= 0; k--) { const sh = shotsList[k]; if (sh.t > simT + 0.02) continue; if (simT - sh.t > 2.0) return null;
       if (sh.sk === undefined) { let sk = null, dsh = false; for (const a of actsOf[sh.i] || []) if (a.a === 'skill' && SHOT_SKILL.has(a.k) && a.t <= sh.t + 0.2 && a.t > sh.t - (a.k === 'powerMid' || a.k === 'nearPost' || a.k === 'superLong' ? 2.5 : 0.3)) { if (a.k !== 'dribbleShot') sk = a.k; }
         if (sh.chip) sk = 'lob'; if (sh.knuckle) sk = 'knuckle'; sh.sk = sk;
-        { const ga = (actsOf[sh.i] || []).find((a) => a.a === 'uniq' && a.k === 'guren' && Math.abs(a.t - sh.t) < 0.35); sh.guren = ga ? ga.lv || 1 : 0; } }   // 紅蓮の牙：赤い風
+        { const ga = (actsOf[sh.i] || []).find((a) => a.a === 'uniq' && a.k === 'guren' && Math.abs(a.t - sh.t) < 0.35); sh.guren = ga ? ga.lv || 1 : 0; }
+        { const ra = (actsOf[sh.i] || []).find((a) => a.a === 'uniq' && a.k === 'rocket' && Math.abs(a.t - sh.t) < 0.45); sh.rocket = ra ? (ra.nm === 'ロケットナックル' ? 2 : 1) : 0; } }   // 紅蓮の牙：赤い風   // 版1338：ロケット（ショット・ナックル・スカイロケットの頭）：白く光る噴射の尾
       return sh; }
     return null;
   }
@@ -3295,7 +3305,7 @@
       } else {
         let lift = 0, tilt = 0, dxs = 0, arms = st.held === i || cheer;
         let jumpPose = false;
-        if (ac && (ac.a === 'head' || ac.a === 'jump')) { lift = Math.sin(Math.PI * Math.min(1, ac.u * (ac.a === 'head' ? 1 : 1.1))) * (ac.a === 'head' ? ((globalThis.__Khj ?? 1) ? 1.2 : 0.75) * (ac.hi ? 2.0 : 1) : 0.55); jumpPose = true; }   // 版1305：ヘディングのジャンプを高く・早めに（混戦の中で跳んでいるように見えなかった）
+        if (ac && (ac.a === 'head' || ac.a === 'jump')) { lift = Math.sin(Math.PI * Math.min(1, ac.u * (ac.a === 'head' ? 1 : 1.1))) * (ac.a === 'head' ? ((globalThis.__Khj ?? 1) ? 1.2 : 0.75) * (ac.hi ? Math.min(1.9, Math.max(0.6, (ac.hz ?? 2.4) - 1.2)) : 1) : 0.55); jumpPose = true; }   // 版1305：ヘディングのジャンプを高く・早めに（混戦の中で跳んでいるように見えなかった）
         let headPose = null;
         if (ac && ac.a === 'head') {   // 版456：ヘディング（手で描いた絵・8方向）。いつもボールの方を向く（来るボールに向かって跳び、当てたら飛んでいく方を向いたまま）
           const bq = proj(st.ball.x, st.ball.y), bd = Math.hypot(st.ball.x - p.x, st.ball.y - p.y), h = viewHold[i];
