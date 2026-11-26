@@ -8,7 +8,7 @@
   const OWN = {};
   for (const id in C.ROSTERS) for (const q of C.ROSTERS[id].players) { if (q.top && D.UNIQ_BY_TOP[q.top]) OWN[D.UNIQ_BY_TOP[q.top]] = { id, q }; if (q.uq && U[q.uq]) OWN[q.uq] = { id, q }; }   // 版1315：ドリームリーグのスーパースターも
   const TOPS = new Set(Object.values(OWN).map((o) => o.id));
-  const OPPS = ['okayama', 'kanazawa', 'niigata', 'kumamoto', 'matsuyama', 'kofu', 'london', 'paris', 'milano', 'istanbul', 'lisboa'].filter((id) => C.ROSTERS[id] && !TOPS.has(id));   // 後ろの5つはドリームリーグ
+  const OPPS = ['okayama', 'kanazawa', 'niigata', 'kumamoto', 'matsuyama', 'kofu', 'london', 'milano', 'istanbul', 'rio', 'buenosaires'].filter((id) => C.ROSTERS[id] && !TOPS.has(id));   // 後ろの5つはドリームリーグ
   const tname = (id) => (C.TEAM_BY_ID[id] || {}).name || id;
   let key = 'guren', lv2 = false, opp = OPPS[0], cur = null, pasType = 'ストライカー', combo = '';
   // 紅蓮の牙などと一緒に出るシュート技（選ぶと、その選手のスキルをその技だけにして、重なった場面を探す）
@@ -97,12 +97,12 @@
   box.querySelectorAll('[data-tab]').forEach((b) => b.onclick = () => { box.querySelectorAll('[data-tab]').forEach((x) => x.classList.toggle('on', x === b)); $('#tabU').hidden = b.dataset.tab !== 'u'; $('#tabP').hidden = b.dataset.tab !== 'p'; $('#tabC').hidden = b.dataset.tab !== 'c'; $('#tabV').hidden = b.dataset.tab !== 'v'; $('#tabD').hidden = b.dataset.tab !== 'd'; msg(''); });
   function descU() { const u = U[key], o = OWN[key]; $('#ulD').innerHTML = `<b>${u.name}</b>　${u.who}（${tname(o.id)}・${u.type}・${o.q.no}番）<br><small>発動：</small>${u.when}<br><small>効果：</small>${u.what}${key === 'lastmin' ? '<br><small>※確認画面では、出やすいように「終盤・負けているか同点」の条件を外しています（試合の最初から、攻めるたびに上がっていきます）</small>' : ''}`; globalThis.__Klmm = key === 'lastmin' ? 0 : undefined; globalThis.__Klmx = key === 'lastmin' ? 1 : undefined; globalThis.__Klmu = key === 'lastmin' ? 0 : undefined; }
   function descP() { const v = PAS[pasType]; $('#ulPD').innerHTML = `<b>${v.name}</b>（${pasType}）<br><small>効果：</small>${v.what}${v.rad ? `（${v.rad}m以内の味方）` : ''}`; }
-  $('#ulK').onchange = (e) => { key = e.target.value; if (U[key].dream && !(C.TEAM_BY_ID[opp] || {}).lg?.startsWith?.('dream')) { opp = 'london'; $('#ulO').value = opp; } lv2 = U[key].dream ? 3 : 0; lvTxt(); descU(); $('#ulJ').innerHTML = ''; msg(''); $('#ulSR').hidden = !SHOOTERS.has(key); };
+  $('#ulK').onchange = (e) => { key = e.target.value;  lv2 = U[key].dream ? 3 : 0; lvTxt(); descU(); $('#ulJ').innerHTML = ''; msg(''); $('#ulSR').hidden = !SHOOTERS.has(key); };
   $('#ulS').onchange = (e) => { combo = e.target.value; };
   $('#ulO').onchange = (e) => { opp = e.target.value; };
   $('#ulTm').onclick = () => { matesU = !matesU; $('#ulTm').textContent = '味方の固有スキル：' + (matesU ? 'あり' : 'なし'); $('#ulTm').classList.toggle('on', matesU); };
   $('#ulTo').onclick = () => { oppU = !oppU; $('#ulTo').textContent = '相手の固有スキル：' + (oppU ? 'あり' : 'なし'); $('#ulTo').classList.toggle('on', oppU); };
-  const DLV = { zerog: ['', '（シャープカーブ）', '（相手を引き寄せる）', '（いつでも発動）'], trivela: ['', '（受けた味方が止まらずに運ぶ）', '（トリベーラ・ミドル）', '（直接FKも）'], lastmin: ['（ギロチンスライド）', '（刈ったボールを自分のものに）', '（どんどん攻撃参加）', '（ラストミニッツヘッダー）'], royal: ['', '（ルーレット）', '（浮き球をボレー）', '（いつでも）'], titan: ['', '（コースが甘くなる）', '（範囲が広く・より遅く）', '（1対1でも）'] };
+  const DLV = { zerog: ['', '（シャープカーブ）', '（相手を引き寄せる）', '（いつでも発動）'], trivela: ['', '（受けた味方が止まらずに運ぶ）', '（トリベーラ・ミドル）', '（直接FKも）'], lastmin: ['（ギロチンスライド）', '（刈ったボールを自分のものに）', '（どんどん攻撃参加）', '（ラストミニッツヘッダー）'], royal: ['', '（ルーレット）', '（外した後が正確）', '（いつでも・ボレー）'], rocket: ['', '（無回転FK）', '（ロケットステップ）', '（必ず競り勝つ）'], acro: ['', '（ポストプレー）', '（オーバーヘッド）', '（はね飛ばす）'], pinpoint: ['', '（巻くFK）', '（ロングフィード）', '（CKも）'], titan: ['', '（コースが甘くなる）', '（範囲が広く・より遅く）', '（1対1でも）'] };
   function lvTxt() { $('#ulL').textContent = DLV[key] ? `凸：${lv2 | 0}凸${DLV[key][lv2 | 0]}` : '凸で強化：' + (lv2 ? 'あり' : 'なし'); $('#ulL').classList.toggle('on', !!lv2); }
   $('#ulL').onclick = () => { lv2 = DLV[key] ? ((lv2 | 0) + 1) % 4 : (lv2 ? 0 : 1); lvTxt(); };
   let pLv = 1;
