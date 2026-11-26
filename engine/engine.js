@@ -1013,7 +1013,7 @@
         if (!p.uniq) continue;
         if (isSd(p) && p.uOn > S.t && S.t - (p.uFireT || 0) > 0.5 && !(own === p) && !(S.ball.owner < 0 && S.ball.intended === p.idx && S.ball.lastPlayer === p.idx)) p.uOn = S.t;   // 紫電の遊戯：ボールを離したら（パス・シュート・奪われた）終わり
         if (p.uniq === 'zerog' && own === p && p.uOn > S.t && !S.restart) p.uOn = Math.max(p.uOn, S.t + 0.6);
-        if (p.uniq === 'titan') { if (S.restart || S.celebrate > 0 || (own && own.team === p.team) || p.off) p.ttAct = false; else if (!p.ttAct && own && ttVital(p, own)) { p.ttAct = true; uniqLog.push({ t: +S.t.toFixed(2), i: p.idx, team: p.team, k: 'titan' }); ev('uniq', { team: p.team, player: p.name, number: p.number, k: 'titan', name: UNIQ.titan.name, lv: p.uniqLv || 1, face: null, gk: 1, passive: 1 }); } }   // 版1325：パッシブ：自分たちのボールになるか、ボールが外に出るまで続く（吹き出しは出さない）   // 版1321：タイタンプレッシャー：発動したら、自分たちのボールになるか、ボールが外に出るまで続く   // 版1319：ゼログラビティ：持っている間は、ずっと続く（離したら終わる）
+        if (p.uniq === 'titan') { if (S.restart || S.celebrate > 0 || (own && own.team === p.team) || p.off) { if (p.ttAct) act(p, 'ttoff', 0.1); p.ttAct = false; } else if (!p.ttAct && own && ttVital(p, own)) { p.ttAct = true; act(p, 'tton', 0.1); uniqLog.push({ t: +S.t.toFixed(2), i: p.idx, team: p.team, k: 'titan' }); ev('uniq', { team: p.team, player: p.name, number: p.number, k: 'titan', name: UNIQ.titan.name, lv: p.uniqLv || 1, face: null, gk: 1, passive: 1 }); } }   // 版1325：パッシブ：自分たちのボールになるか、ボールが外に出るまで続く（吹き出しは出さない）   // 版1321：タイタンプレッシャー：発動したら、自分たちのボールになるか、ボールが外に出るまで続く   // 版1319：ゼログラビティ：持っている間は、ずっと続く（離したら終わる）
         if (p.uniq === 'tsukikage' && p.uOn > S.t && !(p.tsukiRecv > (p.uFireT || 0)) && !S.forcePass && S.t - (p.uFireT || 0) > 0.6 && (S.restart || (own && own !== p) || (S.ball.kind !== 'pass' && !own))) p.uOn = S.t;
         if (p.uniq === 'matsuri' && p.uOn > S.t && own && own.team === p.team) p.uOn = S.t;
         if (p.uniq === 'minato' && p.uOn > S.t && S.t - (p.uFireT || 0) > 0.3 && (S.poss !== p.team || S.restart || S.celebrate > 0)) { p.cdRem = S.celebrate > 0 ? 0 : p.uOn - S.t; p.uOn = S.t; }   // 港の指揮者：相手に取られた・外に出たら、いったん止める（残りの秒数は取っておく。ゴールが決まったら終わり）
@@ -9038,7 +9038,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         const ogX = (globalThis.__Kog ?? 1) && p.gk && !gkHands && b.lastTeam === p.team && b.z < 0.5 && fx(p.team, b.x) < 16 && Math.abs(b.vx) > 0.5 && (fx(p.team, 0) - b.x) * b.vx > 0 && Math.abs(b.y + b.vy * (fx(p.team, 0) - b.x) / b.vx - GOAL_Y) < POST + 0.5 ? 0.8 : 0;   // 版1151：味方の球が自分のゴールへ転がってくる時、GKは足を伸ばして止める（手が使えないので届かず、横を通されていた）
         const gkShot = gkHands && b.kind === 'shot' && b.lastTeam !== p.team;   // 版863：シュートには、キャッチできる範囲より少し遠く・高くまで、指先・こぶしで触れる（はじく・かき出す・パンチングだけ）
         if (p.gk && p.wf && b.kind === 'shot' && b.shotT === p.wf.shot && S.t < p.wf.end) continue;   // 版989：逆を突かれたGKは、そのシュートに触れない（届かないと決まった球。崩れながら戻る途中で触って、止めてしまっていた）
-        if (b.z > (gkHands ? gkReachZ(p) + (gkShot ? 0.3 : 0) : 1.9)) continue;
+        if (b.z > (gkHands ? gkReachZ(p) + (gkShot && b.shotSkill !== 'sharpCurve' ? 0.3 : 0) : 1.9)) continue;   // 版1326：シャープカーブは、本当に手が届く高さでだけ触れる
         if (gkHands && p.downT > 0 && !(p.diveT > 0) && b.z > 0.8) continue;   // 版867：倒れているGKは、高い球に手が届かない
         if (!passOk(p, b)) continue;
         const rcvX = !gkHands && b.kind === 'pass' && b.intended === p.idx && p.team === b.lastTeam && b.z < 0.8 && p.technique >= 55 ? ((globalThis.__Kphy ?? 1) ? 0.15 : 0.45) : 0;   // 味方からのパスの受け手：足を伸ばして止める（横を通されて置き去りにしない）   // 味方へのパスは、ほかの味方はまたいで通す。月影の抜け出しのスルーパスは、触れる相手が限られる
@@ -9054,7 +9054,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         }
         const ttX = uOn(p, 'tetsurou') && b.kind === 'pass' && p.team !== b.lastTeam && b.z < 1.2 ? (p.uniqLv >= 2 ? 1.1 : 0.9) : 0;   // 鉄狼の関所：そばを通るパスに足が届く
         if (gkShot && b.z >= 1.95 && (b.z > gkReachZ(p) || d > (p.diveT > 0 ? 1.3 : 0.9))) continue;   // 版870：頭より高い球は、手が本当に届く所（高さ・距離）でしか触れない（離れた所ではじけて見えないように）
-        if (d <= (gkShot ? Math.min(reach * 1.28, p.diveT > 0 ? 2.0 : 1.3) : reach) + rcvX + ttX + ogX) cand.push({ p, d, gkHands, reach });   // 版866：シュートに触れるのは、絵の手が届く所まで（横っ跳び2.0m・立って1.3m）。離れた所ではじけて見えないように
+        if (d <= (gkShot ? (b.shotSkill === 'sharpCurve' ? Math.min(reach * 0.95, p.diveT > 0 ? 1.6 : 1.0) : Math.min(reach * 1.28, p.diveT > 0 ? 2.0 : 1.3)) : reach) + rcvX + ttX + ogX) cand.push({ p, d, gkHands, reach });   // 版1326：シャープカーブは、指先がかすっただけの判定にしない（触れたように見えない所で止まっていた）   // 版866：シュートに触れるのは、絵の手が届く所まで（横っ跳び2.0m・立って1.3m）。離れた所ではじけて見えないように
       }
       cand.sort((a, c) => a.d - c.d);   // こぼれ球は、ボールに近い方が先に触る（守る側・攻める側の差はない）
       for (const { p, gkHands, reach, d: dGk } of cand) {

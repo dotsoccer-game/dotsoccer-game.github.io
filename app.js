@@ -3549,6 +3549,10 @@
       { const L7 = actsOf[i]; if (L7) for (let k = L7.length - 1; k >= 0; k--) { const a = L7[k]; if (a.t > simT) continue; if (simT - a.t > 130) break;
           if (a.a === 'kgoff' || (a.a === 'uend' && a.k === 'kagenui')) break;   // 張りつきをやめた（味方ボール・ゴール後・止まっている時）→ 糸は出さない
           if (a.a === 'kgsh' && a.r >= 0) { const fr = st.players[a.r]; if (fr && Math.hypot(fr.x - p.x, fr.y - p.y) < 25) { const fq = proj(fr.x, fr.y); defFx.push(['kgthread', q.x, q.y, fq.x, fq.y, r.px || q.s * 2.6, simT - a.t, a.lv || 1]); } break; } } }
+      // 版1326：タイタンプレッシャー：威圧している間、ケーニヒのまわりに金色のゆらめき。ボールを持った相手の足もとには、締めつける金色の輪
+      { const ttA = (j) => { const L0 = actsOf[j]; if (L0) for (let k = L0.length - 1; k >= 0; k--) { const a = L0[k]; if (a.t > simT) continue; if (simT - a.t > 120) break; if (a.a === 'ttoff') return -1; if (a.a === 'tton') return simT - a.t; } return -1; };
+        const el = ttA(i); if (el >= 0) defFx.push(['ttaura', q.x, q.y, r.px || q.s * 2.6, r.top, el]);
+        if (st.owner === i) { const ob = i < 11 ? 11 : 0; for (let j = ob; j < ob + 11; j++) { const e2 = ttA(j); if (e2 >= 0) { defFx.push(['ttpress', q.x, q.y, r.px || q.s * 2.6, r.top, e2]); break; } } } }
       // 版1319：ゼログラビティ：発動している間、体のまわりに黒いオーラが立ちのぼる
       { const L9 = actsOf[i]; if (L9) for (let k = L9.length - 1; k >= 0; k--) { const a = L9[k]; if (a.t > simT) continue; if (simT - a.t > 90) break;
           if (a.a === 'uend' && a.k === 'zerog') break;
@@ -3751,6 +3755,18 @@
         ctx.save(); ctx.lineCap = 'round'; ctx.shadowColor = 'rgba(255,112,112,1)'; ctx.shadowBlur = px * 2;
         for (let k = 0; k < (lv >= 2 ? 4 : 3); k++) { const seed = Math.floor(simT * 14) + k * 7, an = (seed * 2.399) % 6.283, r0 = px * 1.2, r1 = px * (3 + (seed % 3)); ctx.strokeStyle = k % 2 ? 'rgba(255,224,224,0.95)' : 'rgba(255,112,112,0.95)'; ctx.lineWidth = Math.max(1.5, px * 0.45);
           ctx.beginPath(); ctx.moveTo(x + Math.cos(an) * r0, y + Math.sin(an) * r0 * 0.5 - px); for (let j = 1; j <= 3; j++) { const rr = r0 + (r1 - r0) * j / 3, jt = ((seed + j) % 3 - 1) * 0.35; ctx.lineTo(x + Math.cos(an + jt) * rr, y + Math.sin(an + jt) * rr * 0.5 - px); } ctx.stroke(); }
+        ctx.restore();
+      } else if (f[0] === 'ttaura') {   // 版1326：タイタンプレッシャー：ケーニヒの体から立ちのぼる金色のゆらめき（威圧）
+        const [, x, y, , top, el] = f, hgt = Math.max(12, y - top), u = hgt / 10, cy = y - hgt * 0.5, fin = Math.min(1, el / 0.3), pl = 0.85 + Math.sin(simT * 6) * 0.15;
+        ctx.save();
+        { const gr = ctx.createRadialGradient(x, cy, u * 2, x, cy, u * 11 * pl); gr.addColorStop(0, 'rgba(255,210,58,0)'); gr.addColorStop(0.45, `rgba(255,190,40,${0.45 * fin})`); gr.addColorStop(1, 'rgba(255,170,0,0)'); ctx.fillStyle = gr; ctx.beginPath(); ctx.ellipse(x, cy, u * 7.5 * pl, u * 11 * pl, 0, 0, 7); ctx.fill(); }
+        ctx.strokeStyle = `rgba(255,210,58,${0.7 * fin})`; ctx.lineWidth = Math.max(1.5, u * 0.4); ctx.beginPath(); ctx.ellipse(x, y, u * 5 * pl, u * 1.7 * pl, 0, 0, 7); ctx.stroke();
+        for (let k = 0; k < 10; k++) { const ph = (simT * 1.1 + k / 10) % 1, sd = k % 2 ? 1 : -1, sx = x + sd * u * (3 + (k % 3) * 0.9), sy = y - hgt * 1.3 * ph; ctx.fillStyle = `rgba(255,${200 - (k % 3) * 30},40,${(1 - ph) * 0.7 * fin})`; ctx.beginPath(); ctx.moveTo(sx, sy - u * 2.2); ctx.lineTo(sx + u * 0.7, sy); ctx.lineTo(sx - u * 0.7, sy); ctx.fill(); }
+        ctx.restore();
+      } else if (f[0] === 'ttpress') {   // 版1326：威圧された相手：足もとを締めつける金色の輪と、頭の上の冷や汗
+        const [, x, y, , top, el] = f, hgt = Math.max(12, y - top), u = hgt / 10, ph = (simT * 1.6) % 1;
+        ctx.save(); for (let k2 = 0; k2 < 2; k2++) { const p2 = (ph + k2 * 0.5) % 1; ctx.strokeStyle = `rgba(255,200,40,${0.9 * (1 - p2)})`; ctx.lineWidth = Math.max(2, u * 0.6); ctx.beginPath(); ctx.ellipse(x, y, u * (6.5 - p2 * 3.6), u * (2.2 - p2 * 1.2), 0, 0, 7); ctx.stroke(); }
+        ctx.fillStyle = 'rgba(150,210,255,0.85)'; for (let k = 0; k < 2; k++) { const sx = x + (k ? 1 : -1) * u * 1.6, sy = top - u * (0.6 + ((simT * 2 + k * 0.5) % 1) * 1.2); ctx.beginPath(); ctx.ellipse(sx, sy, u * 0.35, u * 0.6, 0, 0, 7); ctx.fill(); }
         ctx.restore();
       } else if (f[0] === 'zgaura') {   // 版1319：ゼログラビティ：黒いオーラ（体を包む黒い靄＋足もとの黒い輪＋立ちのぼる黒い炎）
         const [, x, y, , top, el] = f, hgt = Math.max(12, y - top), u = hgt / 10, cy = y - hgt * 0.5, fin = Math.min(1, el / 0.25);
