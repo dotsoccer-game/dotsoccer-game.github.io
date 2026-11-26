@@ -102,7 +102,7 @@
   $('#ulO').onchange = (e) => { opp = e.target.value; };
   $('#ulTm').onclick = () => { matesU = !matesU; $('#ulTm').textContent = '味方の固有スキル：' + (matesU ? 'あり' : 'なし'); $('#ulTm').classList.toggle('on', matesU); };
   $('#ulTo').onclick = () => { oppU = !oppU; $('#ulTo').textContent = '相手の固有スキル：' + (oppU ? 'あり' : 'なし'); $('#ulTo').classList.toggle('on', oppU); };
-  const DLV = { zerog: ['', '（シャープカーブ）', '（相手を引き寄せる）', '（いつでも発動）'], trivela: ['', '（トリベーラ・ミドル）', '（受けた味方が決めやすい）', '（直接FKも）'], lastmin: ['（ギロチンスライド）', '（刈ったボールを自分のものに）', '（どんどん攻撃参加）', '（ラストミニッツヘッダー）'], titan: ['', '（シュートを乱す）', '（30mから・より遅く）', '（1対1でも）'] };
+  const DLV = { zerog: ['', '（シャープカーブ）', '（相手を引き寄せる）', '（いつでも発動）'], trivela: ['', '（受けた味方が止まらずに運ぶ）', '（トリベーラ・ミドル）', '（直接FKも）'], lastmin: ['（ギロチンスライド）', '（刈ったボールを自分のものに）', '（どんどん攻撃参加）', '（ラストミニッツヘッダー）'], titan: ['', '（コースが甘くなる）', '（30mから・より遅く）', '（1対1でも）'] };
   function lvTxt() { $('#ulL').textContent = DLV[key] ? `凸：${lv2 | 0}凸${DLV[key][lv2 | 0]}` : '凸で強化：' + (lv2 ? 'あり' : 'なし'); $('#ulL').classList.toggle('on', !!lv2); }
   $('#ulL').onclick = () => { lv2 = DLV[key] ? ((lv2 | 0) + 1) % 4 : (lv2 ? 0 : 1); lvTxt(); };
   let pLv = 1;
@@ -114,7 +114,7 @@
   setTimeout(hideCareer, 600); setTimeout(hideCareer, 1800);
 
   // ---- 試合で見る：発動が多い試合を探して、その試合を流す。発動した場面へジャンプできる ----
-  const SPK = { zerog: ['sharpCurve', 'シャープカーブ'], trivela: ['trivelaShot', 'トリベーラ・ミドル'] };
+  const SPK = { zerog: ['sharpCurve', 'シャープカーブ', 1], trivela: ['trivelaShot', 'トリベーラ・ミドル', 2] };
   function watch() {
     msg('発動する試合を探しています…');
     setTimeout(() => {
@@ -133,10 +133,10 @@
       };
       for (let s = 1; s <= (cmb ? 24 : 10); s++) {
         const m = cmb ? D.simulateMatch(team(o.id, key, true, lv2, null, 'own'), team(opp, key, false, false, null, 'opp'), 500 + s * 17) : sim(team(o.id, key, true, lv2, null, 'own'), team(opp, key, false, false, null, 'opp'), 500 + s * 17);
-        const sk = !cmb && SPK[key] && lv2 >= 1 ? m.events.filter((e) => e.type === 'shot' && e.sk === SPK[key][0]).length : 0;   // 版1320：凸で増えるシュート（シャープカーブ・トリベーラ・ミドル）が出る試合を優先
+        const sk = !cmb && SPK[key] && lv2 >= SPK[key][2] ? m.events.filter((e) => e.type === 'shot' && e.sk === SPK[key][0]).length : 0;   // 版1320：凸で増えるシュート（シャープカーブ・トリベーラ・ミドル）が出る試合を優先
         const n = hits(m).length + sk * 10;
         if (!best || n > best.n) best = { s: 500 + s * 17, n, ts: hits(m).map((u) => u.t) };
-        if (n >= (cmb ? 2 : SPK[key] && lv2 >= 1 ? 13 : 3)) break;
+        if (n >= (cmb ? 2 : SPK[key] && lv2 >= SPK[key][2] ? 13 : 3)) break;
       }
       if (!best.n) { msg(cmb ? 'この組み合わせは24試合回しても出ませんでした（ボレー・バイシクルなどはクロスが必要で、出にくいです）。相手を変えてみてください。' : '10試合回しても、この相手では1回も出ませんでした。相手を変えてみてください。'); return; }
       const a = team(o.id, key, true, lv2, null, 'own'), b = team(opp, key, false, false, null, 'opp');
@@ -146,7 +146,7 @@
         const mt = A.match, list = (mt.events || []).filter((e) => e.type === 'uniq' && e.k === key && (!cmb || best.ts.some((t) => Math.abs(t - e.t) < 0.05)));
         const i0 = (mt.roster[0] || []).findIndex((r) => r.uniq === key);
         // 選手は選ばない（選ぶと黄色い線が出て邪魔になるため）
-        const sks = !cmb && SPK[key] && lv2 >= 1 ? (mt.events || []).filter((e) => e.type === 'shot' && e.sk === SPK[key][0]) : [];
+        const sks = !cmb && SPK[key] && lv2 >= SPK[key][2] ? (mt.events || []).filter((e) => e.type === 'shot' && e.sk === SPK[key][0]) : [];
         $('#ulJ').innerHTML = sks.map((e) => `<button data-t="${e.t}">${SPK[key][1]} ${Math.floor(e.clock / 60)}分</button>`).join('') + list.map((e, j) => `<button data-t="${e.t}">${j + 1}回目 ${Math.floor(e.clock / 60)}分</button>`).join('') || '';
         $('#ulJ').querySelectorAll('[data-t]').forEach((bt) => bt.onclick = () => { M.seek(Math.max(0.2, +bt.dataset.t - 3)); M.setSpeed(1); if (!M.playing) M.play(); });
         msg(`この試合で${list.length}回${cmb ? `（${COMBO.find((c) => c[0] === cmb)[1]}と同時）` : ''}出ます。${U[key].who}（${U[key].type}）の頭の上に、スキル名の吹き出しが出ます。ボタンを押すと、その3秒前から見られます。`);
