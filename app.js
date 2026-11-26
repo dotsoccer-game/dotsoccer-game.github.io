@@ -3254,7 +3254,7 @@
         // バイシクル：ゴールに背を向けて後ろへ倒れながら跳ぶ → 頭の上で蹴る → 背中から着地（手で描いた絵・8方向）
         const px = Math.max(1.4, 2.5 * q.s), u = ac.u, bi = ac.a === 'bicycle';
         const hu = bi && ac.hitU != null ? ac.hitU : null;
-        const h = hu != null ? (u < hu ? Math.sin(Math.PI / 2 * u / hu) * 0.7 : Math.max(0, Math.cos(Math.PI / 2 * Math.min(1, (u - hu) / 0.3))) * 0.7) : bi ? Math.sin(Math.PI * Math.min(1, u * 1.6)) * 0.55 : (u > 0.12 && u < 0.6 ? Math.sin(Math.PI * (u - 0.12) / 0.48) * 0.35 : 0);
+        const h = hu != null ? (u < hu ? Math.sin(Math.PI / 2 * u / hu) * 0.7 : Math.max(0, Math.cos(Math.PI / 2 * Math.min(1, (u - hu) / 0.3))) * 0.7) * (ac.hi ? 1.9 : 1) : bi ? Math.sin(Math.PI * Math.min(1, u * 1.6)) * 0.55 * (ac.hi ? 1.9 : 1) : (u > 0.12 && u < 0.6 ? Math.sin(Math.PI * (u - 0.12) / 0.48) * 0.35 : 0);
         const g = P3(p.x, p.y, h);
         ctx.fillStyle = 'rgba(0,30,0,0.3)'; ctx.beginPath(); ctx.ellipse(q.x, q.y, 8 * px, 2.2 * px, 0, 0, 7); ctx.fill();
         if (bi) dmFacing = Math.atan2(p.y - 34, p.x - attackX);   // ゴールに背を向ける
