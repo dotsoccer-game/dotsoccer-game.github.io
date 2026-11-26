@@ -296,7 +296,7 @@
       if ((globalThis.__Khjb ?? 0) && a.a === 'head' && simT - a.t < 1.3 && shotsList.some((sh) => sh.i === i && Math.abs(sh.t - a.t) < 0.35) && !L2.some((b2) => (b2.a === 'skill' || b2.a === 'uniq') && Math.abs(b2.t - a.t) < 0.4)) return 'ヘディングシュート';   // 版1305：頭で打ったシュートは、吹き出しで分かるように
       if (a.a === 'skill' || a.a === 'uniq') {
         // 固有スキルは【】で囲む（ほかの技と同時なら「【紅蓮の牙】＋強烈ミドル」）
-        const nm = (x) => (x.a === 'uniq' ? `【${(D.UNIQ && D.UNIQ[x.k] && D.UNIQ[x.k].name) || x.k}${x.lv >= 2 ? '・覚醒' : ''}】` : SKILL_NAME[x.k] || x.k);   // 凸で強化した固有スキルは「・覚醒」
+        const nm = (x) => (x.a === 'uniq' ? (x.nm ? `【${x.nm}】` : `【${(D.UNIQ && D.UNIQ[x.k] && D.UNIQ[x.k].name) || x.k}${x.lv >= 2 ? '・覚醒' : ''}】`) : SKILL_NAME[x.k] || x.k);   // 凸で強化した固有スキルは「・覚醒」
         const names = [nm(a)];
         for (let j = k - 1; j >= 0 && a.t - L2[j].t < (a.a === 'uniq' || L2[j].a === 'uniq' ? 0.8 : 0.05); j--) if ((L2[j].a === 'skill' || L2[j].a === 'uniq') && !names.includes(nm(L2[j]))) names.unshift(nm(L2[j]));
         names.sort((x, y) => (y[0] === '【') - (x[0] === '【'));
