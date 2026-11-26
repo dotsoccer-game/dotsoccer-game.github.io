@@ -1885,6 +1885,7 @@
         const air = b.z > 0.35;
         if (spinCode === 1) rotateBall(dx, dy, 0.3, 0.015);                                   // 無回転
         else if (spinCode === 4) rotateBall(-dy, dx, 0, 0.55);                                 // ドライブシュート：強い縦回転（トップスピン）
+        else if (spinCode === 5 || spinCode === 7) { const hl = Math.hypot(dx, dy) || 1; rotateBall(-dy / hl, dx / hl, spinCode === 5 ? 0.75 : -0.75, 0.55); }   // 版1324：シャープカーブ：縦回転に横回転が混ざった、斜めの軸の回転
         else if (spinCode === 2 || spinCode === 3) {                                         // カーブ：縦軸の横回転＋縦回転
           rotateBall(0, 0, spinCode === 2 ? 1 : -1, Math.min(0.55, roll * 1.1 + 0.12));
           if (bs) rotateBall(bs > 0 ? dy : -dy, bs > 0 ? -dx : dx, 0, Math.min(0.3, Math.abs(bs) * 0.3));
