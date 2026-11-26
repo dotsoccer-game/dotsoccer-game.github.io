@@ -93,7 +93,7 @@
   function slotInfo(p) {
     ensurePts(p);
     const avg = KEYS.reduce((a, k) => a + p.pts[k], 0) / KEYS.length;
-    const zx = p.uniq === 'zerog' && (p.totsu || 0) >= 1 ? 1 : 0;   // 版1315：ゼログラビティ（1凸）：スキル枠が増える（技＋2・特性＋1）
+    const zx = 0;   // 版1318：ゼログラビティの1凸は、スキル枠ではなく「シャープカーブ」（試合の中）に変えた
     const tech = 2 + TECH_AT.filter((v) => avg >= v - 1e-9).length + zx * 2, trait = 1 + TRAIT_AT.filter((v) => avg >= v - 1e-9).length + zx;
     const nextTech = TECH_AT.find((v) => avg < v - 1e-9) ?? null, nextTrait = TRAIT_AT.find((v) => avg < v - 1e-9) ?? null;
     return { techAt: TECH_AT, traitAt: TRAIT_AT, techMax: SLOT_MAX + zx * 2, traitMax: TRAIT_MAX + zx, total: tech + trait, tech, trait, ability: tech + trait, exp: 0, avg, nextAvg: nextTech, nextTech, nextTrait, nextGames: null };
