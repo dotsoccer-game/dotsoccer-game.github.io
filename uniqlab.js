@@ -102,7 +102,7 @@
   $('#ulO').onchange = (e) => { opp = e.target.value; };
   $('#ulTm').onclick = () => { matesU = !matesU; $('#ulTm').textContent = '味方の固有スキル：' + (matesU ? 'あり' : 'なし'); $('#ulTm').classList.toggle('on', matesU); };
   $('#ulTo').onclick = () => { oppU = !oppU; $('#ulTo').textContent = '相手の固有スキル：' + (oppU ? 'あり' : 'なし'); $('#ulTo').classList.toggle('on', oppU); };
-  const DLV = { zerog: ['', '（シャープカーブ）', '（相手を引き寄せる）', '（いつでも発動）'], trivela: ['', '（受けた味方が止まらずに運ぶ）', '（トリベーラ・ミドル）', '（直接FKも）'], lastmin: ['（ギロチンスライド）', '（刈ったボールを自分のものに）', '（どんどん攻撃参加）', '（ラストミニッツヘッダー）'], royal: ['', '（回った後が正確）', '（ボレーも正確）', '（終盤の接戦で）'], titan: ['', '（コースが甘くなる）', '（範囲が広く・より遅く）', '（1対1でも）'] };
+  const DLV = { zerog: ['', '（シャープカーブ）', '（相手を引き寄せる）', '（いつでも発動）'], trivela: ['', '（受けた味方が止まらずに運ぶ）', '（トリベーラ・ミドル）', '（直接FKも）'], lastmin: ['（ギロチンスライド）', '（刈ったボールを自分のものに）', '（どんどん攻撃参加）', '（ラストミニッツヘッダー）'], royal: ['', '（ルーレット）', '（浮き球をボレー）', '（いつでも）'], titan: ['', '（コースが甘くなる）', '（範囲が広く・より遅く）', '（1対1でも）'] };
   function lvTxt() { $('#ulL').textContent = DLV[key] ? `凸：${lv2 | 0}凸${DLV[key][lv2 | 0]}` : '凸で強化：' + (lv2 ? 'あり' : 'なし'); $('#ulL').classList.toggle('on', !!lv2); }
   $('#ulL').onclick = () => { lv2 = DLV[key] ? ((lv2 | 0) + 1) % 4 : (lv2 ? 0 : 1); lvTxt(); };
   let pLv = 1;

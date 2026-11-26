@@ -255,7 +255,7 @@
     trivela:    { sw: '中盤で前を向き、裏へ抜ける味方が見えたとき', se: '足の外側で、DFの外を大きく回して裏へ落とす一本', st: '1凸：受けた味方が止まらずに運び、決めやすい／2凸：トリベーラ・ミドル／3凸：直接FKも・もっと後ろからも', name: 'トリベーラ', chip: ['#2a0a3a', '#ff5ad0', '#ffe8f8'], who: 'マリノヴィッチ', face: null, hair: '#d8c8a0', type: 'ワールドクラス司令塔', dream: 1, when: '中盤で前を向き、裏へ抜ける味方が見えたとき（2凸：ゴールまで約18〜37mで打てるときも）', what: 'モドリッチ型。足の外側で蹴る、大きく曲がるボール。まっすぐでは通らない所へ、浮かせてDFの外を回し、受け手の前にスペースがあればそこへ落とす（受け手が触るまで、相手は触れない）。寄せられても細かいタッチでかわす。1凸：受けた味方は、トラップで止まらずにそのままの勢いでゴールへ運び、落ち着いて決める（シュートが正確に、GKも止めにくい）。2凸：トリベーラ・ミドル（腰〜胸の高さでゴールの外から巻いて隅へ入るシュート。DFの足をよけ、GKも曲がる先を読み違える）。3凸：直接FKもトリベーラで狙い、外を回す一本はもっと後ろからでも出す', dur: 3, cd: 9, ch: 1 },
     lastmin:    { sw: '自陣で相手がボールを持ったとき', se: '遠くから一気に滑り込む、えげつないスライディング（ギロチンスライド）。守っては空中戦と1対1にもほぼ負けない', st: '1凸：刈ったボールを自分のものに／2凸：どんどん攻撃参加／3凸：ラストミニッツヘッダー', name: 'ラストミニッツヘッダー', chip: ['#3a0a0a', '#ffb02a', '#fff4e0'], who: 'モラレス', face: null, hair: '#2a1a10', type: 'ワールドクラスCB', dream: 1, when: '自陣で相手がボールを持ったとき（2凸：味方が攻めているとき／3凸：負けている・同点の終盤（70分から）のCK・遠いFK）', what: 'セルヒオ・ラモス型。闘志の塊。自陣では、遠くから一気に滑り込むギロチンスライドでボールを刈り取り、刈られた相手はしばらく起き上がれない。空中戦・1対1にもほぼ負けず、ドリブルでもまず抜かれない。1凸：滑り込んだまま、刈ったボールを自分のものにする。2凸：CBのまま、どんどん攻撃参加する（オフサイドにならない所でゴール前に入り、味方は彼の頭を狙う）。3凸：ラストミニッツヘッダー。負けている・同点の終盤のCK・遠いFKでゴール前へ上がり、自分を狙ったボールにはDFにもGKにも競り勝って、GKのいない隅へ頭でたたきつける', dur: 8, cd: 20, ch: 1 },
     titan:      { sw: '相手がボールを持ってバイタルエリアに入ったとき（パッシブ・いつも勝手に）', se: '威圧して、ゴール前へ運んできた相手の足を鈍らせる', st: '1凸：シュートのコースが甘くなり、技も出せない／2凸：バイタルエリアが広がり、より遅く／3凸：1対1でも決めさせない', name: 'タイタンプレッシャー', chip: ['#1a1a1a', '#ffd23a', '#fff8d8'], who: 'ケーニヒ', face: null, hair: '#e8d8a0', type: 'ワールドクラスGK', dream: 1, when: 'パッシブ：相手がボールを持ってバイタルエリア（ゴール前の約30m）に入ったら、勝手に始まる。自分たちのボールになるか、ボールが外に出るまで続く（2凸：約35m・横にも広く）', what: 'カーン型。自分の止める力ではなく、相手を崩すGK。パッシブスキルで、相手がボールを持ってバイタルエリアに入ると勝手に威圧が始まり、ボールを持った相手の足が鈍る。自分たちのボールになるか、ボールが外に出るまで続く。後ろにいるので、前のDFも思い切り寄せる。1凸：威圧された相手のシュートはコースが甘くなってケーニヒの方へ寄り、狙った技（コントロールショット・無回転など）も出せず、打つのもためらう。ヘディングも乱れ、PKでも少し効く。2凸：バイタルエリアが広がり（約35m・横にも広く）、足がさらに鈍る。3凸：1対1でも落ち着けず、決めきれない', dur: 4, cd: 3, ch: 1 },
-    royal:      { sw: '相手に寄せられたとき・挟まれたとき', se: 'くるりと回って、寄せてきた相手をまとめて外す', st: '1凸：回った直後のパス・シュートが正確に／2凸：浮き球をボレーで正確にたたく／3凸：終盤の接戦で、もっと出て、もっと外す', name: 'ロイヤルターン', chip: ['#2a1050', '#c9a6ff', '#f4ecff'], who: 'ベナール', face: null, hair: '#3a2a1a', type: 'ワールドクラスMF', dream: 1, when: '相手に寄せられたとき・2人に挟まれたとき（3凸：終盤の接戦ではもっと出る）', what: 'ジダン型。優雅な王様。寄せてきた相手の前で、ボールを足の裏で引きながら体ごとくるりと回り（ルーレット）、まわりの相手をまとめて置き去りにする。1凸：回った直後の数秒、パスもシュートもとても正確に。2凸：浮き球をためらわずにボレーでたたき、正確に隅へ。3凸：70分からの接戦（1点差まで）では、もっと出て、もっと遠くの相手まで外す', dur: 2, cd: 5, ch: 1 },
+    royal:      { sw: 'ボールを受けるとき（寄せてくる相手がいるとき）', se: 'どんなボールもファーストタッチで収め、そのタッチで寄せてきた相手を外す', st: '1凸：ルーレット／2凸：浮き球をそのままボレー／3凸：ロイヤルタッチがいつでも・囲まれても取られない', name: 'ロイヤルタッチ', chip: ['#2a1050', '#c9a6ff', '#f4ecff'], who: 'ベナール', face: null, hair: '#3a2a1a', type: 'ワールドクラスMF', dream: 1, when: 'ボールを受けるとき、近くに寄せてくる相手がいれば（3凸：いつでも）／1凸：2人に挟まれたとき／2凸：ゴール前で浮き球が来たとき', what: 'ジダン型。ボールコントロールの王様。速いパスも浮き球もロングボールも、ファーストタッチでぴたりと足もとに収め、そのタッチで寄せてきた相手のいない側へボールを置いて、一歩で外す。1凸：2人に挟まれたら、くるりと回って（ルーレット）2人まとめて外し、その後3秒はパスもシュートもとても正確に。2凸：ゴール前の浮き球は、トラップせずにそのままボレーで隅へ（味方もベナールへ浮き球を入れる）。3凸：ロイヤルタッチが毎回出て、相手陣では囲まれても取られない', dur: 2, cd: 5, ch: 1 },
   };
   // 最初の持ち主（rosters.js の国内屈指）→ 固有スキル
   const UNIQ_BY_TOP = Object.fromEntries(Object.entries(UNIQ).map(([k, u]) => [u.type, k]));
@@ -972,7 +972,8 @@
       if ((own.hariT || 0) > S.t) a -= own.hariLv >= 2 ? 0.8 : 0.65;
       if ((own.tvT || 0) > S.t) a -= globalThis.__Ktvd ?? 0.7;   // 版1319：トリベーラの一本を受けた味方：勢いのまま、追いつかれても奪われにくい   // 針の穴通しの1本で抜け出した：勢いのまま、追いつかれても奪われにくい
       if (own.uniq && own.uOn > S.t) a -= { shiden: ((globalThis.__Ksd2 ?? 1) ? 1.15 : 0.85) * uP(own), zerog: (globalThis.__Kzg1 ?? 1.7) * uP(own), midori: 0.25, aonoouza: 0.12, trivela: 0.5 * uP(own) }[own.uniq] || 0;   // 版1315：ゼログラビティは何人に囲まれても失わない。
-      else if (own.uniq === 'zerog') a -= globalThis.__Kzg0 ?? 0.9;   // 版1318：発動していない時も、低い重心でまず取られない
+      else if (own.uniq === 'zerog') a -= globalThis.__Kzg0 ?? 0.9;
+      if (own.uniq === 'royal' && own.dt >= 3 && fx(own.team, own.x) > L / 2) a -= globalThis.__Krtk ?? 1.0;   // 版1328：ロイヤルタッチ（3凸）：相手陣では、囲まれても取られない   // 版1318：発動していない時も、低い重心でまず取られない
       // トリベーラも細かいタッチでかわす
       if (q.position === 'DF') a += 0.16 * aura(q, 'bodyVoice', true) + 0.1 * aura(q, 'relief');   // 版1135：サポート効果を強く
       if (Math.abs(own.y - GOAL_Y) < 15) a += 0.16 * aura(q, 'shield', true);
@@ -3144,7 +3145,8 @@
         if (globalThis.__gpV && gpG && ((gpG.k === 'sh' && p.idx === gpG.a && q.idx === gpG.c) || (gpG.k === 'dc' && gpG.ph === 1 && p.idx === gpG.b && q.idx === gpG.c))) globalThis.__gpV.push([gpG.k, +v0dbg.toFixed(1), +v.toFixed(1), +danger.toFixed(2), ph, +adv.toFixed(0), +d.toFixed(0), through ? 1 : 0, +xf.toFixed(0)]);
         if ((globalThis.__Kov2 ?? 1) && (q.ovUntil || 0) > S.t && !q.off && pxf > xf - 4 && danger < 1.4 && !p.gk) { v += globalThis.__Kovv ?? 4.0; if (globalThis.__ovC) globalThis.__ovC.n++; }   // 版1308：オーバーラップで追い越した味方へ（前は、新しい判断の方に入っていなくて、ほとんど出なかった）
         if (globalThis.__lmO && (q.lmPush || 0) > S.t) globalThis.__lmO.push(['B', Math.round(xf), Math.round(pxf), +danger.toFixed(1), +v.toFixed(1)]);
-        if ((q.lmPush || 0) > S.t && pxf > L - 18 && danger < 3.5) v += (globalThis.__Klmv ?? 4) + danger * 18;   // 版1319：ラストミニッツヘッダー：上がってきた彼の頭へ放り込む
+        if ((q.lmPush || 0) > S.t && pxf > L - 18 && danger < 3.5) v += (globalThis.__Klmv ?? 4) + danger * 18;
+        if (q.uniq === 'royal' && q.dt >= 2 && pxf > L - 30 && Math.abs(py - GOAL_Y) < 18 && d > 10 && d < 38 && !p.gk) opts.push({ kind: 'pass', q, through: false, chip: true, v: v + (globalThis.__Krtv ?? 6) + danger * 6, danger: 0.4, d });   // 版1328：ロイヤルタッチ（2凸）：ゴール前のベナールへ、浮き球を入れる（ボレーで合わせる）   // 版1319：ラストミニッツヘッダー：上がってきた彼の頭へ放り込む
         if (p.uniq === 'trivela' && !(p.uCd > S.t) && through && d > 18 && xf > L / 2 - (globalThis.__Ktvx ?? (p.dt >= 3 ? 35 : 25)) && xf < L - 22 && danger < 1.6 && !S.setPiece) v += globalThis.__Ktvbv ?? 5.0;   // 版1319：トリベーラ：裏へ抜ける味方へ、外を回す一本
         opts.push({ kind: 'pass', q, through, v, danger, d, space: thrSpot, minus: isMinus, needle: hrN });
         if (through && globalThis.__thDbg) globalThis.__thDbg.push([+danger.toFixed(2), +v.toFixed(2), byp, +d.toFixed(0)]);
@@ -5528,6 +5530,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       // シュート技：場面ごとに出せるものから選ぶ（ボレー等の「来た球に合わせる技」は how で指定）
       const ctx = shotCtx(p), can = S.pk ? new Set() : S.fkDirect ? new Set(p.sk.has('fk') ? ['knuckle', 'driveShot', 'controlShot'].filter((k) => p.sk.has(k)) : []) : shotSkillsFor(p, ctx);   // FKマイスターは、持っているシュート技（無回転・ドライブ・コントロール）を直接FKでも使える
       { const dg0 = hyp(gx - p.x, GOAL_Y - p.y); if (p.zgSharp && !S.pk && dg0 > 16 && dg0 < 30 && (p.y < GOAL_Y ? -1 : 1) * (Math.sign(gx - p.x) || 1) * (p.foot === 'L' ? 1 : -1) > 0) can.add('sharpCurve'); /* 版1322：シャープカーブは利き足（ルナは左足）で巻ける側からだけ */ if (p.uniq === 'trivela' && p.dt >= 2 && !S.pk && (!S.fkDirect || p.dt >= 3) && dg0 > 17 && dg0 < 37 && !(p.uCd > S.t)) can.add('trivelaShot'); }   // 版1318：シャープカーブ（ルナ1凸）：PAの外から、曲げながら落とす
+      if (p.uniq === 'royal' && how === 'volley') can.add('volley');   // 版1328：ベナールのボレー
       let skill = how && can.has(how) && !(!charged && (p.skLock || 0) > S.t) ? how : null;
       if (!skill && !charged && can.has('sharpCurve') && fx(p.team, p.x) < L - 16.5) skill = 'sharpCurve';   // 版1320：シャープカーブ（ルナ1凸）：PAの手前から打つシュートは、全部シャープカーブ（ファーへ）
       const locked = !charged && !how && (p.skLock || 0) > S.t;   // 技の直後：シュート技は重ねない（ふつうのシュートになる）
@@ -7709,7 +7712,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       if (globalThis.__lmO && S.ball.lmX != null) { globalThis.__lmO.push(['G', p.idx === S.ball.lmX ? 'RM' : p.team === P[S.ball.lmX].team ? 'mate' : p.gk ? 'GK' : 'opp', how || '', Math.round(hyp(p.x - P[S.ball.lmX].x, p.y - P[S.ball.lmX].y)), S.ball.style || '']); S.ball.lmX = null; }
       if (globalThis.__tvC && S.ball.tvL != null) { (globalThis.__tvC.o = globalThis.__tvC.o || []).push([p.team === P[S.ball.tvL].team ? (p.idx === S.ball.tvL ? 'OK' : 'mate') : 'opp:' + (how || '') + (p.gk ? 'GK' : ''), ...S.ball.tvD]); S.ball.tvL = null; }
       if (globalThis.__tvC && (p.tvT || 0) > S.t) { globalThis.__tvC.recv = (globalThis.__tvC.recv || 0) + 1; p.tvT = 0; }
-      if (globalThis.__gainLog) globalThis.__gainLog.push({ to: p.idx, how: how || '', kind: S.ball.kind, lp: S.ball.lastPlayer, own: S.ball.owner });
+      if (globalThis.__gainLog) globalThis.__gainLog.push({ z: +(S.ball.z || 0).toFixed(2), xf: Math.round(fx(p.team, p.x)), st: S.ball.style || '', to: p.idx, how: how || '', kind: S.ball.kind, lp: S.ball.lastPlayer, own: S.ball.owner });
       if ((p.ovUntil || 0) > S.t - 0.5 && p.sk.has('overlap')) { p.ovRecvT = S.t; if (globalThis.__ovC) (globalThis.__ovC.rx ||= []).push(Math.round(L - fx(p.team, p.x))); }
       p._gT = S.t;
       if (globalThis.__gbFar) { const dd = hyp(S.ball.x - p.x, S.ball.y - p.y); if (dd > 3.5) globalThis.__gbFar.push({ t: +S.t.toFixed(1), p: p.idx, how, dd: +dd.toFixed(1), kind: S.ball.kind, owner: S.ball.owner, st: new Error().stack.split('\n').slice(2, 6).map((x) => x.trim().replace(/^at /, '').replace(/\(.*engine.js:/, '(')).join(' < ') }); }
@@ -7744,6 +7747,13 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
         { const gx = fx(p.team, L) - p.x, gy = (GOAL_Y - p.y) * 0.6, gl = hyp(gx, gy) || 1; S.dribbleDir = [gx / gl, gy / gl]; S.dribbleMode = 'break'; p.burstT = S.t + 0.8; p.pace = { ph: 'burst', until: S.t + 0.8 }; }
         for (const o of opps(p)) if (!o.gk && hyp(o.x - p.x, o.y - p.y) < 7) o.lagT = Math.max(o.lagT || 0, S.t + 0.8);
       }
+      if (p.uniq === 'royal' && !p.gk && how !== 'tackle' && how !== 'save' && !S.restart && !S.setPiece && !(p.rtVol === S.t) && (p.dt >= 3 || !((p.rtTcd || 0) > S.t))) {   // 版1328：ロイヤルタッチ：どんなボールも、ファーストタッチで足もとに収め、寄せてきた相手のいない側へ置いて一歩で外す（3凸：いつでも）
+        const o = opps(p).filter((m) => !m.gk && !m.off && hyp(m.x - p.x, m.y - p.y) < (globalThis.__Krtd ?? 4.5)).sort((m1, m2) => hyp(m1.x - p.x, m1.y - p.y) - hyp(m2.x - p.x, m2.y - p.y))[0];
+        if (o) { p.rtTcd = S.t + (globalThis.__Krtc ?? 5); p.heavyT = 0;
+          const gx = fx(p.team, L) - p.x, gy = (GOAL_Y - p.y) * 0.5, gl = hyp(gx, gy) || 1, ax = p.x - o.x, ay = p.y - o.y, al = hyp(ax, ay) || 1, sx = gx / gl * 0.55 + ax / al * 0.85, sy = gy / gl * 0.55 + ay / al * 0.85, sl = hyp(sx, sy) || 1;
+          S.dribbleDir = [sx / sl, sy / sl]; S.dribbleMode = 'break'; p.burstT = S.t + 0.7; p.pace = { ph: 'burst', until: S.t + 0.8 }; p.protect = Math.max(p.protect || 0, S.t + 1.3); S.decision = Math.max(S.decision, 0.45);
+          noteBeat(p, o); o.lagT = Math.max(o.lagT || 0, S.t + 1.0); o.stun = Math.max(o.stun || 0, 0.6); o.tackleCd = Math.max(o.tackleCd || 0, 1.2);
+          p.uNm = 'ロイヤルタッチ'; p.uCd = 0; uFire(p, 'royal', 99); p.uNm = null; p.uCd = 0; } }   // 間隔は自分で数える（ルーレットとは別）
       if (b.byP && (b.intended === p.idx || b.intended < 0) && p.team === b.lastTeam && b.lastPlayer !== p.idx && !p.gk) {   // 白夜の視界のロングフィードを受けた：前を向いたまま運べる
         const d3 = b.byLv >= 2 ? 3 : 2; p.byT = S.t + d3; if ((p.byRunT || 0) > S.t) p.byRunT = S.t + 1.5; p.byLv = b.byLv; p.protect = Math.max(p.protect || 0, S.t + ((globalThis.__Kby5 ?? 1) ? 1.4 : 0.8)); act(p, 'bybuf', d3, { lv: b.byLv });
         if (globalThis.__Kby5 ?? 1) {   // 版996：白夜の1本は「はい、チャンス」：受けた瞬間、そばにいた相手は一瞬遅れ（ボールを見送っていた）、受け手は前を向いてゴールへ運び出す（受けた瞬間に囲まれて取られていた）
@@ -7947,6 +7957,9 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
             S.forceShot = aim; S.forceHow = 'oneTouch'; S.decision = 0.2;   // ワンタッチで合わせる（技は重ねない）
           }
         }
+      }
+      if (p.uniq === 'royal' && p.dt >= 2 && !p.gk && S.forceShot == null && how !== 'tackle' && !S.restart && !S.setPiece && inAir0 && (b.z || 0) < 2.2) {   // 版1328：ロイヤルタッチ（2凸）：浮き球は、トラップせずにそのままボレー
+        const xf5 = fx(p.team, p.x); if (xf5 > L - 30 && Math.abs(p.y - GOAL_Y) < 18) { const gk = opps(p).find((q) => q.gk && !q.off), side = gk && Math.abs(gk.y - GOAL_Y) > 0.4 ? (gk.y > GOAL_Y ? -1 : 1) : (R.next() < 0.5 ? -1 : 1); S.forceShot = GOAL_Y + side * R.range(2.4, 3.3); S.forceHow = 'volley'; S.decision = 0.08; p.rtVol = S.t; }
       }
       // 版843：エリアの外のこぼれ球：クリア・はじかれた浮き球や転がってきたボールを、エリアの外（ゴールまで16〜27m）からダイレクトで打つ（キック・ボレー・ミドルが得意な選手ほど狙う）
       if (!p.gk && S.forceShot == null && how !== 'tackle' && !S.restart && !S.setPiece && (inAir0 || bSpd0 > 5) && (prevTeam !== p.team || (S.lastShotT != null && S.t - S.lastShotT < 3.5 && S.lastShotTeam === p.team && prevKind !== 'pass'))) {
@@ -8505,7 +8518,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       for (let i = 0; i < list.length; i++) { r -= wts[i]; if (r <= 0) { k = list[i]; break; } }
       if (globalThis.__forceSkill) { k = globalThis.__forceSkill; if (k === 'heelLift' && !hlSpace(own, q)) return false; }
       own.rtNow = false;
-      if (own.uniq === 'royal' && !q.gk) { const late = own.dt >= 3 && S.t * CLOCK_SCALE / 60 >= 70 && Math.abs(S.score[0] - S.score[1]) <= 1; if (uFire(own, 'royal', late ? 3 : 1)) { k = 'roulette'; own.rtNow = late ? 2 : 1; } }   // 版1327：ロイヤルターン：寄せられたら、くるりと回る（ルーレット）   // 確認用（ヒールリフトは、使える場面でだけ）
+      if (own.uniq === 'royal' && own.dt >= 1 && !q.gk && !((own.rtRcd || 0) > S.t) && opps(own).filter((o) => !o.gk && !o.off && hyp(o.x - own.x, o.y - own.y) < 4.5).length >= 2) { own.rtRcd = S.t + 4; own.uNm = 'ルーレット'; own.uCd = 0; if (uFire(own, 'royal', 99)) { k = 'roulette'; own.rtNow = 1; } own.uNm = null; own.uCd = 0; }   // 版1328：ロイヤルタッチ（1凸）：2人に挟まれたら、くるりと回って2人まとめて外す   // 確認用（ヒールリフトは、使える場面でだけ）
       own.skillCd = S.t + (uOn(own, 'shiden') ? ((globalThis.__Ksd3 ?? 1) ? 0.75 : 0.2) : 2.2);   /* 版973：紫電の遊戯でも、前の技の動き（約0.7秒）が終わってから次の技（技が重なって、ボールが体の後ろ・離れた所に見えた） */   // 紫電の遊戯：フェイントを連続で（抜いたらすぐ次の相手へ）   // 紫電の遊戯：フェイントを続けて何回でも
       const fit = (ctx.narrow && DRIB_ZONES.narrow.includes(k)) || (ctx.side && DRIB_ZONES.side.includes(k)) || (ctx.goal && DRIB_ZONES.goal.includes(k));
       // 成功率：股抜きは（ドリブル＋テクニック）の平均と、相手の守備力の差でほぼ決まる
@@ -8570,7 +8583,7 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
       }
       stats[own.team].dribbles_past++; noteBeat(own, q);
       own.protect = S.t + 0.7;
-      if (own.rtNow) { const rr = own.rtNow >= 2 ? 6 : 4.5; for (const o of opps(own)) if (o !== q && !o.gk && !o.off && hyp(o.x - own.x, o.y - own.y) < rr) { noteBeat(own, o); o.stun = Math.max(o.stun || 0, 0.9); o.lagT = Math.max(o.lagT || 0, S.t + 1.0); o.tackleCd = Math.max(o.tackleCd || 0, 1.2); } q.stun = Math.max(q.stun || 0, 0.9); q.lagT = Math.max(q.lagT || 0, S.t + 1.0); own.protect = S.t + 1.4; if (own.dt >= 1) own.rtBuff = S.t + 3; own.rtNow = false; }   // 版1327：ロイヤルターン：まわりの相手をまとめて置き去り（1凸：その後3秒は正確）
+      if (own.rtNow) { for (const o of opps(own)) if (o !== q && !o.gk && !o.off && hyp(o.x - own.x, o.y - own.y) < 5) { noteBeat(own, o); o.stun = Math.max(o.stun || 0, 1.4); o.lagT = Math.max(o.lagT || 0, S.t + 1.5); o.tackleCd = Math.max(o.tackleCd || 0, 1.8); } q.stun = Math.max(q.stun || 0, 1.4); q.lagT = Math.max(q.lagT || 0, S.t + 1.5); q.tackleCd = Math.max(q.tackleCd || 0, 1.8); own.protect = S.t + 1.8; own.rtBuff = S.t + 3; own.rtNow = false; }   // 版1328：ルーレット：回り終わるまで、まわりの相手は触れない。その後3秒は正確
       // 抜かれた相手：フェイントにつられて逆へ体が流れる（大きく崩れると尻もち）
       const beat = (stun, cd, fall) => {
         q.stun = Math.max(q.stun, stun); q.tackleCd = Math.max(q.tackleCd, cd);
@@ -9556,6 +9569,8 @@ if (icR && p._ct < 99) score -= 0.2;   // 版838
               else targets[m.idx] = [tx0 + (tx0 - m.x) / (dd || 1) * 1.5, ty0 + (ty0 - m.y) / (dd || 1) * 1.5];   // 飛び込む（止まらずに突き抜ける勢いで）
               urgent[m.idx] = true; }); } } }
       { const o = ownerP(); if (o && o.uniq === 'zerog' && uOn(o, 'zerog') && !S.restart) for (const q of opps(o)) if (q.zgLure && q.zgLure.by === o.idx && q.zgLure.until > S.t && !q.off) { targets[q.idx] = [o.x - sgn(o.team) * 1.2 + (q.y > o.y ? 0 : 0), o.y + clamp(q.y - o.y, -1.5, 1.5)]; urgent[q.idx] = true; } }   // 版1315：ゼログラビティ（2凸）：相手が2〜3人、メッシに吸い寄せられる
+      { const own8 = ownerP(); if (own8 && !S.restart && !S.setPiece && fx(own8.team, own8.x) > L - (globalThis.__Krtz ?? 48)) for (const q of T[own8.team].players) if (q.uniq === 'royal' && q.dt >= 2 && q !== own8 && !q.off && S.ball.intended !== q.idx) { targets[q.idx] = [fx(q.team, L - 21), GOAL_Y + (own8.y < GOAL_Y ? 4 : -4)]; if (globalThis.__rtP) globalThis.__rtP.push(Math.round(fx(q.team, q.x))); }   // 版1328：ロイヤルタッチ（2凸）：攻めている時は、PAの手前で浮き球を待つ
+      }
       { const own9 = ownerP(), minute9 = S.t * CLOCK_SCALE / 60;   // 版1319：ラストミニッツヘッダー：終盤、負けている・同点なら、流れの中でもCBのまま前線へ上がり、ゴール前のファーで待つ
         if (S.poss != null && S.poss >= 0 && !S.restart && !S.setPiece) { const t = S.poss, rm = T[t].players.find((q) => q.uniq === 'lastmin' && !q.off && q.dt >= 2 && minute9 >= (globalThis.__Klmu ?? 0));   /* 版1320：0凸は守備だけ。1凸：CK・遠いFK。2凸：流れの中でも上がる。3凸：試合を通して・点差に関係なく */
           if (rm && rm !== own9 && true && fx(t, S.ball.x) > (globalThis.__Klmbx ?? 25) && !(rm.uCd > S.t && !(rm.uOn > S.t))) {
