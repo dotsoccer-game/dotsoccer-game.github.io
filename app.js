@@ -3643,7 +3643,7 @@
           else if (a.a === 'capbuf') { seen.capbuf = 1; tactFx.push(['gbuf', q.x, q.y, px0, el, a.d, a.c]); }
           else if (a.a === 'pppass' && el < a.d) { seen.pppass = 1; const pts = [], t1 = Math.min(simT, a.t + a.d); let ended = false, tEnd = 0;
             for (let k2 = 0; k2 <= 16; k2++) { const tt = a.t + (t1 - a.t) * k2 / 16, s2 = k2 === 16 ? st : stateAt(tt), rp = a.r != null ? s2.players[a.r] : null; if (k2 > 2 && ((s2.owner >= 0 && s2.owner !== i) || s2.code || (rp && Math.hypot(rp.x - s2.ball.x, rp.y - s2.ball.y) < 1.6))) { ended = true; tEnd = tt; break; } const bq = P3(s2.ball.x, s2.ball.y, (s2.ball.z || 0) + 0.11); pts.push([bq.x, bq.y]); }
-            if (!ended || simT - tEnd < 0.25) { tactFx.push(['ctrail', pts, el, a.d, px0, a.h ? '255,96,56' : '255,214,70', ended ? simT - tEnd : -1]); if (!ended && a.lx != null) { const g = proj(a.lx, a.ly); tactFx.push(['pptgt', g.x, g.y, px0, el, a.d]); } } }
+            if (!ended || simT - tEnd < 0.25) { tactFx.push(['ctrail', pts, el, a.d, px0, a.cp ? '255,170,60' : a.an ? '140,210,255' : a.h === 2 ? '180,255,90' : a.h ? '255,96,56' : '255,214,70', ended ? simT - tEnd : -1]); if (!ended && a.lx != null) { const g = proj(a.lx, a.ly); tactFx.push(['pptgt', g.x, g.y, px0, el, a.d]); } } }
         } }
       // 翠の起点（むらおか・翠）：発動で翠の輪が弾け、晒している間は足もとへ吸い寄せる翠の輪。食いついた相手へ翠の点線、走り出す仲間に翠の風、裏返す1本は翠の光の尾
       { const LM = actsOf[i]; let gM1 = false, gM2 = false, gM3 = false, gM4 = false, gM5 = false; if (LM) for (let k = LM.length - 1; k >= 0; k--) { const a = LM[k]; if (a.t > simT) continue; if (simT - a.t > 8) break;
@@ -3662,6 +3662,7 @@
             if (a._endT === undefined || a._endT === null) { for (let tt = a.t + 0.15; tt <= Math.min(simT, a.t + a.d); tt += 0.05) { const s2 = stateAt(tt); if ((s2.owner >= 0 && s2.owner !== i) || s2.code) { a._endT = tt; break; } } }   // 版1346：糸が終わる時刻は一度だけ決める（毎回ずれて、チカチカしていた）
             const pts = [], endT9 = a._endT ?? -1, t1 = Math.min(simT, endT9 > 0 ? endT9 : a.t + a.d); for (let k = 0; k <= 18; k++) { const tt = a.t + (t1 - a.t) * k / 18, s2 = (k === 18 && t1 === simT) ? st : stateAt(tt); const bq = P3(s2.ball.x, s2.ball.y, (s2.ball.z || 0) + 0.11); pts.push([bq.x, bq.y]); }
             if (endT9 < 0 || simT - endT9 < 0.35) tactFx.push(['hrthread', pts, endT9 < 0 ? simT - a.t : Math.max(simT - a.t, a.d - 0.45 + (simT - endT9) * 1.3), a.d, r.px || q.s * 2.6, a.lv || 1, a.col || 0]); }   // 版1344：受けた・取られた・切れたら、糸はすぐ消える
+          if (a.a === 'enaura' && simT - a.t < a.d) tactFx.push(['hraura', q.x, q.y, r.px || q.s * 2.6, 1, simT - a.t, a.d, 2]);   // 版1357：ノンストップエンジンのオーラ（黄色）
           if (!gHb && a.a === 'hrbuf' && simT - a.t < a.d && (st.owner === i || simT - a.t < 0.6)) { gHb = true; tactFx.push(['hraura', q.x, q.y, r.px || q.s * 2.6, a.lv || 1, simT - a.t, a.d, a.col || 0]); } } }
       if (window.__showOwner && st.owner === i) {   // 版890：確認用：ボールの持ち主（エンジンの判定）の足もとに、チームの色の太い輪
         ctx.strokeStyle = team === 0 ? '#3fa0ff' : '#ff4d4d'; ctx.lineWidth = 4;
@@ -4032,9 +4033,9 @@
           ctx.beginPath(); ctx.ellipse(x, y, px * (3.5 + u * 5), px * (1.3 + u * 1.9), 0, 0, 7); ctx.stroke(); }
       } else if (f[0] === 'hraura') {   // 針の穴通しの1本を受けた味方：足もとに淡い金の輪と、立ちのぼる光の粒（凸は二重）
         const [, x, y, px0, lv, el, d, col] = f, px = Math.max(2.6, px0), fade = Math.min(1, (d - el) / 0.5), ph = (simT * 1.8) % 1;
-        for (let k = 0; k < (lv >= 2 ? 2 : 1); k++) { const u = (ph + k * 0.5) % 1; ctx.strokeStyle = col ? `rgba(214,190,255,${(1 - u) * 0.9 * fade})` : `rgba(255,246,190,${(1 - u) * 0.9 * fade})`; ctx.lineWidth = Math.max(2.5, px * 0.9);
+        for (let k = 0; k < (lv >= 2 ? 2 : 1); k++) { const u = (ph + k * 0.5) % 1; ctx.strokeStyle = col === 2 ? `rgba(255,214,60,${(1 - u) * 0.9 * fade})` : col ? `rgba(214,190,255,${(1 - u) * 0.9 * fade})` : `rgba(255,246,190,${(1 - u) * 0.9 * fade})`; ctx.lineWidth = Math.max(2.5, px * 0.9);
           ctx.beginPath(); ctx.ellipse(x, y, px * (3.5 + u * 5), px * (1.3 + u * 1.9), 0, 0, 7); ctx.stroke(); }
-        ctx.fillStyle = col ? `rgba(240,230,255,${0.9 * fade})` : `rgba(255,250,220,${0.9 * fade})`; for (let k = 0; k < (lv >= 2 ? 9 : 4); k++) { const u = (simT * 1.2 + k / (lv >= 2 ? 9 : 4)) % 1, sz = px * (lv >= 2 ? 1.2 : 0.8); ctx.fillRect(x + Math.sin(k * 2.1 + simT * 3) * px * (lv >= 2 ? 4.5 : 3) - sz / 2, y - u * px * (lv >= 2 ? 18 : 12), sz, sz); }
+        ctx.fillStyle = col === 2 ? `rgba(255,236,120,${0.9 * fade})` : col ? `rgba(240,230,255,${0.9 * fade})` : `rgba(255,250,220,${0.9 * fade})`; for (let k = 0; k < (lv >= 2 ? 9 : 4); k++) { const u = (simT * 1.2 + k / (lv >= 2 ? 9 : 4)) % 1, sz = px * (lv >= 2 ? 1.2 : 0.8); ctx.fillRect(x + Math.sin(k * 2.1 + simT * 3) * px * (lv >= 2 ? 4.5 : 3) - sz / 2, y - u * px * (lv >= 2 ? 18 : 12), sz, sz); }
         if (lv >= 2) { ctx.fillStyle = `rgba(255,240,170,${0.32 * fade})`; ctx.beginPath(); ctx.ellipse(x, y, px * 8, px * 3, 0, 0, 7); ctx.fill(); }   // 凸：足もとが金色に光る
       } else if (f[0] === 'cdaura') {   // 港の指揮者：拍に合わせて全員の足もとの輪が同時に広がる（凸は二重）。ときどき頭の上に音符
         const [, x, y, top, px0, lv, el, d, ph0] = f, px = Math.max(2.4, px0), fade = Math.min(1, (d - el) / 0.6, el / 0.3), beat = (simT * 1.8) % 1;
