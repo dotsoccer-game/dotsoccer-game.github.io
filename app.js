@@ -300,6 +300,7 @@
         const names = [nm(a)];
         for (let j = k - 1; j >= 0 && a.t - L2[j].t < (a.a === 'uniq' || L2[j].a === 'uniq' ? 0.8 : 0.05); j--) if ((L2[j].a === 'skill' || L2[j].a === 'uniq') && !names.includes(nm(L2[j]))) names.unshift(nm(L2[j]));
         names.sort((x, y) => (y[0] === '【') - (x[0] === '【'));
+        if (names[0][0] === '【' && (a.a === 'uniq' ? D.UNIQ && D.UNIQ[a.k] && D.UNIQ[a.k].dream : L2.some((b2) => b2.a === 'uniq' && Math.abs(b2.t - a.t) < 0.8 && D.UNIQ && D.UNIQ[b2.k] && D.UNIQ[b2.k].dream))) return names.filter((x) => x[0] === '【').join('＋');   /* 版1340：ドリームのスターは、固有スキルの名前だけ（「＋高速ドリブル」などは付けない） */
         return names.join('＋');
       }
     }
