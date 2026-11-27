@@ -2236,7 +2236,7 @@
     try { fix980(save); } catch (_) {}
     try { fix1164(save); } catch (e) { console.error(e); }
     try { for (const p of [...((save.team && save.team.players) || []), ...(save.reserve || [])]) if ((D.LEFTY_UNIQ || []).includes(p.uniq)) p.foot = 'L'; } catch (_) {}
-    try { const RN = { マリノヴィッチ: 'モドリャン', モラレス: 'ラモレス', ヴァレンテ: 'クリスティオ', ソラーノ: 'スアーノ', ハミルトン: 'ベックマン', ベナール: 'ジダール', ケーニヒ: 'カーナー', ベルトラーミ: 'マルディオ', ドゥアルチ: 'カルロッソ' }, RN2 = { スアレス: 'ベラスコ', マルティーニ: 'マルケッティ' };   // 版1355：ドリームの選手の名前を、元になった選手が分かる名前に変えた
+    try { const RN = { マリノヴィッチ: 'モドリャン', モラレス: 'ラモレス', ヴァレンテ: 'クリスティオ', ソラーノ: 'スアーノ', ハミルトン: 'ベックマン', ベナール: 'ジダール', ケーニヒ: 'カーナー', ベルトラーミ: 'マルディオ', ドゥアルチ: 'カルロッソ' }, RN2 = { スアレス: 'ベラスコ', マルティーニ: 'トラヴェルソ' };   // 版1355：ドリームの選手の名前を、元になった選手が分かる名前に変えた
       for (const p of [...((save.team && save.team.players) || []), ...(save.reserve || []), ...(save.bench || [])]) { if (!p || !p.name) continue; if (p.uniq && RN[p.name]) p.name = RN[p.name]; else if (RN2[p.name] && p.gsrc && /madrid|milano/.test(p.gsrc)) p.name = RN2[p.name]; } } catch (_) {}   // 版984：左利きの国内屈指
     try { for (const p of [...((save.team && save.team.players) || []), ...(save.reserve || [])]) if (p.suspend > 0 && !p.susp) p.suspend = 0; syncSuspend(save); } catch (_) {}   // 版835：前の仕組みで残っていた出場停止（年をまたいだものなど）は消す   // 版506：スカウトで来た強い選手を、弱い状態に
     // ランクの幅を変えた（E→Dを短く）：今までの育成ポイントを、同じランクの同じ位置に移しかえる
