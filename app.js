@@ -2409,6 +2409,8 @@
   // いま飛んでいるシュート（2秒以内・ボールがまだ誰のものでもない）と、その技
   function curShot() {
     for (let k = shotsList.length - 1; k >= 0; k--) { const sh = shotsList[k]; if (sh.t > simT + 0.02) continue; if (simT - sh.t > 2.0) return null;
+      if (sh.endT === undefined) { const E9 = (match && match.events) || []; const e9 = E9.find((e) => e.t > sh.t + 0.02 && e.t < sh.t + 2.2 && /^(save|gk|gkblock|block|post|bar|goal|goalkick|corner|throw|foul|out|catch)$/.test(e.type)); sh.endT = e9 ? (e9.tt ?? e9.t) : 99; }
+      if (simT > sh.endT + 0.12) return null;   // 版1344：止められた・外れた・決まったら、シュートのエフェクトはすぐ消す（余韻を残さない）
       if (sh.sk === undefined) { let sk = null, dsh = false; for (const a of actsOf[sh.i] || []) if (a.a === 'skill' && SHOT_SKILL.has(a.k) && a.t <= sh.t + 0.2 && a.t > sh.t - (a.k === 'powerMid' || a.k === 'nearPost' || a.k === 'superLong' ? 2.5 : 0.3)) { if (a.k !== 'dribbleShot') sk = a.k; }
         if (sh.chip) sk = 'lob'; if (sh.knuckle) sk = 'knuckle'; sh.sk = sk;
         { const ga = (actsOf[sh.i] || []).find((a) => a.a === 'uniq' && a.k === 'guren' && Math.abs(a.t - sh.t) < 0.35); sh.guren = ga ? ga.lv || 1 : 0; }
@@ -3657,8 +3659,8 @@
       // 針の穴通し（きのした）：DFのすき間を、ボールが金の糸を引いて抜けていく。受けた味方の足もとに淡い金の輪
       { const L9 = actsOf[i]; let gH = false, gHb = false; if (L9) for (let k = L9.length - 1; k >= 0; k--) { const a = L9[k]; if (a.t > simT) continue; if (simT - a.t > 4) break;
           if (!gH && a.a === 'hrpass' && simT - a.t < a.d) { gH = true;   // ボールが実際に通った道すじ（浮き球の弧・曲がりもそのまま）を糸にする
-            const pts = [], t1 = Math.min(simT, a.t + a.d); for (let k = 0; k <= 18; k++) { const tt = a.t + (t1 - a.t) * k / 18, s2 = k === 18 ? st : stateAt(tt); if (k > 2 && s2.owner >= 0 && s2.owner !== i) { if (pts.length) { const bq = P3(s2.ball.x, s2.ball.y, (s2.ball.z || 0) + 0.11); pts.push([bq.x, bq.y]); } break; } const bq = P3(s2.ball.x, s2.ball.y, (s2.ball.z || 0) + 0.11); pts.push([bq.x, bq.y]); }
-            tactFx.push(['hrthread', pts, simT - a.t, a.d, r.px || q.s * 2.6, a.lv || 1, a.col || 0]); }
+            const pts = [], t1 = Math.min(simT, a.t + a.d); let endT9 = -1; for (let k = 0; k <= 18; k++) { const tt = a.t + (t1 - a.t) * k / 18, s2 = k === 18 ? st : stateAt(tt); if (k > 2 && ((s2.owner >= 0 && s2.owner !== i) || s2.code)) { endT9 = tt; if (pts.length) { const bq = P3(s2.ball.x, s2.ball.y, (s2.ball.z || 0) + 0.11); pts.push([bq.x, bq.y]); } break; } const bq = P3(s2.ball.x, s2.ball.y, (s2.ball.z || 0) + 0.11); pts.push([bq.x, bq.y]); }
+            if (endT9 < 0 || simT - endT9 < 0.35) tactFx.push(['hrthread', pts, endT9 < 0 ? simT - a.t : Math.max(simT - a.t, a.d - 0.45 + (simT - endT9) * 1.3), a.d, r.px || q.s * 2.6, a.lv || 1, a.col || 0]); }   // 版1344：受けた・取られた・切れたら、糸はすぐ消える
           if (!gHb && a.a === 'hrbuf' && simT - a.t < a.d && (st.owner === i || simT - a.t < 0.6)) { gHb = true; tactFx.push(['hraura', q.x, q.y, r.px || q.s * 2.6, a.lv || 1, simT - a.t, a.d, a.col || 0]); } } }
       if (window.__showOwner && st.owner === i) {   // 版890：確認用：ボールの持ち主（エンジンの判定）の足もとに、チームの色の太い輪
         ctx.strokeStyle = team === 0 ? '#3fa0ff' : '#ff4d4d'; ctx.lineWidth = 4;
