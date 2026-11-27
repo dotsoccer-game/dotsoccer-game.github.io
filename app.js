@@ -298,7 +298,7 @@
         // 固有スキルは【】で囲む（ほかの技と同時なら「【紅蓮の牙】＋強烈ミドル」）
         const nm = (x) => (x.a === 'uniq' ? (x.nm ? `【${x.nm}】` : `【${(D.UNIQ && D.UNIQ[x.k] && D.UNIQ[x.k].name) || x.k}${x.lv >= 2 ? '・覚醒' : ''}】`) : x.k === 'sharpCurve' ? '【シャープカーブ】' : SKILL_NAME[x.k] || x.k);   /* 版1332：シャープカーブは、ゼログラビティと同じ色 */   // 凸で強化した固有スキルは「・覚醒」
         const names = [nm(a)];
-        for (let j = k - 1; j >= 0 && a.t - L2[j].t < (a.a === 'uniq' || L2[j].a === 'uniq' ? 0.8 : 0.05); j--) if ((L2[j].a === 'skill' || L2[j].a === 'uniq') && !names.includes(nm(L2[j]))) names.unshift(nm(L2[j]));
+        for (let j = k - 1; j >= 0 && a.t - L2[j].t < (a.a === 'uniq' || L2[j].a === 'uniq' ? 0.8 : 0.05); j--) if ((L2[j].a === 'skill' || L2[j].a === 'uniq') && L2[j].nm !== 'ロイヤルタッチ' && !names.includes(nm(L2[j]))) names.unshift(nm(L2[j]));
         names.sort((x, y) => (y[0] === '【') - (x[0] === '【'));
         if (names[0][0] === '【' && (a.a === 'uniq' ? D.UNIQ && D.UNIQ[a.k] && D.UNIQ[a.k].dream : L2.some((b2) => b2.a === 'uniq' && Math.abs(b2.t - a.t) < 0.8 && D.UNIQ && D.UNIQ[b2.k] && D.UNIQ[b2.k].dream))) return names.filter((x) => x[0] === '【').join('＋');   /* 版1340：ドリームのスターは、固有スキルの名前だけ（「＋高速ドリブル」などは付けない） */
         return names.join('＋');
@@ -3377,8 +3377,8 @@
           switch (ac.k) {
             case 'doubleTouch': { // 実写を写す：前を向いたまま腰を落とし、インで逆足へ・逆足でさらに横へ（体ごと横へずれる）→ 斜め前へ加速
               const fA = Math.atan2(ac.fy, ac.fx);
-              if (u < 0.6) dtFx.push([p.x, p.y, ac.dx, ac.dy, ac.fx, ac.fy, u, q.s]);   // 横へずれるボールの残像
-              if (u > 0.12 && u < 0.75) { const md = u < 0.45 ? [ac.dx, ac.dy] : [ac.fx * 0.75 + ac.dx * 0.5, ac.fy * 0.75 + ac.dy * 0.5], m2 = proj(p.x + md[0], p.y + md[1]), ml = Math.hypot(m2.x - q.x, m2.y - q.y) || 1; ghost = [(m2.x - q.x) / ml, (m2.y - q.y) / ml]; speedFx.push([q.x, q.y, 2.6 * q.s, ghost[0], ghost[1]]); }   // 体ごと横へずれる：高速ドリブルと同じ風の線と、体の残像
+              if (u < 0.6 && !ac.rt) dtFx.push([p.x, p.y, ac.dx, ac.dy, ac.fx, ac.fy, u, q.s]);   // 版1345：ロイヤルタッチは本物のボールが一緒に動くので、ボールの残像は出さない（チカチカして見えた）   // 横へずれるボールの残像
+              if (u > 0.12 && u < 0.75 && !ac.rt) { const md = u < 0.45 ? [ac.dx, ac.dy] : [ac.fx * 0.75 + ac.dx * 0.5, ac.fy * 0.75 + ac.dy * 0.5], m2 = proj(p.x + md[0], p.y + md[1]), ml = Math.hypot(m2.x - q.x, m2.y - q.y) || 1; ghost = [(m2.x - q.x) / ml, (m2.y - q.y) / ml]; speedFx.push([q.x, q.y, 2.6 * q.s, ghost[0], ghost[1]]); }   // 体ごと横へずれる：高速ドリブルと同じ風の線と、体の残像
               if (u < 0.12) { dmFacing = fA; pokePose = 'crouch'; }
               else if (u < 0.28) { dmFacing = fA; pokePose = 'sole'; tilt = sx * 0.12; }
               else if (u < 0.45) { dmFacing = fA; pokePose = 'crouch'; tilt = sx * 0.2; dust = true; }
