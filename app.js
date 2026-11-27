@@ -1947,6 +1947,12 @@
       if (sfx === 'powerMid') {   // 太い弾道（オレンジから白へ）と、蹴った瞬間の衝撃の輪
         const n = Math.min(P.length, 9); for (let k = 1; k < n; k++) { const a = 1 - k / n, A = P[P.length - k], B2 = P[P.length - k - 1] || A; ctx.strokeStyle = `rgba(255,${150 + 100 * a | 0},${60 + 180 * a | 0},${0.85 * a})`; ctx.lineWidth = r * (0.5 + 1.2 * a); ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B2[0], B2[1]); ctx.stroke(); }
         if (age < 0.25) { const u = age / 0.25, Q = P[0], R0 = r * (1.5 + u * 6); ctx.globalAlpha = 1 - u; ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.ellipse(Q[0], Q[1], R0, R0 * 0.45, 0, 0, 7); ctx.stroke(); ctx.strokeStyle = '#ffe9a0'; for (let k = 0; k < 10; k++) { const a2 = k / 10 * Math.PI * 2; ctx.beginPath(); ctx.moveTo(Q[0] + Math.cos(a2) * R0 * 1.1, Q[1] + Math.sin(a2) * R0 * 0.5); ctx.lineTo(Q[0] + Math.cos(a2) * R0 * 1.7, Q[1] + Math.sin(a2) * R0 * 0.8); ctx.stroke(); } }
+      } else if (sfx === 'thunder') {   // 版1360：サンダーボルト：ボールの通り道に、ギザギザの稲妻（黄と白）が走り、枝分かれして明滅する
+        const n = Math.min(P.length, 12), fl = (Math.sin(simT * 90) > -0.3) ? 1 : 0.45, pts = [];
+        for (let k = 0; k < n; k++) { const Q = P[P.length - 1 - k], j = (k === 0 ? 0 : 1) * r * 1.6 * Math.sin(k * 2.7 + Math.floor(simT * 24) * 1.9); pts.push([Q[0] + j * 0.6, Q[1] + j]); }
+        for (const [w, col] of [[r * 1.8, `rgba(255,220,40,${0.35 * fl})`], [r * 0.9, `rgba(255,240,120,${0.85 * fl})`], [Math.max(1.5, r * 0.35), `rgba(255,255,255,${fl})`]]) { ctx.strokeStyle = col; ctx.lineWidth = w; ctx.lineJoin = 'miter'; ctx.beginPath(); pts.forEach((q, k) => (k ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]))); ctx.stroke(); }
+        for (let k = 2; k < pts.length; k += 3) { const q = pts[k], s2 = Math.sin(k * 5.1 + Math.floor(simT * 20)) > 0 ? 1 : -1; ctx.strokeStyle = `rgba(255,245,150,${0.8 * fl})`; ctx.lineWidth = Math.max(1, r * 0.3); ctx.beginPath(); ctx.moveTo(q[0], q[1]); ctx.lineTo(q[0] + s2 * r * 1.6, q[1] - r * 2.2); ctx.lineTo(q[0] + s2 * r * 2.6, q[1] - r * 1.4); ctx.stroke(); }
+        if (age < 0.25) { const u = age / 0.25, Q = P[0], R0 = r * (1.5 + u * 7); ctx.globalAlpha = 1 - u; ctx.strokeStyle = '#ffe040'; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(Q[0], Q[1], R0, R0 * 0.45, 0, 0, 7); ctx.stroke(); ctx.globalAlpha = 1; }
       } else if (sfx === 'nearPost') {   // 蹴った所からボールまで、一直線の鋭い線
         const A = P[Math.max(0, P.length - 12)], B2 = P[P.length - 1]; ctx.globalAlpha = 0.5; ctx.strokeStyle = 'rgba(150,220,255,1)'; ctx.lineWidth = r * 1.1; ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B2[0], B2[1]); ctx.stroke(); ctx.globalAlpha = 0.95; ctx.strokeStyle = '#fff'; ctx.lineWidth = Math.max(1.5, r * 0.35); ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B2[0], B2[1]); ctx.stroke();
       } else if (sfx === 'dribbleShot') {   // 走りの勢いのまま：白い残像
@@ -2408,14 +2414,14 @@
   }
   function mdStackAt(team) { if (!match) return 0; if (mdFiresM !== match) { mdFiresM = match; mdFires = [[], []]; for (const a of match.actions || []) if (a.a === 'uniq' && a.k === 'midori') mdFires[a.i < 11 ? 0 : 1].push(a.t); } const L0 = mdFires[team] || []; let n = 0; for (const t of L0) if (t <= simT) n++; return n; }
   let ballOwned = false;   // だれかがボールを持っている（シュートのエフェクトは止める）
-  const SHOT_FX = { powerMid: 1, nearPost: 1 };   // ドリブルシュートは標準の打ち方になったので、エフェクトなし   // 無回転はエフェクトなし（ボールそのものがブレる）   // コントロールショットはエフェクトなし（弧は出さない）
+  const SHOT_FX = { powerMid: 1, nearPost: 1, thunder: 1 };   // ドリブルシュートは標準の打ち方になったので、エフェクトなし   // 無回転はエフェクトなし（ボールそのものがブレる）   // コントロールショットはエフェクトなし（弧は出さない）
   // いま飛んでいるシュート（2秒以内・ボールがまだ誰のものでもない）と、その技
   function curShot() {
     for (let k = shotsList.length - 1; k >= 0; k--) { const sh = shotsList[k]; if (sh.t > simT + 0.02) continue; if (simT - sh.t > 2.0) return null;
       if (sh.endT === undefined) { const E9 = (match && match.events) || []; const e9 = E9.find((e) => e.t > sh.t + 0.02 && e.t < sh.t + 2.2 && /^(save|gk|gkblock|block|post|bar|goal|goalkick|corner|throw|foul|out|catch)$/.test(e.type)); sh.endT = e9 ? (e9.tt ?? e9.t) : 99; }
       if (simT > sh.endT + 0.12) return null;   // 版1344：止められた・外れた・決まったら、シュートのエフェクトはすぐ消す（余韻を残さない）
       if (sh.sk === undefined) { let sk = null, dsh = false; for (const a of actsOf[sh.i] || []) if (a.a === 'skill' && SHOT_SKILL.has(a.k) && a.t <= sh.t + 0.2 && a.t > sh.t - (a.k === 'powerMid' || a.k === 'nearPost' || a.k === 'superLong' ? 2.5 : 0.3)) { if (a.k !== 'dribbleShot') sk = a.k; }
-        if (sh.chip) sk = 'lob'; if (sh.knuckle) sk = 'knuckle'; if (!sk && (actsOf[sh.i] || []).some((a) => (a.a === 'thb' || a.a === 'nsm') && Math.abs(a.t - sh.t) < 0.3)) sk = 'powerMid'; sh.sk = sk;   /* 版1359：サンダーボルト・ノンストップミドルにも、強烈ミドルの太い弾道 */
+        if (sh.chip) sk = 'lob'; if (sh.knuckle) sk = 'knuckle'; if (!sk) { const ta = (actsOf[sh.i] || []).find((a) => (a.a === 'thb' || a.a === 'nsm') && Math.abs(a.t - sh.t) < 0.3); if (ta) sk = ta.a === 'thb' ? 'thunder' : 'powerMid'; } sh.sk = sk;   /* 版1359：サンダーボルト・ノンストップミドルにも、強烈ミドルの太い弾道 */
         { const ga = (actsOf[sh.i] || []).find((a) => a.a === 'uniq' && a.k === 'guren' && Math.abs(a.t - sh.t) < 0.35); sh.guren = ga ? ga.lv || 1 : 0; }
         { const ra = (actsOf[sh.i] || []).find((a) => a.a === 'uniq' && a.k === 'rocket' && Math.abs(a.t - sh.t) < 0.45); sh.rocket = ra ? (ra.nm === 'ロケットナックル' ? 2 : 1) : 0;
           if (!sh.rocket) { const ya = (actsOf[sh.i] || []).find((a) => a.a === 'uniq' && ((a.k === 'royal' && a.nm === 'ロイヤルミドル') || (a.k === 'pinpoint' && a.nm === 'ピンポイントFK')) && Math.abs(a.t - sh.t) < 0.7); if (ya) sh.rocket = ya.k === 'royal' ? 3 : 4; } } }   // 版1343：ロイヤルミドル（紫の光の尾）・ピンポイントFK（赤と金の尾）   // 紅蓮の牙：赤い風   // 版1338：ロケット（ショット・ナックル・スカイロケットの頭）：白く光る噴射の尾
@@ -3560,7 +3566,7 @@
           if (!gT && a.a === 'taiko' && simT - a.t < 0.75) { gT = true; defFx.push(['drum', q.x, q.y, px5, (simT - a.t) / 0.75, a.lv || 1]); }   // 祭り太鼓の壁：ドン！
           if (!gW && a.a === 'uniq' && a.k === 'ikari' && simT - a.t < 2.0) { gW = true; defFx.push(['anchor', q.x, q.y, px5, r.top, (simT - a.t) / 2.0, a.lv || 1]); }   // 白亜の城壁：白いオーラ
           if (!gK && a.a === 'uniq' && a.k === 'sakurajima' && simT - a.t < 1.0) { gK = true; defFx.push(['wave', q.x, q.y, px5, (simT - a.t) / 1.0]); }
-          if (a.a === 'sjline' && simT - a.t < a.d && (!sjLine || sjLine.t < a.t)) sjLine = { t: a.t, u: (simT - a.t) / a.d, team: a.dt, lv: a.lv || 1 };
+          if (a.a === 'sjline' && simT - a.t < a.d && (!sjLine || sjLine.t < a.t)) sjLine = { t: a.t, u: (simT - a.t) / a.d, team: a.dt, lv: a.lv || 1, pf: a.pf || 0 };
         } }
       // 影縫い：続いている間（最長75秒）ずっと、ひがしと狙った相手の影を糸でつなぐ（離れていても、25m以内なら糸が伸びる）
       { const L7 = actsOf[i]; if (L7) for (let k = L7.length - 1; k >= 0; k--) { const a = L7[k]; if (a.t > simT) continue; if (simT - a.t > 130) break;
@@ -3687,14 +3693,14 @@
       xs5.sort((a, b) => (toR5 ? b - a : a - b)); const lx5 = xs5[1], al5 = Math.min(1, (1 - sjLine.u) * 2.2) * Math.min(1, sjLine.u * 6 + 0.2);
       const a5 = proj(lx5, 0), b5 = proj(lx5, 68);
       ctx.save(); ctx.lineCap = 'round'; const L5v = sjLine.lv >= 2;
-      ctx.strokeStyle = `rgba(124,255,196,${0.28 * al5})`; ctx.lineWidth = 22; ctx.beginPath(); ctx.moveTo(a5.x, a5.y); ctx.lineTo(b5.x, b5.y); ctx.stroke();
-      ctx.strokeStyle = `rgba(124,255,196,${0.55 * al5})`; ctx.lineWidth = 9; ctx.beginPath(); ctx.moveTo(a5.x, a5.y); ctx.lineTo(b5.x, b5.y); ctx.stroke();
-      ctx.strokeStyle = `rgba(232,255,246,${0.95 * al5})`; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(a5.x, a5.y); ctx.lineTo(b5.x, b5.y); ctx.stroke();
+      ctx.strokeStyle = `rgba(${sjLine.pf ? '154,208,255' : '124,255,196'},${0.28 * al5})`; ctx.lineWidth = 22; ctx.beginPath(); ctx.moveTo(a5.x, a5.y); ctx.lineTo(b5.x, b5.y); ctx.stroke();
+      ctx.strokeStyle = `rgba(${sjLine.pf ? '154,208,255' : '124,255,196'},${0.55 * al5})`; ctx.lineWidth = 9; ctx.beginPath(); ctx.moveTo(a5.x, a5.y); ctx.lineTo(b5.x, b5.y); ctx.stroke();
+      ctx.strokeStyle = `rgba(${sjLine.pf ? '238,247,255' : '232,255,246'},${0.95 * al5})`; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(a5.x, a5.y); ctx.lineTo(b5.x, b5.y); ctx.stroke();
       // 光の壁の上へ立ちのぼる粒
-      for (let k5 = 0, n5 = L5v ? 22 : 14; k5 < n5; k5++) { const u5 = (k5 + 0.5) / n5, ph5 = (simT * 1.7 + k5 * 0.37) % 1, xx = a5.x + (b5.x - a5.x) * u5, yy = a5.y + (b5.y - a5.y) * u5 - ph5 * (L5v ? 44 : 34); ctx.fillStyle = `rgba(200,255,232,${(1 - ph5) * 0.9 * al5})`; ctx.fillRect(xx - 2, yy - 2, 4, 4); }
+      for (let k5 = 0, n5 = L5v ? 22 : 14; k5 < n5; k5++) { const u5 = (k5 + 0.5) / n5, ph5 = (simT * 1.7 + k5 * 0.37) % 1, xx = a5.x + (b5.x - a5.x) * u5, yy = a5.y + (b5.y - a5.y) * u5 - ph5 * (L5v ? 44 : 34); ctx.fillStyle = `rgba(${sjLine.pf ? '206,230,255' : '200,255,232'},${(1 - ph5) * 0.9 * al5})`; ctx.fillRect(xx - 2, yy - 2, 4, 4); }
       // 押し上げるDFの足もとに、ミントのスピード線
       for (let k5 = 1; k5 < 11; k5++) { const pp = st.players[base5 + k5]; if (!pp || (pp.sp || 0) < 2.5) continue; const qq = proj(pp.x, pp.y), dir5 = toR5 ? 1 : -1;
-        for (let j5 = 0; j5 < 3; j5++) { const o5 = proj(pp.x + dir5 * (0.8 + j5 * 0.7), pp.y + (j5 - 1) * 0.35); ctx.strokeStyle = `rgba(124,255,196,${0.75 * al5 * (1 - j5 * 0.25)})`; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(o5.x, o5.y - 4); ctx.lineTo(o5.x + (o5.x - qq.x) * 0.6, o5.y - 4 + (o5.y - qq.y) * 0.6); ctx.stroke(); } }
+        for (let j5 = 0; j5 < 3; j5++) { const o5 = proj(pp.x + dir5 * (0.8 + j5 * 0.7), pp.y + (j5 - 1) * 0.35); ctx.strokeStyle = `rgba(${sjLine.pf ? '154,208,255' : '124,255,196'},${0.75 * al5 * (1 - j5 * 0.25)})`; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(o5.x, o5.y - 4); ctx.lineTo(o5.x + (o5.x - qq.x) * 0.6, o5.y - 4 + (o5.y - qq.y) * 0.6); ctx.stroke(); } }
       ctx.restore(); }
     defFx.forEach((f) => {
       if (f[0] === 'trail') {   // 捨て身の守護神：深紅の残像と風
