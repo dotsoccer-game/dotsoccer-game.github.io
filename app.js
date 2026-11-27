@@ -3659,7 +3659,8 @@
       // 針の穴通し（きのした）：DFのすき間を、ボールが金の糸を引いて抜けていく。受けた味方の足もとに淡い金の輪
       { const L9 = actsOf[i]; let gH = false, gHb = false; if (L9) for (let k = L9.length - 1; k >= 0; k--) { const a = L9[k]; if (a.t > simT) continue; if (simT - a.t > 4) break;
           if (!gH && a.a === 'hrpass' && simT - a.t < a.d) { gH = true;   // ボールが実際に通った道すじ（浮き球の弧・曲がりもそのまま）を糸にする
-            const pts = [], t1 = Math.min(simT, a.t + a.d); let endT9 = -1; for (let k = 0; k <= 18; k++) { const tt = a.t + (t1 - a.t) * k / 18, s2 = k === 18 ? st : stateAt(tt); if (k > 2 && ((s2.owner >= 0 && s2.owner !== i) || s2.code)) { endT9 = tt; if (pts.length) { const bq = P3(s2.ball.x, s2.ball.y, (s2.ball.z || 0) + 0.11); pts.push([bq.x, bq.y]); } break; } const bq = P3(s2.ball.x, s2.ball.y, (s2.ball.z || 0) + 0.11); pts.push([bq.x, bq.y]); }
+            if (a._endT === undefined || a._endT === null) { for (let tt = a.t + 0.15; tt <= Math.min(simT, a.t + a.d); tt += 0.05) { const s2 = stateAt(tt); if ((s2.owner >= 0 && s2.owner !== i) || s2.code) { a._endT = tt; break; } } }   // 版1346：糸が終わる時刻は一度だけ決める（毎回ずれて、チカチカしていた）
+            const pts = [], endT9 = a._endT ?? -1, t1 = Math.min(simT, endT9 > 0 ? endT9 : a.t + a.d); for (let k = 0; k <= 18; k++) { const tt = a.t + (t1 - a.t) * k / 18, s2 = (k === 18 && t1 === simT) ? st : stateAt(tt); const bq = P3(s2.ball.x, s2.ball.y, (s2.ball.z || 0) + 0.11); pts.push([bq.x, bq.y]); }
             if (endT9 < 0 || simT - endT9 < 0.35) tactFx.push(['hrthread', pts, endT9 < 0 ? simT - a.t : Math.max(simT - a.t, a.d - 0.45 + (simT - endT9) * 1.3), a.d, r.px || q.s * 2.6, a.lv || 1, a.col || 0]); }   // 版1344：受けた・取られた・切れたら、糸はすぐ消える
           if (!gHb && a.a === 'hrbuf' && simT - a.t < a.d && (st.owner === i || simT - a.t < 0.6)) { gHb = true; tactFx.push(['hraura', q.x, q.y, r.px || q.s * 2.6, a.lv || 1, simT - a.t, a.d, a.col || 0]); } } }
       if (window.__showOwner && st.owner === i) {   // 版890：確認用：ボールの持ち主（エンジンの判定）の足もとに、チームの色の太い輪
