@@ -1915,8 +1915,8 @@
       const RP = shs.rpath.map((w) => { const v = P3(w[0], w[1], w[2] + 0.11); return [v.x, v.y - r * 0.6]; }), n = Math.min(RP.length, 16), wob = shs.rocket === 2;
       ctx.save(); ctx.lineCap = 'round';
       for (let k = 1; k < n; k++) { const a = 1 - k / n, A = RP[RP.length - k], B2 = RP[RP.length - k - 1] || A, jx = wob ? Math.sin((simT * 40) + k) * r * 0.5 * a : 0, w0 = r * (0.5 + 1.6 * a);
-        ctx.strokeStyle = `rgba(255,${120 + 80 * a | 0},40,${0.55 * a})`; ctx.lineWidth = w0 * 1.6; ctx.beginPath(); ctx.moveTo(A[0] + jx, A[1]); ctx.lineTo(B2[0] + jx, B2[1]); ctx.stroke();
-        ctx.strokeStyle = `rgba(${200 + 55 * a | 0},${230 + 25 * a | 0},255,${0.9 * a})`; ctx.lineWidth = w0 * 0.6; ctx.beginPath(); ctx.moveTo(A[0] + jx, A[1]); ctx.lineTo(B2[0] + jx, B2[1]); ctx.stroke(); }
+        ctx.strokeStyle = shs.rocket === 3 ? `rgba(${140 + 40 * a | 0},90,255,${0.55 * a})` : shs.rocket === 4 ? `rgba(220,${40 + 60 * a | 0},40,${0.6 * a})` : `rgba(255,${120 + 80 * a | 0},40,${0.55 * a})`; ctx.lineWidth = w0 * 1.6; ctx.beginPath(); ctx.moveTo(A[0] + jx, A[1]); ctx.lineTo(B2[0] + jx, B2[1]); ctx.stroke();
+        ctx.strokeStyle = shs.rocket === 3 ? `rgba(244,236,255,${0.9 * a})` : shs.rocket === 4 ? `rgba(255,${210 + 30 * a | 0},58,${0.95 * a})` : `rgba(${200 + 55 * a | 0},${230 + 25 * a | 0},255,${0.9 * a})`; ctx.lineWidth = w0 * 0.6; ctx.beginPath(); ctx.moveTo(A[0] + jx, A[1]); ctx.lineTo(B2[0] + jx, B2[1]); ctx.stroke(); }
       { const L0 = RP[RP.length - 1]; ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.beginPath(); ctx.arc(L0[0], L0[1], r * 1.5, 0, 7); ctx.fill(); }
       ctx.restore(); }
     if (sfx || red) {
@@ -2412,7 +2412,8 @@
       if (sh.sk === undefined) { let sk = null, dsh = false; for (const a of actsOf[sh.i] || []) if (a.a === 'skill' && SHOT_SKILL.has(a.k) && a.t <= sh.t + 0.2 && a.t > sh.t - (a.k === 'powerMid' || a.k === 'nearPost' || a.k === 'superLong' ? 2.5 : 0.3)) { if (a.k !== 'dribbleShot') sk = a.k; }
         if (sh.chip) sk = 'lob'; if (sh.knuckle) sk = 'knuckle'; sh.sk = sk;
         { const ga = (actsOf[sh.i] || []).find((a) => a.a === 'uniq' && a.k === 'guren' && Math.abs(a.t - sh.t) < 0.35); sh.guren = ga ? ga.lv || 1 : 0; }
-        { const ra = (actsOf[sh.i] || []).find((a) => a.a === 'uniq' && a.k === 'rocket' && Math.abs(a.t - sh.t) < 0.45); sh.rocket = ra ? (ra.nm === 'ロケットナックル' ? 2 : 1) : 0; } }   // 紅蓮の牙：赤い風   // 版1338：ロケット（ショット・ナックル・スカイロケットの頭）：白く光る噴射の尾
+        { const ra = (actsOf[sh.i] || []).find((a) => a.a === 'uniq' && a.k === 'rocket' && Math.abs(a.t - sh.t) < 0.45); sh.rocket = ra ? (ra.nm === 'ロケットナックル' ? 2 : 1) : 0;
+          if (!sh.rocket) { const ya = (actsOf[sh.i] || []).find((a) => a.a === 'uniq' && ((a.k === 'royal' && a.nm === 'ロイヤルミドル') || (a.k === 'pinpoint' && a.nm === 'ピンポイントFK')) && Math.abs(a.t - sh.t) < 0.7); if (ya) sh.rocket = ya.k === 'royal' ? 3 : 4; } } }   // 版1343：ロイヤルミドル（紫の光の尾）・ピンポイントFK（赤と金の尾）   // 紅蓮の牙：赤い風   // 版1338：ロケット（ショット・ナックル・スカイロケットの頭）：白く光る噴射の尾
       return sh; }
     return null;
   }
@@ -3640,7 +3641,7 @@
           else if (a.a === 'capbuf') { seen.capbuf = 1; tactFx.push(['gbuf', q.x, q.y, px0, el, a.d, a.c]); }
           else if (a.a === 'pppass' && el < a.d) { seen.pppass = 1; const pts = [], t1 = Math.min(simT, a.t + a.d); let ended = false, tEnd = 0;
             for (let k2 = 0; k2 <= 16; k2++) { const tt = a.t + (t1 - a.t) * k2 / 16, s2 = k2 === 16 ? st : stateAt(tt), rp = a.r != null ? s2.players[a.r] : null; if (k2 > 2 && ((s2.owner >= 0 && s2.owner !== i) || s2.code || (rp && Math.hypot(rp.x - s2.ball.x, rp.y - s2.ball.y) < 1.6))) { ended = true; tEnd = tt; break; } const bq = P3(s2.ball.x, s2.ball.y, (s2.ball.z || 0) + 0.11); pts.push([bq.x, bq.y]); }
-            if (!ended || simT - tEnd < 0.25) { tactFx.push(['ctrail', pts, el, a.d, px0, '255,214,70', ended ? simT - tEnd : -1]); if (!ended && a.lx != null) { const g = proj(a.lx, a.ly); tactFx.push(['pptgt', g.x, g.y, px0, el, a.d]); } } }
+            if (!ended || simT - tEnd < 0.25) { tactFx.push(['ctrail', pts, el, a.d, px0, a.h ? '255,96,56' : '255,214,70', ended ? simT - tEnd : -1]); if (!ended && a.lx != null) { const g = proj(a.lx, a.ly); tactFx.push(['pptgt', g.x, g.y, px0, el, a.d]); } } }
         } }
       // 翠の起点（むらおか・翠）：発動で翠の輪が弾け、晒している間は足もとへ吸い寄せる翠の輪。食いついた相手へ翠の点線、走り出す仲間に翠の風、裏返す1本は翠の光の尾
       { const LM = actsOf[i]; let gM1 = false, gM2 = false, gM3 = false, gM4 = false, gM5 = false; if (LM) for (let k = LM.length - 1; k >= 0; k--) { const a = LM[k]; if (a.t > simT) continue; if (simT - a.t > 8) break;
@@ -3657,8 +3658,8 @@
       { const L9 = actsOf[i]; let gH = false, gHb = false; if (L9) for (let k = L9.length - 1; k >= 0; k--) { const a = L9[k]; if (a.t > simT) continue; if (simT - a.t > 4) break;
           if (!gH && a.a === 'hrpass' && simT - a.t < a.d) { gH = true;   // ボールが実際に通った道すじ（浮き球の弧・曲がりもそのまま）を糸にする
             const pts = [], t1 = Math.min(simT, a.t + a.d); for (let k = 0; k <= 18; k++) { const tt = a.t + (t1 - a.t) * k / 18, s2 = k === 18 ? st : stateAt(tt); if (k > 2 && s2.owner >= 0 && s2.owner !== i) { if (pts.length) { const bq = P3(s2.ball.x, s2.ball.y, (s2.ball.z || 0) + 0.11); pts.push([bq.x, bq.y]); } break; } const bq = P3(s2.ball.x, s2.ball.y, (s2.ball.z || 0) + 0.11); pts.push([bq.x, bq.y]); }
-            tactFx.push(['hrthread', pts, simT - a.t, a.d, r.px || q.s * 2.6, a.lv || 1]); }
-          if (!gHb && a.a === 'hrbuf' && simT - a.t < a.d && (st.owner === i || simT - a.t < 0.6)) { gHb = true; tactFx.push(['hraura', q.x, q.y, r.px || q.s * 2.6, a.lv || 1, simT - a.t, a.d]); } } }
+            tactFx.push(['hrthread', pts, simT - a.t, a.d, r.px || q.s * 2.6, a.lv || 1, a.col || 0]); }
+          if (!gHb && a.a === 'hrbuf' && simT - a.t < a.d && (st.owner === i || simT - a.t < 0.6)) { gHb = true; tactFx.push(['hraura', q.x, q.y, r.px || q.s * 2.6, a.lv || 1, simT - a.t, a.d, a.col || 0]); } } }
       if (window.__showOwner && st.owner === i) {   // 版890：確認用：ボールの持ち主（エンジンの判定）の足もとに、チームの色の太い輪
         ctx.strokeStyle = team === 0 ? '#3fa0ff' : '#ff4d4d'; ctx.lineWidth = 4;
         ctx.beginPath(); ctx.ellipse(q.x, q.y, 7.5 * r.px, 2.6 * r.px, 0, 0, Math.PI * 2); ctx.stroke();
@@ -3846,7 +3847,7 @@
         ctx.fillStyle = `rgba(255,214,70,${al})`; ctx.strokeStyle = `rgba(90,60,10,${al})`; ctx.lineWidth = 2;
         ctx.beginPath(); ctx.moveTo(tx + Math.cos(ang) * px, ty + Math.sin(ang) * px); ctx.lineTo(tx - Math.cos(ang - 0.55) * hl, ty - Math.sin(ang - 0.55) * hl); ctx.lineTo(tx - Math.cos(ang + 0.55) * hl, ty - Math.sin(ang + 0.55) * hl); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
       } else if (f[0] === 'hrthread') {   // 針の穴通し：ボールが通った道すじに金の糸。まわりに縫い目のように絡む細い糸、糸の先（ボール）で針がきらり
-        const [, pts, el, d, px0, lv] = f, px = Math.max(2.4, px0), al = Math.max(0, Math.min(1, (d - el) / 0.45, el / 0.05));
+        const [, pts, el, d, px0, lv, col] = f, px = Math.max(2.4, px0), al = Math.max(0, Math.min(1, (d - el) / 0.45, el / 0.05));
         if (pts.length >= 2) {
           const path = (w, c, off) => { ctx.strokeStyle = c; ctx.lineWidth = w; ctx.beginPath(); let acc = 0;
             for (let k = 0; k < pts.length; k++) { let [x, y] = pts[k];
@@ -3854,14 +3855,14 @@
               if (k) ctx.lineTo(x, y); else ctx.moveTo(x, y); } ctx.stroke(); };
           ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.globalAlpha = al;
           if (lv >= 2) { path(px * 7, 'rgba(255,236,150,0.22)'); path(px * 4.2, 'rgba(255,246,200,0.35)'); }   // 凸：糸のまわりがまぶしく光る
-          path(px * 2.6, 'rgba(74,56,6,0.55)'); path(px * 1.4, lv >= 2 ? 'rgba(255,240,160,1)' : 'rgba(255,226,110,0.95)'); path(px * 0.5, '#fffdf0');
-          path(px * 0.55, 'rgba(255,248,200,0.95)', { amp: 1.5, ph: -simT * 9 });   // 縫い目のように絡みつく細い糸
+          path(px * 2.6, col ? 'rgba(42,16,80,0.55)' : 'rgba(74,56,6,0.55)'); path(px * 1.4, col ? 'rgba(201,166,255,0.95)' : lv >= 2 ? 'rgba(255,240,160,1)' : 'rgba(255,226,110,0.95)'); path(px * 0.5, col ? '#f4ecff' : '#fffdf0');   // 版1343：ロイヤルスルーパスはベナールの紫
+          path(px * 0.55, col ? 'rgba(226,208,255,0.95)' : 'rgba(255,248,200,0.95)', { amp: 1.5, ph: -simT * 9 });   // 縫い目のように絡みつく細い糸
           if (lv >= 2) path(px * 0.5, 'rgba(255,236,160,0.9)', { amp: 1.5, ph: -simT * 9 + Math.PI });
           if (lv >= 2) { ctx.fillStyle = '#ffffff'; for (let k = 0; k < 14; k++) { const u = (k / 14 + el * 2.4) % 1, i0 = Math.min(pts.length - 1, Math.floor(u * (pts.length - 1))), [sx, sy] = pts[i0], o = Math.sin(k * 7.3 + el * 10) * px * 2.5, sz = px * (0.6 + (k % 3) * 0.35);   // 凸：糸に沿って光の粒が舞う
               ctx.globalAlpha = al * (0.5 + 0.5 * Math.sin(el * 18 + k)); ctx.fillRect(sx + o - sz / 2, sy - Math.abs(o) * 0.5 - sz / 2, sz, sz); } ctx.globalAlpha = al; }
           const [hx, hy] = pts[pts.length - 1], g = px * (2.6 + Math.sin(el * 22) * 0.8) * (lv >= 2 ? 1.8 : 1);   // 針の先のきらめき（4方向の星）
-          ctx.fillStyle = '#fffbe0'; ctx.beginPath(); ctx.moveTo(hx, hy - g * 1.6); ctx.lineTo(hx + g * 0.3, hy - g * 0.3); ctx.lineTo(hx + g * 1.6, hy); ctx.lineTo(hx + g * 0.3, hy + g * 0.3); ctx.lineTo(hx, hy + g * 1.6); ctx.lineTo(hx - g * 0.3, hy + g * 0.3); ctx.lineTo(hx - g * 1.6, hy); ctx.lineTo(hx - g * 0.3, hy - g * 0.3); ctx.closePath(); ctx.fill();
-          if (el < 0.4) { const u = el / 0.4, [x0, y0] = pts[0]; ctx.strokeStyle = `rgba(255,236,150,${1 - u})`; ctx.lineWidth = Math.max(2, px * 0.8); ctx.beginPath(); ctx.ellipse(x0, y0, px * (2 + u * 6), px * (0.8 + u * 2.4), 0, 0, 7); ctx.stroke(); }   // 出した瞬間の輪
+          ctx.fillStyle = col ? '#f4ecff' : '#fffbe0'; ctx.beginPath(); ctx.moveTo(hx, hy - g * 1.6); ctx.lineTo(hx + g * 0.3, hy - g * 0.3); ctx.lineTo(hx + g * 1.6, hy); ctx.lineTo(hx + g * 0.3, hy + g * 0.3); ctx.lineTo(hx, hy + g * 1.6); ctx.lineTo(hx - g * 0.3, hy + g * 0.3); ctx.lineTo(hx - g * 1.6, hy); ctx.lineTo(hx - g * 0.3, hy - g * 0.3); ctx.closePath(); ctx.fill();
+          if (el < 0.4) { const u = el / 0.4, [x0, y0] = pts[0]; ctx.strokeStyle = col ? `rgba(201,166,255,${1 - u})` : `rgba(255,236,150,${1 - u})`; ctx.lineWidth = Math.max(2, px * 0.8); ctx.beginPath(); ctx.ellipse(x0, y0, px * (2 + u * 6), px * (0.8 + u * 2.4), 0, 0, 7); ctx.stroke(); }   // 出した瞬間の輪
           ctx.restore(); }
       } else if (f[0] === 'bycalm') {   // 白夜：足もとから白い光の輪が大きく広がり、まわりに白い光の粒（凸は二重・大きい）
         const [, x, y, top, px0, u, lv] = f, px = Math.max(2.6, px0), a0 = Math.sin(Math.min(1, u) * Math.PI);
@@ -4027,10 +4028,10 @@
         for (let k = 0; k < (lv >= 2 ? 2 : 1); k++) { const u = (ph + k * 0.5) % 1; ctx.strokeStyle = `rgba(236,232,255,${(1 - u) * 0.9 * fade})`; ctx.lineWidth = Math.max(2.5, px * 0.9);
           ctx.beginPath(); ctx.ellipse(x, y, px * (3.5 + u * 5), px * (1.3 + u * 1.9), 0, 0, 7); ctx.stroke(); }
       } else if (f[0] === 'hraura') {   // 針の穴通しの1本を受けた味方：足もとに淡い金の輪と、立ちのぼる光の粒（凸は二重）
-        const [, x, y, px0, lv, el, d] = f, px = Math.max(2.6, px0), fade = Math.min(1, (d - el) / 0.5), ph = (simT * 1.8) % 1;
-        for (let k = 0; k < (lv >= 2 ? 2 : 1); k++) { const u = (ph + k * 0.5) % 1; ctx.strokeStyle = `rgba(255,246,190,${(1 - u) * 0.9 * fade})`; ctx.lineWidth = Math.max(2.5, px * 0.9);
+        const [, x, y, px0, lv, el, d, col] = f, px = Math.max(2.6, px0), fade = Math.min(1, (d - el) / 0.5), ph = (simT * 1.8) % 1;
+        for (let k = 0; k < (lv >= 2 ? 2 : 1); k++) { const u = (ph + k * 0.5) % 1; ctx.strokeStyle = col ? `rgba(214,190,255,${(1 - u) * 0.9 * fade})` : `rgba(255,246,190,${(1 - u) * 0.9 * fade})`; ctx.lineWidth = Math.max(2.5, px * 0.9);
           ctx.beginPath(); ctx.ellipse(x, y, px * (3.5 + u * 5), px * (1.3 + u * 1.9), 0, 0, 7); ctx.stroke(); }
-        ctx.fillStyle = `rgba(255,250,220,${0.9 * fade})`; for (let k = 0; k < (lv >= 2 ? 9 : 4); k++) { const u = (simT * 1.2 + k / (lv >= 2 ? 9 : 4)) % 1, sz = px * (lv >= 2 ? 1.2 : 0.8); ctx.fillRect(x + Math.sin(k * 2.1 + simT * 3) * px * (lv >= 2 ? 4.5 : 3) - sz / 2, y - u * px * (lv >= 2 ? 18 : 12), sz, sz); }
+        ctx.fillStyle = col ? `rgba(240,230,255,${0.9 * fade})` : `rgba(255,250,220,${0.9 * fade})`; for (let k = 0; k < (lv >= 2 ? 9 : 4); k++) { const u = (simT * 1.2 + k / (lv >= 2 ? 9 : 4)) % 1, sz = px * (lv >= 2 ? 1.2 : 0.8); ctx.fillRect(x + Math.sin(k * 2.1 + simT * 3) * px * (lv >= 2 ? 4.5 : 3) - sz / 2, y - u * px * (lv >= 2 ? 18 : 12), sz, sz); }
         if (lv >= 2) { ctx.fillStyle = `rgba(255,240,170,${0.32 * fade})`; ctx.beginPath(); ctx.ellipse(x, y, px * 8, px * 3, 0, 0, 7); ctx.fill(); }   // 凸：足もとが金色に光る
       } else if (f[0] === 'cdaura') {   // 港の指揮者：拍に合わせて全員の足もとの輪が同時に広がる（凸は二重）。ときどき頭の上に音符
         const [, x, y, top, px0, lv, el, d, ph0] = f, px = Math.max(2.4, px0), fade = Math.min(1, (d - el) / 0.6, el / 0.3), beat = (simT * 1.8) % 1;
