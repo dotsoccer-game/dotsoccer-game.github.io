@@ -3562,7 +3562,8 @@
         for (let k = L5.length - 1; k >= 0; k--) { const a = L5[k]; if (a.t > simT) continue; if (simT - a.t > 6) break;
           if (a.a === 'uend' && a.k === 'miyabi') eM = true;
           if (a.a === 'uend' && a.k === 'kagenui') eG = true;
-          if (!gP && a.a === 'kgpin' && simT - a.t < a.d) { gP = true; defFx.push(['kgpin', q.x, q.y, px5, (simT - a.t) / a.d]); }   // 影縫い（凸）：縫い止められた相手の足もとに、光の針が刺さる
+          if (!gP && a.a === 'kgpin' && simT - a.t < a.d) { gP = true; defFx.push(['kgpin', q.x, q.y, px5, (simT - a.t) / a.d]); }
+          if (!gP && a.a === 'pfaura' && simT - a.t < a.d) { gP = true; defFx.push(['kgpin', q.x, q.y, px5, (simT - a.t) / a.d, 1]); }   // 版1365：マルディオがボールを奪った：影縫い（凸）の光の針を、マルディオの色（青）で   // 影縫い（凸）：縫い止められた相手の足もとに、光の針が刺さる
           if (!gN && a.a === 'kgsew' && simT - a.t < a.d) { gN = true; const fr = st.players[a.o]; if (fr) { const fq = proj(fr.x, fr.y); defFx.push(['kgsew', q.x, q.y, fq.x, fq.y, px5, (simT - a.t) / a.d]); } }
           if (!gS && a.a === 'uniq' && a.k === 'sutemi' && simT - a.t < 3 * (a.lv >= 2 ? 1.25 : 1)) { gS = true; if (sp5 > 2) defFx.push(['trail', q.x, q.y, px5, (m5.x - q.x) / dl5, (m5.y - q.y) / dl5, r.top, 255, 77, 109, a.lv || 1]); }
           if (!gM && !eM && a.a === 'uniq' && a.k === 'miyabi' && simT - a.t < 3 * (a.lv >= 2 ? 1.25 : 1)) { gM = true; lvM = a.lv || 1; defFx.push(sp5 > 1.5 ? ['ribbon', q.x, q.y, px5, (m5.x - q.x) / dl5, (m5.y - q.y) / dl5, r.top, lvM] : ['maura', q.x, q.y, px5, r.top, lvM]); }   // 走っている間は光の帯、待ち構えている間は足もとの光
@@ -3677,7 +3678,7 @@
             const pts = [], endT9 = a._endT ?? -1, t1 = Math.min(simT, endT9 > 0 ? endT9 : a.t + a.d); for (let k = 0; k <= 18; k++) { const tt = a.t + (t1 - a.t) * k / 18, s2 = (k === 18 && t1 === simT) ? st : stateAt(tt); const bq = P3(s2.ball.x, s2.ball.y, (s2.ball.z || 0) + 0.11); pts.push([bq.x, bq.y]); }
             if (endT9 < 0 || simT - endT9 < 0.35) tactFx.push(['hrthread', pts, endT9 < 0 ? simT - a.t : Math.max(simT - a.t, a.d - 0.45 + (simT - endT9) * 1.3), a.d, r.px || q.s * 2.6, a.lv || 1, a.col || 0]); }   // 版1344：受けた・取られた・切れたら、糸はすぐ消える
           if (a.a === 'enaura' && simT - a.t < a.d) tactFx.push(['hraura', q.x, q.y, r.px || q.s * 2.6, 1, simT - a.t, a.d, 2]);
-          if ((a.a === 'pfaura' || a.a === 'anaura' || a.a === 'cpaura2') && simT - a.t < a.d) tactFx.push(['hraura', q.x, q.y, (r.px || q.s * 2.6) * 1.15, 2, simT - a.t, a.d, a.a === 'pfaura' ? 3 : a.a === 'anaura' ? 4 : 2]);   // 版1364：マルディオ（水色）・イベーリ（空色）・ジェラルディ（黄）の色のオーラ
+          if ((a.a === 'anaura' || a.a === 'cpaura2') && simT - a.t < a.d) tactFx.push(['hraura', q.x, q.y, (r.px || q.s * 2.6) * 1.15, 2, simT - a.t, a.d, a.a === 'pfaura' ? 3 : a.a === 'anaura' ? 4 : 2]);   // 版1364：マルディオ（水色）・イベーリ（空色）・ジェラルディ（黄）の色のオーラ
           if (a.a === 'cpaura' && simT - a.t < a.d) { tactFx.push(['hraura', q.x, q.y, (r.px || q.s * 2.6) * 1.25, 2, simT - a.t, a.d, 2]); tactFx.push(['hraura', q.x, q.y, (r.px || q.s * 2.6) * 0.8, 2, simT - a.t + 0.3, a.d, 2]); }   // 版1362：キャプテンズハート：濃い黄色のオーラ（二重）   // 版1357：ノンストップエンジンのオーラ（黄色）
           if (!gHb && a.a === 'hrbuf' && simT - a.t < a.d && (st.owner === i || simT - a.t < 0.6)) { gHb = true; tactFx.push(['hraura', q.x, q.y, r.px || q.s * 2.6, a.lv || 1, simT - a.t, a.d, a.col || 0]); } } }
       if (window.__showOwner && st.owner === i) {   // 版890：確認用：ボールの持ち主（エンジンの判定）の足もとに、チームの色の太い輪
@@ -3769,15 +3770,15 @@
         }
         ctx.restore();
       } else if (f[0] === 'kgpin') {   // 影縫い（凸）：相手の足もとに光の針が4本刺さり、影が地面に縫いつけられる
-        const [, x, y, px0, u] = f, px = Math.max(2.4, px0) * 1.2, al = u < 0.8 ? 1 : (1 - u) / 0.2, drop = Math.min(1, u / 0.15);
+        const [, x, y, px0, u, pfc] = f, C1 = pfc ? '10,31,58' : '90,0,55', C2 = pfc ? '60,140,230' : '232,0,138', C3 = pfc ? '238,247,255' : '255,224,243', C4 = pfc ? '154,208,255' : '255,51,172', px = Math.max(2.4, px0) * 1.2, al = u < 0.8 ? 1 : (1 - u) / 0.2, drop = Math.min(1, u / 0.15);
         ctx.save();
-        { const g = ctx.createRadialGradient(x, y, 0, x, y, px * 5); g.addColorStop(0, `rgba(90,0,55,${0.75 * al})`); g.addColorStop(1, 'rgba(232,0,138,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(x, y, px * 5, px * 1.9, 0, 0, 7); ctx.fill(); }
-        if (u < 0.25) { const fl = 1 - u / 0.25; ctx.strokeStyle = `rgba(255,224,243,${fl})`; ctx.lineWidth = Math.max(3, px); ctx.beginPath(); ctx.ellipse(x, y, px * (2 + (1 - fl) * 7), px * (0.8 + (1 - fl) * 2.6), 0, 0, 7); ctx.stroke(); }
+        { const g = ctx.createRadialGradient(x, y, 0, x, y, px * 5); g.addColorStop(0, `rgba(${C1},${0.75 * al})`); g.addColorStop(1, `rgba(${C2},0)`); ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(x, y, px * 5, px * 1.9, 0, 0, 7); ctx.fill(); }
+        if (u < 0.25) { const fl = 1 - u / 0.25; ctx.strokeStyle = `rgba(${C3},${fl})`; ctx.lineWidth = Math.max(3, px); ctx.beginPath(); ctx.ellipse(x, y, px * (2 + (1 - fl) * 7), px * (0.8 + (1 - fl) * 2.6), 0, 0, 7); ctx.stroke(); }
         for (let k = 0; k < 4; k++) { const an = k / 4 * 6.283 + 0.785, sx = x + Math.cos(an) * px * 3.4, sy = y + Math.sin(an) * px * 1.3, len = px * 8, fall = px * 14 * (1 - drop), bot = sy - fall;
-          ctx.strokeStyle = `rgba(255,51,172,${al})`; ctx.lineWidth = Math.max(3, px * 0.9); ctx.shadowColor = 'rgba(255,51,172,1)'; ctx.shadowBlur = px * 3; ctx.beginPath(); ctx.moveTo(sx + px * 0.8, bot - len); ctx.lineTo(sx, bot); ctx.stroke();
-          ctx.shadowBlur = 0; ctx.strokeStyle = `rgba(255,224,243,${al})`; ctx.lineWidth = Math.max(1.5, px * 0.35); ctx.beginPath(); ctx.moveTo(sx + px * 0.8, bot - len); ctx.lineTo(sx, bot); ctx.stroke();
-          ctx.fillStyle = `rgba(255,224,243,${al})`; ctx.beginPath(); ctx.arc(sx + px * 0.8, bot - len, Math.max(2, px * 0.6), 0, 7); ctx.fill();
-          if (drop >= 1) { ctx.strokeStyle = `rgba(255,51,172,${0.8 * al})`; ctx.lineWidth = Math.max(1.5, px * 0.4); ctx.beginPath(); ctx.ellipse(sx, sy, px * 1.2, px * 0.45, 0, 0, 7); ctx.stroke(); } }   // 刺さった所に小さな輪
+          ctx.strokeStyle = `rgba(${C4},${al})`; ctx.lineWidth = Math.max(3, px * 0.9); ctx.shadowColor = `rgba(${C4},1)`; ctx.shadowBlur = px * 3; ctx.beginPath(); ctx.moveTo(sx + px * 0.8, bot - len); ctx.lineTo(sx, bot); ctx.stroke();
+          ctx.shadowBlur = 0; ctx.strokeStyle = `rgba(${C3},${al})`; ctx.lineWidth = Math.max(1.5, px * 0.35); ctx.beginPath(); ctx.moveTo(sx + px * 0.8, bot - len); ctx.lineTo(sx, bot); ctx.stroke();
+          ctx.fillStyle = `rgba(${C3},${al})`; ctx.beginPath(); ctx.arc(sx + px * 0.8, bot - len, Math.max(2, px * 0.6), 0, 7); ctx.fill();
+          if (drop >= 1) { ctx.strokeStyle = `rgba(${C4},${0.8 * al})`; ctx.lineWidth = Math.max(1.5, px * 0.4); ctx.beginPath(); ctx.ellipse(sx, sy, px * 1.2, px * 0.45, 0, 0, 7); ctx.stroke(); } }   // 刺さった所に小さな輪
         ctx.restore();
       } else if (f[0] === 'kgsew') {   // 影縫い（凸）：縫い止める瞬間、ひがしから相手へ光る糸がピンと張る
         const [, x, y, tx2, ty2, px0, u] = f, px = Math.max(2.4, px0), al = 1 - u;
