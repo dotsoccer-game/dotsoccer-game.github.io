@@ -300,8 +300,8 @@
         const names = [nm(a)];
         for (let j = k - 1; j >= 0 && a.t - L2[j].t < (a.a === 'uniq' || L2[j].a === 'uniq' ? 0.8 : 0.05); j--) if ((L2[j].a === 'skill' || L2[j].a === 'uniq') && L2[j].nm !== 'ロイヤルタッチ' && !names.includes(nm(L2[j]))) names.unshift(nm(L2[j]));
         names.sort((x, y) => (y[0] === '【') - (x[0] === '【'));
-        if (names[0][0] === '【' && (a.a === 'uniq' ? D.UNIQ && D.UNIQ[a.k] && D.UNIQ[a.k].dream : L2.some((b2) => b2.a === 'uniq' && Math.abs(b2.t - a.t) < 0.8 && D.UNIQ && D.UNIQ[b2.k] && D.UNIQ[b2.k].dream))) return names.filter((x) => x[0] === '【').join('＋');   /* 版1340：ドリームのスターは、固有スキルの名前だけ（「＋高速ドリブル」などは付けない） */
-        return names.join('＋');
+        if (names[0][0] === '【' && (a.a === 'uniq' ? D.UNIQ && D.UNIQ[a.k] && D.UNIQ[a.k].dream : L2.some((b2) => b2.a === 'uniq' && Math.abs(b2.t - a.t) < 0.8 && D.UNIQ && D.UNIQ[b2.k] && D.UNIQ[b2.k].dream))) return names[0];   /* 版1340：ドリームのスターは、固有スキルの名前だけ（「＋高速ドリブル」などは付けない） */
+        return names[0];   // 版1362：「＋○○」でつなげず、ひとつだけ出す
       }
     }
     return null;
@@ -319,7 +319,7 @@
         let sk = null, dsh = false;
         if (sh) { for (const a of actsOf[i] || []) if (a.a === 'dshot' && a.t <= t0 + 0.2 && a.t > t0 - 0.6) dsh = true; else if (a.a === 'skill' && SHOT_SKILL.has(a.k) && a.t <= t0 + 0.2 && a.t > t0 - (a.k === 'powerMid' || a.k === 'nearPost' || a.k === 'superLong' ? 2.5 : 0.3)) { if (a.k === 'dribbleShot') dsh = true; else sk = a.k; }
           if (sh.chip) sk = 'lob'; if (sh.knuckle) sk = 'knuckle';
-          for (const a of actsOf[i] || []) if ((a.a === 'thb' || a.a === 'nsm') && Math.abs(a.t - t0) < 0.3) sk = a.a;   /* 版1359：サンダーボルト・ノンストップミドル */ }
+          for (const a of actsOf[i] || []) if ((a.a === 'thb' || a.a === 'nsm') && Math.abs(a.t - t0) < 0.3) sk = a.a;   /* 版1359：ライトニングショット・ノンストップミドル */ }
         list[k].sk = sk; list[k].dsh = dsh;
         if (!sh) { for (const a of actsOf[i] || []) if (a.a === 'skill' && a.k === 'lowPunt' && Math.abs(a.t - t0) < 0.25) { list[k].lp = true; break; } }   // 版1200：低弾道パントキック（GK）は、体を倒して横から叩くボレーの絵で
       }
@@ -1947,7 +1947,7 @@
       if (sfx === 'powerMid') {   // 太い弾道（オレンジから白へ）と、蹴った瞬間の衝撃の輪
         const n = Math.min(P.length, 9); for (let k = 1; k < n; k++) { const a = 1 - k / n, A = P[P.length - k], B2 = P[P.length - k - 1] || A; ctx.strokeStyle = `rgba(255,${150 + 100 * a | 0},${60 + 180 * a | 0},${0.85 * a})`; ctx.lineWidth = r * (0.5 + 1.2 * a); ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B2[0], B2[1]); ctx.stroke(); }
         if (age < 0.25) { const u = age / 0.25, Q = P[0], R0 = r * (1.5 + u * 6); ctx.globalAlpha = 1 - u; ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.ellipse(Q[0], Q[1], R0, R0 * 0.45, 0, 0, 7); ctx.stroke(); ctx.strokeStyle = '#ffe9a0'; for (let k = 0; k < 10; k++) { const a2 = k / 10 * Math.PI * 2; ctx.beginPath(); ctx.moveTo(Q[0] + Math.cos(a2) * R0 * 1.1, Q[1] + Math.sin(a2) * R0 * 0.5); ctx.lineTo(Q[0] + Math.cos(a2) * R0 * 1.7, Q[1] + Math.sin(a2) * R0 * 0.8); ctx.stroke(); } }
-      } else if (sfx === 'thunder') {   // 版1361：サンダーボルト：まっすぐな太い光の尾（黄→白）。尾から小さな稲妻がビリビリと短く飛び出す
+      } else if (sfx === 'thunder') {   // 版1361：ライトニングショット：まっすぐな太い光の尾（黄→白）。尾から小さな稲妻がビリビリと短く飛び出す
         const n = Math.min(P.length, 11); for (let k = 1; k < n; k++) { const a = 1 - k / n, A = P[P.length - k], B2 = P[P.length - k - 1] || A; ctx.strokeStyle = `rgba(255,${200 + 50 * a | 0},${40 + 170 * a | 0},${0.85 * a})`; ctx.lineWidth = r * (0.5 + 1.3 * a); ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B2[0], B2[1]); ctx.stroke(); ctx.strokeStyle = `rgba(255,255,255,${0.9 * a})`; ctx.lineWidth = Math.max(1, r * 0.35 * a); ctx.stroke(); }
         const fr = Math.floor(simT * 30); for (let k = 2; k < n - 1; k += 2) { if ((fr + k) % 3 === 0) continue; const A = P[P.length - k], B2 = P[P.length - k - 1] || A, dx = A[0] - B2[0], dy = A[1] - B2[1], dl = Math.hypot(dx, dy) || 1, nx = -dy / dl, ny = dx / dl, sd = ((fr * 7 + k * 13) % 2) ? 1 : -1, L1 = r * (1.1 + ((fr + k) % 4) * 0.25);
           ctx.strokeStyle = `rgba(255,248,170,${0.9 * (1 - k / n)})`; ctx.lineWidth = Math.max(1, r * 0.22); ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(A[0] + nx * sd * L1 * 0.6 + dx / dl * L1 * 0.3, A[1] + ny * sd * L1 * 0.6 + dy / dl * L1 * 0.3); ctx.lineTo(A[0] + nx * sd * L1, A[1] + ny * sd * L1 - r * 0.2); ctx.stroke(); }
@@ -2420,7 +2420,7 @@
       if (sh.endT === undefined) { const E9 = (match && match.events) || []; const e9 = E9.find((e) => e.t > sh.t + 0.02 && e.t < sh.t + 2.2 && /^(save|gk|gkblock|block|post|bar|goal|goalkick|corner|throw|foul|out|catch)$/.test(e.type)); sh.endT = e9 ? (e9.tt ?? e9.t) : 99; }
       if (simT > sh.endT + 0.12) return null;   // 版1344：止められた・外れた・決まったら、シュートのエフェクトはすぐ消す（余韻を残さない）
       if (sh.sk === undefined) { let sk = null, dsh = false; for (const a of actsOf[sh.i] || []) if (a.a === 'skill' && SHOT_SKILL.has(a.k) && a.t <= sh.t + 0.2 && a.t > sh.t - (a.k === 'powerMid' || a.k === 'nearPost' || a.k === 'superLong' ? 2.5 : 0.3)) { if (a.k !== 'dribbleShot') sk = a.k; }
-        if (sh.chip) sk = 'lob'; if (sh.knuckle) sk = 'knuckle'; if (!sk) { const ta = (actsOf[sh.i] || []).find((a) => (a.a === 'thb' || a.a === 'nsm') && Math.abs(a.t - sh.t) < 0.3); if (ta) sk = ta.a === 'thb' ? 'thunder' : 'powerMid'; } sh.sk = sk;   /* 版1359：サンダーボルト・ノンストップミドルにも、強烈ミドルの太い弾道 */
+        if (sh.chip) sk = 'lob'; if (sh.knuckle) sk = 'knuckle'; if (!sk) { const ta = (actsOf[sh.i] || []).find((a) => (a.a === 'thb' || a.a === 'nsm') && Math.abs(a.t - sh.t) < 0.3); if (ta) sk = ta.a === 'thb' ? 'thunder' : 'powerMid'; } sh.sk = sk;   /* 版1359：ライトニングショット・ノンストップミドルにも、強烈ミドルの太い弾道 */
         { const ga = (actsOf[sh.i] || []).find((a) => a.a === 'uniq' && a.k === 'guren' && Math.abs(a.t - sh.t) < 0.35); sh.guren = ga ? ga.lv || 1 : 0; }
         { const ra = (actsOf[sh.i] || []).find((a) => a.a === 'uniq' && a.k === 'rocket' && Math.abs(a.t - sh.t) < 0.45); sh.rocket = ra ? (ra.nm === 'ロケットナックル' ? 2 : 1) : 0;
           if (!sh.rocket) { const ya = (actsOf[sh.i] || []).find((a) => a.a === 'uniq' && ((a.k === 'royal' && a.nm === 'ロイヤルミドル') || (a.k === 'pinpoint' && a.nm === 'ピンポイントFK')) && Math.abs(a.t - sh.t) < 0.7); if (ya) sh.rocket = ya.k === 'royal' ? 3 : 4; } } }   // 版1343：ロイヤルミドル（紫の光の尾）・ピンポイントFK（赤と金の尾）   // 紅蓮の牙：赤い風   // 版1338：ロケット（ショット・ナックル・スカイロケットの頭）：白く光る噴射の尾
@@ -3541,7 +3541,7 @@
       const sk = skillAt(i);
       // 技が出た瞬間の輪と集中線、画面下の大きな技名
       { const L2 = actsOf[i]; for (let k = L2.length - 1; k >= 0; k--) { const a = L2[k]; if (a.t > simT) continue; if (simT - a.t > 0.5) break;
-          if (a.a === 'skill') { flashes.push([q.x, q.y, r.px || q.s * 2.6, simT - a.t]); if (!skillBanner || skillBanner.t < a.t - 0.01 || (skillBanner.t === a.t && skillBanner.i === i && !skillBanner.name.includes(SKILL_NAME[a.k]))) { const nm = a.k === 'sharpCurve' ? '【シャープカーブ】' : SKILL_NAME[a.k] || a.k; skillBanner = skillBanner && skillBanner.i === i && Math.abs(skillBanner.t - a.t) < 0.05 && !skillBanner.name.includes(nm) ? { ...skillBanner, name: skillBanner.name + '＋' + nm } : { t: a.t, i, team, name: nm, who: `${info.number} ${info.name}` }; } break; } } }
+          if (a.a === 'skill') { flashes.push([q.x, q.y, r.px || q.s * 2.6, simT - a.t]); if (!skillBanner || skillBanner.t < a.t - 0.01 || (skillBanner.t === a.t && skillBanner.i === i && !skillBanner.name.includes(SKILL_NAME[a.k]))) { const nm = a.k === 'sharpCurve' ? '【シャープカーブ】' : SKILL_NAME[a.k] || a.k; skillBanner = skillBanner && skillBanner.i === i && Math.abs(skillBanner.t - a.t) < 0.05 && !skillBanner.name.includes(nm) ? skillBanner : { t: a.t, i, team, name: nm, who: `${info.number} ${info.name}` }; } break; } } }
       // 技名は頭の上の小さな吹き出しで（大きな技名はリプレイ・ダイジェストでだけ）
       if (sk) {   // 紫電の遊戯が出ている間の技の吹き出しは、紫電の遊戯と同じ色にする
         let ov = null; const L9 = actsOf[i]; if (L9) for (let k = L9.length - 1; k >= 0; k--) { const a = L9[k]; if (a.t > simT) continue; if (simT - a.t > 9) break; if (a.a === 'uend' && a.k === 'shiden') break; if (a.a === 'uniq' && a.k === 'shiden') { ov = D.UNIQ && D.UNIQ.shiden && D.UNIQ.shiden.chip; break; } }
@@ -3651,7 +3651,7 @@
           else if (a.a === 'capbuf') { seen.capbuf = 1; tactFx.push(['gbuf', q.x, q.y, px0, el, a.d, a.c]); }
           else if (a.a === 'pppass' && el < a.d) { seen.pppass = 1; const pts = [], t1 = Math.min(simT, a.t + a.d); let ended = false, tEnd = 0;
             for (let k2 = 0; k2 <= 16; k2++) { const tt = a.t + (t1 - a.t) * k2 / 16, s2 = k2 === 16 ? st : stateAt(tt), rp = a.r != null ? s2.players[a.r] : null; if (k2 > 2 && ((s2.owner >= 0 && s2.owner !== i) || s2.code || (rp && Math.hypot(rp.x - s2.ball.x, rp.y - s2.ball.y) < 1.6))) { ended = true; tEnd = tt; break; } const bq = P3(s2.ball.x, s2.ball.y, (s2.ball.z || 0) + 0.11); pts.push([bq.x, bq.y]); }
-            if (!ended || simT - tEnd < 0.25) { tactFx.push(['ctrail', pts, el, a.d, px0, a.cp ? '255,170,60' : a.an ? '140,210,255' : a.h === 2 ? '180,255,90' : a.h ? '255,96,56' : '255,214,70', ended ? simT - tEnd : -1]); if (!ended && a.lx != null) { const g = proj(a.lx, a.ly); tactFx.push(['pptgt', g.x, g.y, px0, el, a.d]); } } }
+            if (!ended || simT - tEnd < 0.25) { tactFx.push(['ctrail', pts, el, a.d, px0, a.cp ? '255,170,60' : a.an ? '140,210,255' : a.h === 2 ? '180,255,90' : a.h ? '255,96,56' : '255,214,70', ended ? simT - tEnd : -1]); if (false && !ended && a.lx != null) { const g = proj(a.lx, a.ly); tactFx.push(['pptgt', g.x, g.y, px0, el, a.d]); }   /* 版1362：落ちる所の印は出さない（クロス・ハリウッドパスなど全部） */ } }
         } }
       // 翠の起点（むらおか・翠）：発動で翠の輪が弾け、晒している間は足もとへ吸い寄せる翠の輪。食いついた相手へ翠の点線、走り出す仲間に翠の風、裏返す1本は翠の光の尾
       { const LM = actsOf[i]; let gM1 = false, gM2 = false, gM3 = false, gM4 = false, gM5 = false; if (LM) for (let k = LM.length - 1; k >= 0; k--) { const a = LM[k]; if (a.t > simT) continue; if (simT - a.t > 8) break;
@@ -3670,7 +3670,8 @@
             if (a._endT === undefined || a._endT === null) { for (let tt = a.t + 0.15; tt <= Math.min(simT, a.t + a.d); tt += 0.05) { const s2 = stateAt(tt); if ((s2.owner >= 0 && s2.owner !== i) || s2.code) { a._endT = tt; break; } } }   // 版1346：糸が終わる時刻は一度だけ決める（毎回ずれて、チカチカしていた）
             const pts = [], endT9 = a._endT ?? -1, t1 = Math.min(simT, endT9 > 0 ? endT9 : a.t + a.d); for (let k = 0; k <= 18; k++) { const tt = a.t + (t1 - a.t) * k / 18, s2 = (k === 18 && t1 === simT) ? st : stateAt(tt); const bq = P3(s2.ball.x, s2.ball.y, (s2.ball.z || 0) + 0.11); pts.push([bq.x, bq.y]); }
             if (endT9 < 0 || simT - endT9 < 0.35) tactFx.push(['hrthread', pts, endT9 < 0 ? simT - a.t : Math.max(simT - a.t, a.d - 0.45 + (simT - endT9) * 1.3), a.d, r.px || q.s * 2.6, a.lv || 1, a.col || 0]); }   // 版1344：受けた・取られた・切れたら、糸はすぐ消える
-          if (a.a === 'enaura' && simT - a.t < a.d) tactFx.push(['hraura', q.x, q.y, r.px || q.s * 2.6, 1, simT - a.t, a.d, 2]);   // 版1357：ノンストップエンジンのオーラ（黄色）
+          if (a.a === 'enaura' && simT - a.t < a.d) tactFx.push(['hraura', q.x, q.y, r.px || q.s * 2.6, 1, simT - a.t, a.d, 2]);
+          if (a.a === 'cpaura' && simT - a.t < a.d) { tactFx.push(['hraura', q.x, q.y, (r.px || q.s * 2.6) * 1.25, 2, simT - a.t, a.d, 2]); tactFx.push(['hraura', q.x, q.y, (r.px || q.s * 2.6) * 0.8, 2, simT - a.t + 0.3, a.d, 2]); }   // 版1362：キャプテンズハート：濃い黄色のオーラ（二重）   // 版1357：ノンストップエンジンのオーラ（黄色）
           if (!gHb && a.a === 'hrbuf' && simT - a.t < a.d && (st.owner === i || simT - a.t < 0.6)) { gHb = true; tactFx.push(['hraura', q.x, q.y, r.px || q.s * 2.6, a.lv || 1, simT - a.t, a.d, a.col || 0]); } } }
       if (window.__showOwner && st.owner === i) {   // 版890：確認用：ボールの持ち主（エンジンの判定）の足もとに、チームの色の太い輪
         ctx.strokeStyle = team === 0 ? '#3fa0ff' : '#ff4d4d'; ctx.lineWidth = 4;
@@ -4124,12 +4125,12 @@
     drawCardBanner();
     skillChips.forEach(([x, y, k, ov]) => {
       // スキル発動の表示（選手の頭上に小さく）
-      ctx.font = `900 24px ${JP}`; const w = ctx.measureText(k).width + 26;   // 版497：スキルの吹き出しを大きく
+      ctx.font = `900 18px ${JP}`; const w = ctx.measureText(k).width + 18;   // 版1362：スキルの吹き出しを少し小さく（24→18）
       // 固有スキル：スキルごとの色（engine の UNIQ の chip：地・ふち・文字）。覚醒（凸）は、ふちが太く光る
       const uq = k.includes('【'), kk = k.includes('・覚醒'), U2 = uq && D.UNIQ ? Object.values(D.UNIQ).find((u) => k.includes('【' + u.name) || (u.alias || []).some((n) => k.includes('【' + n))) : null, cc = U2 && U2.chip ? U2.chip : ['#c8141e', '#ffd23a', '#ffe45a'];
       if (kk) { ctx.save(); ctx.shadowColor = cc[1]; ctx.shadowBlur = 14; }
       const oc = !uq && ov ? ov : null;
-      ctx.fillStyle = uq ? cc[0] : oc ? oc[0] : '#ffd400'; rrect(x - w / 2, y - 28, w, 35, 17); ctx.fill(); ctx.strokeStyle = uq ? cc[1] : oc ? oc[1] : '#3a2a00'; ctx.lineWidth = kk ? 3.5 : 2; ctx.stroke();
+      ctx.fillStyle = uq ? cc[0] : oc ? oc[0] : '#ffd400'; rrect(x - w / 2, y - 22, w, 27, 13); ctx.fill(); ctx.strokeStyle = uq ? cc[1] : oc ? oc[1] : '#3a2a00'; ctx.lineWidth = kk ? 3.5 : 2; ctx.stroke();
       if (kk) ctx.restore();
       ctx.fillStyle = uq ? cc[2] : oc ? oc[2] : '#3a2a00'; ctx.textAlign = 'center'; ctx.fillText(k, x, y - 2);
     });
