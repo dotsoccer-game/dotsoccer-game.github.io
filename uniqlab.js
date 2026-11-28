@@ -87,6 +87,7 @@
     <div class="row">ホーム <select id="umA"></select></div>
     <div class="row">アウェイ <select id="umB"></select></div>
     <div class="row"><button class="go" id="umW">試合で見る</button><button id="umN">結果だけ（10試合）</button></div>
+    <div class="row"><button id="umG" title="ジェラルディのチームが、70分に同点か負けている試合を探して、69分から見せます">ジェラルディ：負けている（同点の）70分から見る</button></div>
     <div class="row" id="umJ"></div>
    </div>
    <div id="tabP" hidden>
@@ -404,6 +405,14 @@
     $('#umW').onclick = () => { if (mA === mB) { msg('別のチームを選んでください。'); return; } const a = full(mA), b = full(mB), seed = 1000 + Math.floor(Math.random() * 90000);
       document.querySelectorAll('.lk-wrap').forEach((el) => { el.hidden = true; }); box.classList.add('min'); $('#ulMin').textContent = 'ひらく';
       A.startWith(a, b, seed, a.short || tname(mA), b.short || tname(mB), () => {}, { noIntro: true, kits: [a.kit, b.kit] }); msg(''); };
+    $('#umG').onclick = () => { msg('70分に同点か負けている試合を探しています…'); setTimeout(() => {   // 版1363：キャプテンズハート（70分の号令）とレイトヘッダーを見る
+      const opp = mB === 'london' ? 'madrid' : mB; let best = null;
+      for (let s = 0; s < 40; s++) { const seed = 3000 + s * 41, m = D.simulateMatch(full('london'), full(opp), seed, { frames: false, acts: true }); const cp = (m.actions || []).filter((a) => a.a === 'cpaura'); if (cp.length < 15) continue; const t70 = cp[cp.length - 1].t; const lh = (m.events || []).filter((e) => e.type === 'uniq' && e.k === 'captain' && e.t > t70).length; const sc = lh * 10 + 1; if (!best || sc > best.sc) best = { seed, t70, sc, lh }; if (lh) break; }
+      if (!best) { msg('40試合探しても、70分に同点か負けている試合がありませんでした。相手を変えてみてください。'); return; }
+      const a = full('london'), b = full(opp); document.querySelectorAll('.lk-wrap').forEach((el) => { el.hidden = true; }); box.classList.add('min'); $('#ulMin').textContent = 'ひらく';
+      A.startWith(a, b, best.seed, a.short || tname('london'), b.short || tname(opp), () => {}, { noIntro: true, kits: [a.kit, b.kit] });
+      setTimeout(() => { try { M.seek(Math.max(0.2, best.t70 - 4)); M.setSpeed(1); if (!M.playing) M.play(); } catch (_) {} }, 400);
+      msg(`70分の号令の4秒前から見ます（相手：${tname(opp)}）。${best.lh ? 'この試合は、そのあとレイトヘッダーなどジェラルディの技も出ます。' : 'この試合では、そのあとジェラルディの技は出ませんでした。'}`); }, 30); };
     $('#umN').onclick = () => { if (mA === mB) { msg('別のチームを選んでください。'); return; } msg('計算中…'); setTimeout(() => { let w = 0, d = 0, l = 0, gf = 0, ga = 0; const rs = [];
       for (let s = 0; s < 10; s++) { const m = sim(full(mA), full(mB), 2000 + s * 37); gf += m.score[0]; ga += m.score[1]; if (m.score[0] > m.score[1]) w++; else if (m.score[0] < m.score[1]) l++; else d++; rs.push(m.score.join('-')); }
       $('#umJ').innerHTML = `${tname(mA)} ${w}勝${d}分${l}敗（${gf}得点・${ga}失点）<br>${rs.join('　')}`; msg(''); }, 30); }; }

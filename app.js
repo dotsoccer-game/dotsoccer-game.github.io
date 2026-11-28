@@ -297,6 +297,7 @@
       if (a.a === 'skill' || a.a === 'uniq') {
         // 固有スキルは【】で囲む（ほかの技と同時なら「【紅蓮の牙】＋強烈ミドル」）
         const nm = (x) => (x.a === 'uniq' ? (x.nm ? `【${x.nm}】` : `【${(D.UNIQ && D.UNIQ[x.k] && D.UNIQ[x.k].name) || x.k}${x.lv >= 2 ? '・覚醒' : ''}】`) : x.k === 'sharpCurve' ? '【シャープカーブ】' : SKILL_NAME[x.k] || x.k);   /* 版1332：シャープカーブは、ゼログラビティと同じ色 */   // 凸で強化した固有スキルは「・覚醒」
+        { const u9 = a.a === 'uniq' ? a : L2.find((b2) => b2.a === 'uniq' && Math.abs(b2.t - a.t) < 0.05 && b2.t <= simT); return nm(u9 || a); }   // 版1363：吹き出しは1つ。続けて技が出たら、新しい方に切り替える（同時なら固有スキルを優先）
         const names = [nm(a)];
         for (let j = k - 1; j >= 0 && a.t - L2[j].t < (a.a === 'uniq' || L2[j].a === 'uniq' ? 0.8 : 0.05); j--) if ((L2[j].a === 'skill' || L2[j].a === 'uniq') && L2[j].nm !== 'ロイヤルタッチ' && !names.includes(nm(L2[j]))) names.unshift(nm(L2[j]));
         names.sort((x, y) => (y[0] === '【') - (x[0] === '【'));
