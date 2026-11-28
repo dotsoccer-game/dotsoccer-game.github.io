@@ -122,7 +122,7 @@
   setTimeout(hideCareer, 600); setTimeout(hideCareer, 1800);
 
   // ---- 試合で見る：発動が多い試合を探して、その試合を流す。発動した場面へジャンプできる ----
-  const SPK = { zerog: ['sharpCurve', 'シャープカーブ', 1], trivela: ['trivelaShot', 'トリベーラ・ミドル', 2] };
+  const SPK = { zerog: ['sharpCurve', 'シャープカーブ', 1], trivela: ['trivelaShot', 'トリベーラ・ミドル', 2], storm: ['trivelaShot', 'バナナキック', 3] };   // 版1364：カルロッソ（3凸）のバナナキックも探す
   function watch() {
     msg('発動する試合を探しています…');
     setTimeout(() => {
