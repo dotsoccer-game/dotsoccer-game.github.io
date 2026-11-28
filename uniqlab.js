@@ -46,7 +46,7 @@
   const box = document.createElement('div'); box.id = 'ul';
   box.innerHTML = `<button class="mini" id="ulMin">たたむ</button><h3>固有スキル・サポートパッシブの確認</h3>
   <div class="body">
-   <div class="row tabs"><button data-tab="u" class="on">固有スキル（国内18人＋ドリーム4人）</button><button data-tab="p">サポートパッシブ（19タイプ）</button><button data-tab="c">対策役との相性</button><button data-tab="v">選手の対決</button><button data-tab="d">ドリブル技</button></div>
+   <div class="row tabs"><button data-tab="u" class="on">固有スキル（国内18人＋ドリーム4人）</button><button data-tab="p">サポートパッシブ（19タイプ）</button><button data-tab="c">対策役との相性</button><button data-tab="v">選手の対決</button><button data-tab="d">ドリブル技</button><button data-tab="m">ドリーム同士の試合</button></div>
    <div id="tabU">
     <div class="row"><select id="ulK">${Object.entries(U).filter(([k]) => OWN[k]).map(([k, u]) => `<option value="${k}">${u.dream ? '★ドリーム　' : ''}${u.name}（${u.who}・${u.type}）</option>`).join('')}</select></div>
     <div class="desc" id="ulD"></div>
@@ -82,6 +82,13 @@
     <div class="row"><button class="go" id="uvW">試合で見る</button><button id="uvN">数字で比べる（20試合）</button></div>
     <div class="row" id="uvJ"></div>
    </div>
+   <div id="tabM" hidden>
+    <div class="desc">ドリームリーグのチームどうしで、ふつうに試合をします（固有スキルは、両チームとも3凸で全部出ます）。</div>
+    <div class="row">ホーム <select id="umA"></select></div>
+    <div class="row">アウェイ <select id="umB"></select></div>
+    <div class="row"><button class="go" id="umW">試合で見る</button><button id="umN">結果だけ（10試合）</button></div>
+    <div class="row" id="umJ"></div>
+   </div>
    <div id="tabP" hidden>
     <div class="row"><select id="ulP">${Object.entries(PAS).map(([t, v]) => `<option value="${t}">${v.name}（${t}）</option>`).join('')}</select></div>
     <div class="desc" id="ulPD"></div>
@@ -94,7 +101,7 @@
   document.body.appendChild(box);
   const $ = (s) => box.querySelector(s), msg = (t) => { $('#ulM').innerHTML = t; };
   $('#ulMin').onclick = () => { box.classList.toggle('min'); $('#ulMin').textContent = box.classList.contains('min') ? 'ひらく' : 'たたむ'; };
-  box.querySelectorAll('[data-tab]').forEach((b) => b.onclick = () => { box.querySelectorAll('[data-tab]').forEach((x) => x.classList.toggle('on', x === b)); $('#tabU').hidden = b.dataset.tab !== 'u'; $('#tabP').hidden = b.dataset.tab !== 'p'; $('#tabC').hidden = b.dataset.tab !== 'c'; $('#tabV').hidden = b.dataset.tab !== 'v'; $('#tabD').hidden = b.dataset.tab !== 'd'; msg(''); });
+  box.querySelectorAll('[data-tab]').forEach((b) => b.onclick = () => { box.querySelectorAll('[data-tab]').forEach((x) => x.classList.toggle('on', x === b)); $('#tabU').hidden = b.dataset.tab !== 'u'; $('#tabP').hidden = b.dataset.tab !== 'p'; $('#tabC').hidden = b.dataset.tab !== 'c'; $('#tabV').hidden = b.dataset.tab !== 'v'; $('#tabD').hidden = b.dataset.tab !== 'd'; $('#tabM').hidden = b.dataset.tab !== 'm'; msg(''); });
   function descU() { const u = U[key], o = OWN[key]; $('#ulD').innerHTML = `<b>${u.name}</b>　${u.who}（${tname(o.id)}・${u.type}・${o.q.no}番）<br><small>発動：</small>${u.when}<br><small>効果：</small>${u.what}${key === 'lastmin' ? '<br><small>※確認画面では、出やすいように「終盤・負けているか同点」の条件を外しています（試合の最初から、攻めるたびに上がっていきます）</small>' : ''}`; globalThis.__Klmm = key === 'lastmin' ? 0 : undefined; globalThis.__Klmx = key === 'lastmin' ? 1 : undefined; globalThis.__Klmu = key === 'lastmin' ? 0 : undefined; }
   function descP() { const v = PAS[pasType]; $('#ulPD').innerHTML = `<b>${v.name}</b>（${pasType}）<br><small>効果：</small>${v.what}${v.rad ? `（${v.rad}m以内の味方）` : ''}`; }
   $('#ulK').onchange = (e) => { key = e.target.value;  lv2 = U[key].dream ? 3 : 0; lvTxt(); descU(); $('#ulJ').innerHTML = ''; msg(''); $('#ulSR').hidden = !SHOOTERS.has(key); };
@@ -387,4 +394,17 @@
       }, 300);
     }, 30);
   };
+
+  // 版1361：ドリームリーグ同士の試合（強いチームどうしを、ふつうに見る）
+  { const DL = Object.keys(C.ROSTERS).filter((id) => (C.ROSTERS[id].lvl || 0) >= 94).sort((a, b) => (C.ROSTERS[b].lvl || 0) - (C.ROSTERS[a].lvl || 0));
+    const dOpt = (sel) => DL.map((id) => `<option value="${id}"${id === sel ? ' selected' : ''}>${tname(id)}（Lv${C.ROSTERS[id].lvl}）</option>`).join('');
+    let mA = DL[0], mB = DL[1]; $('#umA').innerHTML = dOpt(mA); $('#umB').innerHTML = dOpt(mB);
+    $('#umA').onchange = (e) => { mA = e.target.value; }; $('#umB').onchange = (e) => { mB = e.target.value; };
+    const full = (id) => { const t = C.cpuTeam(id); for (const p of t.players) if (p.uniq && U[p.uniq]) { if (U[p.uniq].dream) { p.totsu = 3; p.uniqLv = 3; } else p.uniqLv = 2; } return t; };
+    $('#umW').onclick = () => { if (mA === mB) { msg('別のチームを選んでください。'); return; } const a = full(mA), b = full(mB), seed = 1000 + Math.floor(Math.random() * 90000);
+      document.querySelectorAll('.lk-wrap').forEach((el) => { el.hidden = true; }); box.classList.add('min'); $('#ulMin').textContent = 'ひらく';
+      A.startWith(a, b, seed, a.short || tname(mA), b.short || tname(mB), () => {}, { noIntro: true, kits: [a.kit, b.kit] }); msg(''); };
+    $('#umN').onclick = () => { if (mA === mB) { msg('別のチームを選んでください。'); return; } msg('計算中…'); setTimeout(() => { let w = 0, d = 0, l = 0, gf = 0, ga = 0; const rs = [];
+      for (let s = 0; s < 10; s++) { const m = sim(full(mA), full(mB), 2000 + s * 37); gf += m.score[0]; ga += m.score[1]; if (m.score[0] > m.score[1]) w++; else if (m.score[0] < m.score[1]) l++; else d++; rs.push(m.score.join('-')); }
+      $('#umJ').innerHTML = `${tname(mA)} ${w}勝${d}分${l}敗（${gf}得点・${ga}失点）<br>${rs.join('　')}`; msg(''); }, 30); }; }
 })();
